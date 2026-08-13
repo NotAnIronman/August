@@ -337,6 +337,18 @@ export function getQuestTabUid(displayMode: DisplayMode): number {
     return (rootId << 16) | getChildId(InterfaceDestination.QUEST, displayMode);
 }
 
+/** Get the legacy Friends Chat/Chat-channel tab container UID. */
+export function getClanChatTabUid(displayMode: DisplayMode): number {
+    const rootId = getRootInterfaceId(displayMode);
+    if (displayMode === DisplayMode.MOBILE && viewportEnumService) {
+        return viewportEnumService.getMobileComponent(BaseComponentUids.TAB_CLAN);
+    }
+    if (displayMode === DisplayMode.MOBILE) {
+        return (rootId << 16) | 123;
+    }
+    return (rootId << 16) | getChildId(InterfaceDestination.CLAN_CHAT, displayMode);
+}
+
 /**
  * Get the prayer tab container UID.
  * Uses enum 1745 for mobile mapping when ViewportEnumService is available.

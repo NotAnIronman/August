@@ -7,7 +7,6 @@ import type { HandlerMap } from "./HandlerTypes";
 export function registerSocialOps(handlers: HandlerMap): void {
     // === Friends ===
     handlers.set(Opcodes.FRIEND_COUNT, (ctx) => {
-        ctx.intStackSize--; // pop check flag (unused)
         ctx.pushInt(ctx.friendList.length);
     });
 
@@ -39,21 +38,17 @@ export function registerSocialOps(handlers: HandlerMap): void {
     handlers.set(Opcodes.FRIEND_SETRANK, (ctx) => {
         const rank = ctx.intStack[--ctx.intStackSize];
         const name = ctx.stringStack[--ctx.stringStackSize];
-        // Find friend and update rank
-        const friend = ctx.friendList.find((f) => f.name.toLowerCase() === name.toLowerCase());
-        if (friend) {
-            friend.rank = rank;
-        }
+        ctx.sendFriendsChatAction?.({ action: "set_friend_rank", name, rank });
     });
 
     handlers.set(Opcodes.FRIEND_ADD, (ctx) => {
         const name = ctx.stringStack[--ctx.stringStackSize];
-        // Server would handle actual addition - this is client-side request
+        ctx.sendFriendsChatAction?.({ action: "add_friend", name });
     });
 
     handlers.set(Opcodes.FRIEND_DEL, (ctx) => {
         const name = ctx.stringStack[--ctx.stringStackSize];
-        // Server would handle actual removal - this is client-side request
+        ctx.sendFriendsChatAction?.({ action: "remove_friend", name });
     });
 
     handlers.set(Opcodes.FRIEND_TEST, (ctx) => {
@@ -119,12 +114,12 @@ export function registerSocialOps(handlers: HandlerMap): void {
 
     handlers.set(Opcodes.IGNORE_ADD, (ctx) => {
         const name = ctx.stringStack[--ctx.stringStackSize];
-        // Server would handle actual addition - this is client-side request
+        ctx.sendFriendsChatAction?.({ action: "add_ignore", name });
     });
 
     handlers.set(Opcodes.IGNORE_DEL, (ctx) => {
         const name = ctx.stringStack[--ctx.stringStackSize];
-        // Server would handle actual removal - this is client-side request
+        ctx.sendFriendsChatAction?.({ action: "remove_ignore", name });
     });
 
     handlers.set(Opcodes.IGNORE_TEST, (ctx) => {
@@ -175,13 +170,12 @@ export function registerSocialOps(handlers: HandlerMap): void {
     });
 
     handlers.set(Opcodes.CLAN_GETCHATMINKICK, (ctx) => {
-        // Minimum rank required to kick - 0 means anyone can kick
-        ctx.pushInt(0);
+        ctx.pushInt(ctx.friendsChatMinKick);
     });
 
     handlers.set(Opcodes.CLAN_KICKUSER, (ctx) => {
         const name = ctx.stringStack[--ctx.stringStackSize];
-        // Server would handle actual kick - this is client-side request
+        ctx.sendFriendsChatAction?.({ action: "kick", name });
     });
 
     handlers.set(Opcodes.CLAN_GETCHATRANK, (ctx) => {
@@ -191,11 +185,11 @@ export function registerSocialOps(handlers: HandlerMap): void {
 
     handlers.set(Opcodes.CLAN_JOINCHAT, (ctx) => {
         const name = ctx.stringStack[--ctx.stringStackSize];
-        // Server would handle actual join - this is client-side request
+        ctx.sendFriendsChatAction?.({ action: "join", name });
     });
 
-    handlers.set(Opcodes.CLAN_LEAVECHAT, () => {
-        // Server would handle actual leave - this is client-side request
+    handlers.set(Opcodes.CLAN_LEAVECHAT, (ctx) => {
+        ctx.sendFriendsChatAction?.({ action: "leave" });
     });
 
     handlers.set(Opcodes.CLAN_ISSELF, (ctx) => {

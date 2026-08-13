@@ -53,6 +53,7 @@ import {
     getServerTickPhaseNow,
     isServerConnected,
     sendFaceTile,
+    sendFriendsChatAction,
     sendGroundItemAction,
     sendIfTriggerOpLocal,
     sendInventoryMove,
@@ -71,6 +72,7 @@ import {
     subscribeCombat,
     subscribeDisconnect,
     subscribeGroundItems,
+    subscribeFriendsChat,
     subscribeHandshake,
     subscribeInventory,
     subscribeNotifications,
@@ -213,6 +215,8 @@ import {
     getTransmitCycles,
     isTransmitProcessingNeeded,
     markChatTransmit,
+    markClanTransmit,
+    markFriendTransmit,
     markInvTransmit,
     markMiscTransmit,
     markStatTransmit,
@@ -837,6 +841,7 @@ export class OsrsClient {
     private unsubscribeGroundItems?: () => void;
     private groundItemMeshesPending = false;
     private unsubscribeChatMessages?: () => void;
+    private unsubscribeFriendsChat?: () => void;
     private unsubscribeSkills?: () => void;
     private unsubscribeRunEnergy?: () => void;
     private unsubscribeNotifications?: () => void;
@@ -1326,6 +1331,8 @@ export class OsrsClient {
             clanName: "",
             clanOwner: "",
             clanRank: 0,
+            friendsChatMinKick: 0,
+            sendFriendsChatAction,
             paramTypeLoader: this.loaderFactory.getParamTypeLoader(),
             enumTypeLoader: this.loaderFactory.getEnumTypeLoader(),
             structTypeLoader: this.loaderFactory.getStructTypeLoader(),
@@ -2899,6 +2906,21 @@ export class OsrsClient {
             ) => {
                 this.cs2Vm?.context?.onNotificationDisplay?.(title, message, color | 0);
             };
+        } catch {}
+        try {
+            this.unsubscribeFriendsChat = subscribeFriendsChat((snapshot) => {
+                const channel = snapshot.channel;
+                this.cs2Vm.context.friendList = snapshot.friends.map((friend) => ({ ...friend }));
+                this.cs2Vm.context.ignoreList = snapshot.ignores.map((ignored) => ({ ...ignored }));
+                this.cs2Vm.context.clanMembers =
+                    channel?.members.map((member) => ({ ...member })) ?? [];
+                this.cs2Vm.context.clanName = channel?.name ?? "";
+                this.cs2Vm.context.clanOwner = channel?.owner ?? "";
+                this.cs2Vm.context.clanRank = channel?.localRank ?? 0;
+                this.cs2Vm.context.friendsChatMinKick = channel?.minKickRank ?? 0;
+                markFriendTransmit();
+                markClanTransmit();
+            });
         } catch {}
         // Subscribe to loot notifications and display via CS2 notification system
         try {
@@ -7608,6 +7630,7 @@ export class OsrsClient {
             this.unsubscribePathDebug,
             this.unsubscribeGroundItems,
             this.unsubscribeChatMessages,
+            this.unsubscribeFriendsChat,
             this.unsubscribeSkills,
             this.unsubscribeRunEnergy,
             this.unsubscribeNotifications,

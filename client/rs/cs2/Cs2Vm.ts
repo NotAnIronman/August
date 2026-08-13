@@ -1,4 +1,5 @@
 import { markWidgetInteractionDirty } from "../../widgets/WidgetInteraction";
+import type { FriendsChatAction } from "../../common/social/FriendsChat";
 import type { WidgetManager, WidgetNode } from "../../widgets/WidgetManager";
 import type { TypeLoader } from "../config/TypeLoader";
 import type { DbRepository } from "../config/db/DbRepository";
@@ -194,6 +195,8 @@ export interface Cs2Context {
     clanName?: string;
     clanOwner?: string;
     clanRank?: number;
+    friendsChatMinKick?: number;
+    sendFriendsChatAction?: (action: FriendsChatAction) => void;
 
     // Stats/skills (indices 0-22 for OSRS skills)
     getStatLevel?: (skillId: number) => number;
@@ -863,6 +866,10 @@ export class Cs2Vm {
             get clanRank() {
                 return vm.context.clanRank ?? 0;
             },
+            get friendsChatMinKick() {
+                return vm.context.friendsChatMinKick ?? 0;
+            },
+            sendFriendsChatAction: (action) => vm.context.sendFriendsChatAction?.(action),
 
             // Event context (for magic argument substitution)
             get eventContext() {

@@ -282,6 +282,11 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                 return;
             }
 
+            if (payload.messageType === "friends_chat") {
+                services.handleFriendsChatMessage(sender, text);
+                return;
+            }
+
             // Handle :: commands
             if (text.startsWith("::")) {
                 const cmd = text.slice(2).toLowerCase().trim();

@@ -112,6 +112,36 @@ export class SqliteDatabase {
             CREATE INDEX IF NOT EXISTS idx_active_trade_escrows_account
                 ON active_trade_escrows (account_name, session_id);
 
+            CREATE TABLE IF NOT EXISTS friends_chat_settings (
+                owner_key TEXT PRIMARY KEY,
+                owner_name TEXT NOT NULL,
+                channel_name TEXT,
+                entry_rank INTEGER NOT NULL DEFAULT -1,
+                talk_rank INTEGER NOT NULL DEFAULT -1,
+                kick_rank INTEGER NOT NULL DEFAULT 2,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS social_friends (
+                owner_key TEXT NOT NULL,
+                friend_key TEXT NOT NULL,
+                friend_name TEXT NOT NULL,
+                rank INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (owner_key, friend_key)
+            );
+
+            CREATE TABLE IF NOT EXISTS social_ignores (
+                owner_key TEXT NOT NULL,
+                ignored_key TEXT NOT NULL,
+                ignored_name TEXT NOT NULL,
+                PRIMARY KEY (owner_key, ignored_key)
+            );
+
+            CREATE TABLE IF NOT EXISTS friends_chat_last_channels (
+                account_key TEXT PRIMARY KEY,
+                owner_key TEXT NOT NULL
+            );
+
             CREATE TRIGGER IF NOT EXISTS validate_pending_trade_refund_insert
             BEFORE INSERT ON pending_trade_refunds
             WHEN NEW.item_id <= 0

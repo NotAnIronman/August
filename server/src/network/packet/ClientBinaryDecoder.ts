@@ -8,6 +8,7 @@ import {
     CLIENT_PACKET_LENGTHS,
     ClientPacketId,
 } from "../../../../client/common/packets/ClientPacketId";
+import { FriendsChatActionCode } from "../../../../client/common/social/FriendsChat";
 import { logger } from "../../utils/logger";
 import type { RoutedMessage } from "../MessageRouter";
 import type { Appearance, TradeActionClientPayload } from "../messages";
@@ -594,11 +595,38 @@ export function decodeClientPacket(data: Uint8Array | ArrayBuffer): DecodedClien
 
         case ClientPacketId.CHAT: {
             const messageTypeVal = reader.readByte();
-            const messageType = messageTypeVal === 1 ? "game" : "public";
+            const messageType =
+                messageTypeVal === 2 ? "friends_chat" : messageTypeVal === 1 ? "game" : "public";
             const text = reader.readString();
             return {
                 type: "chat",
                 payload: { text, messageType },
+            };
+        }
+
+        case ClientPacketId.FRIENDS_CHAT_ACTION: {
+            const actionCode = reader.readByte();
+            const name = reader.readString();
+            const rank = reader.readSignedByte();
+            const actionNames = [
+                "join",
+                "leave",
+                "kick",
+                "add_friend",
+                "remove_friend",
+                "set_friend_rank",
+                "add_ignore",
+                "remove_ignore",
+            ] as const;
+            if (
+                actionCode < FriendsChatActionCode.Join ||
+                actionCode > FriendsChatActionCode.RemoveIgnore
+            ) {
+                return null;
+            }
+            return {
+                type: "friends_chat_action",
+                payload: { action: actionNames[actionCode], name, rank },
             };
         }
 

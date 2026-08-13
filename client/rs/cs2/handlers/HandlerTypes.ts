@@ -1,4 +1,5 @@
 import type { WidgetManager } from "../../../widgets/WidgetManager";
+import type { FriendsChatAction } from "../../../common/social/FriendsChat";
 import type {
     WidgetEventHandler,
     WidgetEventType,
@@ -226,6 +227,8 @@ export interface HandlerContext {
     clanName: string;
     clanOwner: string;
     clanRank: number;
+    friendsChatMinKick: number;
+    sendFriendsChatAction?: (action: FriendsChatAction) => void;
 
     // Modern Clan system (ACTIVECLANSETTINGS_* / ACTIVECLANCHANNEL_* opcodes)
     // Optional - if not provided, clan ops return default values (empty/0/-1)

@@ -6,6 +6,7 @@ import type {
     ChatMessageEvent,
     CollectionLogServerPayload,
     GroundItemsServerPayload,
+    FriendsChatSnapshot,
     InventoryServerUpdate,
     NotificationEvent,
     RunEnergyState,
@@ -159,6 +160,12 @@ export function subscribeGroundItems(cb: (payload: GroundItemsServerPayload) => 
 export function subscribeChatMessages(cb: (msg: ChatMessageEvent) => void): () => void {
     state.chatMessageListeners.add(cb);
     return () => state.chatMessageListeners.delete(cb);
+}
+
+export function subscribeFriendsChat(cb: (snapshot: FriendsChatSnapshot) => void): () => void {
+    state.friendsChatListeners.add(cb);
+    if (state.lastFriendsChat) cb(state.lastFriendsChat);
+    return () => state.friendsChatListeners.delete(cb);
 }
 
 export function subscribeNotifications(cb: (event: NotificationEvent) => void): () => void {

@@ -251,6 +251,20 @@ export function registerMessageHandlers(svc: ServerServices, router: MessageRout
         getGamemodeServices: () => svc.gamemode.getGamemodeServices?.() ?? {},
 
         // Chat
+        handleFriendsChatAction: (player, action) =>
+            svc.friendsChatService.handleAction(player, action),
+        handleFriendsChatWidgetAction: (player, groupId, componentId, option, opId) =>
+            svc.friendsChatService.handleWidgetAction(
+                player,
+                groupId,
+                componentId,
+                option,
+                opId,
+            ),
+        handleFriendsChatNameInput: (player, value, allowJoinFallback) =>
+            svc.friendsChatService.handleNameInput(player, value, allowJoinFallback),
+        handleFriendsChatMessage: (player, text) =>
+            svc.friendsChatService.handleChat(player, text),
         queueChatMessage: (msg) => svc.messagingService.queueChatMessage(msg),
         getPublicChatPlayerType: (player) => svc.authService.getPublicChatPlayerType(player),
         eventBus: svc.eventBus,

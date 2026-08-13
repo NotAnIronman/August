@@ -103,6 +103,7 @@ import type { CombatEffectService } from "./services/CombatEffectService";
 import type { DataLoaderService } from "./services/DataLoaderService";
 import type { EquipmentService } from "./services/EquipmentService";
 import type { EquipmentStatsUiService } from "./services/EquipmentStatsUiService";
+import type { FriendsChatService } from "./services/FriendsChatService";
 import type { InterfaceManager } from "./services/InterfaceManager";
 import type { InventoryMessageService } from "./services/InventoryMessageService";
 import type { InventoryService } from "./services/InventoryService";
@@ -172,6 +173,7 @@ export interface ServerServices {
     readonly dataLoaderService: DataLoaderService;
     readonly variableService: VariableService;
     readonly messagingService: MessagingService;
+    readonly friendsChatService: FriendsChatService;
     readonly skillService: SkillService;
     readonly inventoryService: InventoryService;
     readonly equipmentService: EquipmentService;

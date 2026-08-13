@@ -128,14 +128,21 @@ export function registerChatOps(handlers: HandlerMap): void {
         ctx.pushInt(ctx.privateChatMode);
     });
 
-    // CHAT_SENDPUBLIC (5008): Sends public chat message
+    // CHAT_SENDPUBLIC (5008): Sends public or legacy Chat-channel messages.
+    // Revision 237's cached script uses chat type 2 and prepends "/" for the
+    // legacy channel; CHAT_SENDCLAN is reserved for the newer Clan channels.
     // Pops: message (string), type (int)
     handlers.set(Opcodes.CHAT_SENDPUBLIC, (ctx) => {
         const message = ctx.stringStack[--ctx.stringStackSize];
         const chatType = ctx.intStack[--ctx.intStackSize];
-        // Send the chat message to server
-        if (message && message.trim()) {
-            sendChat(message, "public", chatType | 0);
+        const friendsChatMessage =
+            chatType === 2 && message?.startsWith("/") ? message.slice(1) : message;
+        if (friendsChatMessage?.trim()) {
+            sendChat(
+                friendsChatMessage,
+                chatType === 2 ? "friends_chat" : "public",
+                chatType | 0,
+            );
             // Clear the chat input buffer (varcstring 335) after sending
             ctx.varManager.setVarcString(335, "");
         }
@@ -150,14 +157,12 @@ export function registerChatOps(handlers: HandlerMap): void {
         // Server would handle the private message packet
     });
 
-    // CHAT_SENDCLAN (5010): Sends clan chat message
+    // CHAT_SENDCLAN (5010): Used by the modern Clan channels, which are separate
+    // from the legacy Chat-channel system implemented here.
     // Pops: message (string), chatType (int), clanIndex (int)
     handlers.set(Opcodes.CHAT_SENDCLAN, (ctx) => {
-        const _message = ctx.stringStack[--ctx.stringStackSize];
+        ctx.stringStackSize--;
         ctx.intStackSize -= 2;
-        const _chatType = ctx.intStack[ctx.intStackSize];
-        const _clanIndex = ctx.intStack[ctx.intStackSize + 1];
-        // Server would handle the clan chat packet
     });
 
     // CHAT_PLAYERNAME (5015): Returns local player's name

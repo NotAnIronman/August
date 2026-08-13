@@ -11,6 +11,7 @@ import {
     MODIFIER_FLAG_CTRL_SHIFT,
 } from "../../../client/common/input/modifierFlags";
 import type { WorldEntityBuildArea } from "../../../client/common/worldentity/WorldEntityTypes";
+import type { FriendsChatAction } from "../../../client/common/social/FriendsChat";
 import type {
     GamemodeDefinition,
     GamemodeUiController,
@@ -268,6 +269,20 @@ export interface MessageHandlerServices {
     getGamemodeServices: () => Record<string, unknown>;
 
     // Chat
+    handleFriendsChatAction: (player: PlayerState, action: FriendsChatAction) => void;
+    handleFriendsChatWidgetAction: (
+        player: PlayerState,
+        groupId: number,
+        componentId: number,
+        option?: string,
+        opId?: number,
+    ) => boolean;
+    handleFriendsChatNameInput: (
+        player: PlayerState,
+        value: string,
+        allowJoinFallback?: boolean,
+    ) => boolean;
+    handleFriendsChatMessage: (player: PlayerState, text: string) => boolean;
     queueChatMessage: (msg: {
         messageType: "game" | "public" | "server";
         text: string;
@@ -279,6 +294,7 @@ export interface MessageHandlerServices {
         effectId?: number;
         pattern?: number[];
         autoChat?: boolean;
+        chatType?: number;
         targetPlayerIds?: number[];
     }) => void;
     getPublicChatPlayerType: (player: PlayerState) => number;

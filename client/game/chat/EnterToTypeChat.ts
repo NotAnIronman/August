@@ -11,6 +11,8 @@ const CHATBOX_INPUT_CHILD_ID = 57;
 /** CS2 script 223 = [proc,chat_promptinput], rebuilds the chat input line text. */
 const CHAT_PROMPT_SCRIPT_ID = 223;
 const CHAT_LOCKED_PROMPT = "Press Enter to Chat";
+/** Varc 5 is non-zero while a native OSRS chatbox input dialog is active. */
+const CHATBOX_INPUT_MODE_VARC = 5;
 const CHAT_INPUT_VARC = 335;
 const OSRS_KEY_ENTER = 84;
 const OSRS_KEY_ESCAPE = 13;
@@ -51,6 +53,10 @@ export class EnterToTypeChat {
         return this.isEnabled() && !this.unlocked;
     }
 
+    private isNativeChatboxInputActive(): boolean {
+        return this.deps.varManager.getVarcInt(CHATBOX_INPUT_MODE_VARC) !== 0;
+    }
+
     /**
      * True while WASD should rotate the camera instead of typing. Any active text
      * input (chat typing mode, chatbox dialogs, item spawner search) releases WASD
@@ -58,7 +64,10 @@ export class EnterToTypeChat {
      */
     isWasdCameraActive(inputDialogType: number): boolean {
         return (
-            this.isLocked() && inputDialogType === 0 && !this.deps.isItemSpawnerSearchFocused()
+            this.isLocked() &&
+            inputDialogType === 0 &&
+            !this.isNativeChatboxInputActive() &&
+            !this.deps.isItemSpawnerSearchFocused()
         );
     }
 
@@ -89,7 +98,7 @@ export class EnterToTypeChat {
      * chat_promptinput rewrites the line (login, chat rebuilds, name changes).
      */
     applyLockPlaceholder(): void {
-        if (!this.isLocked()) {
+        if (!this.isLocked() || this.isNativeChatboxInputActive()) {
             return;
         }
         const widget = this.deps.widgetManager.findWidget(CHATBOX_GROUP_ID, CHATBOX_INPUT_CHILD_ID);
@@ -119,7 +128,7 @@ export class EnterToTypeChat {
         keyEvent: { keyTyped: number; keyPressed: number },
         dialogActive: boolean,
     ): boolean {
-        if (dialogActive || !this.isEnabled()) {
+        if (dialogActive || this.isNativeChatboxInputActive() || !this.isEnabled()) {
             return false;
         }
 
@@ -147,7 +156,7 @@ export class EnterToTypeChat {
 
     /** True if keys should not be dispatched to chatbox-group widgets. */
     shouldBlockChatboxKeys(dialogActive: boolean): boolean {
-        return !dialogActive && this.isLocked();
+        return !dialogActive && !this.isNativeChatboxInputActive() && this.isLocked();
     }
 
     isChatboxGroupUid(uid: number): boolean {

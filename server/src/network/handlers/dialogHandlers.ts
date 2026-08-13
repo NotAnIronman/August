@@ -17,6 +17,15 @@ export function registerDialogHandlers(
 
     router.register("resume_namedialog", (ctx) => {
         if (!ctx.player) return;
+        if (
+            services.handleFriendsChatNameInput(
+                ctx.player,
+                ctx.payload.value,
+                !ctx.player.taskQueue.hasSuspendedTasks(),
+            )
+        ) {
+            return;
+        }
         ctx.player.taskQueue.submitReturnValue(ctx.payload.value);
     });
 

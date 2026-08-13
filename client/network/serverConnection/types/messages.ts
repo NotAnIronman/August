@@ -207,6 +207,14 @@ export type ChatMessageEvent = {
     playerId?: number;
 };
 
+export type {
+    FriendSnapshot,
+    FriendsChatAction,
+    FriendsChatMemberSnapshot,
+    FriendsChatSnapshot,
+    IgnoreSnapshot,
+} from "../../../common/social/FriendsChat";
+
 export type NotificationEvent = {
     kind:
         | "loot"

@@ -1,4 +1,8 @@
 import type { ProjectileLaunch } from "../../../client/common/projectiles/ProjectileLaunch";
+import type {
+    FriendsChatAction,
+    FriendsChatSnapshot,
+} from "../../../client/common/social/FriendsChat";
 import { logger } from "../utils/logger";
 import type { WidgetAction } from "../widgets/WidgetManager";
 import type { RoutedMessage } from "./MessageRouter";
@@ -500,6 +504,7 @@ export type ServerToClient =
               chatType?: number;
           };
       }
+    | { type: "friends_chat"; payload: FriendsChatSnapshot }
     | {
           type: "loc_change";
           payload: {
@@ -700,13 +705,14 @@ export type ClientToServer =
           type: "chat";
           payload: {
               text: string;
-              messageType?: "public" | "game";
+              messageType?: "public" | "game" | "friends_chat";
               chatType?: number;
               colorId?: number;
               effectId?: number;
               pattern?: number[];
           };
       }
+    | { type: "friends_chat_action"; payload: FriendsChatAction }
     | {
           type: "debug";
           payload:
@@ -907,6 +913,9 @@ function encodeMessageToBinaryDirect(msg: ServerToClient): Uint8Array {
                 payload.playerId,
                 payload.chatType,
             );
+
+        case "friends_chat":
+            return serverEncoder.encodeFriendsChat(payload);
 
         case "sound":
             return serverEncoder.encodeSound(

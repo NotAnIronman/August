@@ -3,6 +3,7 @@ import { INVENTORY_SLOT_COUNT } from "../constants";
 import type { GroundItemActionPayload } from "../types";
 import { send } from "../connection/send";
 import { state } from "../state";
+import type { FriendsChatAction } from "../../../common/social/FriendsChat";
 
 export function sendInventoryUse(
     slot: number,
@@ -85,7 +86,7 @@ export function sendGroundItemAction(payload: GroundItemActionPayload): void {
 
 export function sendChat(
     text: string,
-    messageType: "public" | "game" = "public",
+    messageType: "public" | "game" | "friends_chat" = "public",
     chatType: number = 0,
 ): void {
     console.log(`[sendChat] Attempting to send: "${text}"`);
@@ -118,4 +119,8 @@ export function sendChat(
             pattern: formatting.pattern ? Array.from(formatting.pattern) : undefined,
         },
     } as any);
+}
+
+export function sendFriendsChatAction(payload: FriendsChatAction): void {
+    send({ type: "friends_chat_action", payload } as any);
 }

@@ -10,6 +10,7 @@ import {
     ServerPacketId,
 } from "../../../../client/common/packets/ServerPacketId";
 import type { ProjectileLaunch } from "../../../../client/common/projectiles/ProjectileLaunch";
+import type { FriendsChatSnapshot } from "../../../../client/common/social/FriendsChat";
 import type { QuestListWidgetGroup } from "../../../../client/common/ui/questList";
 import type { WorldEntityBuildArea } from "../../../../client/common/worldentity/WorldEntityTypes";
 import type { CameraControlPayload } from "../messages";
@@ -22,7 +23,7 @@ export class ServerPacketBuffer {
     readonly data: Uint8Array;
     offset: number = 0;
 
-    constructor(size: number = 5000) {
+    constructor(size: number = 16384) {
         this.data = new Uint8Array(size);
     }
 
@@ -729,6 +730,38 @@ export class ServerBinaryEncoder {
         this.buffer.writeString(prefix ?? "");
         this.buffer.writeShort(playerId ?? -1);
         return this.buffer.toPacket(ServerPacketId.CHAT_MESSAGE);
+    }
+
+    encodeFriendsChat(snapshot: FriendsChatSnapshot): Uint8Array {
+        this.buffer.reset();
+        const channel = snapshot.channel;
+        this.buffer.writeBoolean(channel !== undefined);
+        if (channel) {
+            this.buffer.writeString(channel.name);
+            this.buffer.writeString(channel.owner);
+            this.buffer.writeByte(channel.minKickRank);
+            this.buffer.writeByte(channel.localRank);
+            this.buffer.writeShort(channel.members.length);
+            for (const member of channel.members) {
+                this.buffer.writeString(member.name);
+                this.buffer.writeShort(member.world);
+                this.buffer.writeByte(member.rank);
+            }
+        }
+        this.buffer.writeShort(snapshot.friends.length);
+        for (const friend of snapshot.friends) {
+            this.buffer.writeString(friend.name);
+            this.buffer.writeString(friend.previousName);
+            this.buffer.writeShort(friend.world);
+            this.buffer.writeByte(friend.rank);
+            this.buffer.writeBoolean(friend.isOnline);
+        }
+        this.buffer.writeShort(snapshot.ignores.length);
+        for (const ignored of snapshot.ignores) {
+            this.buffer.writeString(ignored.name);
+            this.buffer.writeString(ignored.previousName);
+        }
+        return this.buffer.toPacket(ServerPacketId.FRIENDS_CHAT_UPDATE);
     }
 
     // ========================================

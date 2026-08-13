@@ -78,6 +78,10 @@ export function registerBinaryHandlers(
     router.register("if_buttond", createIfButtonDHandler(services));
     router.register("inventory_use_on", createInventoryUseOnHandler(services));
     router.register("resume_pausebutton", createResumePauseButtonHandler(services));
+    router.register("friends_chat_action", (ctx) => {
+        const player = services.getPlayer(ctx.ws);
+        if (player) services.handleFriendsChatAction(player, ctx.payload);
+    });
 }
 
 function createGroundItemActionHandler(services: BinaryHandlerExtServices): MessageHandler {
@@ -104,6 +108,7 @@ function createWidgetActionHandler(services: BinaryHandlerExtServices): MessageH
             widgetId: number;
             groupId?: number;
             buttonNum?: number;
+            opId?: number;
             subOpId?: number;
             slot?: number;
             option?: string;
@@ -111,11 +116,23 @@ function createWidgetActionHandler(services: BinaryHandlerExtServices): MessageH
         };
         const groupId = payload.groupId ?? (payload.widgetId >> 16) & 0xffff;
         const componentId = payload.widgetId & 0xffff;
-        const opId = payload.buttonNum ?? 1;
+        const opId = payload.opId ?? payload.buttonNum ?? 1;
         const subOpId = payload.subOpId;
         const slotVal = payload.slot;
         const hasValidSlot = slotVal !== undefined && slotVal >= 0 && slotVal !== 65535;
         const childId = hasValidSlot ? slotVal : componentId;
+
+        if (
+            services.handleFriendsChatWidgetAction(
+                player,
+                groupId,
+                componentId,
+                payload.option,
+                opId,
+            )
+        ) {
+            return;
+        }
 
         const scriptRegistry = services.getScriptRegistry();
         const scriptRuntime = services.getScriptRuntime();

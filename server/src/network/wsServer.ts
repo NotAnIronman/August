@@ -66,6 +66,7 @@ import { CombatEffectService } from "../game/services/CombatEffectService";
 import { DataLoaderService } from "../game/services/DataLoaderService";
 import { EquipmentService } from "../game/services/EquipmentService";
 import { EquipmentStatsUiService } from "../game/services/EquipmentStatsUiService";
+import { FriendsChatService } from "../game/services/FriendsChatService";
 import { buildGamemodeServices } from "../game/services/GamemodeServiceAdapter";
 import { InterfaceManager as ExtractedInterfaceManager } from "../game/services/InterfaceManager";
 import { InventoryMessageService } from "../game/services/InventoryMessageService";
@@ -227,6 +228,7 @@ export class WSServer {
     // Extracted services (Phase 2)
     private variableService!: VariableService;
     private messagingService!: MessagingService;
+    private friendsChatService!: FriendsChatService;
     private skillService!: SkillService;
 
     // Extracted services (Phase 3)
@@ -363,6 +365,7 @@ export class WSServer {
         this.loginHandshakeService = new LoginHandshakeService(this.svc);
         this.tickPhaseService = new TickPhaseService(this.svc);
         this.populateServiceContext();
+        this.friendsChatService.start();
         this.messageRouter = this.createMessageRouter();
         this.initGamemode(opts);
         this.initPlayerAnimations();
@@ -469,6 +472,7 @@ export class WSServer {
         s.authService = this.authService;
         s.variableService = this.variableService;
         s.messagingService = this.messagingService;
+        s.friendsChatService = this.friendsChatService;
         s.skillService = this.skillService;
         s.inventoryService = this.inventoryService;
         s.equipmentService = this.equipmentService;
@@ -1099,6 +1103,7 @@ export class WSServer {
         // --- Phase 2: Initialize core game services ---
         this.variableService = new VariableService(this.svc);
         this.messagingService = new MessagingService(this.svc);
+        this.friendsChatService = new FriendsChatService(this.svc, gamemodeDataDir);
         this.skillService = new SkillService(this.svc);
         logger.info("[services] Phase 2 services initialized (Variable, Messaging, Skill)");
 

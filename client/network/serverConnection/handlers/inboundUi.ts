@@ -27,6 +27,7 @@ import type {
     BankServerUpdate,
     ChatMessageEvent,
     GroundItemsServerPayload,
+    FriendsChatSnapshot,
     NotificationEvent,
     RunEnergyPayload,
     RunEnergyState,
@@ -225,6 +226,18 @@ export function handleInboundUi(msg: any): boolean {
             for (const cb of state.chatMessageListeners) cb(event);
         } catch (err) {
             console.warn("chat listener error", err);
+        }
+        return true;
+    }
+    if (msg.type === "friends_chat") {
+        const snapshot = msg.payload as FriendsChatSnapshot;
+        state.lastFriendsChat = snapshot;
+        for (const cb of state.friendsChatListeners) {
+            try {
+                cb(snapshot);
+            } catch (err) {
+                console.warn("friends chat listener error", err);
+            }
         }
         return true;
     }

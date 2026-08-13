@@ -5,6 +5,10 @@
  * All encoding methods match OSRS buffer patterns.
  */
 import { CLIENT_PACKET_LENGTHS, ClientPacketId } from "../../common/packets/ClientPacketId";
+import {
+    FriendsChatActionCode,
+    type FriendsChatAction,
+} from "../../common/social/FriendsChat";
 
 /**
  * Binary packet buffer for client encoding
@@ -457,11 +461,29 @@ export class ClientBinaryEncoder {
     // CHAT/VARPS
     // ========================================
 
-    encodeChat(text: string, messageType?: "public" | "game"): Uint8Array {
+    encodeChat(text: string, messageType?: "public" | "game" | "friends_chat"): Uint8Array {
         this.buffer.reset();
-        this.buffer.writeByte(messageType === "game" ? 1 : 0);
+        this.buffer.writeByte(messageType === "friends_chat" ? 2 : messageType === "game" ? 1 : 0);
         this.buffer.writeString(text);
         return this.buffer.toPacket(ClientPacketId.CHAT);
+    }
+
+    encodeFriendsChatAction(payload: FriendsChatAction): Uint8Array {
+        this.buffer.reset();
+        const actionCodes: Record<FriendsChatAction["action"], FriendsChatActionCode> = {
+            join: FriendsChatActionCode.Join,
+            leave: FriendsChatActionCode.Leave,
+            kick: FriendsChatActionCode.Kick,
+            add_friend: FriendsChatActionCode.AddFriend,
+            remove_friend: FriendsChatActionCode.RemoveFriend,
+            set_friend_rank: FriendsChatActionCode.SetFriendRank,
+            add_ignore: FriendsChatActionCode.AddIgnore,
+            remove_ignore: FriendsChatActionCode.RemoveIgnore,
+        };
+        this.buffer.writeByte(actionCodes[payload.action]);
+        this.buffer.writeString("name" in payload ? payload.name : "");
+        this.buffer.writeByte(payload.action === "set_friend_rank" ? payload.rank : 0);
+        return this.buffer.toPacket(ClientPacketId.FRIENDS_CHAT_ACTION);
     }
 
     encodeVarpTransmit(varpId: number, value: number): Uint8Array {
@@ -597,6 +619,9 @@ export function encodeClientMessage(msg: { type: string; payload: any }): Uint8A
 
         case "chat":
             return clientEncoder.encodeChat(payload.text, payload.messageType);
+
+        case "friends_chat_action":
+            return clientEncoder.encodeFriendsChatAction(payload);
 
         case "varp_transmit":
             return clientEncoder.encodeVarpTransmit(payload.varpId, payload.value);

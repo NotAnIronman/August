@@ -12,6 +12,7 @@ import {
 } from "../../common/instance/InstanceTypes";
 import { SERVER_PACKET_LENGTHS, ServerPacketId } from "../../common/packets/ServerPacketId";
 import type { ProjectileLaunch } from "../../common/projectiles/ProjectileLaunch";
+import type { FriendsChatSnapshot } from "../../common/social/FriendsChat";
 import type { WorldEntityBuildArea } from "../../common/worldentity/WorldEntityTypes";
 
 /**
@@ -1024,6 +1025,46 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
                     chatType,
                 },
             };
+        }
+
+        case ServerPacketId.FRIENDS_CHAT_UPDATE: {
+            let channel: FriendsChatSnapshot["channel"];
+            if (reader.readBoolean()) {
+                const name = reader.readString();
+                const owner = reader.readString();
+                const minKickRank = reader.readSignedByte();
+                const localRank = reader.readSignedByte();
+                const memberCount = reader.readShort();
+                const members = [];
+                for (let i = 0; i < memberCount; i++) {
+                    members.push({
+                        name: reader.readString(),
+                        world: reader.readShort(),
+                        rank: reader.readSignedByte(),
+                    });
+                }
+                channel = { name, owner, minKickRank, localRank, members };
+            }
+            const friendCount = reader.readShort();
+            const friends = [];
+            for (let i = 0; i < friendCount; i++) {
+                friends.push({
+                    name: reader.readString(),
+                    previousName: reader.readString(),
+                    world: reader.readShort(),
+                    rank: reader.readSignedByte(),
+                    isOnline: reader.readBoolean(),
+                });
+            }
+            const ignoreCount = reader.readShort();
+            const ignores = [];
+            for (let i = 0; i < ignoreCount; i++) {
+                ignores.push({
+                    name: reader.readString(),
+                    previousName: reader.readString(),
+                });
+            }
+            return { type: "friends_chat", payload: { channel, friends, ignores } };
         }
 
         case ServerPacketId.SOUND: {
