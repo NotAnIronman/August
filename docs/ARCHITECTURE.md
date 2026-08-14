@@ -4,7 +4,7 @@ XRSPS is a full-stack OSRS emulation engine. The client runs in the browser with
 
 ## Project Layout
 
-The repository root contains only **`client/`**, **`server/`**, and **`docs/`** (plus dotfiles such as `.git` / `.github`).
+The repository root contains the **`client/`**, **`server/`**, and **`docs/`** packages plus root scripts for setup and local development.
 
 ```
 client/                 # @xrsps/client — browser CRA/craco app
@@ -35,7 +35,7 @@ docs/                   # @xrsps/docs — VitePress documentation
   package.json
 ```
 
-Install and run each package from its own directory (`cd client && yarn install && yarn start`, etc.).
+Use `yarn setup` and `yarn start` from the repository root for local development. Package-specific commands can still be run from their package directory.
 
 Shared protocol/cache code lives in `client/common` and `client/rs`; the server TypeScript project includes those paths.
 
