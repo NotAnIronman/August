@@ -862,6 +862,8 @@ export class OsrsClient {
     private npcUpdateDecoder: NpcUpdateDecoder = new NpcUpdateDecoder();
     private readonly hitsplatFlush: HitsplatFlushController;
     private readonly clientScripts: ClientScriptLoader;
+    /** Widget scripts awaiting a not-yet-streamed cache group, keyed `scriptId:widgetUid`. */
+    private readonly pendingScriptRetries = new Map<string, number>();
     private readonly chatTextMetrics: ChatTextMetrics;
     private readonly npcInstances: NpcInstanceFlushController;
 
@@ -2083,7 +2085,24 @@ export class OsrsClient {
                         this.cs2Vm.eventContext.componentIndex = prevComponentIndex;
                     }
                 } else {
-                    console.warn(`[runWidgetScript] Script ${scriptId} not found in cache`);
+                    // The script's cache group may simply not have streamed in yet (sparse
+                    // cache). A widget's onLoad only fires once at mount, so giving up here
+                    // leaves it permanently un-initialised - which is what makes the sidebar
+                    // tabs render in their default state with no inventory after a reload.
+                    // Retry a bounded number of times; each attempt re-queues the fetch.
+                    const key = `${scriptId}:${widget?.uid ?? -1}`;
+                    const attempts = this.pendingScriptRetries.get(key) ?? 0;
+                    if (attempts < 20) {
+                        this.pendingScriptRetries.set(key, attempts + 1);
+                        setTimeout(() => {
+                            this.pendingScriptRetries.delete(key);
+                            try {
+                                runWidgetScript(scriptId, widget, triggerArgs);
+                            } catch {}
+                        }, 250);
+                    } else {
+                        console.warn(`[runWidgetScript] Script ${scriptId} not found in cache`);
+                    }
                 }
             } catch (err) {
                 console.error(`[Cs2Vm] Script ${scriptId} crashed:`, err);
