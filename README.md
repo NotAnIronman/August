@@ -15,6 +15,12 @@ This repository contains:
 
 Requires **Node.js v22.16+** and **Yarn**.
 
+Install Yarn if it is not already installed:
+
+```bash
+npm install --global yarn
+```
+
 Install the server and client, then build collision data:
 
 ```bash
