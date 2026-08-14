@@ -2,7 +2,7 @@
 
 Get xRSPS running locally in a few minutes.
 
-The repository root contains only **`client/`**, **`server/`**, and **`docs/`**. Install and run each package from its own directory.
+The repository contains **`client/`**, **`server/`**, and **`docs/`** packages. The root commands install and run the server and client for you.
 
 ## Prerequisites
 
@@ -29,41 +29,39 @@ git clone https://github.com/xrsps/xrsps-typescript.git
 cd xrsps-typescript
 ```
 
-## 2. Install Dependencies
+## 2. Set Up the Server and Client
 
 ```bash
-# Server
-cd server
-yarn install
-
-# Client (separate terminal or after)
-cd ../client
-yarn install
+yarn setup
 ```
 
-## 3. Build Required Data
+This installs the root command runner, server dependencies, and client dependencies, downloads the required OSRS cache, then builds the collision cache.
 
-Before you can run the game, one offline build step is needed. This only needs to be done **once** (or when the cache version updates).
-
-### Collision Cache
-
-The server uses a precomputed collision map for pathfinding and movement:
+## 3. Start the Server and Client
 
 ```bash
-cd server
-yarn build-collision
+yarn start
+```
+
+This starts both processes in the same terminal. Press `Ctrl+C` to stop them.
+
+To start only the game server:
+
+```bash
+yarn server
+```
+
+To start only the web client:
+
+```bash
+yarn client
 ```
 
 ::: info
-This takes a few minutes on first run. It reads the game cache and writes collision data to `server/cache/collision/`.
+The collision build can take a few minutes during the initial `yarn setup`. It reads the game cache and writes collision data to `server/cache/collision/`.
 :::
 
-## 4. Start the Server
-
-```bash
-cd server
-yarn start
-```
+## Server Startup
 
 The server will:
 
@@ -83,20 +81,9 @@ GAMEMODE=leagues-v yarn start
 { "gamemode": "leagues-v" }
 ```
 
-## 5. Start the Client
-
-Open a **second terminal** and run:
-
-```bash
-cd client
-yarn start
-```
+## Client Startup
 
 This launches the React dev server (usually on `http://localhost:3000`). Your browser should open automatically. The client will also download the cache on first run if needed.
-
-::: warning Two Terminals
-The server and client run as separate processes. You need both running at the same time.
-:::
 
 ## You're In
 
@@ -153,13 +140,14 @@ node -v
 
 ## Useful Commands
 
-Run these from the package directory (`client/` or `server/`).
+Run the first three commands from the repository root. Package-specific maintenance commands can still be run from their package directory.
 
-| Command (from package) | Description                      |
-| ---------------------- | -------------------------------- |
-| `cd client && yarn start` | Start the client dev server   |
-| `cd server && yarn start` | Start the game server         |
-| `cd server && yarn build-collision` | Build collision cache (once) |
+| Command | Description |
+| ------- | ----------- |
+| `yarn setup` | Install the server and client and build collision data |
+| `yarn start` | Start the game server and web client together |
+| `yarn server` | Start only the game server |
+| `yarn client` | Start only the web client |
 | `cd server && yarn ensure-cache` | Manually download the OSRS cache |
-| `cd client && yarn typecheck` | Typecheck the client        |
-| `cd server && yarn typecheck` | Typecheck the server        |
+| `cd client && yarn typecheck` | Typecheck the client |
+| `cd server && yarn typecheck` | Typecheck the server |

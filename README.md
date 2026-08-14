@@ -5,7 +5,7 @@ OSRS in the browser with a React/WebGL client and TypeScript WebSocket server.
 
 ## Packages
 
-This repository root contains only:
+This repository contains:
 
 - [`client/`](client/) — `@xrsps/client` (browser app)
 - [`server/`](server/) — `@xrsps/server` (game server)
@@ -15,19 +15,39 @@ This repository root contains only:
 
 Requires **Node.js v22.16+** and **Yarn**.
 
+Install Yarn if it is not already installed:
+
 ```bash
-# Server
-cd server
-yarn install
-yarn build-collision
-yarn start
+npm install --global yarn
+```
 
-# Client (separate terminal)
-cd client
-yarn install
-yarn start
+Install the server and client, then build collision data:
 
-# Docs (optional)
+```bash
+yarn setup
+```
+
+Start the server and client together:
+
+```bash
+yarn start
+```
+
+Start only the server:
+
+```bash
+yarn server
+```
+
+Start only the client:
+
+```bash
+yarn client
+```
+
+Start the documentation site (optional):
+
+```bash
 cd docs
 yarn install
 yarn dev
