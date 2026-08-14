@@ -277,7 +277,7 @@ export class Camera {
             Camera.deltaTemp,
             Camera.deltaTemp,
             Camera.moveCameraRotOrigin,
-            (1024 - this.yaw) * RS_TO_RADIANS,
+            (this.yaw - 1024) * RS_TO_RADIANS,
         );
 
         vec3.add(this.pos, this.pos, Camera.deltaTemp);
