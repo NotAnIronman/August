@@ -62,6 +62,7 @@ export abstract class Renderer {
     abstract cleanUp(): void;
 
     start() {
+        if (this.running) return;
         this.running = true;
         this._framePacingDebtMs = 0;
         this._updateVisibilityMode();
