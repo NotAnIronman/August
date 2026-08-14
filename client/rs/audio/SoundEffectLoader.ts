@@ -4,6 +4,7 @@ import { CacheSystem } from "../cache/CacheSystem";
 import { detectCacheType } from "../cache/CacheType";
 import { IndexType } from "../cache/IndexType";
 import { isGroupMissingError } from "../cache/js5/GroupMissingError";
+import { retryOnMissingGroup } from "../cache/js5/retryOnMissingGroup";
 import { RawSoundData, SoundEffect } from "./legacy/SoundEffect";
 
 export class SoundEffectLoader {
@@ -54,11 +55,22 @@ export class SoundEffectLoader {
         try {
             return this.tryDecode(soundId);
         } catch (err) {
-            // Missing groups are queued for on-demand fetch; the sound is
-            // skipped now and plays normally once its data has arrived.
+            // Missing groups are queued for on-demand fetch; the caller falls
+            // back to loadWithRetry to pick the sound up once it lands.
             if (!isGroupMissingError(err)) {
                 console.log("[SoundEffectLoader] failed to load sound", soundId, err);
             }
+            return undefined;
+        }
+    }
+
+    /** Like load(), but waits out an on-demand fetch instead of skipping it. */
+    async loadWithRetry(soundId: number): Promise<RawSoundData | undefined> {
+        if (!this.index) return undefined;
+        try {
+            return await retryOnMissingGroup(() => this.tryDecode(soundId));
+        } catch (err) {
+            console.log("[SoundEffectLoader] failed to load sound", soundId, err);
             return undefined;
         }
     }
