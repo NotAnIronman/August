@@ -454,7 +454,10 @@ export function onLocAddChange(host: WebGLOsrsRendererHost,
             // Suppress the base cache-baked loc at this tile so it doesn't
             // keep rendering alongside (or instead of) the new one - buildScene
             // has no other way to know a cache loc was replaced/removed.
-            host.locOverrides.set(`${tile.x | 0},${tile.y | 0},${level | 0},-1`, { newId: 0 });
+            host.locOverrides.set(`${tile.x | 0},${tile.y | 0},${level | 0},-1`, {
+                newId: 0,
+                matchType: shape as LocModelType,
+            });
 
             const mapX = Math.floor(tile.x / 64);
             const mapY = Math.floor(tile.y / 64);
