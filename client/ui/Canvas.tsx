@@ -19,7 +19,7 @@ export function Canvas({ renderer }: CanvasProps): JSX.Element {
         renderer.attachResizeObserver();
         requestAnimationFrame(() => renderer.forceResize());
 
-        renderer.init().then(() => {
+        renderer.initOnce().then(() => {
             if (active) renderer.start();
         });
 
