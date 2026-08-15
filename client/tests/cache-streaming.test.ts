@@ -5,6 +5,7 @@ import type { SoundEffectLoader } from "../rs/audio/SoundEffectLoader";
 import type { RawSoundData } from "../rs/audio/legacy/SoundEffect";
 import { parseContentRange, validatePartialContentResponse } from "../rs/cache/js5/HttpRange";
 import { PresenceBitset } from "../rs/cache/js5/PresenceBitset";
+import { rebuildGroundItemsForMap } from "../render/render/draw3";
 
 function contentRangeParsing(): void {
     assert.deepEqual(parseContentRange("bytes 10-19/100"), {
@@ -109,10 +110,17 @@ async function soundRetryLifecycle(): Promise<void> {
     assert.equal(playedAfterDispose, false);
 }
 
+function groundItemsRetryUntilRendererReady(): void {
+    const stack = [{}] as any;
+    assert.equal(rebuildGroundItemsForMap({} as any, {} as any, stack), true);
+    assert.equal(rebuildGroundItemsForMap({} as any, {} as any, undefined), false);
+}
+
 async function main(): Promise<void> {
     contentRangeParsing();
     exactRangeValidation();
     sectorPresenceTracking();
+    groundItemsRetryUntilRendererReady();
     await soundRetryLifecycle();
     console.log("Cache streaming regression tests passed");
 }

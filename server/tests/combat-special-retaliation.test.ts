@@ -10,9 +10,11 @@ import { npcCombatEntityRef, playerCombatEntityRef } from "../src/game/combat/mo
 import { CombatPluginRegistry } from "../src/game/combat/plugins/CombatPluginRegistry";
 import { CombatAttributes } from "../src/game/combat/state/CombatAttributes";
 import type { GamemodeDefinition } from "../src/game/gamemodes/GamemodeDefinition";
+import { PlayerInteractionSystem } from "../src/game/interactions/PlayerInteractionSystem";
 import { NpcState } from "../src/game/npc";
 import { PlayerState } from "../src/game/player";
 import type { PathService } from "../src/pathfinding/PathService";
+import type { WebSocket } from "ws";
 
 const TEST_GAMEMODE = {
     id: "combat-special-retaliation-test",
@@ -79,6 +81,48 @@ const disabledRetaliation = new CombatRetaliationEngine({
 });
 assert.equal(disabledRetaliation.intercept(disabledPlayer, npcCombatEntityRef(npcAttacker.id), 50), false);
 assert.equal(disabledPlayer.combatAttributes.get(CombatAttributes.COMBAT_TARGET), null);
+
+const retaliatingNpc = createNpc(203, 3201);
+const npcTarget = new PlayerState(104, 3200, 3200, 0, TEST_GAMEMODE);
+const npcRetaliation = new CombatRetaliationEngine({
+    pathService,
+    getPlayer: (id) => (id === npcTarget.id ? npcTarget : undefined),
+    getNpc: (id) => (id === retaliatingNpc.id ? retaliatingNpc : undefined),
+    resolveAttackTraits: () => meleeTraits(),
+});
+assert.equal(npcRetaliation.intercept(retaliatingNpc, playerCombatEntityRef(npcTarget.id), 50), true);
+assert.equal(retaliatingNpc.combatAttributes.get(CombatAttributes.ATTACK_DELAY), 52);
+
+const npcEngine = new CombatTickEngine({
+    pathService,
+    getPlayer: (id) => (id === npcTarget.id ? npcTarget : undefined),
+    getNpc: (id) => (id === retaliatingNpc.id ? retaliatingNpc : undefined),
+    getCombatants: () => [retaliatingNpc],
+    resolveAttackTraits: () => meleeTraits(),
+});
+assert.equal(npcEngine.processTick(51).preparedAttacks.length, 0);
+assert.equal(npcEngine.processTick(52).preparedAttacks.length, 1);
+
+const cleanupPlayer = new PlayerState(105, 3200, 3200, 0, TEST_GAMEMODE);
+const cleanupNpc = createNpc(204, 3201);
+const cleanupSocket = {} as WebSocket;
+cleanupPlayer.setInteraction("npc", cleanupNpc.id);
+cleanupPlayer.setCombatTarget(cleanupNpc);
+cleanupPlayer.combat.setInteractingNpc(cleanupNpc);
+const interactionSystem = new PlayerInteractionSystem(
+    {
+        get: (ws) => (ws === cleanupSocket ? cleanupPlayer : undefined),
+        getById: (id) => (id === cleanupPlayer.id ? cleanupPlayer : undefined),
+        getSocketByPlayerId: (id) => (id === cleanupPlayer.id ? cleanupSocket : undefined),
+        forEach: (callback) => callback(cleanupSocket, cleanupPlayer),
+        forEachBot: () => undefined,
+    },
+    pathService,
+);
+interactionSystem.clearInteractionsWithNpc(cleanupNpc.id);
+assert.equal(cleanupPlayer.getInteractionTarget(), undefined);
+assert.equal(cleanupPlayer.getCombatTarget(), null);
+assert.equal(cleanupPlayer.combat.getInteractingNpc(), null);
 
 const gmaulPlayer = new PlayerState(102, 3200, 3200, 0, TEST_GAMEMODE);
 const gmaulTarget = createNpc(201, 3201);

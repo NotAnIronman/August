@@ -1,4 +1,5 @@
 import type { PathService } from "../../../pathfinding/PathService";
+import { NpcState } from "../../npc";
 import { PlayerState } from "../../player";
 import type { CombatAttackTraits } from "../model/CombatAttack";
 import type { CombatEntityRef } from "../model/CombatEntityRef";
@@ -25,8 +26,8 @@ export interface CombatRetaliationEngineOptions extends CombatEntityRegistry {
  * Validation and reachability deliberately run through the same interaction
  * processor used by normal combat. This prevents retaliation from targeting a
  * dead/disconnected actor or creating an interaction that cannot be routed.
- * The engine never reads or writes ATTACK_DELAY, so the defender retains its
- * existing absolute weapon deadline.
+ * Existing weapon deadlines are retained. An idle NPC gets OSRS's half-rate
+ * retaliation delay when it first acquires the attacker.
  */
 export class CombatRetaliationEngine {
     private readonly interactionProcessor: CombatInteractionProcessor;
@@ -63,6 +64,16 @@ export class CombatRetaliationEngine {
             this.resolveAttackTraits,
         );
         if (result.status === "ready" || result.status === "moving") {
+            if (defender instanceof NpcState) {
+                const delay = Math.floor(Math.max(1, defender.attackSpeed) / 2);
+                defender.combatAttributes.set(
+                    CombatAttributes.ATTACK_DELAY,
+                    Math.max(
+                        defender.combatAttributes.get(CombatAttributes.ATTACK_DELAY),
+                        this.mapClock(currentMapClock) + delay,
+                    ),
+                );
+            }
             return true;
         }
 

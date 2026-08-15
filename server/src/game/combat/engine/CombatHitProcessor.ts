@@ -339,8 +339,12 @@ export class CombatHitProcessor {
             const travelDelayTicks = this.resolveTravelDelay(profile, context);
             const resolvedAttack = specialAttack ?? dragonfireAttack;
             const visuals = this.resolveVisuals(profile, context, resolvedAttack);
+            const damageType = resolvedAttack?.damageType ?? attack.traits.type;
 
             this.playAttackVisuals(context, profile, visuals, travelDelayTicks, resolvedAttack);
+            if (damageType === AttackType.Melee) {
+                this.playBlockAnimation(target);
+            }
 
             for (const [hitIndex, evaluation] of evaluations.entries()) {
                 const hitDelay = Math.max(
@@ -357,7 +361,7 @@ export class CombatHitProcessor {
                     hitsplatType: evaluation.landed
                         ? DeferredHitsplatType.Normal
                         : DeferredHitsplatType.Block,
-                    attackType: resolvedAttack?.damageType ?? attack.traits.type,
+                    attackType: damageType,
                     revealClock: clock + travelDelayTicks + hitDelay,
                     profileId: profile.id,
                     suppressProfileImpactGraphic:
@@ -1069,7 +1073,7 @@ export class CombatHitProcessor {
                 return Math.max(1, 1 + Math.floor((3 + distance) / 6));
             case AttackType.Melee:
             default:
-                return 0;
+                return context.attacker instanceof PlayerState ? 1 : 0;
         }
     }
 
@@ -1368,7 +1372,9 @@ export class CombatHitProcessor {
         this.applyWeaponSpecialAttackScript(hit);
         this.applyToxicBlowpipeVenom(hit);
         this.applyAncientMagicEffects(hit);
-        this.playBlockAnimation(hit);
+        if (hit.hpCurrent > 0 && hit.pending.attackType !== AttackType.Melee) {
+            this.playBlockAnimation(hit.target);
+        }
         this.recordLootDamage(hit);
         this.updateCombatState(hit);
         this.awardCombatExperience(hit, frame);
@@ -1821,15 +1827,13 @@ export class CombatHitProcessor {
         hit.target.applyFreeze(durationTicks, hit.appliedClock);
     }
 
-    private playBlockAnimation(hit: AppliedCombatHit): void {
-        if (hit.hpCurrent <= 0) return;
-
-        if (hit.target instanceof NpcState) {
-            const definition = this.services.combatDataService.getNpcDefinition(hit.target);
-            const defenceAnimation = definition.animations.defence;
-            if (defenceAnimation > 0) {
-                this.services.combatEffectService.broadcastNpcSequence(
-                    hit.target,
+    private playBlockAnimation(target: CombatEntity): void {
+        if (target instanceof NpcState) {
+            const defenceAnimation = this.services.combatDataService?.getNpcDefinition(target)
+                .animations.defence;
+            if (defenceAnimation !== undefined && defenceAnimation > 0) {
+                this.services.combatEffectService?.broadcastNpcSequence(
+                    target,
                     defenceAnimation,
                     { yieldToExisting: true },
                 );
@@ -1837,10 +1841,10 @@ export class CombatHitProcessor {
             return;
         }
 
-        if (hit.target.hasPendingSeq()) return;
-        const blockSequence = this.services.playerCombatService?.pickBlockSequence(hit.target);
+        if (target.hasPendingSeq()) return;
+        const blockSequence = this.services.playerCombatService?.pickBlockSequence(target);
         if (blockSequence !== undefined && blockSequence > 0) {
-            hit.target.queueOneShotSeq(blockSequence, 0, { interruptible: true });
+            target.queueOneShotSeq(blockSequence, 0, { interruptible: true });
         }
     }
 
@@ -1934,12 +1938,6 @@ export class CombatHitProcessor {
     private handleDeath(hit: AppliedCombatHit): void {
         if (hit.hpCurrent > 0) return;
         if (hit.target instanceof NpcState) {
-            // A fatal hitsplat ends combat immediately. The NPC object and index
-            // are reused on respawn, so retaining either target representation
-            // would make attackers resume following the newly spawned NPC.
-            hit.target.disengageCombat();
-            this.services.players?.clearInteractionsWithNpc(hit.target.id);
-
             if (hit.source instanceof PlayerState) {
                 this.services.npcManager?.scheduleDeathProcessing(
                     hit.target.id,
