@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 
+import { SoundEffectSystem, type PlaySoundOptions } from "../game/audio/SoundEffectSystem";
+import type { SoundEffectLoader } from "../rs/audio/SoundEffectLoader";
+import type { RawSoundData } from "../rs/audio/legacy/SoundEffect";
 import { parseContentRange, validatePartialContentResponse } from "../rs/cache/js5/HttpRange";
 import { PresenceBitset } from "../rs/cache/js5/PresenceBitset";
+import { rebuildGroundItemsForMap } from "../render/render/draw3";
 
 function contentRangeParsing(): void {
     assert.deepEqual(parseContentRange("bytes 10-19/100"), {
@@ -57,7 +61,154 @@ function sectorPresenceTracking(): void {
     assert.equal(presence.hasSectors(19, 2), false);
 }
 
-contentRangeParsing();
-exactRangeValidation();
-sectorPresenceTracking();
-console.log("Cache streaming regression tests passed");
+async function soundRetryLifecycle(): Promise<void> {
+    const raw: RawSoundData = {
+        sampleRate: 22050,
+        samples: new Int8Array([1]),
+        start: 0,
+        end: 0,
+    };
+    let resolveRetry!: (value: RawSoundData | undefined) => void;
+    let retryCalls = 0;
+    const retry = new Promise<RawSoundData | undefined>((resolve) => {
+        resolveRetry = resolve;
+    });
+    const system = new SoundEffectSystem({
+        loadWithRetry: () => {
+            retryCalls++;
+            return retry;
+        },
+    } as unknown as SoundEffectLoader);
+    const plays: Array<{ options: PlaySoundOptions; elapsedMs: number }> = [];
+    (system as any).playSoundEffectInternal = (
+        _soundId: number,
+        options: PlaySoundOptions,
+        elapsedMs: number,
+    ) => plays.push({ options, elapsedMs });
+
+    (system as any).retryMissingSound(10, { position: { x: 1, y: 1 } });
+    (system as any).retryMissingSound(10, { position: { x: 2, y: 2 } });
+    assert.equal(retryCalls, 1);
+    resolveRetry(raw);
+    await retry;
+    await Promise.resolve();
+    assert.deepEqual(
+        plays.map(({ options }) => options),
+        [{ position: { x: 1, y: 1 } }, { position: { x: 2, y: 2 } }],
+    );
+    assert.equal(plays.every(({ elapsedMs }) => elapsedMs >= 0), true);
+    assert.equal(
+        (SoundEffectSystem as any).remainingDelayMs({ delayMs: 120 }, 0.04, 60),
+        100,
+    );
+    assert.equal((SoundEffectSystem as any).remainingDelayMs({}, 0.04, 60), 0);
+    assert.deepEqual(
+        (SoundEffectSystem as any).expandFiniteLoop(new Float32Array([0, 1, 2, 3]), 1, 3, 2),
+        new Float32Array([0, 1, 2, 1, 2, 1, 2, 3]),
+    );
+
+    let resolveDisposedRetry!: (value: RawSoundData | undefined) => void;
+    const disposedRetry = new Promise<RawSoundData | undefined>((resolve) => {
+        resolveDisposedRetry = resolve;
+    });
+    const disposedSystem = new SoundEffectSystem({
+        loadWithRetry: () => disposedRetry,
+    } as unknown as SoundEffectLoader);
+    let playedAfterDispose = false;
+    (disposedSystem as any).playSoundEffectInternal = () => {
+        playedAfterDispose = true;
+    };
+    (disposedSystem as any).retryMissingSound(11, {});
+    disposedSystem.dispose();
+    resolveDisposedRetry(raw);
+    await disposedRetry;
+    await Promise.resolve();
+    assert.equal(playedAfterDispose, false);
+}
+
+function sequenceSoundSelection(): void {
+    const system = new SoundEffectSystem({} as SoundEffectLoader);
+    const plays: Array<{ soundId: number; options: PlaySoundOptions }> = [];
+    (system as any).playSoundEffect = (soundId: number, options: PlaySoundOptions) =>
+        plays.push({ soundId, options });
+
+    const originalRandom = Math.random;
+    Math.random = () => 0.25;
+    try {
+        system.handleSeqFrameSounds(
+            [
+                { id: 10, weight: 50, loops: 1, location: 4, attenuation: 2 },
+                { id: 11, weight: 50, loops: 1, location: 4, attenuation: 3 },
+            ],
+            { position: { x: 64, y: 64 }, isLocalPlayer: false },
+        );
+    } finally {
+        Math.random = originalRandom;
+    }
+    assert.deepEqual(plays, [
+        {
+            soundId: 10,
+            options: {
+                loops: 0,
+                position: { x: 64, y: 64 },
+                radius: 512,
+                distanceFadeCurve: undefined,
+                isLocalPlayer: false,
+                attenuation: 2,
+            },
+        },
+    ]);
+
+    system.handleSeqFrameSounds([{ id: 12, loops: 1, location: 0 }], {
+        isLocalPlayer: false,
+    });
+    assert.equal(plays.length, 1);
+    system.handleSeqFrameSounds([{ id: 12, loops: 1, location: 0 }], {
+        isLocalPlayer: true,
+    });
+    system.handleSeqFrameSounds([{ id: 12, loops: 1, location: 0 }], {
+        isLocalPlayer: true,
+    });
+    assert.equal(plays.length, 3);
+}
+
+function ambientSoundsRetryMissingCacheGroups(): void {
+    const system = new SoundEffectSystem({} as SoundEffectLoader);
+    (system as any).decode = () => undefined;
+    const active = {
+        instance: { locId: 1 },
+        loopSoundId: undefined,
+        currentSoundIndex: -1,
+        nextChangeTime: 5,
+    };
+
+    (system as any).startLoopSource(active, 10, {}, 5);
+    assert.equal(active.loopSoundId, undefined);
+    (system as any).playOverlaySound(
+        "1",
+        active,
+        { soundIds: [10], loopSequentially: false },
+        {},
+        5,
+    );
+    assert.equal(active.nextChangeTime, 5);
+}
+
+function groundItemsRetryUntilRendererReady(): void {
+    const stack = [{}] as any;
+    assert.equal(rebuildGroundItemsForMap({} as any, {} as any, stack), true);
+    assert.equal(rebuildGroundItemsForMap({} as any, {} as any, undefined), false);
+}
+
+async function main(): Promise<void> {
+    contentRangeParsing();
+    exactRangeValidation();
+    sectorPresenceTracking();
+    groundItemsRetryUntilRendererReady();
+    sequenceSoundSelection();
+    ambientSoundsRetryMissingCacheGroups();
+    await soundRetryLifecycle();
+    console.log("Cache streaming regression tests passed");
+}
+
+void main();

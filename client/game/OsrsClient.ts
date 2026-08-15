@@ -1703,7 +1703,7 @@ export class OsrsClient {
                 if (self.soundEffectSystem && soundId >= 0) {
                     self.soundEffectSystem.playSoundEffect(soundId, {
                         loops,
-                        delayMs: delay * 20, // CS2 delay is in client ticks (50ms), convert to ms
+                        delayMs: delay * 20, // CS2 delay is in client cycles (20ms)
                     });
                 }
             },
