@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 
 import { SoundEffectSystem, type PlaySoundOptions } from "../game/audio/SoundEffectSystem";
+import { ClientScriptLoader } from "../game/cs2/ClientScriptLoader";
 import type { SoundEffectLoader } from "../rs/audio/SoundEffectLoader";
 import type { RawSoundData } from "../rs/audio/legacy/SoundEffect";
+import { GroupMissingError } from "../rs/cache/js5/GroupMissingError";
 import { parseContentRange, validatePartialContentResponse } from "../rs/cache/js5/HttpRange";
 import { PresenceBitset } from "../rs/cache/js5/PresenceBitset";
 import { rebuildGroundItemsForMap } from "../render/render/draw3";
@@ -59,6 +61,51 @@ function sectorPresenceTracking(): void {
     presence.markSectors(0, 16);
     assert.equal(presence.hasSectors(0, 16), true);
     assert.equal(presence.hasSectors(19, 2), false);
+}
+
+async function clientScriptRetryLifecycle(): Promise<void> {
+    const originalSetTimeout = globalThis.setTimeout;
+    (globalThis as any).setTimeout = (callback: () => void) => {
+        queueMicrotask(callback);
+        return 0;
+    };
+
+    try {
+        const script = { id: 10 } as any;
+        const loader = new ClientScriptLoader({} as any);
+        let attempts = 0;
+        (loader as any).tryLoad = () => {
+            attempts++;
+            if (attempts < 3) throw new GroupMissingError(12, 10, 0, 1);
+            return script;
+        };
+
+        const first = loader.loadWithRetry(10);
+        const duplicate = loader.loadWithRetry(10);
+        assert.equal(first, duplicate);
+        assert.equal(await first, script);
+        assert.equal(attempts, 3);
+
+        const absentLoader = new ClientScriptLoader({} as any);
+        let absentAttempts = 0;
+        (absentLoader as any).tryLoad = () => {
+            absentAttempts++;
+            return null;
+        };
+        assert.equal(await absentLoader.loadWithRetry(11), null);
+        assert.equal(absentAttempts, 1);
+
+        const exhaustedLoader = new ClientScriptLoader({} as any);
+        let exhaustedAttempts = 0;
+        (exhaustedLoader as any).tryLoad = () => {
+            exhaustedAttempts++;
+            throw new GroupMissingError(12, 12, 0, 1);
+        };
+        assert.equal(await exhaustedLoader.loadWithRetry(12), null);
+        assert.equal(exhaustedAttempts, 20);
+    } finally {
+        globalThis.setTimeout = originalSetTimeout;
+    }
 }
 
 async function soundRetryLifecycle(): Promise<void> {
@@ -207,6 +254,7 @@ async function main(): Promise<void> {
     groundItemsRetryUntilRendererReady();
     sequenceSoundSelection();
     ambientSoundsRetryMissingCacheGroups();
+    await clientScriptRetryLifecycle();
     await soundRetryLifecycle();
     console.log("Cache streaming regression tests passed");
 }
