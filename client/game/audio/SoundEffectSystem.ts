@@ -142,7 +142,8 @@ export class SoundEffectSystem {
     private listenerZ = 0;
     private lastAmbientUpdateTime = -1;
     private readonly warnedSounds = new Set<number>();
-    private readonly pendingRetries = new Set<number>();
+    private readonly pendingRetries = new Map<number, PlaySoundOptions>();
+    private disposed = false;
     // Memory leak fix: track context resume listener cleanup
     private contextResumeCleanup: (() => void) | null = null;
     private readonly MAX_CACHE_SIZE = 100;
@@ -272,13 +273,17 @@ export class SoundEffectSystem {
     }
 
     private retryMissingSound(soundId: number, options: PlaySoundOptions): void {
-        if (this.pendingRetries.has(soundId)) return;
-        this.pendingRetries.add(soundId);
+        const alreadyPending = this.pendingRetries.has(soundId);
+        this.pendingRetries.set(soundId, options);
+        if (alreadyPending) return;
         this.loader
             .loadWithRetry(soundId)
             .then((raw) => {
+                const latestOptions = this.pendingRetries.get(soundId);
                 this.pendingRetries.delete(soundId);
-                if (raw) this.playSoundEffect(soundId, options);
+                if (raw && latestOptions && !this.disposed) {
+                    this.playSoundEffect(soundId, latestOptions);
+                }
             })
             .catch(() => this.pendingRetries.delete(soundId));
     }
@@ -375,6 +380,7 @@ export class SoundEffectSystem {
     }
 
     playSoundEffect(soundId: number, options: PlaySoundOptions = {}): void {
+        if (this.disposed) return;
         const ctx = this.ensureContext();
         if (!ctx || !this.loader.available()) return;
 
@@ -1179,6 +1185,9 @@ export class SoundEffectSystem {
     }
 
     dispose(): void {
+        this.disposed = true;
+        this.pendingRetries.clear();
+
         // Stop all active sources
         for (const source of this.activeSources) {
             try {
