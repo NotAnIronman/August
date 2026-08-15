@@ -335,23 +335,30 @@ export class PlayerInteractionSystem {
     }
 
     clearInteractionsWithNpc(npcId: number): void {
-        const toRemove: WebSocket[] = [];
         for (const [ws, interaction] of this.interactions.entries()) {
-            if (interaction.kind === "npcCombat" && interaction.npcId === npcId) {
-                toRemove.push(ws);
-            } else if (interaction.kind === "npcInteract" && interaction.npcId === npcId) {
-                toRemove.push(ws);
+            if (
+                (interaction.kind === "npcCombat" || interaction.kind === "npcInteract") &&
+                interaction.npcId === npcId
+            ) {
+                this.interactions.delete(ws);
             }
         }
-        for (const ws of toRemove) {
-            const player = this.players.get(ws);
-            if (player) {
+
+        const clearTarget = (player: PlayerState): void => {
+            const interactionTarget = player.getInteractionTarget();
+            if (interactionTarget?.type === "npc" && interactionTarget.id === npcId) {
                 player.clearInteractionTarget();
+            }
+            const combatTarget = player.getCombatTarget();
+            if (combatTarget?.type === "npc" && combatTarget.id === npcId) {
                 player.removeCombatTarget();
+            }
+            if (player.combat.getInteractingNpc()?.id === npcId) {
                 player.combat.setInteractingNpc(null);
             }
-            this.interactions.delete(ws);
-        }
+        };
+        this.players.forEach((_ws, player) => clearTarget(player));
+        this.players.forEachBot(clearTarget);
     }
 
     getStateForSocket(ws: WebSocket): PlayerInteractionState | undefined {

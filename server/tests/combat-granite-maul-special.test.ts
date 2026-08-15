@@ -203,6 +203,46 @@ assert.equal(followingTick.preparedAttacks.length, 1);
 assert.equal(followingTick.preparedAttacks[0].traits.specialAttack, false);
 assert.equal(initiatingPlayer.combatAttributes.get(CombatAttributes.ATTACK_DELAY), 58);
 
+const unarmedPlayer = createPlayer(105, 0);
+const unarmedTarget = createTarget(205);
+unarmedPlayer.setCombatTarget(unarmedTarget);
+const unarmedAttack = createEngine(unarmedPlayer, unarmedTarget).processTick(60).preparedAttacks[0];
+const blockAnimations: number[] = [];
+const unarmedProcessor = new CombatHitProcessor({
+    players: {
+        getById: (id: number) => (id === unarmedPlayer.id ? unarmedPlayer : undefined),
+        getAllPlayersForSync: () => [unarmedPlayer],
+    },
+    npcManager: {
+        getById: (id: number) => (id === unarmedTarget.id ? unarmedTarget : undefined),
+        forEach: (callback: (npc: NpcState) => void) => callback(unarmedTarget),
+    },
+    equipmentService: {
+        computeEquipmentStatBonuses: () => new Array<number>(14).fill(0),
+    },
+    combatDataService: {
+        getNpcDefinition: () => ({ animations: { defence: 425 } }),
+    },
+    combatEffectService: {
+        broadcastNpcSequence: (_npc: NpcState, seqId: number) => blockAnimations.push(seqId),
+    },
+    skillService: { awardCombatXp: () => undefined },
+    messagingService: { queueChatMessage: () => undefined },
+    variableService: { queueVarp: () => undefined },
+    queueCombatState: () => undefined,
+    broadcastService: {
+        enqueueSpotAnimation: () => undefined,
+        queueBroadcastSound: () => undefined,
+    },
+} as unknown as ServerServices);
+assert.ok(unarmedAttack);
+unarmedProcessor.processPreparedAttacks([unarmedAttack], 60);
+assert.deepEqual(blockAnimations, [425]);
+const hitFrame = { hitsplats: [], actionEffects: [] } as any;
+assert.equal(unarmedProcessor.processDeferredHits(60, hitFrame).length, 0);
+assert.equal(unarmedProcessor.processDeferredHits(61, hitFrame).length, 1);
+assert.deepEqual(blockAnimations, [425]);
+
 const expiringPlayer = createPlayer(104, 24225);
 const unusedTarget = createTarget(204);
 queueGraniteMaulSpecialAttackInput(expiringPlayer, 24225, 50, "varp");
