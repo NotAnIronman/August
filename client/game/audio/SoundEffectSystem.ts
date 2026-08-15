@@ -142,6 +142,8 @@ export class SoundEffectSystem {
     private listenerZ = 0;
     private lastAmbientUpdateTime = -1;
     private readonly warnedSounds = new Set<number>();
+    private readonly pendingRetries = new Map<number, PlaySoundOptions>();
+    private disposed = false;
     // Memory leak fix: track context resume listener cleanup
     private contextResumeCleanup: (() => void) | null = null;
     private readonly MAX_CACHE_SIZE = 100;
@@ -270,6 +272,22 @@ export class SoundEffectSystem {
         return decoded;
     }
 
+    private retryMissingSound(soundId: number, options: PlaySoundOptions): void {
+        const alreadyPending = this.pendingRetries.has(soundId);
+        this.pendingRetries.set(soundId, options);
+        if (alreadyPending) return;
+        this.loader
+            .loadWithRetry(soundId)
+            .then((raw) => {
+                const latestOptions = this.pendingRetries.get(soundId);
+                this.pendingRetries.delete(soundId);
+                if (raw && latestOptions && !this.disposed) {
+                    this.playSoundEffect(soundId, latestOptions);
+                }
+            })
+            .catch(() => this.pendingRetries.delete(soundId));
+    }
+
     private toFloatData(raw: RawSoundData, targetSampleRate: number): DecodedSound {
         const total = raw.samples.length | 0;
 
@@ -362,13 +380,19 @@ export class SoundEffectSystem {
     }
 
     playSoundEffect(soundId: number, options: PlaySoundOptions = {}): void {
+        if (this.disposed) return;
         const ctx = this.ensureContext();
         if (!ctx || !this.loader.available()) return;
 
         resumeAudioContextIfNeeded(ctx);
 
         const decoded = this.decode(soundId);
-        if (!decoded) return;
+        if (!decoded) {
+            // Cache group may still be streaming in (sparse cache); retry once
+            // it lands instead of silently dropping the sound.
+            this.retryMissingSound(soundId, options);
+            return;
+        }
         if (!decoded.channelData || decoded.channelData.length === 0 || decoded.sampleRate <= 0) {
             // As a last-resort safety net, synthesize a tiny click to avoid errors and keep timing consistent
             const contextSampleRate =
@@ -1161,6 +1185,9 @@ export class SoundEffectSystem {
     }
 
     dispose(): void {
+        this.disposed = true;
+        this.pendingRetries.clear();
+
         // Stop all active sources
         for (const source of this.activeSources) {
             try {
