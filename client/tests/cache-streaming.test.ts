@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import { parseContentRange, validatePartialContentResponse } from "../rs/cache/js5/HttpRange";
 import { PresenceBitset } from "../rs/cache/js5/PresenceBitset";
+import { rebuildGroundItemsForMap } from "../render/render/draw3";
 
 function contentRangeParsing(): void {
     assert.deepEqual(parseContentRange("bytes 10-19/100"), {
@@ -57,7 +58,14 @@ function sectorPresenceTracking(): void {
     assert.equal(presence.hasSectors(19, 2), false);
 }
 
+function groundItemsRetryUntilRendererReady(): void {
+    const stack = [{}] as any;
+    assert.equal(rebuildGroundItemsForMap({} as any, {} as any, stack), true);
+    assert.equal(rebuildGroundItemsForMap({} as any, {} as any, undefined), false);
+}
+
 contentRangeParsing();
 exactRangeValidation();
 sectorPresenceTracking();
+groundItemsRetryUntilRendererReady();
 console.log("Cache streaming regression tests passed");
