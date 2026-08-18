@@ -124,6 +124,8 @@ import {
     sendTradeRemove,
     subscribeLogoutResponse,
     suppressReconnection,
+    disposeServerConnection,
+    initServerConnection,
 } from "../network/ServerConnection";
 import {
     getLastUrl,
@@ -5327,7 +5329,12 @@ export class OsrsClient {
                     this.loginState.serverSecure = server.secure;
                     this.loginState.serverListOpen = false;
                     this.loginState.hoveredServerIndex = -1;
-                    setServerUrl(`${server.secure ? "wss" : "ws"}://${server.address}`);
+                    const worldUrl = `${server.secure ? "wss" : "ws"}://${server.address}`;
+                    // A default socket is opened at startup. Recreate it for the selected
+                    // world so the subsequent login cannot be sent to the prior world.
+                    disposeServerConnection("world selection");
+                    setServerUrl(worldUrl);
+                    initServerConnection(worldUrl);
                     this.loginState.saveLastServer();
                 }
                 return undefined;
