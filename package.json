@@ -8,7 +8,7 @@
   "scripts": {
     "setup": "yarn install --frozen-lockfile && yarn --cwd server install --frozen-lockfile && yarn --cwd client install --frozen-lockfile && yarn --cwd server ensure-cache && yarn --cwd server build-collision",
     "start": "yarn concurrently --kill-others --names server,client \"yarn --cwd server start\" \"yarn --cwd client start\"",
-    "server": "yarn --cwd server start",
+    "server": "yarn --cwd server ensure-cache && yarn concurrently --kill-others --names world-1,world-2 \"yarn --cwd server start:world --world=1\" \"yarn --cwd server start:world --world=2\"",
     "client": "yarn --cwd client start"
   },
   "devDependencies": {
