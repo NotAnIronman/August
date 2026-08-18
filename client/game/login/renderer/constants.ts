@@ -1,32 +1,19 @@
 import { getServerListUrl } from "../../../config/clientEnv";
 import type { ServerListEntry, World } from "./types";
 
-export const MOCK_WORLDS: World[] = [
-    { id: 301, population: 487, location: 0, activity: "Trade - Free", properties: 0 },
-    { id: 302, population: 1243, location: 0, activity: "Trade - Members", properties: 1 },
-    { id: 303, population: 89, location: 1, activity: "Skill Total 500", properties: 1 },
-    { id: 304, population: 234, location: 1, activity: "PvP World", properties: 1 | 4 },
-    { id: 305, population: 567, location: 0, activity: "Free-to-play", properties: 0 },
-    { id: 306, population: 1890, location: 3, activity: "Members", properties: 1 },
-    { id: 307, population: 45, location: 7, activity: "Skill Total 750", properties: 1 },
-    { id: 308, population: 678, location: 0, activity: "Members", properties: 1 },
-    { id: 309, population: -1, location: 1, activity: "Offline", properties: 0 },
-    { id: 310, population: 432, location: 0, activity: "Members", properties: 1 },
-    { id: 311, population: 123, location: 3, activity: "Free-to-play", properties: 0 },
-    { id: 312, population: 876, location: 7, activity: "Members", properties: 1 },
-    { id: 313, population: 345, location: 0, activity: "Bounty Hunter", properties: 1 },
-    { id: 314, population: 654, location: 1, activity: "Members", properties: 1 },
-    { id: 315, population: 234, location: 0, activity: "Free-to-play", properties: 0 },
-    { id: 316, population: 1567, location: 0, activity: "Members", properties: 1 },
-];
+export const MOCK_WORLDS: World[] = [];
 
 export const FALLBACK_SERVERS: ServerListEntry[] = [
     {
-        name: "Local Development",
+        id: 301,
+        name: "World 301",
         address: "localhost:43594",
         secure: false,
         playerCount: null,
         maxPlayers: 2047,
+        location: 0,
+        activity: "Trade - Free",
+        properties: 0,
     },
 ];
 

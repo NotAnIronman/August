@@ -1,5 +1,16 @@
 {
-    "serverName": "Local Development",
-    "maxPlayers": 2047,
-    "gamemode": "leagues-v"
+    "serverName": "Choose World",
+    "maxPlayers": 1234,
+    "worlds": [
+        {
+            "id": 1,
+            "name": "Vanilla",
+            "gamemode": "vanilla"
+        },
+        {
+            "id": 2,
+            "name": "Raging Echoes",
+            "gamemode": "leagues-v"
+        }
+    ]
 }

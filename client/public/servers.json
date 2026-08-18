@@ -1,8 +1,12 @@
 [
     {
-        "name": "Local Development",
+        "id": 301,
+        "name": "World 301",
         "address": "localhost:43594",
         "secure": false,
-        "maxPlayers": 2047
+        "maxPlayers": 2047,
+        "location": 0,
+        "activity": "Trade - Free",
+        "properties": 0
     }
 ]

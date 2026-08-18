@@ -43,7 +43,11 @@ export interface LoginLayoutConfig {
 
 export interface World {
     id: number;
+    name: string;
+    address: string;
+    secure: boolean;
     population: number; // -1 = offline
+    maxPlayers: number;
     location: number; // 0=US, 1=UK, 3=Australia, 7=Germany
     activity: string; // World type description
     properties: number; // Flags: 1=members, 4=pvp, etc.
@@ -76,9 +80,13 @@ export enum WorldBackgroundType {
 }
 
 export interface ServerListEntry {
+    id: number;
     name: string;
     address: string;
     secure: boolean;
     playerCount: number | null;
     maxPlayers: number;
+    location: number;
+    activity: string;
+    properties: number;
 }

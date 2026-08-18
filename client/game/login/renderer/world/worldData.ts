@@ -1,4 +1,4 @@
-import { MOCK_WORLDS } from "../constants";
+import { getConfiguredServers } from "../../../config/clientEnv";
 import type { LoginRendererHost } from "../host";
 import type { World, WorldGridLayout, WorldHoverResult } from "../types";
 import { WorldFlags, WorldBackgroundType } from "../types";
@@ -128,54 +128,53 @@ export function findHoveredWorld(host: LoginRendererHost, sortedWorlds: World[],
 }
 
 export function getSortedWorlds(host: LoginRendererHost) {
+    if (
+        host.cachedSortedWorlds !== null &&
+        host.cachedSortOption === host.worldSortOption &&
+        host.cachedSortDirection === host.worldSortDirection
+    ) {
+        return host.cachedSortedWorlds;
+    }
 
-        // Performance: return cached result if sort options haven't changed
-        if (
-            host.cachedSortedWorlds !== null &&
-            host.cachedSortOption === host.worldSortOption &&
-            host.cachedSortDirection === host.worldSortDirection
-        ) {
-            return host.cachedSortedWorlds;
+    const configured = getConfiguredServers();
+
+    const worlds: World[] = (configured ?? []).map((server, index) => ({
+        id: index + 1,
+        population: 0,
+        location: 0,
+        activity: server.name,
+        properties: 0,
+    }));
+
+    const ascending = host.worldSortDirection === 0;
+
+    worlds.sort((a, b) => {
+        let result = 0;
+
+        switch (host.worldSortOption) {
+            case 0:
+                result = a.id - b.id;
+                break;
+
+            case 1:
+                result = a.population - b.population;
+                break;
+
+            case 2:
+                result = a.location - b.location;
+                break;
+
+            case 3:
+                result = a.activity.localeCompare(b.activity);
+                break;
         }
 
-        const worlds = [...MOCK_WORLDS];
-        const ascending = host.worldSortDirection === 0;
+        return ascending ? result : -result;
+    });
 
-        worlds.sort((a, b) => {
-            let result = 0;
+    host.cachedSortedWorlds = worlds;
+    host.cachedSortOption = host.worldSortOption;
+    host.cachedSortDirection = host.worldSortDirection;
 
-            switch (host.worldSortOption) {
-                case 0: // World ID
-                    result = a.id - b.id;
-                    break;
-                case 1: // Players (population)
-                    // Offline worlds (-1) go to end when ascending, start when descending
-                    const popA = a.population === -1 ? (ascending ? 2001 : -1) : a.population;
-                    const popB = b.population === -1 ? (ascending ? 2001 : -1) : b.population;
-                    result = popA - popB;
-                    break;
-                case 2: // Location
-                    result = a.location - b.location;
-                    break;
-                case 3: // Type (activity)
-                    if (a.activity === "-") {
-                        result = ascending ? 1 : -1;
-                    } else if (b.activity === "-") {
-                        result = ascending ? -1 : 1;
-                    } else {
-                        result = a.activity.localeCompare(b.activity);
-                    }
-                    break;
-            }
-
-            return ascending ? result : -result;
-        });
-
-        // Cache the result
-        host.cachedSortedWorlds = worlds;
-        host.cachedSortOption = host.worldSortOption;
-        host.cachedSortDirection = host.worldSortDirection;
-
-        return worlds;
-    
+    return worlds;
 }

@@ -1,7 +1,7 @@
 import { getCacheLoaderFactory } from "../../client/rs/cache/loader/CacheLoaderFactory";
 import { config } from "./config";
 import { damageTracker } from "./game/combat/DamageTracker";
-import { createGamemode } from "./game/gamemodes/GamemodeRegistry";
+import { WorldManager } from "./game/world/WorldManager";
 import { NpcManager } from "./game/npcManager";
 import { initSpellWidgetMapping } from "./game/spells/SpellDataProvider";
 import { GameTicker } from "./game/ticker";
@@ -39,13 +39,17 @@ async function main() {
     const npcTypeLoader = cacheFactory.getNpcTypeLoader();
     const basTypeLoader = cacheFactory.getBasTypeLoader();
 
-    logger.info(`Boot: creating gamemode "${config.gamemode}"...`);
-    const gamemode = createGamemode(config.gamemode);
-    if (gamemode.getLootDistributionConfig) {
-        damageTracker.lootConfigResolver = (npcTypeId) =>
-            gamemode.getLootDistributionConfig!(npcTypeId);
+    logger.info("Boot: creating worlds...");
+
+    const worldManager = new WorldManager(config.worlds);
+
+    for (const world of worldManager.getWorlds()) {
+        logger.info(
+            `Boot: World ${world.id} "${world.name}" using gamemode "${world.gamemode.name}"`,
+        );
     }
-    logger.info(`Boot: gamemode "${gamemode.name}" created`);
+
+    logger.info(`Boot: ${worldManager.getWorlds().length} worlds created`);
 
     // Initialize viewport enum service for display mode component mapping
     const enumTypeLoader = cacheFactory.getEnumTypeLoader();
@@ -58,11 +62,16 @@ async function main() {
     }
 
     const npcManager = new NpcManager(mapService, pathService, npcTypeLoader, basTypeLoader);
-    if (gamemode.shouldLoadDefaultNpcSpawns()) {
+
+    const defaultWorld = worldManager.getWorld(1)!;
+
+    if (defaultWorld.gamemode.shouldLoadDefaultNpcSpawns()) {
         npcManager.loadFromFile(serverPath("data", "npc-spawns.json"));
         logger.info("Boot: NPC manager ready (default spawns loaded)");
     } else {
-        logger.info(`Boot: NPC manager ready (default spawns disabled by ${gamemode.id})`);
+        logger.info(
+            `Boot: NPC manager ready (default spawns disabled by ${defaultWorld.gamemode.id})`,
+        );
     }
 
     logger.info("Boot: constructing WebSocket server...");
@@ -77,7 +86,7 @@ async function main() {
         cacheEnv,
         serverName: config.serverName,
         maxPlayers: config.maxPlayers,
-        gamemode,
+        gamemode: worldManager.getWorld(1)!.gamemode,
     });
     logger.info("Boot: WebSocket server constructed");
 
@@ -102,7 +111,9 @@ async function main() {
         } catch (err) {
             logger.warn("Final player save failed", err);
         }
-        gamemode.dispose?.();
+        for (const world of worldManager.getWorlds()) {
+            world.gamemode.dispose?.();
+        }
         process.exit(0);
     };
     process.on("SIGINT", shutdown("SIGINT"));
