@@ -15,7 +15,8 @@
     "ws": "^8.21.0"
   },
   "scripts": {
-    "start": "tsx scripts/ensure-cache.ts --server && tsx src/index.ts",
+        "start": "yarn ensure-cache && yarn start:world",
+        "start:world": "tsx src/index.ts",
     "dev": "yarn start",
     "build": "yarn typecheck",
     "typecheck": "tsc --noEmit -p tsconfig.quests.json",
