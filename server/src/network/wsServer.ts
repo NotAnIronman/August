@@ -602,7 +602,8 @@ export class WSServer {
             },
         });
         this.wss.on("listening", () => {
-            logger.info(`WS listening on ws://${opts.host}:${opts.port}`);
+            const displayHost = opts.host.includes(":") ? `[${opts.host}]` : opts.host;
+            logger.info(`WS listening on ws://${displayHost}:${opts.port}`);
 
             const httpServer = (this.wss as unknown as { _server?: import("http").Server })._server;
             if (httpServer) {
