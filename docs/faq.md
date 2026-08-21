@@ -24,9 +24,9 @@ Yes. Fork the repo, make your changes, and open a pull request. Join the [Discor
 
 Extend **VanillaGamemode** unless you're building something radically different (e.g. a minigame-only server). Vanilla gives you banking, shops, combat, all skills, and all UI widgets out of the box. Override what you need, inherit what you don't.
 
-### How do I switch which gamemode the server runs?
+### How do I run a different gamemode?
 
-Set the `GAMEMODE` environment variable or add `"gamemode": "my-gamemode"` to `server/config.json`. The default is `vanilla`.
+Each configured world runs one gamemode in its own server process. Add the gamemode and port to `server/config.json`, then run it with `yarn --cwd server start:world --world=<id>`. The bundled worlds are `1` (Vanilla) and `2` (Leagues V).
 
 ### Can I use vanilla's combat system without extending VanillaGamemode?
 

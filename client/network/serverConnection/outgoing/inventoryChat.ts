@@ -89,25 +89,21 @@ export function sendChat(
     messageType: "public" | "game" | "friends_chat" = "public",
     chatType: number = 0,
 ): void {
-    console.log(`[sendChat] Attempting to send: "${text}"`);
     if (!state.socket || state.socket.readyState !== WebSocket.OPEN) {
-        console.log("[sendChat] Socket not ready");
+        console.warn("[sendChat] Dropped: socket not open");
         return;
     }
     const filtered = sanitizeChatText(String(text ?? ""));
     if (!filtered) {
-        console.log("[sendChat] Filtered text is empty");
         return;
     }
 
     const formatting = parseOutgoingPublicChat(filtered);
     const payloadText = formatting.text;
     if (!payloadText) {
-        console.log("[sendChat] Payload text is empty after formatting");
         return;
     }
 
-    console.log(`[sendChat] Sending to server: "${payloadText}"`);
     send({
         type: "chat",
         payload: {

@@ -374,6 +374,11 @@ let categoryCounts: Map<number, number> = new Map();
 
 /** Category struct IDs by tab index (0-4) */
 const categoryStructsByTab: Map<number, number[]> = new Map();
+/** Item ids per category (ordered by categoryIndex), by tab index - used to
+ *  compute per-category completion (all items obtained) server-side without
+ *  needing anything from the compiled cache scripts, which don't appear to
+ *  color-code completed categories in the sidebar list themselves. */
+const categoryItemIdsByTab: Map<number, number[][]> = new Map();
 /** Slot item IDs by tab index (preserves per-slot counting semantics) */
 const slotItemIdsByTab: Map<number, number[]> = new Map();
 /** All collection log slot item IDs across all tabs */
@@ -483,11 +488,16 @@ export function loadCollectionLogItems(): void {
     }
 
     categoryStructsByTab.clear();
+    categoryItemIdsByTab.clear();
     for (const [tabIndex, categories] of categoriesByTab.entries()) {
         const orderedCategories = [...categories].sort((a, b) => a.categoryIndex - b.categoryIndex);
         categoryStructsByTab.set(
             tabIndex,
             orderedCategories.map((category) => category.structId),
+        );
+        categoryItemIdsByTab.set(
+            tabIndex,
+            orderedCategories.map((category) => category.itemIds),
         );
 
         const tabItemsEnumId = getTabItemsEnumIdFromTabIndex(tabIndex);
@@ -781,6 +791,31 @@ export function getCategoryStructId(tabIndex: number, categoryIndex: number): nu
 export function getCategoryCountForTab(tabIndex: number): number {
     ensureCollectionLogLoaded();
     return categoryStructsByTab.get(tabIndex)?.length ?? 0;
+}
+
+/**
+ * Per-category "is 100% obtained" (every item in the category has been
+ * picked up at least once), for every category in every tab, ordered to
+ * match categoryIndex (i.e. index N in the returned array for tab T is the
+ * completion state of the Nth row a client draws for that tab).
+ *
+ * Computed entirely from data we already have (player.collectionLog.hasItem
+ * + the item lists in collection-log.json) - the compiled cache script that
+ * draws the sidebar category list doesn't appear to color-code completed
+ * categories itself (unlike the detail view, which does show an accurate
+ * "Obtained: X/Y" count), so this exists to let the client apply that
+ * coloring itself after the list is drawn. See handleCollectionLogServerUpdate
+ * and the run_script hook for scriptId 2731/7797 in OsrsClient.ts.
+ */
+export function getCategoryCompletionByTab(player: CollectionLogPlayer): Record<number, boolean[]> {
+    ensureCollectionLogLoaded();
+    const result: Record<number, boolean[]> = {};
+    for (const [tabIndex, itemIdLists] of categoryItemIdsByTab.entries()) {
+        result[tabIndex] = itemIdLists.map(
+            (itemIds) => itemIds.length > 0 && itemIds.every((id) => player.collectionLog.hasItem(id)),
+        );
+    }
+    return result;
 }
 
 /**

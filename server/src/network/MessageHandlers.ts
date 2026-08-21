@@ -299,6 +299,9 @@ export interface MessageHandlerServices {
     }) => void;
     getPublicChatPlayerType: (player: PlayerState) => number;
     getPlayerPermission: (player: PlayerState) => import("./PlayerPermission").PlayerPermission;
+    setPlayerPermission: (username: string, level: import("./PlayerPermission").PlayerPermission) => boolean;
+    findPlayerByName: (name: string) => PlayerState | undefined;
+    dialogueOverrideStore?: import("../game/dialogue/DialogueOverrideStore").DialogueOverrideStore;
     eventBus?: import("../game/events/GameEventBus").GameEventBus;
     findScriptCommand: (
         name: string,

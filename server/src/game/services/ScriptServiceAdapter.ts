@@ -14,6 +14,7 @@ import type { MusicCatalogService } from "../../audio/MusicCatalogService";
 import { getItemDefinition, loadItemDefinitions } from "../../data/items";
 import type { WorldEntityInfoEncoder } from "../../network/encoding/WorldEntityInfoEncoder";
 import type { Cs2ModalManager } from "../../network/managers/Cs2ModalManager";
+import type { CombatActionHandler } from "../actions/handlers/CombatActionHandler";
 import type { PathService } from "../../pathfinding/PathService";
 import { logger } from "../../utils/logger";
 import type { InterfaceService } from "../../widgets/InterfaceService";
@@ -134,6 +135,7 @@ export interface ScriptServiceAdapterDeps {
     inventoryActionHandler: InventoryActionHandler;
     effectDispatcher: EffectDispatcher;
     combatEffectApplicator: CombatEffectApplicator;
+    combatActionHandler?: CombatActionHandler;
     damageTracker: DamageTracker;
     multiCombatSystem: MultiCombatSystem;
     getPlayers: () => PlayerManager | undefined;
@@ -873,6 +875,9 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             faceTile: (player, tile) => deps.locationService.faceTile(player, tile),
         },
         combat: {
+            registerOnNpcKilled: (fn) => {
+                deps.combatActionHandler?.registerOnNpcKilled(fn);
+            },
             requestAction: (player, request, currentTick) => {
                 try {
                     const groups = Array.isArray(request?.groups) ? request.groups : [];

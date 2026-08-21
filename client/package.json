@@ -44,7 +44,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "export-textures": "tsx scripts/cache/export-textures.ts",
     "export-height-map": "tsx scripts/cache/export-height-map.ts",
-    "export-items": "tsx scripts/cache/export-items.ts"
+    "export-items": "tsx scripts/cache/export-items.ts",
+    "export-npcs": "tsx scripts/cache/export-npcs.ts",
+    "export-locs": "tsx scripts/cache/export-locs.ts"
   },
   "eslintConfig": {
     "extends": ["react-app"],

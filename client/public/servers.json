@@ -1,12 +1,22 @@
 [
-    {
-        "id": 301,
-        "name": "World 301",
-        "address": "localhost:43594",
-        "secure": false,
-        "maxPlayers": 2047,
-        "location": 0,
-        "activity": "Trade - Free",
-        "properties": 0
-    }
+  {
+    "id": 1,
+    "name": "Vanilla",
+    "address": "localhost:43594",
+    "secure": false,
+    "maxPlayers": 1234,
+    "location": 0,
+    "activity": "Vanilla",
+    "properties": 0
+  },
+  {
+    "id": 2,
+    "name": "Leagues V",
+    "address": "localhost:43595",
+    "secure": false,
+    "maxPlayers": 1234,
+    "location": 0,
+    "activity": "Leagues V",
+    "properties": 0
+  }
 ]

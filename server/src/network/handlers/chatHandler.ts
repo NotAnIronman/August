@@ -16,8 +16,9 @@ import { getSpellData } from "../../game/spells/SpellDataProvider";
 import { logger } from "../../utils/logger";
 import type { MessageHandlerServices } from "../MessageHandlers";
 import type { MessageHandler, MessageRouter } from "../MessageRouter";
-import { hasPermission } from "../PlayerPermission";
-import { getBuiltinChatCommandPermission } from "../commands/ChatCommands";
+import { PLAYER_PERMISSIONS, type PlayerPermission, hasPermission } from "../PlayerPermission";
+import { getBuiltinChatCommandPermission, listBuiltinChatCommandsForPermission } from "../commands/ChatCommands";
+import type { DialogueTreeJson } from "../../game/dialogue/DialogueTree";
 
 const DEBUG_SCROLL_TITLE = "Clue Compass";
 const DEBUG_SCROLL_OPTIONS = [
@@ -335,6 +336,132 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     logger.info(`[cmd] ::spec - Restored special attack energy for player ${sender.id}`);
                     return;
                 }
+
+                if (root === "help" || root === "commands") {
+                    const available = listBuiltinChatCommandsForPermission(
+                        services.getPlayerPermission(sender),
+                    );
+                    // Chat messages have a hard 255-byte wire limit (see ChatBroadcaster);
+                    // a full command list easily exceeds that, so chunk into several
+                    // short lines rather than risk an unsendable message.
+                    const MAX_LINE_LEN = 180;
+                    let line = "Commands:";
+                    for (const c of available) {
+                        const token = ` ::${c.name}`;
+                        if (line.length + token.length > MAX_LINE_LEN) {
+                            services.queueChatMessage({
+                                messageType: "game",
+                                text: line,
+                                targetPlayerIds: [sender.id],
+                            });
+                            line = "Commands (cont):";
+                        }
+                        line += token;
+                    }
+                    services.queueChatMessage({
+                        messageType: "game",
+                        text: line,
+                        targetPlayerIds: [sender.id],
+                    });
+                    return;
+                }
+
+                if (root === "promote" || root === "demote") {
+                    const targetName = parts[1];
+                    const rank = parts[2]?.toLowerCase() as PlayerPermission | undefined;
+                    if (!targetName || !rank || !PLAYER_PERMISSIONS.includes(rank)) {
+                        services.queueChatMessage({
+                            messageType: "game",
+                            text: `Usage: ::${root} <username> <${PLAYER_PERMISSIONS.join("|")}>`,
+                            targetPlayerIds: [sender.id],
+                        });
+                        return;
+                    }
+                    const ok = services.setPlayerPermission(targetName, rank);
+                    services.queueChatMessage({
+                        messageType: "game",
+                        text: ok
+                            ? `${targetName} is now rank '${rank}'. Takes effect next login/rank check; ` +
+                              `note ADMIN_USERNAMES/MODERATOR_USERNAMES/DEVELOPER_USERNAMES env vars override this if set.`
+                            : `No account found for '${targetName}'.`,
+                        targetPlayerIds: [sender.id],
+                    });
+                    logger.info(
+                        `[cmd] ::${root} - Player ${sender.id} set '${targetName}' to rank '${rank}' (ok=${ok})`,
+                    );
+                    return;
+                }
+
+                if (root === "setdialogue") {
+                    const npcId = Number(parts[1]);
+                    const text = parts.slice(2).join(" ").trim();
+                    if (!Number.isFinite(npcId) || npcId <= 0 || !text) {
+                        services.queueChatMessage({
+                            messageType: "game",
+                            text: "Usage: ::setdialogue <npcId> <text> — creates/overwrites a single-line NPC override.",
+                            targetPlayerIds: [sender.id],
+                        });
+                        return;
+                    }
+                    const tree: DialogueTreeJson = {
+                        steps: [{ kind: "line", speaker: "npc", text: [text] }],
+                    };
+                    const errors = services.dialogueOverrideStore?.set(npcId, tree, sender.name) ?? [
+                        "dialogueOverrideStore not available",
+                    ];
+                    services.queueChatMessage({
+                        messageType: "game",
+                        text:
+                            errors.length === 0
+                                ? `Dialogue override set for NPC id ${npcId}.`
+                                : `Failed to set dialogue: ${errors.join("; ")}`,
+                        targetPlayerIds: [sender.id],
+                    });
+                    return;
+                }
+
+                if (root === "cleardialogue") {
+                    const npcId = Number(parts[1]);
+                    if (!Number.isFinite(npcId) || npcId <= 0) {
+                        services.queueChatMessage({
+                            messageType: "game",
+                            text: "Usage: ::cleardialogue <npcId>",
+                            targetPlayerIds: [sender.id],
+                        });
+                        return;
+                    }
+                    const removed = services.dialogueOverrideStore?.delete(npcId) ?? false;
+                    services.queueChatMessage({
+                        messageType: "game",
+                        text: removed
+                            ? `Dialogue override removed for NPC id ${npcId}. Reverted to default script dialogue.`
+                            : `No dialogue override found for NPC id ${npcId}.`,
+                        targetPlayerIds: [sender.id],
+                    });
+                    return;
+                }
+
+                if (root === "editdialogue") {
+                    const npcId = Number(parts[1]);
+                    if (!Number.isFinite(npcId) || npcId <= 0) {
+                        services.queueChatMessage({
+                            messageType: "game",
+                            text: "Usage: ::editdialogue <npcId> — shows the current override, if any.",
+                            targetPlayerIds: [sender.id],
+                        });
+                        return;
+                    }
+                    const tree = services.dialogueOverrideStore?.get(npcId);
+                    services.queueChatMessage({
+                        messageType: "game",
+                        text: tree
+                            ? `NPC ${npcId}: ${tree.steps.length} step(s), last edited by ${tree.updatedBy} at ${tree.updatedAt}.`
+                            : `NPC ${npcId} has no dialogue override (using default script dialogue).`,
+                        targetPlayerIds: [sender.id],
+                    });
+                    return;
+                }
+
 
                 if (root === "clear") {
                     try {

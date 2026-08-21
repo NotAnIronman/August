@@ -52,6 +52,22 @@ export type PvpHitDelegate = (
  * Handles NPC hit resolution, death, and related combat effects.
  */
 export class NpcHitHandler {
+    /**
+     * Optional gamemode-registered hook, fired once per confirmed NPC
+     * kill. Mirrors PlayerInteractionSystem's onTalkToOverrideCheck
+     * pattern - lets gamemode-specific code (e.g. the vanilla gamemode's
+     * achievement diary kill-trigger tracker) react to kills without
+     * this core combat file importing anything gamemode-specific.
+     * Receives the resolved PlayerState (not just the id) since callers
+     * almost always need the full player object and CombatActionServices
+     * already has a getPlayer lookup right here.
+     */
+    private onNpcKilled?: (killer: PlayerState, npc: NpcState, tick: number) => void;
+
+    registerOnNpcKilled(fn: (killer: PlayerState, npc: NpcState, tick: number) => void): void {
+        this.onNpcKilled = fn;
+    }
+
     constructor(
         private readonly services: CombatActionServices,
         private readonly pvpHitDelegate?: PvpHitDelegate,
@@ -277,6 +293,11 @@ export class NpcHitHandler {
 
         this.services.log("info", `[combat] NPC ${npc.id} (type ${npc.typeId}) died`);
         npc.clearInteractionTarget();
+
+        if (this.onNpcKilled) {
+            const killerPlayer = this.services.getPlayer(killerPlayerId);
+            if (killerPlayer) this.onNpcKilled(killerPlayer, npc, tick);
+        }
 
         // Prepare drops for delayed spawning (RSMod parity)
         const eligibility = this.services.getDropEligibility(npc);

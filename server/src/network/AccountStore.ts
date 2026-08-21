@@ -144,6 +144,21 @@ export class AccountStore {
         return normalizePlayerPermission(row?.permissionLevel);
     }
 
+    /**
+     * Persist a permission level for an existing account. Returns false if no
+     * account exists with that username (case/space-insensitive, same as login).
+     * Env-var ranks (ADMIN_USERNAMES / MODERATOR_USERNAMES / DEVELOPER_USERNAMES)
+     * still take priority over this at read time — see AuthenticationService.getPlayerPermission.
+     */
+    setPermissionLevel(username: string | undefined, level: PlayerPermission): boolean {
+        const accountName = normalizeAccountName(username);
+        if (!accountName) return false;
+        const result = this.database.connection
+            .prepare("UPDATE accounts SET permission_level = ? WHERE username = ?")
+            .run(normalizePlayerPermission(level), accountName);
+        return result.changes > 0;
+    }
+
     private derivePasswordHash(password: string, salt: Buffer): string {
         return scryptSync(password, salt, PASSWORD_KEY_LENGTH, SCRYPT_OPTIONS).toString("base64");
     }

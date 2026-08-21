@@ -142,6 +142,13 @@ export class SqliteDatabase {
                 owner_key TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS dialogue_overrides (
+                npc_id INTEGER PRIMARY KEY,
+                tree_json TEXT NOT NULL,
+                updated_by TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
             CREATE TRIGGER IF NOT EXISTS validate_pending_trade_refund_insert
             BEFORE INSERT ON pending_trade_refunds
             WHEN NEW.item_id <= 0

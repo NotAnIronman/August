@@ -123,12 +123,17 @@ This gives you a working gamemode with 5x XP and all other OSRS defaults (Lumbri
 
 ### 3. Run your gamemode
 
-Set the gamemode ID in your server configuration:
+Add a world entry to `server/config.json` with the gamemode ID and a dedicated port, then launch that world by ID:
 
-- **config.json:** `{ "gamemode": "my-gamemode" }`
-- **Environment variable:** `GAMEMODE=my-gamemode`
+```json
+{ "id": 3, "name": "My Gamemode", "gamemode": "my-gamemode", "port": 43596 }
+```
 
-The default gamemode is `vanilla`.
+```bash
+yarn --cwd server start:world --world=3
+```
+
+Each world is an isolated process, so its progression and gamemode state remain separate from every other world.
 
 ## Where Logic Should Live
 

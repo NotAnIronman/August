@@ -103,6 +103,7 @@ export const state = {
         | undefined,
     lastInventorySnapshot: undefined as InventorySlotMessage[] | undefined,
     lastCollectionLogSnapshot: undefined as CollectionLogSlotMessage[] | undefined,
+    lastCollectionLogCategoryCompletion: undefined as Record<number, boolean[]> | undefined,
     lastBankState: undefined as { capacity: number; slots: import("./types").BankSlotMessage[] } | undefined,
     lastShopState: createDefaultShopState(),
     lastTradeState: createDefaultTradeState(),

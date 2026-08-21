@@ -10,6 +10,8 @@ import { OsrsRendererType } from "./GameRenderers";
 import { getAxisDeadzone } from "./InputManager";
 import { MapManager, MapSquare } from "./MapManager";
 import { OsrsClient } from "./OsrsClient";
+import { getClientPreference, setClientPreference } from "./preferences/ClientPreferences";
+import { chatHistory } from "../rs/cs2/ChatHistory";
 import { IProjectileManager } from "./interfaces/IProjectileManager";
 import type { PlayerSpotAnimationEvent } from "./sync/PlayerSyncTypes";
 
@@ -288,6 +290,18 @@ export abstract class GameRenderer<T extends MapSquare = MapSquare> extends Rend
         if (inputManager.isKeyDownEvent("F3")) {
             this.osrsClient.hoverOverlayEnabled = !this.osrsClient.hoverOverlayEnabled;
         }
+
+        // Toggle middle-mouse camera drag direction with F4 (see ClientPreferences.invertCameraDragX)
+        if (inputManager.isKeyDownEvent("F4")) {
+            const next = !getClientPreference("invertCameraDragX");
+            setClientPreference("invertCameraDragX", next);
+            chatHistory.addMessage(
+                "game",
+                next
+                    ? "Camera drag now matches arrow keys (drag left = turn left)."
+                    : "Camera drag now uses the raw 'grab the world' direction.",
+            );
+        }
     }
 
     handleMouseInput() {
@@ -313,12 +327,16 @@ export abstract class GameRenderer<T extends MapSquare = MapSquare> extends Rend
             }
         }
 
-        // Middle-mouse camera drag (RuneLite style, works while following)
+        // Middle-mouse camera drag (RuneLite style, works while following).
+        // Sign of the yaw term is flipped by the invertCameraDragX preference so drag
+        // direction can match the ArrowLeft/ArrowRight keys instead of the raw mouse delta
+        // (see ClientPreferences.invertCameraDragX, toggled with F4).
+        const dragYawSign = getClientPreference("invertCameraDragX") ? -1 : 1;
         const deltaCamX = inputManager.getDeltaCameraX();
         const deltaCamY = inputManager.getDeltaCameraY();
         if (deltaCamX !== 0 || deltaCamY !== 0) {
             camera.updatePitch(camera.pitch, deltaCamY * -0.9);
-            camera.updateYaw(camera.yaw, deltaCamX * 0.9);
+            camera.updateYaw(camera.yaw, deltaCamX * 0.9 * dragYawSign);
         }
 
         // Middle-mouse held + scroll: rotate camera (RuneLite parity).
@@ -327,7 +345,7 @@ export abstract class GameRenderer<T extends MapSquare = MapSquare> extends Rend
         if (wheelCamX !== 0 || wheelCamY !== 0) {
             const scale = 0.005;
             camera.updatePitch(camera.pitch, wheelCamY * scale);
-            camera.updateYaw(camera.yaw, wheelCamX * -scale);
+            camera.updateYaw(camera.yaw, wheelCamX * -scale * dragYawSign);
             camera.updated = true;
         }
 

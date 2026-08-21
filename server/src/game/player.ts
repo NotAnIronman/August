@@ -228,9 +228,6 @@ export class PlayerState extends Actor {
 
     readonly gamemodeState: Map<string, unknown> = new Map();
 
-    /** Server world this player belongs to. */
-    worldId: number = 1;
-
     override readonly isPlayer = true;
     widgets: PlayerWidgetManager;
     visibleNpcIds: Set<number> = new Set();

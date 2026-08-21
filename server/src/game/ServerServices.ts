@@ -234,6 +234,7 @@ export interface ServerServices {
     inventoryActionHandler?: InventoryActionHandler;
     effectDispatcher?: EffectDispatcher;
     widgetDialogHandler?: WidgetDialogHandler;
+    dialogueOverrideStore?: import("./dialogue/DialogueOverrideStore").DialogueOverrideStore;
     playerDeathService?: PlayerDeathService;
 
     // ── Network layer ────────────────────────────────────────────────────

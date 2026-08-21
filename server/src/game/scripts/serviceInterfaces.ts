@@ -830,6 +830,13 @@ export interface LocationFacade {
 }
 
 export interface CombatFacade {
+    /**
+     * Register a hook fired once per confirmed NPC kill (any killer,
+     * any NPC type) - used by gamemode code that needs to react to kills
+     * generically, e.g. the achievement diary's kill-trigger tracker.
+     * Passes through to CombatActionHandler.registerOnNpcKilled.
+     */
+    registerOnNpcKilled?(fn: (killer: PlayerState, npc: NpcState, tick: number) => void): void;
     applyPrayers(
         player: PlayerState,
         prayers: PrayerName[],

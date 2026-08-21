@@ -1,10 +1,11 @@
-import type { PlayerState } from "../../../src/game/player";
 import {
-    BaseComponentUids,
-    type IScriptRegistry,
-    ScriptServices,
-    type WidgetActionHandler,
-} from "../../../src/game/scripts/types";
+    JOURNAL_PANEL_COMPONENT_FRAME,
+    JOURNAL_PANEL_COMPONENT_SWITCH,
+    QUEST_JOURNAL_PANEL_GROUP_ID,
+    QUEST_OVERVIEW_PANEL_GROUP_ID,
+} from "../../../../client/common/ui/widgets";
+import type { PlayerState } from "../../../src/game/player";
+import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
 import { getQuestDefinition, getQuestDefinitionByKey } from "../quests/QuestRegistry";
 import {
     buildQuestMap,
@@ -12,6 +13,7 @@ import {
     type QuestEntry,
 } from "./questListData";
 import { findPlayerQuestListQuestBySlot } from "./questListUi";
+import { reflowLines, sendJournalPanelLines, wrapTextToLines } from "./journalPanelHelpers";
 
 // ============================================================================
 // Constants
@@ -22,47 +24,26 @@ const QUEST_LIST_GROUP_ID = 399;
 /** Dynamic list component inside quest list interface */
 const QUEST_LIST_COMPONENT = 7;
 
-/** Quest journal overlay interface */
-const QUEST_JOURNAL_GROUP_ID = 119;
-/** Title component: questjournal:title */
-const QJ_TITLE_CHILD = 5;
-/** Close button component: questjournal:close */
-const QJ_CLOSE_CHILD = 8;
-/** Switch View button component: questjournal:switch */
-const QJ_SWITCH_VIEW_CHILD = 9;
-/** First journal line component: questjournal:qj1 */
-const QJ_FIRST_LINE_CHILD = 11;
-
-/** Quest journal overview overlay interface */
-const QUEST_JOURNAL_OVERVIEW_GROUP_ID = 782;
-const QJO_CONTENT_OUTER_CHILD = 1;
-const QJO_LAYOUT_CONTAINER_CHILD = 2;
-const QJO_DECOR_MODEL_CHILD = 3;
-const QJO_CONTENT_HOST_CHILD = 4;
-const QJO_TITLE_CHILD = 5;
-const QJO_SCROLLBAR_CHILD = 6;
-const QJO_CONTENT_INNER_CHILD = 7;
-const QJO_SCROLL_CHILD = 8;
-const QJO_CLOSE_CHILD = 9;
-const QJO_BACK_CHILD = 10;
-const QJO_SWITCH_VIEW_CHILD = 11;
-
 /** Varp: currently viewed quest (stores dbrow ID) */
 const VARP_LATEST_QUEST_JOURNAL = 3679;
 /** Varp: number of journal text lines */
 const VARP_QJ_LINES = 4398;
 
-/** CS2 script that clears all quest journal text fields */
-const SCRIPT_QUEST_JOURNAL_RESET = 5240;
-/** CS2 script that sets up quest journal scrollbar */
-const SCRIPT_QUEST_JOURNAL_SCROLL = 2523;
-/** CS2 script that builds the quest overview contents */
-const SCRIPT_QUEST_JOURNAL_OVERVIEW_SETUP = 6821;
-
 /** OP ID for "Read journal:" right-click option */
 const OP_READ_JOURNAL = 2;
 
-const OP1_TRANSMIT = 1 << 1;
+// Rebuilt as custom widget groups (see client/widgets/custom/journalPanel.cs2.ts)
+// mounted in mainmodal + steelbordered at open time, instead of the cache
+// interfaces (119 / 782) whose backgrounds never render in this client.
+//
+// SCRIPT_STEELBORDER (227, not the "_NOCLOSE" variant) draws the title bar
+// text AND a working X close button directly onto the frame, matching
+// Bank/Settings/Trade - no separate title widget or stone button needed.
+const SCRIPT_STEELBORDER = 227;
+
+function packUid(groupId: number, componentId: number): number {
+    return ((groupId & 0xffff) << 16) | (componentId & 0xffff);
+}
 
 // ============================================================================
 // Journal text generation
@@ -178,15 +159,8 @@ export function registerQuestJournalWidgetHandlers(
         openQuestJournal(player, quest, services);
     });
 
-    // Handle quest journal Close button (119:8)
-    registry.onButton(QUEST_JOURNAL_GROUP_ID, QJ_CLOSE_CHILD, (event) => {
-        const floaterUid = BaseComponentUids.FLOATER_OVERLAY;
-        services.dialog.closeSubInterface(event.player, floaterUid, QUEST_JOURNAL_GROUP_ID);
-    });
-
-    // Handle quest journal Switch View button (119:9)
-    // Toggles between journal text and quest overview
-    registry.onButton(QUEST_JOURNAL_GROUP_ID, QJ_SWITCH_VIEW_CHILD, (event) => {
+    // Switch View button: journal text -> quest overview
+    registry.onButton(QUEST_JOURNAL_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_SWITCH, (event) => {
         const { player } = event;
         const dbrowId = player.varps.getVarpValue(VARP_LATEST_QUEST_JOURNAL);
         if (dbrowId <= 0) return;
@@ -197,17 +171,8 @@ export function registerQuestJournalWidgetHandlers(
         openQuestOverview(player, quest, services);
     });
 
-    // Handle quest overview Close button (782:9)
-    registry.onButton(QUEST_JOURNAL_OVERVIEW_GROUP_ID, QJO_CLOSE_CHILD, (event) => {
-        const floaterUid = BaseComponentUids.FLOATER_OVERLAY;
-        services.dialog.closeSubInterface(
-            event.player,
-            floaterUid,
-            QUEST_JOURNAL_OVERVIEW_GROUP_ID,
-        );
-    });
-
-    const handleOverviewSwitchView: WidgetActionHandler = (event) => {
+    // Switch View button: quest overview -> journal text
+    registry.onButton(QUEST_OVERVIEW_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_SWITCH, (event) => {
         const { player } = event;
         const dbrowId = player.varps.getVarpValue(VARP_LATEST_QUEST_JOURNAL);
         if (dbrowId <= 0) return;
@@ -216,15 +181,7 @@ export function registerQuestJournalWidgetHandlers(
         if (!quest) return;
 
         openQuestJournal(player, quest, services);
-    };
-
-    // Handle quest overview navigation buttons (782:10/11)
-    registry.onButton(QUEST_JOURNAL_OVERVIEW_GROUP_ID, QJO_BACK_CHILD, handleOverviewSwitchView);
-    registry.onButton(
-        QUEST_JOURNAL_OVERVIEW_GROUP_ID,
-        QJO_SWITCH_VIEW_CHILD,
-        handleOverviewSwitchView,
-    );
+    });
 }
 
 // ============================================================================
@@ -246,69 +203,53 @@ export function registerQuestJournalWidgetHandlers(
  * 5. Run scroll configuration script
  */
 function openQuestJournal(player: PlayerState, quest: QuestEntry, services: ScriptServices): void {
-    const lines = buildJournalLines(player, quest, services);
+    // Reflow: each quest's journal.ts hard-wraps its lines for the old,
+    // narrower cache interface. Re-wrapping to our panel's actual width
+    // lets the text use the full available space instead of stopping
+    // halfway across. Blank-line section breaks are preserved.
+    const lines = reflowLines(buildJournalLines(player, quest, services));
     const lineCount = lines.length;
     const playerId = player.id;
 
-    // 1. Set varps (sent before widget events in broadcast order)
+    // 1. Set varps
     player.varps.setVarpValue(VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
     services.variables.sendVarp?.(player, VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
     player.varps.setVarpValue(VARP_QJ_LINES, lineCount);
     services.variables.sendVarp?.(player, VARP_QJ_LINES, lineCount);
 
-    // 2. Open quest journal interface on the floater container.
-    // Use type=0 (modal) so PlayerWidgetManager tracks it and closeInterruptibleInterfaces
-    // closes it on walk/interaction, matching OSRS behavior where the journal dismisses on move.
-    const floaterUid = BaseComponentUids.FLOATER_OVERLAY;
-    services.dialog.openSubInterface(player, floaterUid, QUEST_JOURNAL_GROUP_ID, 0, {
+    // 2. Open the quest journal panel (custom widget group, mounted in mainmodal).
+    const interfaceService = services.dialog.getInterfaceService();
+    interfaceService?.openModal(player, QUEST_JOURNAL_PANEL_GROUP_ID, undefined, {
         varps: {
             [VARP_LATEST_QUEST_JOURNAL]: quest.dbrowId,
             [VARP_QJ_LINES]: lineCount,
         },
     });
 
-    // 2b. Enable transmit flags on Close (119:8) and Switch View (119:9) buttons.
-    // Static widgets use fromSlot=-1, toSlot=-1.
-    for (const childId of [QJ_CLOSE_CHILD, QJ_SWITCH_VIEW_CHILD]) {
-        services.dialog.queueWidgetEvent(playerId, {
-            action: "set_flags_range",
-            uid: (QUEST_JOURNAL_GROUP_ID << 16) | childId,
-            fromSlot: -1,
-            toSlot: -1,
-            flags: OP1_TRANSMIT,
-        });
-    }
-
-    // 3. Clear stale journal line text
+    // 3. Draw the frame, title bar text, and a working X close button.
     services.dialog.queueWidgetEvent(playerId, {
         action: "run_script",
-        scriptId: SCRIPT_QUEST_JOURNAL_RESET,
-        args: [],
+        scriptId: SCRIPT_STEELBORDER,
+        args: [
+            packUid(QUEST_JOURNAL_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_FRAME),
+            quest.displayName,
+        ],
     });
 
-    // 4. Set title text
-    const titleUid = (QUEST_JOURNAL_GROUP_ID << 16) | QJ_TITLE_CHILD;
+    // 4. Set journal line text (blank-line entries render as dividers)
+    sendJournalPanelLines(services, playerId, QUEST_JOURNAL_PANEL_GROUP_ID, lines);
+
+    // 5. Show the "View Quest Overview" switch button, if this quest has one.
+    const definition = getQuestDefinition(quest.displayName);
+    services.dialog.queueWidgetEvent(playerId, {
+        action: "set_hidden",
+        uid: packUid(QUEST_JOURNAL_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_SWITCH),
+        hidden: !definition?.overviewStartText,
+    });
     services.dialog.queueWidgetEvent(playerId, {
         action: "set_text",
-        uid: titleUid,
-        text: `<col=7f0000>${quest.displayName}</col>`,
-    });
-
-    // 5. Set journal line text
-    for (let i = 0; i < lineCount; i++) {
-        const lineUid = (QUEST_JOURNAL_GROUP_ID << 16) | (QJ_FIRST_LINE_CHILD + i);
-        services.dialog.queueWidgetEvent(playerId, {
-            action: "set_text",
-            uid: lineUid,
-            text: lines[i],
-        });
-    }
-
-    // 6. Run scroll configuration script
-    services.dialog.queueWidgetEvent(playerId, {
-        action: "run_script",
-        scriptId: SCRIPT_QUEST_JOURNAL_SCROLL,
-        args: [0, lineCount],
+        uid: packUid(QUEST_JOURNAL_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_SWITCH),
+        text: "View Quest Overview",
     });
 
     services.system.logger.info?.(
@@ -326,57 +267,35 @@ function openQuestOverview(player: PlayerState, quest: QuestEntry, services: Scr
         return;
     }
     const overviewStartText = definition.overviewStartText;
+    const lines = wrapTextToLines(overviewStartText);
 
     player.varps.setVarpValue(VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
     services.variables.sendVarp?.(player, VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
 
-    const floaterUid = BaseComponentUids.FLOATER_OVERLAY;
-    services.dialog.openSubInterface(player, floaterUid, QUEST_JOURNAL_OVERVIEW_GROUP_ID, 0, {
+    // Open the quest overview panel (custom widget group, mounted in mainmodal).
+    const interfaceService = services.dialog.getInterfaceService();
+    interfaceService?.openModal(player, QUEST_OVERVIEW_PANEL_GROUP_ID, undefined, {
         varps: {
             [VARP_LATEST_QUEST_JOURNAL]: quest.dbrowId,
             [definition.varpId]: player.varps.getVarpValue(definition.varpId),
         },
     });
 
-    for (const childId of [QJO_CLOSE_CHILD, QJO_BACK_CHILD, QJO_SWITCH_VIEW_CHILD]) {
-        services.dialog.queueWidgetEvent(playerId, {
-            action: "set_flags_range",
-            uid: (QUEST_JOURNAL_OVERVIEW_GROUP_ID << 16) | childId,
-            fromSlot: -1,
-            toSlot: -1,
-            flags: OP1_TRANSMIT,
-        });
-    }
-
-    services.dialog.queueWidgetEvent(playerId, {
-        action: "set_text",
-        uid: (QUEST_JOURNAL_OVERVIEW_GROUP_ID << 16) | QJO_TITLE_CHILD,
-        text: `<col=7f0000>${quest.displayName}</col>`,
-    });
-
     services.dialog.queueWidgetEvent(playerId, {
         action: "run_script",
-        scriptId: SCRIPT_QUEST_JOURNAL_OVERVIEW_SETUP,
+        scriptId: SCRIPT_STEELBORDER,
         args: [
-            quest.dbrowId,
-            overviewStartText,
-            (QUEST_JOURNAL_OVERVIEW_GROUP_ID << 16) | QJO_CONTENT_OUTER_CHILD,
-            (QUEST_JOURNAL_OVERVIEW_GROUP_ID << 16) | QJO_CONTENT_INNER_CHILD,
-            (QUEST_JOURNAL_OVERVIEW_GROUP_ID << 16) | QJO_SCROLLBAR_CHILD,
-            (QUEST_JOURNAL_OVERVIEW_GROUP_ID << 16) | QJO_SCROLL_CHILD,
-            (QUEST_JOURNAL_OVERVIEW_GROUP_ID << 16) | QJO_LAYOUT_CONTAINER_CHILD,
-            (QUEST_JOURNAL_OVERVIEW_GROUP_ID << 16) | QJO_CONTENT_HOST_CHILD,
-            (QUEST_JOURNAL_OVERVIEW_GROUP_ID << 16) | QJO_DECOR_MODEL_CHILD,
-            player.skillSystem.combatLevel,
+            packUid(QUEST_OVERVIEW_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_FRAME),
+            quest.displayName,
         ],
     });
 
+    sendJournalPanelLines(services, playerId, QUEST_OVERVIEW_PANEL_GROUP_ID, lines);
+
     services.dialog.queueWidgetEvent(playerId, {
-        action: "set_flags_range",
-        uid: (QUEST_JOURNAL_OVERVIEW_GROUP_ID << 16) | QJO_CONTENT_INNER_CHILD,
-        fromSlot: 1,
-        toSlot: 1,
-        flags: OP1_TRANSMIT,
+        action: "set_text",
+        uid: packUid(QUEST_OVERVIEW_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_SWITCH),
+        text: "View Journal",
     });
 
     services.system.logger.info?.(

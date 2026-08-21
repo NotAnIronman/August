@@ -15,7 +15,8 @@
     "ws": "^8.21.0"
   },
   "scripts": {
-    "start": "tsx scripts/ensure-cache.ts --server && tsx src/index.ts",
+        "start": "yarn ensure-cache && yarn start:world",
+        "start:world": "tsx --env-file-if-exists=.env --env-file-if-exists=../.env src/index.ts",
     "dev": "yarn start",
     "build": "yarn typecheck",
     "typecheck": "tsc --noEmit -p tsconfig.quests.json",
@@ -23,6 +24,10 @@
     "build-npc-aggression": "tsx scripts/build-npc-aggression.ts",
     "build-shops": "tsx scripts/build-shops.ts",
     "ensure-cache": "tsx scripts/ensure-cache.ts --server",
+    "merge-wiki-examine": "tsx scripts/merge-wiki-examine.ts",
+    "scrape-loc-examine": "tsx scripts/scrape-loc-examine.ts",
+    "diagnose-loc-html": "tsx scripts/diagnose-loc-html.ts",
+    "fill-blank-examine": "tsx scripts/fill-blank-examine.ts",
     "test": "tsx tests/authentication.test.ts && tsx tests/friends-chat.test.ts"
   },
   "devDependencies": {

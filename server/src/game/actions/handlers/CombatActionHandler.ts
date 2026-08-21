@@ -1508,6 +1508,16 @@ export class CombatActionHandler {
         this.npcHitHandler.handleNpcDeath(killerPlayerId, npc, tick, []);
     }
 
+    /**
+     * Register a gamemode-level hook fired once per confirmed NPC kill
+     * (see NpcHitHandler.registerOnNpcKilled for the full rationale -
+     * this just passes through to the sub-handler that actually owns
+     * the death-confirmation code path).
+     */
+    registerOnNpcKilled(fn: (killer: PlayerState, npc: NpcState, tick: number) => void): void {
+        this.npcHitHandler.registerOnNpcKilled(fn);
+    }
+
     // ========================================================================
     // Private Helpers
     // ========================================================================

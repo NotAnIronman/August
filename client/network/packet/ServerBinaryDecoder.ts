@@ -1808,6 +1808,27 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
             };
         }
 
+        case ServerPacketId.COLLECTION_LOG_CATEGORY_COMPLETION: {
+            // Mirrors encodeCollectionLogCategoryCompletion in
+            // server/src/network/packet/ServerBinaryEncoder.ts exactly:
+            // [tabCount:byte] then per tab [tabIndex:byte, categoryCount:short, ...categoryCount x isComplete:byte]
+            const tabCount = reader.readByte();
+            const completionByTab: Record<number, boolean[]> = {};
+            for (let i = 0; i < tabCount; i++) {
+                const tabIndex = reader.readByte();
+                const categoryCount = reader.readShort();
+                const completion: boolean[] = [];
+                for (let j = 0; j < categoryCount; j++) {
+                    completion.push(reader.readByte() === 1);
+                }
+                completionByTab[tabIndex] = completion;
+            }
+            return {
+                type: "collection_log",
+                payload: { kind: "category_completion", completionByTab },
+            };
+        }
+
         // ========================================
         // NOTIFICATIONS
         // ========================================

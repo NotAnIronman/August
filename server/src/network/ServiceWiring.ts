@@ -62,6 +62,9 @@ export function registerMessageHandlers(svc: ServerServices, router: MessageRout
         interruptPlayerInput: (player) => interruptForPlayerInput(player, svc.actionScheduler),
         canUseAdminTeleport: (player) => svc.authService.isAdminPlayer(player),
         getPlayerPermission: (player) => svc.authService.getPlayerPermission(player),
+        setPlayerPermission: (username, level) => svc.authService.setPlayerPermission(username, level),
+        findPlayerByName: (name) => svc.players?.getConnectedPlayerByName(name),
+        dialogueOverrideStore: svc.dialogueOverrideStore,
         teleportPlayer: (player, x, y, level, forceRebuild = false) =>
             svc.movementService.teleportPlayer(player, x, y, level, forceRebuild),
         teleportToInstance: (player, x, y, level, templateChunks, extraLocs) =>

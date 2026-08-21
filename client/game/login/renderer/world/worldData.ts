@@ -1,4 +1,3 @@
-import { getConfiguredServers } from "../../../config/clientEnv";
 import type { LoginRendererHost } from "../host";
 import type { World, WorldGridLayout, WorldHoverResult } from "../types";
 import { WorldFlags, WorldBackgroundType } from "../types";
@@ -136,14 +135,16 @@ export function getSortedWorlds(host: LoginRendererHost) {
         return host.cachedSortedWorlds;
     }
 
-    const configured = getConfiguredServers();
-
-    const worlds: World[] = (configured ?? []).map((server, index) => ({
-        id: index + 1,
-        population: 0,
-        location: 0,
-        activity: server.name,
-        properties: 0,
+    const worlds: World[] = host.serverList.map((server, index) => ({
+        id: server.id || index + 1,
+        name: server.name,
+        address: server.address,
+        secure: server.secure,
+        population: server.playerCount ?? -1,
+        maxPlayers: server.maxPlayers,
+        location: server.location,
+        activity: server.activity || server.name,
+        properties: server.properties,
     }));
 
     const ascending = host.worldSortDirection === 0;

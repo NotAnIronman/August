@@ -51,11 +51,11 @@ export function drawServerListOverlay(host: LoginRendererHost, ctx: RenderContex
 
         // Column headers
         const col1X = panelX + 10;
-        const col2X = panelX + 140;
-        const col3X = panelX + 265;
+        const col2X = panelX + 120;
+        const col3X = panelX + 250;
         const headerTextY = panelY + 20;
-        drawText(host, ctx, host.fontBold12, "Server Name", col1X, headerTextY, 0xffcc00);
-        drawText(host, ctx, host.fontBold12, "Address", col2X, headerTextY, 0xffcc00);
+        drawText(host, ctx, host.fontBold12, "World", col1X, headerTextY, 0xffcc00);
+        drawText(host, ctx, host.fontBold12, "Mode", col2X, headerTextY, 0xffcc00);
         drawText(host, ctx, host.fontBold12, "Players", col3X, headerTextY, 0xffcc00);
 
         // Separator line
@@ -117,7 +117,7 @@ export function drawServerListOverlay(host: LoginRendererHost, ctx: RenderContex
                 drawText(host, 
                     ctx,
                     host.fontPlain12,
-                    ellipsis(host, server.address, addrMaxW),
+                    ellipsis(host, server.activity || server.address, addrMaxW),
                     col2X,
                     textY,
                     0xaaaaaa,

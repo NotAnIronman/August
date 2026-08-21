@@ -1,6 +1,7 @@
 import type { WebSocket } from "ws";
 
 import type { TickFrame } from "../../game/tick/TickPhaseOrchestrator";
+import { logger } from "../../utils/logger";
 import { encodeMessage } from "../messages";
 import type { BroadcastContext, BroadcastDomain } from "./BroadcastDomain";
 
@@ -31,17 +32,33 @@ export class ChatBroadcaster implements BroadcastDomain {
                 continue;
             }
 
-            const encoded = encodeMessage({
-                type: "chat",
-                payload: {
-                    messageType: msg.messageType === "private" ? "private_in" : msg.messageType,
-                    playerId: msg.playerId,
-                    from: msg.from,
-                    prefix: msg.prefix,
-                    text: msg.text,
-                    chatType: msg.chatType,
-                },
-            });
+            let encoded: ReturnType<typeof encodeMessage>;
+            try {
+                encoded = encodeMessage({
+                    type: "chat",
+                    payload: {
+                        messageType: msg.messageType === "private" ? "private_in" : msg.messageType,
+                        playerId: msg.playerId,
+                        from: msg.from,
+                        prefix: msg.prefix,
+                        text: msg.text,
+                        chatType: msg.chatType,
+                    },
+                });
+            } catch (err) {
+                // A message that fails to encode (e.g. text too long for the chat
+                // packet's byte-length prefix) can NEVER succeed on retry. If this
+                // throw is allowed to propagate, the whole broadcast phase aborts
+                // and the entire frame — every broadcaster, not just chat — gets
+                // restored and retried next tick, forever, since the failure is
+                // permanent. That wedges the tick loop and tanks the tickrate.
+                // Drop just this one message and keep going instead.
+                logger.warn(
+                    `[chat] Dropping unsendable chat message (messageType=${msg.messageType}, ` +
+                        `textLen=${msg.text?.length ?? 0}): ${err instanceof Error ? err.message : err}`,
+                );
+                continue;
+            }
 
             if (msg.targetPlayerIds && msg.targetPlayerIds.length > 0) {
                 for (const targetId of msg.targetPlayerIds) {

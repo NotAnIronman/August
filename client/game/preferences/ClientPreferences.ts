@@ -28,6 +28,13 @@ export type ClientPreferences = {
     installPromptDismissed: boolean;
     /** Last selected login server. */
     lastServer?: LastServerPreference;
+    /**
+     * When true (default), middle-mouse camera drag rotates the same direction as the
+     * ArrowLeft/ArrowRight keys (drag left -> camera turns left). When false, dragging
+     * rotates the opposite way (RuneLite's raw "grab the world" convention). Toggle
+     * in-game with the F4 hotkey.
+     */
+    invertCameraDragX: boolean;
 };
 
 const DEFAULTS: ClientPreferences = {
@@ -35,6 +42,7 @@ const DEFAULTS: ClientPreferences = {
     titleMusicDisabled: false,
     iosInstallHintDismissed: false,
     installPromptDismissed: false,
+    invertCameraDragX: true,
 };
 
 let cache: ClientPreferences | undefined;
@@ -64,6 +72,7 @@ function normalize(raw: Partial<ClientPreferences> | undefined): ClientPreferenc
             raw?.installPromptDismissed ?? DEFAULTS.installPromptDismissed,
         ),
         lastServer: normalizeLastServer(raw?.lastServer),
+        invertCameraDragX: Boolean(raw?.invertCameraDragX ?? DEFAULTS.invertCameraDragX),
     };
 }
 

@@ -68,11 +68,15 @@ export async function fetchServerList(host: LoginRendererHost): Promise<void> {
         if (configured && configured.length > 0) {
             host.serverList = filterServersForCurrentHost(
                 configured.map((s) => ({
+                    id: s.id,
                     name: s.name,
+                    activity: s.activity,
                     address: s.address,
                     secure: s.secure,
                     playerCount: null,
                     maxPlayers: s.maxPlayers,
+                    location: 0,
+                    properties: 0,
                 })),
             );
             host.serverListFetched = true;
@@ -86,11 +90,15 @@ export async function fetchServerList(host: LoginRendererHost): Promise<void> {
                 if (Array.isArray(data) && data.length > 0) {
                     host.serverList = filterServersForCurrentHost(
                         data.map((s: any) => ({
+                            id: typeof s.id === "number" ? s.id : 0,
                             name: s.name ?? "Unknown",
+                            activity: s.activity ?? "",
                             address: s.address ?? "",
                             secure: s.secure ?? false,
                             playerCount: null,
                             maxPlayers: s.maxPlayers ?? 2047,
+                            location: s.location ?? 0,
+                            properties: s.properties ?? 0,
                         })),
                     );
                 }
@@ -120,7 +128,6 @@ export function refreshServerList(host: LoginRendererHost) {
                     server.playerCount =
                         typeof data.playerCount === "number" ? data.playerCount : null;
                     if (typeof data.maxPlayers === "number") server.maxPlayers = data.maxPlayers;
-                    if (typeof data.serverName === "string") server.name = data.serverName;
                     httpOk = true;
                 }
             } catch {

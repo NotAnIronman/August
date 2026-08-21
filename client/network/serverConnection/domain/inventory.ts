@@ -27,11 +27,19 @@ export function emitInventory(update: InventoryServerUpdate): void {
 }
 
 export function emitCollectionLog(update: CollectionLogServerPayload): void {
-    state.lastCollectionLogSnapshot = update.slots.map((slot) => ({ ...slot }));
+    if (update.kind === "snapshot") {
+        state.lastCollectionLogSnapshot = update.slots.map((slot) => ({ ...slot }));
+    } else if (update.kind === "category_completion") {
+        state.lastCollectionLogCategoryCompletion = update.completionByTab;
+    }
 
     for (const listener of state.collectionLogListeners) {
         try {
-            listener({ kind: "snapshot", slots: update.slots.map((slot) => ({ ...slot })) });
+            if (update.kind === "snapshot") {
+                listener({ kind: "snapshot", slots: update.slots.map((slot) => ({ ...slot })) });
+            } else if (update.kind === "category_completion") {
+                listener({ kind: "category_completion", completionByTab: update.completionByTab });
+            }
         } catch (err) {
             console.warn("collection log listener error", err);
         }

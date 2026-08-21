@@ -124,6 +124,8 @@ import {
     sendTradeRemove,
     subscribeLogoutResponse,
     suppressReconnection,
+    disposeServerConnection,
+    initServerConnection,
 } from "../network/ServerConnection";
 import {
     getLastUrl,
@@ -607,6 +609,14 @@ export class OsrsClient {
     private specialAttackEnabled: boolean = false;
     /** Flag to prevent varp changes from server sync being sent back to server */
     private _serverVarpSync: boolean = false;
+    /** See the "Collection log fix, take 3" comment in the run_script handler
+     *  below. Snapshot of every STATIC widget's layout fields for group 621,
+     *  captured once known correct, restored after every later script run
+     *  while the interface is open. Keyed by widget uid. */
+    private _collectionLogLayoutSnapshot: Map<
+        number,
+        { rawX: number; rawY: number; rawWidth: number; rawHeight: number; widthMode: number; heightMode: number; xPositionMode: number; yPositionMode: number }
+    > | null = null;
 
     // Feature toggles
     hoverOverlayEnabled: boolean = false;
@@ -774,6 +784,11 @@ export class OsrsClient {
     bankInventory: Inventory = new Inventory(1410);
     /** Collection log inventory (ID 620) - stores obtained items for CS2 inv_total queries */
     collectionInventory: Inventory = new Inventory(2048);
+    /** Per-category "all items obtained" state, by tab index (see
+     *  getCategoryCompletionByTab in server/src/game/collectionlog.ts).
+     *  Used to color-code completed categories green in the sidebar list
+     *  after script 2731/7797 draws it - see the run_script hook below. */
+    private _collectionLogCategoryCompletion: Record<number, boolean[]> | null = null;
     /** Shop stock inventory (ID 516) - stores shop items for CS2 inv queries */
     shopInventory: Inventory = new Inventory(40);
     /** Your offered trade items (inventory ID 90 in the cache scripts). */
@@ -2276,6 +2291,7 @@ export class OsrsClient {
                         payload.groupId,
                         payload.type,
                     );
+                    this.applyKnownMissingBackgroundFix(payload.groupId);
                     this.cs2Vm.clearHandlerCaches();
                     markWidgetsLoaded();
                     if (Array.isArray(payload.postScripts) && this.cs2Vm) {
@@ -2330,6 +2346,14 @@ export class OsrsClient {
 
                 if (closingGroupId === ITEM_SPAWNER_MODAL_GROUP_ID) {
                     this.itemSpawnerUi.onInterfaceClosed();
+                }
+
+                // Collection log fix: clear the snapshotted "correct" layout on
+                // close so the next open starts fresh (see the "Collection log
+                // fix, take 3" comment in the run_script handler for where this
+                // gets captured again).
+                if (closingGroupId === 621) {
+                    this._collectionLogLayoutSnapshot = null;
                 }
             } else if (payload?.action === "set_text") {
                 const uid = Number(payload.uid) | 0;
@@ -2608,6 +2632,242 @@ export class OsrsClient {
                             // but without invalidation the render system won't repaint.
                             if (this.widgetManager) {
                                 this.widgetManager.invalidateAll();
+                            }
+
+                            // Collection log fix, take 3 (see the close-time cleanup near
+                            // "action === close_sub" for the other half of this).
+                            //
+                            // Attempt 1: marked the root widget (621:0) "server-owned" to
+                            // block CC_SETSIZE/IF_SETSIZE. Backfired - the same flag also
+                            // gates CC_CREATE, which then silently builds "detached" widgets
+                            // that never render (createDetachedDynamicWidget in WidgetOps.ts).
+                            // Steelborder rebuilds its border decoration as fresh children on
+                            // every redraw, so locking the parent killed the border while
+                            // everything else kept working.
+                            //
+                            // Attempt 2: stopped blocking anything, instead snapshotted just
+                            // the ROOT widget's size after SCRIPT_COLLECTION_INIT (2240) and
+                            // restored it after later scripts. Border came back correctly
+                            // (confirming the CC_CREATE diagnosis), but the panel still
+                            // shrank - meaning 621:0 isn't actually the widget whose size
+                            // visually matters here. Many OSRS interfaces have an invisible
+                            // full-area root (component 0) with a separate component holding
+                            // the actual visible frame, so guessing a single uid was the
+                            // weak point.
+                            //
+                            // This version: stop guessing which single widget matters. Snapshot
+                            // EVERY static (cache-authored, fileId >= 0) widget's layout fields
+                            // in group 621 once the interface is known fully drawn (after
+                            // SCRIPT_COLLECTION_DRAW_TABS/2389, the last script the open
+                            // sequence queues as its own top-level run_script call - see
+                            // initializeCollectionLog in CollectionLogInterfaceHooks.ts), then
+                            // restore ALL of them after every later script call. Deliberately
+                            // scoped to STATIC widgets only (fileId >= 0) - dynamic ones
+                            // (fileId === -1, e.g. category rows/icons) are SUPPOSED to change
+                            // per tab and are left alone.
+                            if (this.widgetManager) {
+                                const isOpenSequenceScript =
+                                    scriptId === 1601 || scriptId === 2388 || scriptId === 2240 || scriptId === 2389;
+                                if (isOpenSequenceScript) {
+                                    const widgets = this.widgetManager.getWidgetsForGroup(621);
+                                    const snapshot = new Map<
+                                        number,
+                                        {
+                                            rawX: number;
+                                            rawY: number;
+                                            rawWidth: number;
+                                            rawHeight: number;
+                                            widthMode: number;
+                                            heightMode: number;
+                                            xPositionMode: number;
+                                            yPositionMode: number;
+                                        }
+                                    >();
+                                    for (const w of widgets) {
+                                        if (!w || w.fileId < 0) continue;
+                                        snapshot.set(w.uid, {
+                                            rawX: w.rawX ?? 0,
+                                            rawY: w.rawY ?? 0,
+                                            rawWidth: w.rawWidth ?? 0,
+                                            rawHeight: w.rawHeight ?? 0,
+                                            widthMode: w.widthMode ?? 0,
+                                            heightMode: w.heightMode ?? 0,
+                                            xPositionMode: w.xPositionMode ?? 0,
+                                            yPositionMode: w.yPositionMode ?? 0,
+                                        });
+                                    }
+                                    if (snapshot.size > 0) {
+                                        this._collectionLogLayoutSnapshot = snapshot;
+                                    }
+                                } else if (this._collectionLogLayoutSnapshot) {
+                                    let restoredAny = false;
+                                    for (const [uid, snap] of this._collectionLogLayoutSnapshot) {
+                                        const w = this.widgetManager.getWidgetByUid(uid);
+                                        if (!w) continue;
+                                        if (
+                                            w.rawX !== snap.rawX ||
+                                            w.rawY !== snap.rawY ||
+                                            w.rawWidth !== snap.rawWidth ||
+                                            w.rawHeight !== snap.rawHeight ||
+                                            w.widthMode !== snap.widthMode ||
+                                            w.heightMode !== snap.heightMode ||
+                                            w.xPositionMode !== snap.xPositionMode ||
+                                            w.yPositionMode !== snap.yPositionMode
+                                        ) {
+                                            w.rawX = snap.rawX;
+                                            w.rawY = snap.rawY;
+                                            w.rawWidth = snap.rawWidth;
+                                            w.rawHeight = snap.rawHeight;
+                                            w.widthMode = snap.widthMode;
+                                            w.heightMode = snap.heightMode;
+                                            w.xPositionMode = snap.xPositionMode;
+                                            w.yPositionMode = snap.yPositionMode;
+                                            this.widgetManager.invalidateWidget(
+                                                w,
+                                                "collection-log-layout-restore",
+                                            );
+                                            restoredAny = true;
+                                        }
+                                    }
+                                    if (restoredAny) {
+                                        this.widgetManager.invalidateAll();
+                                    }
+                                }
+                            }
+
+                            // Collection log category coloring: the compiled cache script
+                            // (2731, and internally within 7797's tab/category-switch chain)
+                            // draws the sidebar category list but doesn't color-code
+                            // completed categories green itself - confirmed by testing a
+                            // 100%-complete category and seeing it stay the default orange.
+                            // The detail view's "Obtained: X/Y" count IS colored correctly,
+                            // so this is specifically a gap in the list-drawing script, not
+                            // a data problem - server/src/game/collectionlog.ts computes
+                            // completion itself (from collection-log.json's item lists, not
+                            // anything cache-derived) and sends it once at open via a new
+                            // "category_completion" message (see
+                            // handleCollectionLogServerUpdate above).
+                            //
+                            // Both 2731 (initial tab open) and 7797 (tab/category clicks,
+                            // which internally re-invoke 2731) take [tabIndex, ...] as their
+                            // first two args, with the category list container widget uid as
+                            // the 3rd (index 2) - same position in both scripts' argument
+                            // lists, so this one block covers both entry points.
+                            if (scriptId === 2731 || scriptId === 7797) {
+                                const tabIndex = intArgs[0];
+                                const categoryContainerUid = intArgs[2];
+                                const completion =
+                                    this._collectionLogCategoryCompletion?.[tabIndex];
+                                const container = this.widgetManager?.getWidgetByUid(
+                                    categoryContainerUid,
+                                );
+                                console.log("[collection_log] coloring check", {
+                                    scriptId,
+                                    intArgs,
+                                    tabIndex,
+                                    categoryContainerUid,
+                                    hasCompletionData: !!this._collectionLogCategoryCompletion,
+                                    completionForTab: completion,
+                                    containerFound: !!container,
+                                    containerChildrenLength: container?.children?.length,
+                                });
+                                if (this.widgetManager && completion && container?.children) {
+                                    const GREEN_HEX = "00ff00";
+                                    const GREEN_NUM = 0x00ff00;
+                                    const COL_TAG_RE = /<col=[0-9a-fA-F]{6}>/gi;
+
+                                    // Rounds 1-2 guessed at the row's own .text and .children -
+                                    // both came back empty/undefined, which doesn't match a
+                                    // widget that's visibly rendering colored text. Recalling
+                                    // from the earlier collapse-bug investigation: IF3 widgets
+                                    // (which is everything in this custom-loaded interface,
+                                    // including these dynamically created rows) DON'T reliably
+                                    // populate a .children array at all - real parent/child
+                                    // relationships are tracked via each widget's OWN .parentUid
+                                    // field, discovered by scanning ALL widgets in the group and
+                                    // filtering by parentUid, not by reading .children off the
+                                    // parent. This is the same technique that was needed to fix
+                                    // the earlier size-collapse bug. Applying it here instead of
+                                    // guessing at .children again.
+                                    const allGroupWidgets = this.widgetManager.getWidgetsForGroup(621);
+                                    const findByParentUid = (parentUid: number): any[] =>
+                                        allGroupWidgets.filter((w: any) => w && w.parentUid === parentUid);
+
+                                    let recoloredCount = 0;
+                                    for (let i = 0; i < completion.length; i++) {
+                                        if (!completion[i]) continue;
+                                        const row = container.children?.[i];
+                                        const rowDescendants = row ? findByParentUid(row.uid) : [];
+                                        const textWidgets = rowDescendants.filter(
+                                            (w: any) => typeof w.text === "string" && w.text.length > 0,
+                                        );
+                                        console.log(
+                                            `[collection_log] row ${i} complete=${completion[i]} rowFound=${!!row} rowUid=${row?.uid} descendants=${JSON.stringify(rowDescendants.map((w: any) => ({ uid: w.uid, type: w.type, text: w.text, textColor: w.textColor })))}`,
+                                        );
+                                        if (row && rowDescendants.length === 0) {
+                                            // Nothing hangs off this row by parentUid either -
+                                            // dump every text-bearing widget in the whole group
+                                            // so we can see where the real text actually lives
+                                            // and cross-reference uids/parentUids by hand,
+                                            // rather than guessing a fourth structural theory.
+                                            const allTextWidgets = allGroupWidgets
+                                                .filter(
+                                                    (w: any) =>
+                                                        w && typeof w.text === "string" && w.text.length > 0,
+                                                )
+                                                .map((w: any) => ({
+                                                    uid: w.uid,
+                                                    parentUid: w.parentUid,
+                                                    type: w.type,
+                                                    text: w.text,
+                                                }));
+                                            console.log(
+                                                `[collection_log] fallback dump: ${allTextWidgets.length} text-bearing widgets in group 621:`,
+                                                allTextWidgets,
+                                            );
+                                        }
+                                        if (!row) continue;
+
+                                        let rowChanged = false;
+                                        for (const textWidget of textWidgets) {
+                                            let changed = false;
+                                            if (COL_TAG_RE.test(textWidget.text)) {
+                                                const recolored = textWidget.text.replace(
+                                                    COL_TAG_RE,
+                                                    `<col=${GREEN_HEX}>`,
+                                                );
+                                                if (recolored !== textWidget.text) {
+                                                    textWidget.text = recolored;
+                                                    changed = true;
+                                                }
+                                            } else {
+                                                textWidget.text = `<col=${GREEN_HEX}>${textWidget.text}</col>`;
+                                                changed = true;
+                                            }
+                                            if (changed) {
+                                                this.widgetManager.invalidateWidgetRender(
+                                                    textWidget,
+                                                    "collection-log-category-complete",
+                                                );
+                                                rowChanged = true;
+                                            }
+                                        }
+                                        // Nothing found via parentUid scan either - fall back to
+                                        // the row's own field as a last resort.
+                                        if (textWidgets.length === 0 && row.textColor !== GREEN_NUM) {
+                                            row.textColor = GREEN_NUM;
+                                            this.widgetManager.invalidateWidgetRender(
+                                                row,
+                                                "collection-log-category-complete",
+                                            );
+                                            rowChanged = true;
+                                        }
+                                        if (rowChanged) recoloredCount++;
+                                    }
+                                    console.log(
+                                        `[collection_log] recolored ${recoloredCount} row(s) for tab ${tabIndex}`,
+                                    );
+                                }
                             }
                         } catch (err) {
                             console.error(
@@ -3531,6 +3791,45 @@ export class OsrsClient {
                     return value;
             }
         });
+    }
+
+    /**
+     * Fallback for interfaces whose real cache background never renders
+     * (Quest Journal 119, Skill Guide 214, Achievement Diary 259 —
+     * investigated at length; a rotating 3D decor model our client doesn't
+     * animate was one plausible cause, but never fully confirmed, and one
+     * of the three mounts differently enough that a single detection
+     * heuristic couldn't reliably find all three anyway).
+     *
+     * Rather than keep guessing, this copies the actual background sprite
+     * from the Bank interface (group 12 — a real, always-loaded, always-
+     * correct cache group) onto whichever of the three groups just opened.
+     * getGroup() lazily loads group 12's data even if the player has never
+     * opened a bank this session, and getAllGroupRoots() is the same
+     * root-finding logic the framework itself uses when mounting an
+     * interface, so this reliably finds the right widget for all three,
+     * including achievement diary, which per-frame uid lookups kept missing.
+     */
+    private applyKnownMissingBackgroundFix(openedGroupId: number): void {
+        const KNOWN_MISSING_BACKGROUND_GROUPS = [119, 214, 259];
+        if (!KNOWN_MISSING_BACKGROUND_GROUPS.includes(openedGroupId)) return;
+        const wm = this.widgetManager;
+        if (!wm) return;
+
+        const bankRoot = wm.getGroupRoot(12) as any;
+        if (!bankRoot || typeof bankRoot.spriteId !== "number" || bankRoot.spriteId < 0) {
+            console.warn(
+                "[applyKnownMissingBackgroundFix] Bank group 12's root has no usable spriteId — nothing to copy.",
+            );
+            return;
+        }
+
+        const roots = wm.getAllGroupRoots(openedGroupId) as any[];
+        for (const root of roots) {
+            root.spriteId = bankRoot.spriteId;
+            root.spriteTiling = bankRoot.spriteTiling ?? true;
+            wm.invalidateWidgetRender?.(root, "known-missing-background-fix");
+        }
     }
 
     private runWidgetScopedClientScript(
@@ -5327,7 +5626,12 @@ export class OsrsClient {
                     this.loginState.serverSecure = server.secure;
                     this.loginState.serverListOpen = false;
                     this.loginState.hoveredServerIndex = -1;
-                    setServerUrl(`${server.secure ? "wss" : "ws"}://${server.address}`);
+                    const worldUrl = `${server.secure ? "wss" : "ws"}://${server.address}`;
+                    // A default socket is opened at startup. Recreate it for the selected
+                    // world so the subsequent login cannot be sent to the prior world.
+                    disposeServerConnection("world selection");
+                    setServerUrl(worldUrl);
+                    initServerConnection(worldUrl);
                     this.loginState.saveLastServer();
                 }
                 return undefined;
@@ -6205,7 +6509,18 @@ export class OsrsClient {
      * Populates collection_transmit inventory (ID 620) so CS2 inv_total() queries work.
      */
     private handleCollectionLogServerUpdate(update: CollectionLogServerPayload): void {
-        if (!update || update.kind !== "snapshot") return;
+        if (!update) return;
+
+        if (update.kind === "category_completion") {
+            this._collectionLogCategoryCompletion = update.completionByTab ?? null;
+            console.log(
+                "[collection_log] category_completion received",
+                this._collectionLogCategoryCompletion,
+            );
+            return;
+        }
+
+        if (update.kind !== "snapshot") return;
 
         try {
             console.log("[collection_log] server update", update.slots?.length ?? 0, "items");

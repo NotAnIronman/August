@@ -393,10 +393,25 @@ export type CollectionLogSlotMessage = {
     quantity: number;
 };
 
-export type CollectionLogServerPayload = {
-    kind: "snapshot";
-    slots: CollectionLogSlotMessage[];
-};
+export type CollectionLogServerPayload =
+    | {
+          kind: "snapshot";
+          slots: CollectionLogSlotMessage[];
+      }
+    | {
+          /** Per-category "all items obtained" state, by tab index. See
+           *  getCategoryCompletionByTab in server/src/game/collectionlog.ts -
+           *  the compiled cache script that draws the sidebar category list
+           *  doesn't color-code completed categories itself, so the client
+           *  applies this after the list is drawn (see the run_script hook
+           *  for scriptId 2731/7797 in client/game/OsrsClient.ts). Keep this
+           *  in sync with the matching type in
+           *  client/network/serverConnection/types/messages.ts - they're
+           *  separate copies, not shared, which is exactly how this build
+           *  error happened the first time. */
+          kind: "category_completion";
+          completionByTab: Record<number, boolean[]>;
+      };
 
 export type CameraControlPayload =
     | {
@@ -1055,7 +1070,12 @@ function encodeMessageToBinaryDirect(msg: ServerToClient): Uint8Array {
             if (payload.kind === "snapshot") {
                 return serverEncoder.encodeCollectionLogSnapshot(payload.slots ?? []);
             }
-            throw new Error(`Unknown collection_log payload kind: ${payload.kind}`);
+            if (payload.kind === "category_completion") {
+                return serverEncoder.encodeCollectionLogCategoryCompletion(
+                    payload.completionByTab ?? {},
+                );
+            }
+            throw new Error(`Unknown collection_log payload kind: ${(payload as { kind: string }).kind}`);
 
         case "gamemode_data":
             return payload.packet;

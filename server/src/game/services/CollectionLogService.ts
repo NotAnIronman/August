@@ -10,6 +10,7 @@ import {
     COLLECTION_OVERVIEW_GROUP_ID,
     type CollectionLogServices,
     buildCollectionOverviewOpenState,
+    getCategoryCompletionByTab,
     populateCollectionLogCategories,
     syncCollectionDisplayVarps,
     trackCollectionLogItem,
@@ -46,6 +47,42 @@ export class CollectionLogService {
         );
     }
 
+    /**
+     * Sends per-category "all items obtained" completion state for every
+     * tab, so the client can color-code completed categories green in the
+     * sidebar list - something the compiled cache script that draws that
+     * list doesn't do itself (see getCategoryCompletionByTab's doc comment
+     * for the full explanation). Call this whenever the collection log is
+     * opened; it doesn't need to be resent on tab/category clicks since the
+     * client keeps all tabs' completion state and just looks it up locally.
+     */
+    sendCollectionLogCategoryCompletion(player: PlayerState): void {
+        logger.info(`[collection-log] sendCollectionLogCategoryCompletion called for player=${player.id}`);
+        const ws = this.services.players?.getSocketByPlayerId(player.id);
+        if (!ws) {
+            logger.warn(
+                `[collection-log] sendCollectionLogCategoryCompletion: no socket found for player=${player.id}`,
+            );
+            return;
+        }
+
+        const completionByTab = getCategoryCompletionByTab(player);
+        logger.info(
+            `[collection-log] sending category_completion for player=${player.id}: ${JSON.stringify(completionByTab)}`,
+        );
+
+        this.services.networkLayer.withDirectSendBypass("collection_log_category_completion", () =>
+            this.services.networkLayer.sendWithGuard(
+                ws,
+                encodeMessage({
+                    type: "collection_log",
+                    payload: { kind: "category_completion", completionByTab },
+                } as Parameters<typeof encodeMessage>[0]),
+                "collection_log_category_completion",
+            ),
+        );
+    }
+
     getCollectionLogServices(): CollectionLogServices {
         return {
             queueVarp: (playerId: number, varpId: number, value: number) =>
@@ -71,6 +108,8 @@ export class CollectionLogService {
     openCollectionLog(player: PlayerState): void {
         const hookData = {
             sendCollectionLogSnapshot: (p: PlayerState) => this.sendCollectionLogSnapshot(p),
+            sendCollectionLogCategoryCompletion: (p: PlayerState) =>
+                this.sendCollectionLogCategoryCompletion(p),
             queueVarp: (playerId: number, varpId: number, value: number) =>
                 this.services.variableService.queueVarp(playerId, varpId, value),
             queueVarbit: (playerId: number, varbitId: number, value: number) =>

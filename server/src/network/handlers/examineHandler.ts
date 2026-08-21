@@ -4,6 +4,8 @@ import type { TypeLoader } from "../../../../client/rs/config/TypeLoader";
 import type { LocType } from "../../../../client/rs/config/loctype/LocType";
 import type { NpcType } from "../../../../client/rs/config/npctype/NpcType";
 import type { ObjType } from "../../../../client/rs/config/objtype/ObjType";
+import { getLocExamine } from "../../data/locs";
+import { getNpcExamine } from "../../data/npcs";
 import {
     resolveLocExamineText,
     resolveNpcExamineText,
@@ -11,6 +13,7 @@ import {
 } from "../../game/interactions/ExamineText";
 import type { NpcState } from "../../game/npc";
 import type { PlayerState } from "../../game/player";
+import { logger } from "../../utils/logger";
 import { loadVisibleLocTypeForPlayer } from "../../world/LocTransforms";
 
 export interface ExamineHandlerDeps {
@@ -49,20 +52,28 @@ export function handleExaminePacket(
 ): boolean {
     const player = deps.getPlayer(ws);
     if (!player) {
+        logger.warn(`[examine] Packet '${packet.type}' arrived with no resolvable player for ws`);
         return false;
     }
 
     switch (packet.type) {
         case "examine_loc": {
             if (packet.locId === undefined) return false;
-            const locText = resolveLocExamineText(deps.locTypeLoader, player, packet.locId);
+            // Cache text first (works today for essentially nothing on this
+            // revision, but stays first so it wins automatically if that ever
+            // changes), then the static wiki-merged data file
+            // (server/data/locs.json — see merge-wiki-examine.ts). No SQLite
+            // involved in this path at all.
+            const locText = resolveLocExamineText(deps.locTypeLoader, player, packet.locId) ?? getLocExamine(packet.locId);
+            logger.debug(`[examine] loc id=${packet.locId} player=${player.name} -> ${locText ?? "NO TEXT"}`);
             if (locText) deps.queuePlayerGameMessage(player, locText);
             return true;
         }
 
         case "examine_npc": {
             if (packet.npcId === undefined) return false;
-            const npcText = resolveNpcExamineText(deps.npcTypeLoader, packet.npcId);
+            const npcText = resolveNpcExamineText(deps.npcTypeLoader, packet.npcId) ?? getNpcExamine(packet.npcId);
+            logger.debug(`[examine] npc id=${packet.npcId} player=${player.name} -> ${npcText ?? "NO TEXT"}`);
             if (npcText) deps.queuePlayerGameMessage(player, npcText);
             return true;
         }
@@ -82,10 +93,15 @@ export function handleExaminePacket(
                 )
                 .some((stack) => stack.itemId === packet.itemId);
             if (!visible) {
+                logger.debug(
+                    `[examine] obj id=${packet.itemId} at (${packet.worldX},${packet.worldY}) ` +
+                        `player=${player.name} -> NOT VISIBLE at that tile`,
+                );
                 return true;
             }
 
             const objText = resolveObjExamineText(deps.objTypeLoader, packet.itemId);
+            logger.debug(`[examine] obj id=${packet.itemId} player=${player.name} -> ${objText ?? "NO TEXT"}`);
             if (objText) deps.queuePlayerGameMessage(player, objText);
             return true;
         }

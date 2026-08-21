@@ -1,5 +1,31 @@
+import {
+    ACHIEVEMENT_DIARY_PANEL_GROUP_ID,
+    DIARY_TABBED_COMPONENT_FRAME,
+    DIARY_TABBED_COMPONENT_LINE_BASE,
+    DIARY_TABBED_COMPONENT_TAB_BASE,
+    DIARY_TABBED_COMPONENT_TAB_HIGHLIGHT_BASE,
+    DIARY_TABBED_MAX_LINES,
+    DIARY_TABBED_TAB_COUNT,
+} from "../../../../client/common/ui/widgets";
 import type { PlayerState } from "../../../src/game/player";
+import { achievementTaskTracker } from "../diaryTasks/AchievementTaskTracker";
+import { getDiaryAreaTasks } from "../diaryTasks";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
+
+// Rebuilt as a custom widget group (see client/widgets/custom/diaryTabbed.cs2.ts),
+// mounted in mainmodal + steelbordered at open time, instead of the cache
+// interface (741) whose background never renders in this client. Now uses
+// the same sidebar-tabs architecture as the skill guide (Easy/Medium/Hard/
+// Elite as tabs) instead of one flat scrolling list of all 4 tiers.
+//
+// SCRIPT_STEELBORDER (227, not the "_NOCLOSE" variant) draws the title bar
+// text AND a working X close button directly onto the frame, matching
+// Bank/Settings/Trade - no separate title widget or stone button needed.
+const SCRIPT_STEELBORDER = 227;
+
+function packUid(groupId: number, componentId: number): number {
+    return ((groupId & 0xffff) << 16) | (componentId & 0xffff);
+}
 
 // ============================================================================
 // Constants
@@ -14,15 +40,6 @@ const DIARY_LIST_GROUP_ID = 259;
  * op1 "Open <Area> Journal" and op2 "Wiki <Area> Journal".
  */
 const DIARY_LIST_TASKBOX_COMPONENT = 2;
-
-/** Achievement diary journal scroll interface */
-const DIARY_SCROLL_GROUP_ID = 741;
-/** Title component: achievementdiary_scroll title text */
-const DS_TITLE_CHILD = 2;
-/** First journal line component */
-const DS_FIRST_LINE_CHILD = 4;
-/** Number of line components cleared before writing (covers stale re-opens) */
-const DS_LINE_CLEAR_COUNT = 24;
 
 /** OP ID for "Open <Area> Journal" */
 const OP_OPEN_JOURNAL = 1;
@@ -179,32 +196,83 @@ const DIARY_AREAS: ReadonlyArray<DiaryArea> = [
 ];
 
 // ============================================================================
-// Journal text generation
+// Tab text generation
 // ============================================================================
 
 const COLOR_COMPLETE = "0dc10d";
 const COLOR_IN_PROGRESS = "ffff00";
 const COLOR_NOT_STARTED = "ff0000";
 
-function buildDiaryJournalLines(player: PlayerState, area: DiaryArea): string[] {
-    const lines: string[] = [];
-    for (let i = 0; i < area.tiers.length; i++) {
-        const t = area.tiers[i];
+/**
+ * Lines shown within ONE tier's tab (Easy/Medium/Hard/Elite are now
+ * separate tabs, not stacked in one scroll like the old flat panel).
+ *
+ * If the area's task data (server/gamemodes/vanilla/diaryTasks/data/) has
+ * been filled in for this tier, shows the real itemized checklist -
+ * one line per task, struck through in the same style as the old
+ * aggregate summary once completed (tracked per-task by
+ * achievementTaskTracker, not just the aggregate count). While a tier's
+ * task descriptions are still blank stubs (the generated fill-sheet
+ * default), falls back to the old aggregate summary so the panel isn't
+ * empty before you've filled anything in.
+ */
+function buildDiaryTierLines(
+    player: PlayerState,
+    area: DiaryArea,
+    areaId: number,
+    tierIndex: number,
+): string[] {
+    const t = area.tiers[tierIndex];
+    const tierKey = TIER_NAMES[tierIndex].toLowerCase() as "easy" | "medium" | "hard" | "elite";
+    const tasks = getDiaryAreaTasks(areaId)?.[tierKey]?.tasks ?? [];
+    const filledIn = tasks.filter((task) => task.description.trim().length > 0);
+
+    if (filledIn.length === 0) {
+        // No task data filled in yet for this tier - fall back to the
+        // OLD aggregate varbit-based summary so the tab isn't just a
+        // blank header. Nothing writes to these varbits anymore (see
+        // AchievementTaskTracker.ts's TIER COUNT NOTE), so this always
+        // reads whatever a fresh player's default is (typically 0) until
+        // this tier's data.ts file gets filled in, at which point the
+        // branch below takes over and this fallback stops being used
+        // for that tier.
         const count = Math.min(player.varps.getVarbitValue(t.countVarbit), t.total);
         const complete = player.varps.getVarbitValue(t.completeVarbit) >= t.completeValue;
-        const colour = complete
-            ? COLOR_COMPLETE
-            : count > 0
-              ? COLOR_IN_PROGRESS
-              : COLOR_NOT_STARTED;
+        const colour = complete ? COLOR_COMPLETE : count > 0 ? COLOR_IN_PROGRESS : COLOR_NOT_STARTED;
         const shown = complete ? t.total : count;
-        lines.push(`<col=${colour}>${TIER_NAMES[i]} tasks: ${shown}/${t.total}</col>`);
-        lines.push(
+        return [
+            `<col=${colour}>${TIER_NAMES[tierIndex]} tasks: ${shown}/${t.total}</col>`,
             complete
-                ? `<str>You have completed all of the ${TIER_NAMES[i].toLowerCase()} tasks.`
-                : `You have completed ${shown} of the ${t.total} ${TIER_NAMES[i].toLowerCase()} tasks.`,
-        );
-        lines.push("");
+                ? `<str>You have completed all of the ${tierKey} tasks.`
+                : `You have completed ${shown} of the ${t.total} ${tierKey} tasks.`,
+        ];
+    }
+
+    // Real task data exists for this tier - the header now reflects the
+    // ACTUAL filled-in task count (not the old hardcoded tier total,
+    // which was the "12/12 instead of 0/3" bug) and completion is read
+    // straight from the tracker, not a varbit nothing writes to anymore.
+    const totalCount = filledIn.length;
+    const doneCount = achievementTaskTracker.countCompletedInTier(
+        player.id,
+        areaId,
+        tierIndex,
+        tasks.length,
+    );
+    const complete = doneCount >= totalCount;
+    const colour = complete ? COLOR_COMPLETE : doneCount > 0 ? COLOR_IN_PROGRESS : COLOR_NOT_STARTED;
+    const header = `<col=${colour}>${TIER_NAMES[tierIndex]} tasks: ${doneCount}/${totalCount}</col>`;
+
+    const lines = [header, ""];
+    for (let taskIndex = 0; taskIndex < tasks.length; taskIndex++) {
+        const task = tasks[taskIndex];
+        if (task.description.trim().length === 0) continue;
+        const done = achievementTaskTracker.isTaskComplete(player.id, {
+            areaId,
+            tierIndex,
+            taskIndex,
+        });
+        lines.push(done ? `<str>${task.description}` : task.description);
     }
     return lines;
 }
@@ -214,37 +282,85 @@ function buildDiaryJournalLines(player: PlayerState, area: DiaryArea): string[] 
 // ============================================================================
 
 /**
- * Open the achievement diary journal scroll (741) for an area.
+ * Open the achievement diary journal panel for an area.
  *
- * The scroll is a plain server-text interface: title at 741:2, line texts from
- * 741:4. Its close button (741:205) is self-contained CS2 (script 29, if_close),
- * so no server-side close handler is needed beyond standard modal tracking.
+ * Built as a custom widget group (ACHIEVEMENT_DIARY_PANEL_GROUP_ID) mounted
+ * in mainmodal, with its frame/backdrop drawn by the steelborder script -
+ * the same working mechanism Bank, the Settings modal and the Smithing bar
+ * picker already use. Tabs (Easy/Medium/Hard/Elite) reuse the same
+ * sidebar architecture as the skill guide.
  */
+type DiaryPanelState = { areaId: number };
+
+/**
+ * Populates the sidebar tabs + the currently selected tier's lines for
+ * the diary panel. Safe to call repeatedly (tab clicks) without
+ * reopening the modal.
+ */
+function renderDiaryPanel(
+    services: ScriptServices,
+    playerId: number,
+    player: PlayerState,
+    area: DiaryArea,
+    areaId: number,
+    activeTierIndex: number,
+): void {
+    for (let i = 0; i < DIARY_TABBED_TAB_COUNT; i++) {
+        const tabUid = packUid(ACHIEVEMENT_DIARY_PANEL_GROUP_ID, DIARY_TABBED_COMPONENT_TAB_BASE + i);
+        const highlightUid = packUid(
+            ACHIEVEMENT_DIARY_PANEL_GROUP_ID,
+            DIARY_TABBED_COMPONENT_TAB_HIGHLIGHT_BASE + i,
+        );
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_text",
+            uid: tabUid,
+            text: i === activeTierIndex ? `<col=ffffff>${TIER_NAMES[i]}</col>` : TIER_NAMES[i],
+        });
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden",
+            uid: highlightUid,
+            hidden: i !== activeTierIndex,
+        });
+    }
+
+    const lines = buildDiaryTierLines(player, area, areaId, activeTierIndex);
+    for (let i = 0; i < DIARY_TABBED_MAX_LINES; i++) {
+        const lineUid = packUid(ACHIEVEMENT_DIARY_PANEL_GROUP_ID, DIARY_TABBED_COMPONENT_LINE_BASE + i);
+        const line = i < lines.length ? lines[i] : undefined;
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_text",
+            uid: lineUid,
+            text: line ?? "",
+        });
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden",
+            uid: lineUid,
+            hidden: line === undefined,
+        });
+    }
+}
+
 function openDiaryJournal(player: PlayerState, areaId: number, services: ScriptServices): void {
     const area = DIARY_AREAS[areaId];
     if (!area) return;
 
     const playerId = player.id;
-    const displayMode = player.displayMode ?? 1;
-    const mainmodalUid = services.viewport.getMainmodalUid(displayMode);
+    const title = `${area.name} Area Tasks`;
 
-    services.dialog.openSubInterface(player, mainmodalUid, DIARY_SCROLL_GROUP_ID, 0);
+    const interfaceService = services.dialog.getInterfaceService();
+    interfaceService?.openModal(player, ACHIEVEMENT_DIARY_PANEL_GROUP_ID, {
+        areaId,
+    } satisfies DiaryPanelState);
 
-    const lines = buildDiaryJournalLines(player, area);
-
+    // Draws the frame, title bar text, and a working X close button -
+    // no separate title widget or stone button needed.
     services.dialog.queueWidgetEvent(playerId, {
-        action: "set_text",
-        uid: (DIARY_SCROLL_GROUP_ID << 16) | DS_TITLE_CHILD,
-        text: `${area.name} Area Tasks`,
+        action: "run_script",
+        scriptId: SCRIPT_STEELBORDER,
+        args: [packUid(ACHIEVEMENT_DIARY_PANEL_GROUP_ID, DIARY_TABBED_COMPONENT_FRAME), title],
     });
 
-    for (let i = 0; i < DS_LINE_CLEAR_COUNT; i++) {
-        services.dialog.queueWidgetEvent(playerId, {
-            action: "set_text",
-            uid: (DIARY_SCROLL_GROUP_ID << 16) | (DS_FIRST_LINE_CHILD + i),
-            text: i < lines.length ? lines[i] : "",
-        });
-    }
+    renderDiaryPanel(services, playerId, player, area, areaId, 0);
 
     services.system.logger.info?.(
         `[diary-journal] Opened journal for player=${playerId} area="${area.name}" (id=${areaId})`,
@@ -259,6 +375,32 @@ export function registerDiaryJournalWidgetHandlers(
     registry: IScriptRegistry,
     services: ScriptServices,
 ): void {
+    // Live-refresh the diary panel when a task auto-completes while it's
+    // open on the relevant area (e.g. player kills a monster that
+    // completes a filled-in kill-trigger task). Switches to and shows
+    // the tier the completed task belongs to - InterfaceService has no
+    // way to read back "which tab is currently active" without storing
+    // it ourselves, and doing that would need updating the modal's data
+    // on every tab click (no update-in-place API, only a full reopen),
+    // so this deliberately keeps it simple: show the tier that changed.
+    achievementTaskTracker.onTaskCompleted = (player, areaId, tierIndex, svc) => {
+        const state = svc.dialog.getInterfaceService()?.getModalData<DiaryPanelState>(player);
+        if (!state || state.areaId !== areaId) return;
+        const area = DIARY_AREAS[areaId];
+        if (!area) return;
+        renderDiaryPanel(svc, player.id, player, area, areaId, tierIndex);
+    };
+
+    // Wires the achievement diary's kill-trigger tracker to the real,
+    // confirmed-kill hook in combat (see CombatFacade.registerOnNpcKilled
+    // and NpcHitHandler.handleNpcDeath). Fires once per confirmed kill,
+    // any NPC, any player - checkKillTrigger internally scans for any
+    // filled-in kill-trigger task matching this NPC (and its area bounds
+    // if one is set) and does nothing if none match.
+    services.combat.registerOnNpcKilled?.((killer, npc, _tick) => {
+        achievementTaskTracker.checkKillTrigger(killer, npc, services);
+    });
+
     // Handle diary list clicks (259:2). Dynamic child index = area id.
     registry.onButton(DIARY_LIST_GROUP_ID, DIARY_LIST_TASKBOX_COMPONENT, (event) => {
         const { player, slot, opId } = event;
@@ -274,4 +416,23 @@ export function registerDiaryJournalWidgetHandlers(
             return;
         }
     });
+
+    // Sidebar tab clicks - switch the active tier without reopening the modal.
+    for (let i = 0; i < DIARY_TABBED_TAB_COUNT; i++) {
+        registry.onButton(
+            ACHIEVEMENT_DIARY_PANEL_GROUP_ID,
+            DIARY_TABBED_COMPONENT_TAB_BASE + i,
+            (event) => {
+                const { player } = event;
+                const state = services.dialog
+                    .getInterfaceService()
+                    ?.getModalData<DiaryPanelState>(player);
+                if (!state) return;
+                const area = DIARY_AREAS[state.areaId];
+                if (!area) return;
+
+                renderDiaryPanel(services, player.id, player, area, state.areaId, i);
+            },
+        );
+    }
 }

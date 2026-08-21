@@ -118,6 +118,15 @@ export class PlayerManager implements PlayerRepository {
     }
 
     /**
+     * See PlayerInteractionSystem.setTalkToOverrideCheck — lets a developer-edited
+     * dialogue override (DialogueOverrideStore) intercept Talk-to before it
+     * reaches the gamemode's own NPC handler.
+     */
+    setTalkToOverrideCheck(fn: (npc: NpcState, ws: WebSocket) => boolean): void {
+        this.interactionSystem.setTalkToOverrideCheck(fn);
+    }
+
+    /**
      * Set callback for interrupting skill actions.
      * Called when player walks, starts new interaction, teleports, etc.
      */

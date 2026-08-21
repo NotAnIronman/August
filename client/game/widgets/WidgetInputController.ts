@@ -5,6 +5,14 @@ import {
     isQuestListScrollbarWidget,
     processQuestListScrollbarInput,
 } from "./input/questListScrollbarInput";
+import {
+    isDiaryScrollbarWidget,
+    processDiaryScrollbarInput,
+} from "./input/diaryScrollbarInput";
+// Skill guide's scrollbar is now handled by the UI kit's generic
+// controller (client/widgets/uikit/ScrollController.ts), not a
+// dedicated per-panel file - see skillGuideScrollController below.
+import { skillGuideScrollController } from "../../widgets/custom/skillGuidePanel";
 import { shouldSkipWidgetClickInput } from "./input/widgetClickGuard";
 import { processWidgetClickInput } from "./input/widgetClickInput";
 import { processWidgetDragInput } from "./input/widgetDragInput";
@@ -63,6 +71,8 @@ export class WidgetInputController {
             widgetInteraction,
         );
         processQuestListScrollbarInput(frame, widgetManager, widgetInteraction);
+        skillGuideScrollController.process(frame, widgetManager, widgetInteraction);
+        processDiaryScrollbarInput(frame, widgetManager, widgetInteraction);
         processWidgetScrollWheelInput(this.deps, frame, widgetManager, widgetInteraction);
 
         if (shouldSkipWidgetClickInput(this.deps, frame)) return;
@@ -89,9 +99,17 @@ export class WidgetInputController {
             getPrimaryWidgetAction,
             isNewClick,
         );
-        // The quest list has a dedicated scroll controller. Its cached
-        // scrollbar thumb must not become a generic draggable widget.
-        if (!isQuestListScrollbarWidget(widgetInteraction.clickedWidget, widgetManager)) {
+        // The quest list and skill guide have dedicated scroll controllers.
+        // Their cached scrollbar thumbs must not become generic draggable
+        // widgets.
+        if (
+            !isQuestListScrollbarWidget(widgetInteraction.clickedWidget, widgetManager) &&
+            !skillGuideScrollController.isScrollbarWidget(
+                widgetInteraction.clickedWidget,
+                widgetManager,
+            ) &&
+            !isDiaryScrollbarWidget(widgetInteraction.clickedWidget, widgetManager)
+        ) {
             processWidgetDragInput(this.deps, frame, widgetManager, widgetInteraction, isHolding);
         }
         processWidgetHoldInput(this.deps, frame, widgetInteraction, isHolding, isNewClick);

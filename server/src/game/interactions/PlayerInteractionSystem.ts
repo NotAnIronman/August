@@ -111,6 +111,18 @@ export class PlayerInteractionSystem {
         npc: NpcState,
         currentTick: number,
     ) => { allowed: boolean; reason?: string };
+    /**
+     * Optional hook checked before a "Talk-to" interaction is dispatched to the
+     * gamemode's own NPC handler. Returns true if it fully handled the
+     * interaction (e.g. a developer-edited dialogue override exists for this
+     * NPC id) so the normal gamemode dispatch should be skipped. See
+     * DialogueOverrideStore / DialogueTreeRunner — wired in ServiceWiring.ts.
+     */
+    private onTalkToOverrideCheck?: (npc: NpcState, ws: WebSocket) => boolean;
+
+    setTalkToOverrideCheck(fn: (npc: NpcState, ws: WebSocket) => boolean): void {
+        this.onTalkToOverrideCheck = fn;
+    }
 
     constructor(
         private readonly players: PlayerRepository,
@@ -392,6 +404,13 @@ export class PlayerInteractionSystem {
             return { ok: false, message: "interaction_locked" };
         }
 
+        // Developer-edited dialogue override takes priority over the gamemode's
+        // own Talk-to handler for this NPC id, if one exists. See DialogueOverrideStore.
+        const normalizedOptionForOverride = String(option ?? "talk-to")
+            .trim()
+            .toLowerCase();
+        const isTalkToOverrideCandidate = normalizedOptionForOverride === "talk-to";
+
         // Block interactions during tutorial (gamemode can override per NPC)
         if (!me.canInteract()) {
             const normalizedOption = String(option ?? "")
@@ -407,6 +426,13 @@ export class PlayerInteractionSystem {
         // Starting a new NPC interaction cancels any active skill actions
         this.interruptSkillActions(me.id);
         this.replaceInteractionState(ws, me);
+
+        // Fire the developer-edited dialogue override (if any) now that shared
+        // interaction bookkeeping is done, short-circuiting the gamemode's own
+        // Talk-to dispatch (walk-to-adjacency, script handler, etc. below).
+        if (isTalkToOverrideCandidate && this.onTalkToOverrideCheck?.(npc, ws)) {
+            return { ok: true };
+        }
 
         logger.info?.(
             `[npc] start interaction player=${me.id} opt=${option ?? "Talk-to"} npc=${

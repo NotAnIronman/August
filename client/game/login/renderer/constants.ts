@@ -5,14 +5,25 @@ export const MOCK_WORLDS: World[] = [];
 
 export const FALLBACK_SERVERS: ServerListEntry[] = [
     {
-        id: 301,
-        name: "World 301",
+        id: 1,
+        name: "World 1",
         address: "localhost:43594",
         secure: false,
         playerCount: null,
-        maxPlayers: 2047,
+        maxPlayers: 1234,
         location: 0,
-        activity: "Trade - Free",
+        activity: "Vanilla",
+        properties: 0,
+    },
+    {
+        id: 2,
+        name: "World 2",
+        address: "localhost:43595",
+        secure: false,
+        playerCount: null,
+        maxPlayers: 1234,
+        location: 0,
+        activity: "Leagues V",
         properties: 0,
     },
 ];

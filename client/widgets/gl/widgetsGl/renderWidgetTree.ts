@@ -1289,6 +1289,21 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
         const width = Math.max(1, x1 - x);
         const height = Math.max(1, y1 - y);
         const isContainer = w.type === 0 || w.type === 11;
+
+        // Fallback backdrop for interfaces whose real cache background never
+        // renders (Quest Journal 119, Skill Guide 214, Achievement Diary
+        // 259 — see OsrsClient.ts's applyKnownMissingBackgroundFix for the
+        // full investigation history). That method tags the actual widget
+        // objects for these groups' real roots with this marker at open
+        // time (found via the same root-lookup the framework itself trusts
+        // when mounting); here we just draw a flat, guaranteed-to-work
+        // color fill behind anything carrying it — no sprite, no 3D model,
+        // nothing that's ever been the actual point of failure so far.
+        if ((w as any).__needsFallbackBackdrop) {
+            // Warm parchment tone matching the rest of the OSRS UI.
+            glr.drawRect(x, y, width, height, [0.35, 0.29, 0.2, 0.92]);
+        }
+
         const staticChildren = isContainer
             ? (widgetManager?.getStaticChildrenByParentUid(w.uid) ?? EMPTY_WIDGETS)
             : EMPTY_WIDGETS;
@@ -2978,6 +2993,17 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                     flipH: hFlip,
                     flipV: vFlip,
                 });
+                if (!tex && (window as any).__debugMissingSprites) {
+                    // TEMP DIAGNOSTIC (invisible-background investigation) — remove once resolved.
+                    // Toggle in devtools console: window.__debugMissingSprites = true
+                    console.warn("[sprite-missing]", {
+                        widgetUid: w.uid,
+                        parentGroupId: (w.uid >> 16) & 0xffff,
+                        spriteId: effectiveSpriteId,
+                        width,
+                        height,
+                    });
+                }
                 if (tex) {
                     if (w.spriteTiling && tex.w > 0 && tex.h > 0) {
                         // Tile the sprite to fill the widget area
@@ -3783,12 +3809,28 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
     // GL-based context menu (Choose Option) devoverlay via component
     try {
         const menuOverlayStartMs = profileWidgetRender ? performance.now() : 0;
+        // Widget "Examine"/"Inspect" clicks resolve through the shared __ui bag's
+        // onWidgetExamine hook (see MenuBridge.widgetEntriesToSimple), with this
+        // onExamine callback as a fallback for menu entries built outside MenuBridge.
+        // Keep onWidgetExamine pointed at the real implementation so both paths post
+        // the item's cache Examine text to the chatbox instead of silently no-oping.
+        const examineUi = ((glr.canvas as any).__ui = (glr.canvas as any).__ui || {});
+        if (typeof examineUi.onWidgetExamine !== "function") {
+            examineUi.onWidgetExamine = (w: any) => {
+                try {
+                    (opts.game?.osrsClient as any)?.examineWidgetItem?.(w);
+                } catch {}
+            };
+        }
         drawChooseOptionMenu(glr, {
             fontLoader: opts.fontLoader,
             requestRender: requestRender,
             onExamine: (w) => {
                 try {
-                    (glr.canvas as any).__ui?.setDetails?.(w);
+                    const osrsClient = opts.game?.osrsClient as any;
+                    if (!osrsClient?.examineWidgetItem?.(w)) {
+                        (glr.canvas as any).__ui?.setDetails?.(w);
+                    }
                 } catch {}
             },
             menuState: (opts.game?.osrsClient as any)?.menuState,

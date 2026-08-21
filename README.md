@@ -55,6 +55,8 @@ yarn dev
 
 See [docs/setup.md](docs/setup.md) for details.
 
+For private IPv6 hosting, see [docs/hosting.md](docs/hosting.md).
+
 ---
 
 Fan project. Not affiliated with, endorsed by, or connected to Jagex Ltd.

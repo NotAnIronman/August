@@ -41,6 +41,9 @@ import type { InterfaceService } from "../InterfaceService";
  */
 export interface CollectionLogOpenData {
     sendCollectionLogSnapshot: (player: PlayerState) => void;
+    /** Optional so existing callers/tests that don't provide it still work -
+     *  category coloring just won't apply without it. */
+    sendCollectionLogCategoryCompletion?: (player: PlayerState) => void;
     queueVarp: (playerId: number, varpId: number, value: number) => void;
     queueVarbit: (playerId: number, varbitId: number, value: number) => void;
     queueWidgetEvent: (playerId: number, event: Record<string, unknown>) => void;
@@ -83,6 +86,18 @@ function initializeCollectionLog(player: PlayerState, services: CollectionLogOpe
 
     // Send the collection log inventory snapshot first
     services.sendCollectionLogSnapshot(player);
+
+    // Send per-category completion state (for green-coloring completed
+    // categories in the sidebar list - see sendCollectionLogCategoryCompletion's
+    // doc comment). Sent once per open; covers all 5 tabs, so no need to
+    // resend on tab/category clicks.
+    if (services.sendCollectionLogCategoryCompletion) {
+        services.sendCollectionLogCategoryCompletion(player);
+    } else {
+        logger.warn(
+            "[collection-log] sendCollectionLogCategoryCompletion was not provided to initializeCollectionLog - category coloring will not work. Check that CollectionLogService.openCollectionLog's hookData includes this field.",
+        );
+    }
 
     // Seed the collection-log display varps before any collection CS2 runs.
     const displayVarps = syncCollectionDisplayVarps(player);

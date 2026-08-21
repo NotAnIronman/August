@@ -127,6 +127,7 @@ export const enum ServerPacketId {
     // COLLECTION LOG (190-199)
     // ========================================
     COLLECTION_LOG_SNAPSHOT = 190,
+    COLLECTION_LOG_CATEGORY_COMPLETION = 191,
 
     // ========================================
     // NOTIFICATIONS (200-209)
@@ -238,6 +239,7 @@ export const SERVER_PACKET_LENGTHS: Record<ServerPacketId, number> = {
     [ServerPacketId.SMITHING_CLOSE]: 0,
 
     [ServerPacketId.COLLECTION_LOG_SNAPSHOT]: -2, // count(2) + slots(var)
+    [ServerPacketId.COLLECTION_LOG_CATEGORY_COMPLETION]: -2, // tabCount(1) + per-tab[tabIndex(1) + categoryCount(2) + flags(var)]
 
     [ServerPacketId.NOTIFICATION]: -1, // kind(1) + title(var) + message(var) + itemId(2) + quantity(4) + durationMs(2)
 

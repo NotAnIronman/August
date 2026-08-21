@@ -133,6 +133,16 @@ export class AuthenticationService {
         return this.options.accountStore.getPermissionLevel(name);
     }
 
+    /**
+     * Persist a permission level for an account (::promote / ::demote). Note this is
+     * overridden at read time by the ADMIN_USERNAMES / MODERATOR_USERNAMES /
+     * DEVELOPER_USERNAMES env vars — a name listed there always wins regardless of
+     * what's stored here. Returns false if no account exists with that username.
+     */
+    setPlayerPermission(username: string, level: PlayerPermission): boolean {
+        return this.options.accountStore.setPermissionLevel(username, level);
+    }
+
     normalizeAccountType(value: number): number {
         const normalized = Number.isFinite(value) ? Math.floor(value) : 0;
         return normalized >= 0 && normalized <= 5 ? normalized : 0;

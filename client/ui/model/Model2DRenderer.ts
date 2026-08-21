@@ -39,6 +39,11 @@ export type Model2DParams = {
  * Software-only 3D model → 2D sprite renderer for UI widgets (IF3 type-6).
  * Standalone implementation matching the item icon software pipeline behaviour.
  */
+// Module-level so the "already logged" state survives across renderer
+// instances/re-renders — logs each distinct modelId's extreme-bbox warning
+// exactly once instead of every single frame it's on screen.
+const LOGGED_EXTREME_BBOX_MODELS = new Set<number>();
+
 export class Model2DRenderer {
     private objModel: ObjModelLoader;
     private modelLoader: ModelLoader;
@@ -276,7 +281,14 @@ export class Model2DRenderer {
             xan2d: params.xan2d ?? 0,
             yan2d: params.yan2d ?? 0,
             zan2d: params.zan2d ?? 0,
-            zoom2d: params.zoom2d ?? 2000,
+            // A zoom of exactly 0 collapses the camera onto the model's own origin,
+            // producing a degenerate projection (most geometry falls outside the near
+            // plane, and what survives is framed wrong). That's never a legitimate
+            // value here — treat it the same as "unset" and fall back to the default,
+            // same as `undefined` already does. Fixes chatheads whose widget's
+            // modelZoom reads as 0 (cause not yet fully root-caused — see chathead
+            // investigation notes) rendering tiny and off-angle.
+            zoom2d: params.zoom2d || 2000,
             zoom3d: params.zoom3d,
             offsetX2d: params.offsetX2d ?? 0,
             offsetY2d: params.offsetY2d ?? 0,
@@ -285,80 +297,107 @@ export class Model2DRenderer {
 
         // First pass: project vertices to 2D to determine tight bounds (no center or dx/dy applied)
         const NEAR = 50;
-        const var1 = 0;
-        const var2 = (it.yan2d | 0) & 2047;
-        const var3 = (it.zan2d | 0) & 2047;
-        const var4 = (it.xan2d | 0) & 2047;
-        const var5 = it.offsetX2d | 0;
-        const var6 =
-            (((it.zoom2d | 0) * SINE[var4]) >> 16) +
-            (it.offsetY2d | 0) +
-            (it.modelHeightOffset2d | 0);
-        const var7 = (((it.zoom2d | 0) * COSINE[var4]) >> 16) + (it.offsetY2d | 0);
-
-        const var10 = SINE[var1],
-            var11 = COSINE[var1];
-        const var12 = SINE[var2],
-            var13 = COSINE[var2];
-        const var14 = SINE[var3],
-            var15 = COSINE[var3];
-        const var16 = SINE[var4],
-            var17 = COSINE[var4];
-        const var18 = (var16 * var6 + var17 * var7) >> 16;
-
-        const vc = model.verticesCount | 0;
-        const zoom3d = Math.max(1, (it.zoom3d ?? 512) | 0);
-        let minX = Number.POSITIVE_INFINITY;
-        let maxX = Number.NEGATIVE_INFINITY;
-        let minY = Number.POSITIVE_INFINITY;
-        let maxY = Number.NEGATIVE_INFINITY;
         const orthographic = !!params.orthographic;
-        for (let i = 0; i < vc; i++) {
-            let vx = model.verticesX[i] | 0;
-            let vy = model.verticesY[i] | 0;
-            let vz0 = model.verticesZ[i] | 0;
-            let t: number;
-            if (var3 !== 0) {
-                t = (vy * var14 + vx * var15) >> 16;
-                vy = (vy * var15 - vx * var14) >> 16;
-                vx = t;
+        const projectBounds = (yan2dValue: number) => {
+            const var1 = 0;
+            const var2 = (yan2dValue | 0) & 2047;
+            const var3 = (it.zan2d | 0) & 2047;
+            const var4 = (it.xan2d | 0) & 2047;
+            const var5 = it.offsetX2d | 0;
+            const var6 =
+                (((it.zoom2d | 0) * SINE[var4]) >> 16) +
+                (it.offsetY2d | 0) +
+                (it.modelHeightOffset2d | 0);
+            const var7 = (((it.zoom2d | 0) * COSINE[var4]) >> 16) + (it.offsetY2d | 0);
+
+            const var10 = SINE[var1],
+                var11 = COSINE[var1];
+            const var12 = SINE[var2],
+                var13 = COSINE[var2];
+            const var14 = SINE[var3],
+                var15 = COSINE[var3];
+            const var16 = SINE[var4],
+                var17 = COSINE[var4];
+
+            const vc = model.verticesCount | 0;
+            const zoom3d = Math.max(1, (it.zoom3d ?? 512) | 0);
+            let bMinX = Number.POSITIVE_INFINITY;
+            let bMaxX = Number.NEGATIVE_INFINITY;
+            let bMinY = Number.POSITIVE_INFINITY;
+            let bMaxY = Number.NEGATIVE_INFINITY;
+            for (let i = 0; i < vc; i++) {
+                let vx = model.verticesX[i] | 0;
+                let vy = model.verticesY[i] | 0;
+                let vz0 = model.verticesZ[i] | 0;
+                let t: number;
+                if (var3 !== 0) {
+                    t = (vy * var14 + vx * var15) >> 16;
+                    vy = (vy * var15 - vx * var14) >> 16;
+                    vx = t;
+                }
+                if (var1 !== 0) {
+                    t = (vy * var11 - vz0 * var10) >> 16;
+                    vz0 = (vy * var10 + vz0 * var11) >> 16;
+                    vy = t;
+                }
+                if (var2 !== 0) {
+                    t = (vz0 * var12 + vx * var13) >> 16;
+                    vz0 = (vz0 * var13 - vx * var12) >> 16;
+                    vx = t;
+                }
+                vx += var5;
+                vy += var6;
+                vz0 += var7;
+                t = (vy * var17 - vz0 * var16) >> 16;
+                vz0 = (vy * var16 + vz0 * var17) >> 16;
+                if (!orthographic) {
+                    if (vz0 <= NEAR) continue;
+                    const px = (vx * zoom3d) / vz0;
+                    const py = (t * zoom3d) / vz0;
+                    if (px < bMinX) bMinX = px;
+                    if (px > bMaxX) bMaxX = px;
+                    if (py < bMinY) bMinY = py;
+                    if (py > bMaxY) bMaxY = py;
+                } else {
+                    const orthoScale = Math.max(100, it.zoom2d | 0);
+                    const px = (vx * zoom3d) / orthoScale;
+                    const py = (t * zoom3d) / orthoScale;
+                    if (px < bMinX) bMinX = px;
+                    if (px > bMaxX) bMaxX = px;
+                    if (py < bMinY) bMinY = py;
+                    if (py > bMaxY) bMaxY = py;
+                }
             }
-            if (var1 !== 0) {
-                t = (vy * var11 - vz0 * var10) >> 16;
-                vz0 = (vy * var10 + vz0 * var11) >> 16;
-                vy = t;
-            }
-            if (var2 !== 0) {
-                t = (vz0 * var12 + vx * var13) >> 16;
-                vz0 = (vz0 * var13 - vx * var12) >> 16;
-                vx = t;
-            }
-            vx += var5;
-            vy += var6;
-            vz0 += var7;
-            t = (vy * var17 - vz0 * var16) >> 16;
-            vz0 = (vy * var16 + vz0 * var17) >> 16;
-            // Predict projected 2D without a center/offset; skip behind near for perspective
-            if (!orthographic) {
-                if (vz0 <= NEAR) continue;
-                const px = (vx * zoom3d) / vz0;
-                const py = (t * zoom3d) / vz0;
-                if (px < minX) minX = px;
-                if (px > maxX) maxX = px;
-                if (py < minY) minY = py;
-                if (py > maxY) maxY = py;
-            } else {
-                // Orthographic: use zoom2d as scale factor (not var7 which can be ~0 at 90° pitch)
-                // Higher zoom2d = larger on screen, so we divide by a fraction of it
-                const orthoScale = Math.max(100, it.zoom2d | 0);
-                const px = (vx * zoom3d) / orthoScale;
-                const py = (t * zoom3d) / orthoScale;
-                if (px < minX) minX = px;
-                if (px > maxX) maxX = px;
-                if (py < minY) minY = py;
-                if (py > maxY) maxY = py;
+            return { minX: bMinX, maxX: bMaxX, minY: bMinY, maxY: bMaxY };
+        };
+
+        let { minX, maxX, minY, maxY } = projectBounds(it.yan2d);
+
+        // Some widgets (e.g. the rotating 3D backdrop scenes used by the
+        // redesigned Quest Journal / Skill Guide / Achievement Diary
+        // interfaces) carry a static rotationY baked into the cache that's
+        // only ever "correct" mid-animation on the real client, which
+        // continuously rotates this value over time. We don't yet animate
+        // it (see docs/CLEANUP_ROADMAP.md), so a widget can get stuck at
+        // whatever angle happens to view it edge-on — producing an
+        // extremely thin, effectively invisible bbox. If that happens,
+        // retry once with yaw reset to 0 (facing forward), which is a much
+        // safer default than an arbitrary frozen angle.
+        const initialRatio =
+            maxY - minY > 0 ? (maxX - minX) / (maxY - minY) : Number.POSITIVE_INFINITY;
+        const EXTREME_RATIO = 20;
+        if (initialRatio > EXTREME_RATIO && it.yan2d !== 0) {
+            const retry = projectBounds(0);
+            const retryRatio =
+                retry.maxY - retry.minY > 0
+                    ? (retry.maxX - retry.minX) / (retry.maxY - retry.minY)
+                    : Number.POSITIVE_INFINITY;
+            if (retryRatio < initialRatio) {
+                ({ minX, maxX, minY, maxY } = retry);
+                it.yan2d = 0; // keep the actual pixel render pass consistent with this choice
             }
         }
+
 
         if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
             // No visible projection — return a tiny transparent canvas
@@ -378,10 +417,18 @@ export class Model2DRenderer {
         const MAX_BBOX = 1024; // UI models (chatheads, quest journal) can reach ~600px
         const rawBboxW = Math.ceil(maxX - minX);
         const rawBboxH = Math.ceil(maxY - minY);
-        if (rawBboxW > MAX_BBOX || rawBboxH > MAX_BBOX) {
+        const bboxRatio = rawBboxH > 0 ? rawBboxW / rawBboxH : Infinity;
+        if ((rawBboxW > MAX_BBOX || rawBboxH > MAX_BBOX) && !LOGGED_EXTREME_BBOX_MODELS.has(modelIdOverride ?? -1)) {
+            // Log once per modelId (not every frame — this was flooding the
+            // console) and flatten the angle/zoom params directly into the
+            // message text so they survive a copy-paste from devtools instead
+            // of showing as a collapsed, unreadable "params: {…}".
+            LOGGED_EXTREME_BBOX_MODELS.add(modelIdOverride ?? -1);
             console.warn(
-                `[Model2DRenderer] Clamping extreme bbox ${rawBboxW}x${rawBboxH} to ${MAX_BBOX}`,
-                { modelId: modelIdOverride, params, minX, maxX, minY, maxY },
+                `[Model2DRenderer] Clamping extreme bbox ${rawBboxW}x${rawBboxH} (ratio ${bboxRatio.toFixed(1)}:1) to ${MAX_BBOX} ` +
+                    `modelId=${modelIdOverride} xan2d=${params.xan2d} yan2d=${params.yan2d} zan2d=${params.zan2d} ` +
+                    `zoom2d=${params.zoom2d} zoom3d=${params.zoom3d} offsetX2d=${params.offsetX2d} offsetY2d=${params.offsetY2d} ` +
+                    `modelHeightOffset2d=${params.modelHeightOffset2d} minX=${minX} maxX=${maxX} minY=${minY} maxY=${maxY}`,
             );
         }
         const bboxW = Math.min(MAX_BBOX, Math.max(1, rawBboxW));

@@ -69,6 +69,15 @@ export function handleInboundUi(msg: any): boolean {
                 ? payload.slots.map((slot: any) => sanitizeInventorySlotMessage(slot))
                 : [];
             emitCollectionLog({ kind: "snapshot", slots });
+        } else if (payload.kind === "category_completion") {
+            // See getCategoryCompletionByTab in server/src/game/collectionlog.ts
+            // and the run_script hook for scriptId 2731/7797 in OsrsClient.ts -
+            // this drives the green category-name coloring in the sidebar list.
+            const completionByTab =
+                payload.completionByTab && typeof payload.completionByTab === "object"
+                    ? payload.completionByTab
+                    : {};
+            emitCollectionLog({ kind: "category_completion", completionByTab });
         }
         return true;
     }

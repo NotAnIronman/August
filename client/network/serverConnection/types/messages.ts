@@ -5,10 +5,21 @@ export type InventoryServerUpdate =
 
 /** Collection log inventory update (ID 620 - collection_transmit) */
 export type CollectionLogSlotMessage = { slot: number; itemId: number; quantity: number };
-export type CollectionLogServerPayload = {
-    kind: "snapshot";
-    slots: CollectionLogSlotMessage[];
-};
+export type CollectionLogServerPayload =
+    | {
+          kind: "snapshot";
+          slots: CollectionLogSlotMessage[];
+      }
+    | {
+          /** Per-category "all items obtained" state, by tab index. See
+           *  getCategoryCompletionByTab in server/src/game/collectionlog.ts -
+           *  the compiled cache script that draws the sidebar category list
+           *  doesn't color-code completed categories itself, so the client
+           *  applies this after the list is drawn (see the run_script hook
+           *  for scriptId 2731/7797 in OsrsClient.ts). */
+          kind: "category_completion";
+          completionByTab: Record<number, boolean[]>;
+      };
 
 export type BankSlotMessage = { slot: number; itemId: number; quantity: number };
 

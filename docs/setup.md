@@ -67,23 +67,25 @@ The server will:
 
 1. Automatically download the OSRS cache if it hasn't been fetched yet (`server/caches/`)
 2. Load collision data, spells, and game scripts
-3. Start a WebSocket server on `0.0.0.0:43594`
+3. Start two isolated WebSocket servers: World 1 (Vanilla) on `0.0.0.0:43594` and World 2 (Leagues V) on `0.0.0.0:43595`
 
 You should see log output confirming the server is ready.
 
-By default, the server runs the **vanilla** gamemode. To run a different gamemode:
+`yarn server` starts both bundled worlds. Each world is an isolated server process, which keeps its gamemode rules and player progression separate. To run one world by itself:
 
 ```bash
-# Environment variable
-GAMEMODE=leagues-v yarn start
+# World 1 (Vanilla)
+yarn --cwd server start:world --world=1
 
-# Or set it in server/config.json
-{ "gamemode": "leagues-v" }
+# World 2 (Leagues V)
+yarn --cwd server start:world --world=2
 ```
 
 ## Client Startup
 
 This launches the React dev server (usually on `http://localhost:3000`). Your browser should open automatically. The client will also download the cache on first run if needed.
+
+To let friends connect to worlds running on your home PC over IPv6, follow the [hosting guide](hosting.md).
 
 ## You're In
 

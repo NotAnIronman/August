@@ -28,15 +28,14 @@ export function isBinaryData(raw: unknown): raw is Buffer | ArrayBuffer {
         firstByte = raw[0];
     }
 
-    // JSON starts with '{' (123) or '[' (91) or whitespace
-    // Our binary opcodes are carefully chosen to not conflict
-    const isJsonStart =
-        firstByte === 123 ||
-        firstByte === 91 ||
-        firstByte === 32 ||
-        firstByte === 9 ||
-        firstByte === 10 ||
-        firstByte === 13;
+    // JSON starts with '{' (123) or '[' (91). Genuine JSON payloads from this
+    // client are always produced by JSON.stringify(), which never emits leading
+    // whitespace — so checking for whitespace bytes here is unnecessary AND
+    // dangerous: several real legacy binary opcodes fall in that byte range
+    // (9 = EXAMINE_NPC, 10 = OPPLAYER7, 13 = IF_BUTTON, 32 = OPPLAYER_T), and
+    // any packet starting with one of those opcodes was being silently
+    // misclassified as JSON and dropped before ever reaching the parser.
+    const isJsonStart = firstByte === 123 || firstByte === 91;
 
     return !isJsonStart;
 }

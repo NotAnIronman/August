@@ -1582,6 +1582,30 @@ export class ServerBinaryEncoder {
         return this.buffer.toPacket(ServerPacketId.COLLECTION_LOG_SNAPSHOT);
     }
 
+    /**
+     * Per-category "all items obtained" state, by tab index - see
+     * getCategoryCompletionByTab in server/src/game/collectionlog.ts. Used
+     * to color-code completed categories green in the sidebar list, since
+     * the compiled cache script that draws that list doesn't do it itself.
+     */
+    encodeCollectionLogCategoryCompletion(completionByTab: Record<number, boolean[]>): Uint8Array {
+        this.buffer.reset();
+        const tabIndices = Object.keys(completionByTab)
+            .map((k) => Number(k))
+            .filter((n) => Number.isFinite(n))
+            .sort((a, b) => a - b);
+        this.buffer.writeByte(tabIndices.length);
+        for (const tabIndex of tabIndices) {
+            const completion = completionByTab[tabIndex] ?? [];
+            this.buffer.writeByte(tabIndex);
+            this.buffer.writeShort(completion.length);
+            for (const isComplete of completion) {
+                this.buffer.writeByte(isComplete ? 1 : 0);
+            }
+        }
+        return this.buffer.toPacket(ServerPacketId.COLLECTION_LOG_CATEGORY_COMPLETION);
+    }
+
     // ========================================
     // NOTIFICATIONS
     // ========================================

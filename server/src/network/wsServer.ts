@@ -33,6 +33,9 @@ import {
     WidgetDialogHandler,
 } from "../game/actions";
 import { loadCollectionLogItems } from "../game/collectionlog";
+import { DialogueOverrideStore } from "../game/dialogue/DialogueOverrideStore";
+import { runDialogueTree } from "../game/dialogue/DialogueTreeRunner";
+import { getSqliteDatabase } from "../game/state/SqliteDatabase";
 import {
     HITMARK_DAMAGE,
     combatEffectApplicator,
@@ -308,6 +311,7 @@ export class WSServer {
     private inventoryActionHandler!: InventoryActionHandler;
     private effectDispatcher!: EffectDispatcher;
     private widgetDialogHandler!: WidgetDialogHandler;
+    private dialogueOverrideStore?: DialogueOverrideStore;
     private cs2ModalManager!: Cs2ModalManager;
     private playerAppearanceManager!: PlayerAppearanceManager;
     private soundManager!: SoundManager;
@@ -444,6 +448,7 @@ export class WSServer {
             ["inventoryActionHandler", () => self.inventoryActionHandler],
             ["effectDispatcher", () => self.effectDispatcher],
             ["widgetDialogHandler", () => self.widgetDialogHandler],
+            ["dialogueOverrideStore", () => self.dialogueOverrideStore],
             ["playerDeathService", () => self.playerDeathService],
             ["playerAppearanceManager", () => self.playerAppearanceManager],
             ["soundManager", () => self.soundManager],
@@ -602,7 +607,8 @@ export class WSServer {
             },
         });
         this.wss.on("listening", () => {
-            logger.info(`WS listening on ws://${opts.host}:${opts.port}`);
+            const displayHost = opts.host.includes(":") ? `[${opts.host}]` : opts.host;
+            logger.info(`WS listening on ws://${displayHost}:${opts.port}`);
 
             const httpServer = (this.wss as unknown as { _server?: import("http").Server })._server;
             if (httpServer) {
@@ -822,6 +828,7 @@ export class WSServer {
             musicCatalogService: undefined, // Deferred: wired after creation
             inventoryActionHandler: undefined!, // Deferred: wired after creation
             effectDispatcher: undefined!, // Deferred: wired after creation
+            combatActionHandler: undefined, // Deferred: wired after creation
             combatEffectApplicator: combatEffectApplicator,
             damageTracker: damageTracker,
             multiCombatSystem: multiCombatSystem,
@@ -1008,12 +1015,36 @@ export class WSServer {
             this.npcPacketEncoder = new NpcPacketEncoder(this.svc);
             this.playerPacketEncoder = new PlayerPacketEncoder(this.svc);
             this.combatActionHandler = new CombatActionHandler(this.svc);
+            this.scriptAdapterDeps.combatActionHandler = this.combatActionHandler;
             this.spellActionHandler = new SpellActionHandler(this.svc);
             this.inventoryActionHandler = new InventoryActionHandler(this.svc);
             // Initialize EffectDispatcher
             this.effectDispatcher = new EffectDispatcher(this.svc);
             // Initialize WidgetDialogHandler
             this.widgetDialogHandler = new WidgetDialogHandler(this.svc);
+            // Developer-edited dialogue overrides (::editdialogue). Takes priority
+            // over the gamemode's own Talk-to handler when a tree exists for an NPC id.
+            this.dialogueOverrideStore = new DialogueOverrideStore(
+                getSqliteDatabase({ dataDir: getGamemodeDataDir(this.gamemode.id) }),
+            );
+            this.players?.setTalkToOverrideCheck((npc, ws) => {
+                const tree = this.dialogueOverrideStore!.get(npc.typeId);
+                if (!tree) return false;
+                const player = this.players!.get(ws);
+                if (!player) return false;
+                const npcType = this.npcTypeLoader?.load(npc.typeId);
+                runDialogueTree(
+                    this.widgetDialogHandler!,
+                    player,
+                    { npcId: npc.typeId, npcName: npcType?.name ?? "" },
+                    tree,
+                    // The tree's own steps chain via onContinue, which overrides the
+                    // dialogue widget's default "close on continue" behavior — so the
+                    // last step must explicitly close, or Continue does nothing.
+                    () => this.widgetDialogHandler!.closeDialog(player),
+                );
+                return true;
+            });
             this.cs2ModalManager = new Cs2ModalManager(this.svc);
             this.npcSyncManager = new NpcSyncManager(this.svc);
             this.playerAppearanceManager = new PlayerAppearanceManager(this.svc);

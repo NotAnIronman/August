@@ -13,7 +13,9 @@ function read(value: string | undefined): string | undefined {
 }
 
 export type ConfiguredServer = {
+    id: number;
     name: string;
+    activity: string;
     address: string;
     secure: boolean;
     maxPlayers: number;
@@ -70,10 +72,12 @@ export function getConfiguredServers(): ConfiguredServer[] | undefined {
     try {
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return undefined;
-        return parsed.map((entry): ConfiguredServer => {
+        return parsed.map((entry, index): ConfiguredServer => {
             const server = isRecord(entry) ? entry : {};
             return {
+                id: typeof server.id === "number" ? server.id : index + 1,
                 name: typeof server.name === "string" ? server.name : "Server",
+                activity: typeof server.activity === "string" ? server.activity : "",
                 address:
                     typeof server.address === "string" ? server.address : "localhost:43594",
                 secure: readBoolean(server.secure, false),
