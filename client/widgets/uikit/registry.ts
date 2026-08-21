@@ -1,4 +1,9 @@
 import type { WidgetGroupLoadResult } from "./PanelBuilder";
+import type { UiScrollController } from "./ScrollController";
+import type { UiSearchController } from "./SearchController";
+import type { WidgetManager } from "../WidgetManager";
+import type { WidgetInteractionController } from "../../game/widgets/WidgetInteractionController";
+import type { WidgetInputFrame } from "../../game/widgets/input/widgetInputTypes";
 
 /**
  * UI Kit - panel registry.
@@ -11,12 +16,58 @@ import type { WidgetGroupLoadResult } from "./PanelBuilder";
  * dispatch file every time.
  */
 
-const registeredPanels = new Map<number, () => WidgetGroupLoadResult>();
+export type UiPanelRegistration = {
+    groupId: number;
+    build: () => WidgetGroupLoadResult;
+    scrollController?: UiScrollController;
+    searchController?: UiSearchController;
+};
 
-export function registerUiPanel(groupId: number, build: () => WidgetGroupLoadResult): void {
-    registeredPanels.set(groupId, build);
+const registeredPanels = new Map<number, UiPanelRegistration>();
+
+export function registerUiPanel(registration: UiPanelRegistration): void {
+    if (!Number.isInteger(registration.groupId) || registration.groupId < 0) {
+        throw new RangeError("UIKit panel groupId must be a non-negative integer");
+    }
+    if (registeredPanels.has(registration.groupId)) {
+        throw new Error(`UIKit panel group ${registration.groupId} is already registered`);
+    }
+    registeredPanels.set(registration.groupId, registration);
 }
 
 export function getRegisteredUiPanel(groupId: number): WidgetGroupLoadResult | undefined {
-    return registeredPanels.get(groupId)?.();
+    return registeredPanels.get(groupId)?.build();
+}
+
+/** Processes registered panel input without coupling input to panel names. */
+export function processRegisteredUiPanelInput(
+    frame: WidgetInputFrame,
+    widgetManager: WidgetManager,
+    widgetInteraction: WidgetInteractionController,
+): void {
+    for (const panel of registeredPanels.values()) {
+        panel.scrollController?.process(frame, widgetManager, widgetInteraction);
+        panel.searchController?.process(frame, widgetManager, widgetInteraction);
+    }
+}
+
+/** Gives focused UIKit search fields first claim on keyboard input. */
+export function processRegisteredUiPanelKeyInput(
+    events: Array<{ keyTyped: number; keyPressed: number }>,
+): boolean {
+    for (const panel of registeredPanels.values()) {
+        if (panel.searchController?.handleKeyEvents(events)) return true;
+    }
+    return false;
+}
+
+/** True when a widget belongs to any UIKit-managed scrollbar. */
+export function isRegisteredUiScrollbarWidget(
+    widget: unknown,
+    widgetManager: WidgetManager,
+): boolean {
+    for (const panel of registeredPanels.values()) {
+        if (panel.scrollController?.isScrollbarWidget(widget, widgetManager)) return true;
+    }
+    return false;
 }

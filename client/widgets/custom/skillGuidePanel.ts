@@ -14,22 +14,23 @@ import { createScrollController } from "../uikit/ScrollController";
  */
 export const SKILL_GUIDE_ROW_HEIGHT = 34;
 
-registerUiPanel(SKILL_GUIDE_PANEL_GROUP_ID, () =>
-    buildUiPanel(SKILL_GUIDE_PANEL_GROUP_ID, {
+const scrollController = createScrollController(
+    SKILL_GUIDE_PANEL_GROUP_ID,
+    "icon",
+    SKILL_GUIDE_ROW_HEIGHT,
+);
+
+registerUiPanel({
+    groupId: SKILL_GUIDE_PANEL_GROUP_ID,
+    build: () => buildUiPanel(SKILL_GUIDE_PANEL_GROUP_ID, {
         width: 520,
         height: 320,
-        sidebar: { width: 116 },
+        tabs: { position: "left", width: 116 },
         content: {
             rowKind: "icon",
             rowHeight: SKILL_GUIDE_ROW_HEIGHT,
             scrollbarWidth: 16,
         },
     }),
-);
-
-/** Wired into WidgetInputController.ts - see the "skill guide" entries there. */
-export const skillGuideScrollController = createScrollController(
-    SKILL_GUIDE_PANEL_GROUP_ID,
-    "icon",
-    SKILL_GUIDE_ROW_HEIGHT,
-);
+    scrollController,
+});

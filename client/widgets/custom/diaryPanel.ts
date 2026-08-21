@@ -10,22 +10,23 @@ import { createScrollController } from "../uikit/ScrollController";
  */
 export const DIARY_ROW_HEIGHT = 18;
 
-registerUiPanel(ACHIEVEMENT_DIARY_PANEL_GROUP_ID, () =>
-    buildUiPanel(ACHIEVEMENT_DIARY_PANEL_GROUP_ID, {
+const scrollController = createScrollController(
+    ACHIEVEMENT_DIARY_PANEL_GROUP_ID,
+    "text",
+    DIARY_ROW_HEIGHT,
+);
+
+registerUiPanel({
+    groupId: ACHIEVEMENT_DIARY_PANEL_GROUP_ID,
+    build: () => buildUiPanel(ACHIEVEMENT_DIARY_PANEL_GROUP_ID, {
         width: 520,
         height: 320,
-        sidebar: { width: 116 },
+        tabs: { position: "left", width: 116 },
         content: {
             rowKind: "text",
             rowHeight: DIARY_ROW_HEIGHT,
             scrollbarWidth: 16,
         },
     }),
-);
-
-/** Wired into WidgetInputController.ts. */
-export const diaryScrollController = createScrollController(
-    ACHIEVEMENT_DIARY_PANEL_GROUP_ID,
-    "text",
-    DIARY_ROW_HEIGHT,
-);
+    scrollController,
+});

@@ -2439,6 +2439,14 @@ export class OsrsClient {
                         this.widgetManager.invalidateWidgetRender(w);
                     }
                 }
+            } else if (payload?.action === "set_transparency") {
+                const uid = Number(payload.uid) | 0;
+                const transparency = Math.max(0, Math.min(255, Number(payload.transparency) | 0));
+                const w = this.widgetManager?.getWidgetByUid(uid);
+                if (w && w.transparency !== transparency) {
+                    w.transparency = transparency;
+                    this.widgetManager.invalidateWidgetRender(w);
+                }
             } else if (payload?.action === "set_npc_head") {
                 const uid = Number(payload.uid) | 0;
                 const npcId = Number(payload.npcId) | 0;

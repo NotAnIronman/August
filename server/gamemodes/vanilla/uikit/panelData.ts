@@ -1,9 +1,15 @@
-import { ComponentIds } from "../../../../client/widgets/uikit/types";
+import {
+    ComponentIds,
+    type UiControl,
+    type UiIconRow,
+    type UiTextRow,
+} from "../../../../client/common/uikit/contracts";
 import {
     centerLine as buildCenterLine,
     isCenteredLine,
     reflowLines,
     stripCenterPrefix,
+    styleText,
     wrapTextToLines,
 } from "../../../../client/widgets/uikit/textMarkup";
 import type { PlayerState } from "../../../src/game/player";
@@ -23,6 +29,12 @@ import type { ScriptServices } from "../../../src/game/scripts/types";
  *  button. Proven working via the smithing bar picker, item spawner, and
  *  every custom panel built since. */
 const SCRIPT_STEELBORDER = 227;
+
+function assertCapacity(kind: "tabs" | "rows" | "controls", count: number, maximum: number): void {
+    if (count > maximum) {
+        throw new RangeError(`UIKit ${kind} capacity exceeded: ${count} requested, maximum ${maximum}`);
+    }
+}
 
 export function packUid(groupId: number, componentId: number): number {
     return ((groupId & 0xffff) << 16) | (componentId & 0xffff);
@@ -66,6 +78,7 @@ export function sendUiTabs(
     tabs: ReadonlyArray<{ label: string }>,
     activeIndex: number,
 ): void {
+    assertCapacity("tabs", tabs.length, ComponentIds.MAX_TABS);
     for (let i = 0; i < ComponentIds.MAX_TABS; i++) {
         const tab = i < tabs.length ? tabs[i] : undefined;
         const tabUid = packUid(groupId, ComponentIds.TAB_BASE + i);
@@ -104,14 +117,25 @@ export function sendUiTextRows(
     services: ScriptServices,
     playerId: number,
     groupId: number,
-    lines: readonly string[],
+    lines: readonly (string | UiTextRow)[],
 ): void {
+    assertCapacity("rows", lines.length, ComponentIds.MAX_ROWS);
     for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
         const hasContent = i < lines.length;
-        const raw = hasContent ? lines[i] : "";
-        const isDivider = hasContent && raw === "";
-        const isCentered = hasContent && isCenteredLine(raw);
-        const displayText = isCentered ? stripCenterPrefix(raw) : raw;
+        const raw = hasContent ? lines[i] : undefined;
+        const legacy = typeof raw === "string" ? raw : undefined;
+        const isDivider =
+            hasContent &&
+            (legacy === "" || (typeof raw !== "string" && raw?.kind === "divider"));
+        const isSpacer = hasContent && raw !== undefined && typeof raw !== "string" && raw.kind === "spacer";
+        const isLegacyCentered = typeof legacy === "string" && isCenteredLine(legacy);
+        const isCentered = isLegacyCentered || (typeof raw !== "string" && raw?.kind === "heading") ||
+            (typeof raw !== "string" && raw?.kind === "text" && raw.align === "center");
+        const text = typeof raw === "string"
+            ? (isLegacyCentered ? stripCenterPrefix(raw) : raw)
+            : raw && (raw.kind === "text" || raw.kind === "heading")
+              ? styleText(raw.text, raw.style)
+              : "";
 
         const lineUid = packUid(groupId, ComponentIds.TEXT_ROW_LINE_BASE + i);
         const dividerUid = packUid(groupId, ComponentIds.TEXT_ROW_DIVIDER_BASE + i);
@@ -120,7 +144,7 @@ export function sendUiTextRows(
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_text",
             uid: lineUid,
-            text: hasContent && !isDivider && !isCentered ? displayText : "",
+            text: hasContent && !isDivider && !isCentered ? text : "",
         });
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_hidden",
@@ -131,7 +155,7 @@ export function sendUiTextRows(
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_text",
             uid: centerUid,
-            text: isCentered ? displayText : "",
+            text: isCentered ? text : "",
         });
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_hidden",
@@ -144,15 +168,17 @@ export function sendUiTextRows(
             uid: dividerUid,
             hidden: !isDivider,
         });
+        // A spacer is an intentionally blank but visible line so the scroll
+        // controller preserves its vertical space without using a magic string.
+        if (isSpacer) {
+            services.dialog.queueWidgetEvent(playerId, {
+                action: "set_hidden", uid: lineUid, hidden: false,
+            });
+        }
     }
 }
 
-export interface UiIconRowData {
-    itemId: number;
-    level: number;
-    name: string;
-    description?: string;
-}
+export type UiIconRowData = UiIconRow;
 
 /** Populates a panel's "icon" content rows (level + item icon + name +
  *  optional description) - the skill-guide-style entry layout. */
@@ -162,6 +188,7 @@ export function sendUiIconRows(
     groupId: number,
     rows: readonly UiIconRowData[],
 ): void {
+    assertCapacity("rows", rows.length, ComponentIds.MAX_ROWS);
     for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
         const row = i < rows.length ? rows[i] : undefined;
         const levelUid = packUid(groupId, ComponentIds.ICON_ROW_LEVEL_BASE + i);
@@ -185,6 +212,11 @@ export function sendUiIconRows(
             uid: iconUid,
             itemId: row?.itemId ?? -1,
             quantity: 1,
+        });
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_transparency",
+            uid: iconUid,
+            transparency: row?.transparency ?? 0,
         });
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_hidden",
@@ -229,6 +261,30 @@ export function sendUiFooterButton(
         uid: packUid(groupId, ComponentIds.FOOTER_BUTTON),
         text: label,
     });
+}
+
+/** Populates the optional generic action-button strip (layout.controls). */
+export function sendUiControls(
+    services: ScriptServices,
+    playerId: number,
+    groupId: number,
+    controls: readonly UiControl[],
+): void {
+    assertCapacity("controls", controls.length, ComponentIds.MAX_CONTROLS);
+    for (let i = 0; i < ComponentIds.MAX_CONTROLS; i++) {
+        const control = controls[i];
+        const backgroundUid = packUid(groupId, ComponentIds.CONTROL_BACKGROUND_BASE + i);
+        const labelUid = packUid(groupId, ComponentIds.CONTROL_LABEL_BASE + i);
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_text", uid: labelUid, text: control?.label ?? "",
+        });
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden", uid: backgroundUid, hidden: !control,
+        });
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden", uid: labelUid, hidden: !control,
+        });
+    }
 }
 
 // Re-export so consumers only need one import for the whole kit's

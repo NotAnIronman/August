@@ -80,6 +80,15 @@ function makeWidget(
  * ANY panel, instead of each panel needing its own copy of that logic.
  */
 export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGroupLoadResult {
+    if (!Number.isInteger(groupId) || groupId < 0) {
+        throw new RangeError("UIKit panel groupId must be a non-negative integer");
+    }
+    if (layout.width <= 0 || layout.height <= 0 || layout.content.rowHeight <= 0) {
+        throw new RangeError("UIKit panel dimensions and rowHeight must be positive");
+    }
+    if (layout.footerButton && layout.controls) {
+        throw new Error("UIKit panels may use either footerButton or controls, not both");
+    }
     const widgets = new Map<number, WidgetNode>();
     const rootUid = panelWidgetUid(groupId, ComponentIds.ROOT);
 
@@ -105,9 +114,13 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     });
     widgets.set(frame.uid, frame);
 
-    const sidebarWidth = layout.sidebar?.width ?? 0;
+    const tabPosition = layout.tabs?.position ?? (layout.sidebar ? "left" : undefined);
+    const sidebarWidth =
+        tabPosition === "left" ? (layout.tabs?.width ?? layout.sidebar?.width ?? 0) : 0;
+    const tabsBottom = tabPosition === "top" ? CONTENT_TOP + (layout.tabs?.height ?? TAB_HEIGHT) + 4 : CONTENT_TOP;
+    const contentTop = tabsBottom + (layout.search ? 30 : 0);
 
-    if (layout.sidebar) {
+    if (tabPosition === "left") {
         const dividerX = sidebarWidth + 12;
         const divider = makeWidget(groupId, ComponentIds.SIDEBAR_DIVIDER, rootUid, {
             type: 3,
@@ -171,21 +184,42 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             });
             widgets.set(tab.uid, tab);
         }
+    } else if (tabPosition === "top") {
+        const tabHeight = layout.tabs?.height ?? TAB_HEIGHT;
+        const tabWidth = Math.max(1, Math.floor((layout.width - CONTENT_MARGIN_X * 2) / ComponentIds.MAX_TABS));
+        for (let i = 0; i < ComponentIds.MAX_TABS; i++) {
+            const tabX = CONTENT_MARGIN_X + i * tabWidth;
+            const highlight = makeWidget(groupId, ComponentIds.TAB_HIGHLIGHT_BASE + i, rootUid, {
+                type: 3, rawX: tabX, rawY: CONTENT_TOP - 2, rawWidth: tabWidth - 2,
+                rawHeight: tabHeight, width: tabWidth - 2, height: tabHeight,
+                filled: true, color: 0x3a2e1f, isHidden: true, hidden: true,
+            });
+            widgets.set(highlight.uid, highlight);
+            const tab = makeWidget(groupId, ComponentIds.TAB_BASE + i, rootUid, {
+                type: 4, rawX: tabX, rawY: CONTENT_TOP, rawWidth: tabWidth - 2,
+                rawHeight: tabHeight, width: tabWidth - 2, height: tabHeight,
+                text: "", fontId: FONT_BOLD_12, textColor: 0xff981f,
+                mouseOverColor: 0xffffff, textShadowed: true, xTextAlignment: 1,
+                yTextAlignment: 1, actions: ["Select"], flags: FLAG_TRANSMIT_OP1,
+                isHidden: true, hidden: true,
+            });
+            widgets.set(tab.uid, tab);
+        }
     }
 
-    const contentLeft = layout.sidebar ? sidebarWidth + 12 + 16 : CONTENT_MARGIN_X;
+    const contentLeft = tabPosition === "left" ? sidebarWidth + 12 + 16 : CONTENT_MARGIN_X;
     const contentWidth =
         layout.width - contentLeft - CONTENT_MARGIN_X - layout.content.scrollbarWidth;
     // More bottom margin reserved when a footer button exists, so the
     // last content row doesn't render underneath it.
-    const contentBottomMargin = layout.footerButton ? 36 : CONTENT_BOTTOM_MARGIN;
-    const contentHeight = layout.height - CONTENT_TOP - contentBottomMargin;
+    const contentBottomMargin = layout.footerButton || layout.controls ? 36 : CONTENT_BOTTOM_MARGIN;
+    const contentHeight = layout.height - contentTop - contentBottomMargin;
     const rowHeight = layout.content.rowHeight;
 
     const contentView = makeWidget(groupId, ComponentIds.CONTENT_VIEW, rootUid, {
         type: 0,
         rawX: contentLeft,
-        rawY: CONTENT_TOP,
+        rawY: contentTop,
         rawWidth: contentWidth,
         rawHeight: contentHeight,
         width: contentWidth,
@@ -197,6 +231,28 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     });
     widgets.set(contentView.uid, contentView);
     const contentViewUid = contentView.uid;
+
+    if (layout.search) {
+        const searchWidth = Math.min(
+            Math.max(80, layout.search.width ?? contentWidth),
+            contentWidth,
+        );
+        const searchY = tabsBottom + 4;
+        const background = makeWidget(groupId, ComponentIds.SEARCH_BACKGROUND, rootUid, {
+            type: 3, rawX: contentLeft, rawY: searchY, rawWidth: searchWidth,
+            rawHeight: 22, width: searchWidth, height: 22, filled: true,
+            color: 0x2b241b, mouseOverColor: 0x342b20,
+        });
+        const text = makeWidget(groupId, ComponentIds.SEARCH_TEXT, rootUid, {
+            type: 4, rawX: contentLeft + 6, rawY: searchY, rawWidth: searchWidth - 12,
+            rawHeight: 22, width: searchWidth - 12, height: 22,
+            text: `<col=8f7f66>${layout.search.placeholder}</col>`, fontId: FONT_PLAIN_12,
+            textColor: 0xe8ded0, textShadowed: true, xTextAlignment: 0, yTextAlignment: 1,
+            actions: ["Search"], flags: FLAG_TRANSMIT_OP1,
+        });
+        widgets.set(background.uid, background);
+        widgets.set(text.uid, text);
+    }
 
     if (layout.content.rowKind === "text") {
         for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
@@ -380,7 +436,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         const scrollbar = makeWidget(groupId, ComponentIds.SCROLLBAR, rootUid, {
             type: 0,
             rawX: scrollbarX,
-            rawY: CONTENT_TOP,
+            rawY: contentTop,
             rawWidth: layout.content.scrollbarWidth,
             rawHeight: contentHeight,
             width: layout.content.scrollbarWidth,
@@ -441,6 +497,37 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             flags: FLAG_TRANSMIT_OP1,
         });
         widgets.set(footerButton.uid, footerButton);
+    }
+
+    if (layout.controls) {
+        const controlGap = layout.controls.gap ?? 6;
+        const maxControlWidth = Math.max(
+            1,
+            Math.floor((layout.width - CONTENT_MARGIN_X * 2 - controlGap * (ComponentIds.MAX_CONTROLS - 1)) /
+                ComponentIds.MAX_CONTROLS),
+        );
+        const controlWidth = Math.min(layout.controls.width ?? 92, maxControlWidth);
+        const controlHeight = layout.controls.height ?? 20;
+        const totalWidth = ComponentIds.MAX_CONTROLS * controlWidth +
+            (ComponentIds.MAX_CONTROLS - 1) * controlGap;
+        const firstX = Math.max(CONTENT_MARGIN_X, Math.floor((layout.width - totalWidth) / 2));
+        for (let i = 0; i < ComponentIds.MAX_CONTROLS; i++) {
+            const x = firstX + i * (controlWidth + controlGap);
+            const background = makeWidget(groupId, ComponentIds.CONTROL_BACKGROUND_BASE + i, rootUid, {
+                type: 3, rawX: x, rawY: 10, rawWidth: controlWidth, rawHeight: controlHeight,
+                yPositionMode: 2, width: controlWidth, height: controlHeight, filled: true,
+                color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 32,
+                actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
+            });
+            const label = makeWidget(groupId, ComponentIds.CONTROL_LABEL_BASE + i, rootUid, {
+                type: 4, rawX: x, rawY: 10, rawWidth: controlWidth, rawHeight: controlHeight,
+                yPositionMode: 2, width: controlWidth, height: controlHeight, text: "",
+                fontId: FONT_BOLD_12, textColor: 0xffd27f, textShadowed: true,
+                xTextAlignment: 1, yTextAlignment: 1, isHidden: true, hidden: true,
+            });
+            widgets.set(background.uid, background);
+            widgets.set(label.uid, label);
+        }
     }
 
     return { root, widgets };

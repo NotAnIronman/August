@@ -9,12 +9,11 @@ import {
 // kit's generic scroll controller now (client/widgets/uikit/
 // ScrollController.ts), not dedicated per-panel files - see the
 // controller instances imported below.
-import { skillGuideScrollController } from "../../widgets/custom/skillGuidePanel";
-import { diaryScrollController } from "../../widgets/custom/diaryPanel";
 import {
-    questJournalScrollController,
-    questOverviewScrollController,
-} from "../../widgets/custom/questJournalPanel";
+    isRegisteredUiScrollbarWidget,
+    processRegisteredUiPanelKeyInput,
+    processRegisteredUiPanelInput,
+} from "../../widgets/uikit/registry";
 import { shouldSkipWidgetClickInput } from "./input/widgetClickGuard";
 import { processWidgetClickInput } from "./input/widgetClickInput";
 import { processWidgetDragInput } from "./input/widgetDragInput";
@@ -73,10 +72,7 @@ export class WidgetInputController {
             widgetInteraction,
         );
         processQuestListScrollbarInput(frame, widgetManager, widgetInteraction);
-        skillGuideScrollController.process(frame, widgetManager, widgetInteraction);
-        diaryScrollController.process(frame, widgetManager, widgetInteraction);
-        questJournalScrollController.process(frame, widgetManager, widgetInteraction);
-        questOverviewScrollController.process(frame, widgetManager, widgetInteraction);
+        processRegisteredUiPanelInput(frame, widgetManager, widgetInteraction);
         processWidgetScrollWheelInput(this.deps, frame, widgetManager, widgetInteraction);
 
         if (shouldSkipWidgetClickInput(this.deps, frame)) return;
@@ -108,19 +104,7 @@ export class WidgetInputController {
         // become a generic draggable widget.
         if (
             !isQuestListScrollbarWidget(widgetInteraction.clickedWidget, widgetManager) &&
-            !skillGuideScrollController.isScrollbarWidget(
-                widgetInteraction.clickedWidget,
-                widgetManager,
-            ) &&
-            !diaryScrollController.isScrollbarWidget(
-                widgetInteraction.clickedWidget,
-                widgetManager,
-            ) &&
-            !questJournalScrollController.isScrollbarWidget(
-                widgetInteraction.clickedWidget,
-                widgetManager,
-            ) &&
-            !questOverviewScrollController.isScrollbarWidget(
+            !isRegisteredUiScrollbarWidget(
                 widgetInteraction.clickedWidget,
                 widgetManager,
             )
@@ -136,6 +120,8 @@ export class WidgetInputController {
             getPrimaryWidgetAction,
             isHolding,
         );
-        processWidgetKeyboardInput(this.deps, frame, widgetManager);
+        if (!processRegisteredUiPanelKeyInput(input.keyEvents)) {
+            processWidgetKeyboardInput(this.deps, frame, widgetManager);
+        }
     }
 }

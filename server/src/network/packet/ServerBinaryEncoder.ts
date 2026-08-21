@@ -609,6 +609,13 @@ export class ServerBinaryEncoder {
         return this.buffer.toPacket(ServerPacketId.WIDGET_SET_ITEM);
     }
 
+    encodeWidgetSetTransparency(uid: number, transparency: number): Uint8Array {
+        this.buffer.reset();
+        this.buffer.writeInt(uid);
+        this.buffer.writeByte(Math.max(0, Math.min(255, transparency | 0)));
+        return this.buffer.toPacket(ServerPacketId.WIDGET_SET_TRANSPARENCY);
+    }
+
     encodeWidgetSetNpcHead(uid: number, npcId: number): Uint8Array {
         this.buffer.reset();
         this.buffer.writeInt(uid);

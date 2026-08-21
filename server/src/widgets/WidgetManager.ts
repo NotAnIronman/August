@@ -53,6 +53,8 @@ export type WidgetAction =
     | { action: "set_text"; uid: number; text: string }
     | { action: "set_hidden"; uid: number; hidden: boolean; phase?: "close" }
     | { action: "set_item"; uid: number; itemId: number; quantity?: number }
+    /** 0 is opaque and 255 is fully transparent. */
+    | { action: "set_transparency"; uid: number; transparency: number }
     | { action: "set_npc_head"; uid: number; npcId: number }
     | { action: "set_flags"; uid: number; flags: number }
     | { action: "set_animation"; uid: number; animationId: number }

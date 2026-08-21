@@ -25,21 +25,24 @@ const layout = {
     footerButton: true,
 };
 
-registerUiPanel(QUEST_JOURNAL_PANEL_GROUP_ID, () =>
-    buildUiPanel(QUEST_JOURNAL_PANEL_GROUP_ID, layout),
-);
-registerUiPanel(QUEST_OVERVIEW_PANEL_GROUP_ID, () =>
-    buildUiPanel(QUEST_OVERVIEW_PANEL_GROUP_ID, layout),
-);
-
-/** Wired into WidgetInputController.ts. */
-export const questJournalScrollController = createScrollController(
+const questJournalScrollController = createScrollController(
     QUEST_JOURNAL_PANEL_GROUP_ID,
     "text",
     QUEST_JOURNAL_ROW_HEIGHT,
 );
-export const questOverviewScrollController = createScrollController(
+const questOverviewScrollController = createScrollController(
     QUEST_OVERVIEW_PANEL_GROUP_ID,
     "text",
     QUEST_JOURNAL_ROW_HEIGHT,
 );
+
+registerUiPanel({
+    groupId: QUEST_JOURNAL_PANEL_GROUP_ID,
+    build: () => buildUiPanel(QUEST_JOURNAL_PANEL_GROUP_ID, layout),
+    scrollController: questJournalScrollController,
+});
+registerUiPanel({
+    groupId: QUEST_OVERVIEW_PANEL_GROUP_ID,
+    build: () => buildUiPanel(QUEST_OVERVIEW_PANEL_GROUP_ID, layout),
+    scrollController: questOverviewScrollController,
+});

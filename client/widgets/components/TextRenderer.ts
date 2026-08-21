@@ -14,6 +14,7 @@ interface TextSegment {
     shadow: number; // Shadow color (-1 = default black, -2 = no shadow)
     underline: number; // Underline color (-1 = no underline)
     strikethrough: number; // Strikethrough color (-1 = no strikethrough)
+    bold: boolean;
     imgId?: number; // Sprite ID for inline images
 }
 
@@ -27,6 +28,7 @@ function parseOsrsMarkup(text: string, defaultColor: number): TextSegment[] {
     let currentShadow = -1; // -1 = default (black if shadow enabled)
     let currentUnderline = -1; // -1 = no underline
     let currentStrikethrough = -1; // -1 = no strikethrough
+    let currentBold = false;
     let i = 0;
 
     const makeSegment = (t: string, imgId?: number): TextSegment => ({
@@ -35,6 +37,7 @@ function parseOsrsMarkup(text: string, defaultColor: number): TextSegment[] {
         shadow: currentShadow,
         underline: currentUnderline,
         strikethrough: currentStrikethrough,
+        bold: currentBold,
         imgId,
     });
 
@@ -147,6 +150,19 @@ function parseOsrsMarkup(text: string, defaultColor: number): TextSegment[] {
                 continue;
             }
 
+            // Bitmap fonts do not have a per-run weight variant. A second
+            // one-pixel draw produces the conventional OSRS-style bold weight.
+            if (tagContent === "b") {
+                currentBold = true;
+                i = tagEnd + 1;
+                continue;
+            }
+            if (tagContent === "/b") {
+                currentBold = false;
+                i = tagEnd + 1;
+                continue;
+            }
+
             // Handle <img=N> inline images
             if (tagContent.startsWith("img=")) {
                 const idStr = tagContent.slice(4);
@@ -181,7 +197,7 @@ function parseOsrsMarkup(text: string, defaultColor: number): TextSegment[] {
 
 /** Check if text contains OSRS markup tags */
 function hasOsrsMarkup(text: string): boolean {
-    return /<col=|<\/col>|<color=|<\/color>|<shad|<\/shad>|<br>|<img=|<u>|<u=|<\/u>|<str>|<\/str>/i.test(
+    return /<col=|<\/col>|<color=|<\/color>|<shad|<\/shad>|<br>|<img=|<u>|<u=|<\/u>|<str>|<\/str>|<b>|<\/b>/i.test(
         text,
     );
 }
@@ -470,6 +486,21 @@ function drawBitmapSegmentsGL(
             scaleX,
             scaleY,
         );
+        if (seg.bold) {
+            drawBitmapRunGL(
+                glr,
+                font,
+                seg.text,
+                cx + 1,
+                baselineY,
+                seg.color,
+                alpha,
+                originX,
+                originY,
+                scaleX,
+                scaleY,
+            );
+        }
 
         if (seg.underline >= 0) {
             drawScaledRect(
@@ -544,6 +575,7 @@ export function drawTextGL(
         shadow: -1,
         underline: -1,
         strikethrough: -1,
+        bold: false,
     };
     const segments = useMarkup ? parseOsrsMarkup(text, color) : [defaultSegment];
     const totalWidth = measureSegmentsWidth(font, segments, inlineImageResolver);
@@ -742,6 +774,7 @@ export function drawWrappedTextGL(
                       shadow: -1,
                       underline: -1,
                       strikethrough: -1,
+                      bold: false,
                   },
               ];
         drawBitmapSegmentsGL(

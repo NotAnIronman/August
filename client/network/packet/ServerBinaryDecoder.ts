@@ -876,6 +876,16 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
                 },
             };
 
+        case ServerPacketId.WIDGET_SET_TRANSPARENCY:
+            return {
+                type: "widget",
+                payload: {
+                    action: "set_transparency",
+                    uid: reader.readInt(),
+                    transparency: reader.readByte(),
+                },
+            };
+
         case ServerPacketId.WIDGET_SET_NPC_HEAD:
             return {
                 type: "widget",

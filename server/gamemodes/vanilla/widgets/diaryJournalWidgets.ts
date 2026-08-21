@@ -1,5 +1,5 @@
 import { ACHIEVEMENT_DIARY_PANEL_GROUP_ID } from "../../../../client/common/ui/widgets";
-import { ComponentIds } from "../../../../client/widgets/uikit/types";
+import { ComponentIds } from "../../../../client/common/uikit/contracts";
 import type { PlayerState } from "../../../src/game/player";
 import { achievementTaskTracker } from "../diaryTasks/AchievementTaskTracker";
 import { getDiaryAreaTasks } from "../diaryTasks";

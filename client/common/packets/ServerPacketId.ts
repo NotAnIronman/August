@@ -73,6 +73,7 @@ export const enum ServerPacketId {
     WIDGET_SET_FLAGS_RANGE = 109,
     WIDGET_RUN_SCRIPT = 110,
     WIDGET_SET_FLAGS = 111,
+    WIDGET_SET_TRANSPARENCY = 112,
     WIDGET_SET_ANIMATION = 114,
     WIDGET_SET_PLAYER_HEAD = 115,
     WIDGET_SET_QUEST_LIST = 116,
@@ -201,6 +202,7 @@ export const SERVER_PACKET_LENGTHS: Record<ServerPacketId, number> = {
     [ServerPacketId.WIDGET_SET_FLAGS_RANGE]: 12, // uid(4) + fromSlot(2) + toSlot(2) + flags(4)
     [ServerPacketId.WIDGET_RUN_SCRIPT]: -2, // scriptId(4) + args (variable)
     [ServerPacketId.WIDGET_SET_FLAGS]: 8, // uid(4) + flags(4)
+    [ServerPacketId.WIDGET_SET_TRANSPARENCY]: 5, // uid(4) + transparency(1)
     [ServerPacketId.WIDGET_SET_ANIMATION]: 6, // uid(4) + animId(2)
     [ServerPacketId.WIDGET_SET_PLAYER_HEAD]: 4, // uid(4)
     [ServerPacketId.WIDGET_SET_QUEST_LIST]: -2,

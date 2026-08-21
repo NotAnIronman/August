@@ -41,6 +41,23 @@ export function strikethroughText(text: string): string {
     return `<str>${text}`;
 }
 
+/** Use the renderer's lightweight bitmap bold treatment for a text run. */
+export function boldText(text: string): string {
+    return `<b>${text}</b>`;
+}
+
+/** Applies semantic UIKit text styling without each panel assembling tags. */
+export function styleText(
+    text: string,
+    style?: { color?: string; bold?: boolean; strikethrough?: boolean },
+): string {
+    let result = text;
+    if (style?.bold) result = boldText(result);
+    if (style?.strikethrough) result = `<str>${result}</str>`;
+    if (style?.color) result = colorText(result, style.color);
+    return result;
+}
+
 export const Colors = {
     GREEN: "0dc10d",
     YELLOW: "ffff00",

@@ -2,7 +2,7 @@ import {
     QUEST_JOURNAL_PANEL_GROUP_ID,
     QUEST_OVERVIEW_PANEL_GROUP_ID,
 } from "../../../../client/common/ui/widgets";
-import { ComponentIds } from "../../../../client/widgets/uikit/types";
+import { ComponentIds } from "../../../../client/common/uikit/contracts";
 import type { PlayerState } from "../../../src/game/player";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
 import { getQuestDefinition, getQuestDefinitionByKey } from "../quests/QuestRegistry";
@@ -20,6 +20,7 @@ import {
     sendUiTextRows,
     wrapTextToLines,
 } from "../uikit/panelData";
+import { registerUiPanelActions } from "../uikit/actions";
 
 // ============================================================================
 // Constants
@@ -152,8 +153,12 @@ export function registerQuestJournalWidgetHandlers(
         openQuestJournal(player, quest, services);
     });
 
-    // Switch View button: journal text -> quest overview
-    registry.onButton(QUEST_JOURNAL_PANEL_GROUP_ID, ComponentIds.FOOTER_BUTTON, (event) => {
+    // Server-authoritative footer actions: a forged component packet is
+    // ignored unless the corresponding UIKit modal is actually open.
+    registerUiPanelActions(registry, services, QUEST_JOURNAL_PANEL_GROUP_ID, [{
+        componentId: ComponentIds.FOOTER_BUTTON,
+        actionId: "view_quest_overview",
+        handle: (event) => {
         const { player } = event;
         const dbrowId = player.varps.getVarpValue(VARP_LATEST_QUEST_JOURNAL);
         if (dbrowId <= 0) return;
@@ -162,10 +167,13 @@ export function registerQuestJournalWidgetHandlers(
         if (!quest) return;
 
         openQuestOverview(player, quest, services);
-    });
+        },
+    }]);
 
-    // Switch View button: quest overview -> journal text
-    registry.onButton(QUEST_OVERVIEW_PANEL_GROUP_ID, ComponentIds.FOOTER_BUTTON, (event) => {
+    registerUiPanelActions(registry, services, QUEST_OVERVIEW_PANEL_GROUP_ID, [{
+        componentId: ComponentIds.FOOTER_BUTTON,
+        actionId: "view_quest_journal",
+        handle: (event) => {
         const { player } = event;
         const dbrowId = player.varps.getVarpValue(VARP_LATEST_QUEST_JOURNAL);
         if (dbrowId <= 0) return;
@@ -174,7 +182,8 @@ export function registerQuestJournalWidgetHandlers(
         if (!quest) return;
 
         openQuestJournal(player, quest, services);
-    });
+        },
+    }]);
 }
 
 // ============================================================================

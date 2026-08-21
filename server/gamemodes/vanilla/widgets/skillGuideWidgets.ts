@@ -3,7 +3,7 @@ import {
     VARBIT_SKILL_GUIDE_SUBSECTION,
 } from "../../../../client/common/vars";
 import { SKILL_GUIDE_PANEL_GROUP_ID } from "../../../../client/common/ui/widgets";
-import { ComponentIds } from "../../../../client/widgets/uikit/types";
+import { ComponentIds } from "../../../../client/common/uikit/contracts";
 import { SkillId } from "../../../../client/rs/skill/skills";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
 import { getSkillGuideData } from "../skillGuide";

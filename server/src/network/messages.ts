@@ -1118,6 +1118,8 @@ function encodeWidgetToBinary(payload: WidgetServerPayload): Uint8Array {
                 payload.itemId,
                 payload.quantity ?? 0,
             );
+        case "set_transparency":
+            return serverEncoder.encodeWidgetSetTransparency(payload.uid, payload.transparency);
         case "set_npc_head":
             return serverEncoder.encodeWidgetSetNpcHead(payload.uid, payload.npcId);
         case "set_flags_range":
