@@ -1,5 +1,6 @@
 import {
     DEV_UIKIT_ICON_PANEL_GROUP_ID,
+    DEV_UIKIT_MENU_PANEL_GROUP_ID,
     DEV_UIKIT_TEXT_PANEL_GROUP_ID,
 } from "../../common/ui/widgets/custom/journalPanel.cs2";
 import { buildUiPanel } from "../uikit/PanelBuilder";
@@ -33,6 +34,17 @@ registerUiPanel({
         "Search is a local UIKit input",
         () => {},
     ),
+});
+
+registerUiPanel({
+    groupId: DEV_UIKIT_MENU_PANEL_GROUP_ID,
+    build: () => buildUiPanel(DEV_UIKIT_MENU_PANEL_GROUP_ID, {
+        width: 560,
+        height: 390,
+        content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
+        menuButtons: { columns: 2, buttonHeight: 58, gap: 8, iconSize: 40 },
+        footerButton: true,
+    }),
 });
 
 registerUiPanel({

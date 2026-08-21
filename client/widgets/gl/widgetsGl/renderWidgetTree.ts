@@ -1468,7 +1468,11 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                     interaction.hasOriginalHandlers ||
                     interaction.isInventoryItem ||
                     interaction.isPauseButtonWidget ||
-                    interaction.hasButtonTypeInteraction
+                    interaction.hasButtonTypeInteraction ||
+                    // A no-click-through panel must also block the GL input
+                    // registry (world/minimap clicks use that registry rather
+                    // than WidgetInputController's hit list).
+                    !!w.noClickThrough
                 ) {
                     clickCandidateWidgets++;
                     interactiveWidgets++;

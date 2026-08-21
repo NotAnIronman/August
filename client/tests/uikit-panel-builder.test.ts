@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import { ComponentIds } from "../common/uikit/contracts";
 import { buildUiPanel } from "../widgets/uikit/PanelBuilder";
+import { inspectUiPanel } from "../widgets/uikit/PanelTestHarness";
 
 const groupId = 31000;
 const topTabs = buildUiPanel(groupId, {
@@ -17,7 +18,12 @@ assert.ok(topTabs.root);
 assert.equal(topTabs.widgets.get(uid(ComponentIds.CONTENT_VIEW))?.rawY, 62);
 assert.equal(topTabs.widgets.get(uid(ComponentIds.TAB_BASE))?.isHidden, true);
 assert.equal(topTabs.widgets.get(uid(ComponentIds.FOOTER_BUTTON))?.actions?.[0], "View");
-assert.equal(topTabs.widgets.size, 1 + 1 + ComponentIds.MAX_TABS * 2 + 1 + ComponentIds.MAX_ROWS * 3 + 4);
+assert.equal(topTabs.root?.noClickThrough, true);
+assert.equal(
+    topTabs.widgets.get(uid(ComponentIds.FOOTER_BUTTON_LABEL))?.parentUid,
+    uid(ComponentIds.FOOTER_BUTTON),
+);
+assert.equal(topTabs.widgets.size, 1 + 1 + ComponentIds.MAX_TABS * 2 + 1 + ComponentIds.MAX_ROWS * 3 + 5);
 
 assert.throws(
     () => buildUiPanel(-1, { width: 1, height: 1, content: { rowKind: "text", rowHeight: 1, scrollbarWidth: 0 } }),
@@ -55,4 +61,21 @@ assert.equal(searched.widgets.get(searchedUid(ComponentIds.CONTENT_VIEW))?.rawY,
 assert.equal(
     searched.widgets.get(searchedUid(ComponentIds.SEARCH_TEXT))?.text,
     "<col=8f7f66>Search entries</col>",
+);
+
+const mixedMenu = buildUiPanel(groupId + 4, {
+    width: 520,
+    height: 320,
+    inputCapture: true,
+    content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 16 },
+    menuButtons: { columns: 2 },
+});
+const mixedMenuHarness = inspectUiPanel(mixedMenu, groupId + 4);
+assert.equal(mixedMenuHarness.capturesPointer(), true);
+assert.equal(mixedMenuHarness.has(ComponentIds.TEXT_ROW_LINE_BASE), true);
+assert.equal(mixedMenuHarness.has(ComponentIds.ICON_ROW_ICON_BASE), true);
+assert.equal(mixedMenuHarness.menuButtonCount(), ComponentIds.MAX_MENU_BUTTONS);
+assert.equal(
+    mixedMenuHarness.parentOf(ComponentIds.MENU_BUTTON_LABEL_BASE),
+    ((groupId + 4) << 16) | ComponentIds.MENU_BUTTON_BACKGROUND_BASE,
 );

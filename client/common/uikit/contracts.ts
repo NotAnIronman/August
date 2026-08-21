@@ -5,12 +5,14 @@ export const ComponentIds = {
     CONTENT_VIEW: 30, SCROLLBAR: 31, SCROLLBAR_TRACK: 32, SCROLLBAR_THUMB: 33,
     TEXT_ROW_LINE_BASE: 40, TEXT_ROW_DIVIDER_BASE: 140, TEXT_ROW_CENTER_BASE: 240,
     ICON_ROW_LEVEL_BASE: 400, ICON_ROW_ICON_BASE: 500, ICON_ROW_NAME_BASE: 600,
-    ICON_ROW_DESC_BASE: 700, MAX_ROWS: 100, FOOTER_BUTTON: 900,
+    ICON_ROW_DESC_BASE: 700, MAX_ROWS: 100, FOOTER_BUTTON: 900, FOOTER_BUTTON_LABEL: 901,
     SEARCH_BACKGROUND: 910, SEARCH_TEXT: 911,
     CONTROL_BACKGROUND_BASE: 920, CONTROL_LABEL_BASE: 930, MAX_CONTROLS: 8,
+    MENU_BUTTON_BACKGROUND_BASE: 1000, MENU_BUTTON_ICON_BASE: 1040,
+    MENU_BUTTON_LABEL_BASE: 1080, MAX_MENU_BUTTONS: 24,
 } as const;
 
-export type UiRowKind = "text" | "icon";
+export type UiRowKind = "text" | "icon" | "mixed";
 export type UiTabPosition = "left" | "top";
 export type UiTextAlignment = "left" | "center";
 export type UiTextStyle = { color?: string; bold?: boolean; strikethrough?: boolean };
@@ -28,6 +30,10 @@ export type UiIconRow = {
     transparency?: number;
 };
 
+/** One server-authoritative large button in a two-column menu grid. */
+export type UiMenuButton = { itemId: number; label: string; transparency?: number };
+export type UiPanelRow = UiTextRow | UiIconRow;
+
 /** An intent only; the server must register and validate every action. */
 export type UiActionId = string;
 
@@ -37,11 +43,15 @@ export type UiPanelLayout = {
     /** Preferred spelling for new panels; sidebar remains backwards compatible. */
     tabs?: { position: UiTabPosition; width?: number; height?: number };
     content: { rowKind: UiRowKind; rowHeight: number; scrollbarWidth: number };
+    /** Defaults to true. Blocks world input for every pixel inside the modal. */
+    inputCapture?: boolean;
     footerButton?: boolean;
     /** A bottom-aligned row of reusable server-authoritative action buttons. */
     controls?: { width?: number; height?: number; gap?: number };
     /** A local input primitive. Server filtering must use an explicit validated action. */
     search?: { placeholder: string; width?: number };
+    /** Large item-icon buttons, laid out in a two-column grid inside content. */
+    menuButtons?: { columns?: 2; buttonHeight?: number; gap?: number; iconSize?: number };
 };
 
 export type UiTab = { label: string };

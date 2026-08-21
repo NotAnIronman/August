@@ -48,10 +48,12 @@ export function createScrollController(
     const SCROLLBAR_UID = packUid(groupId, ComponentIds.SCROLLBAR);
     const CONTENT_VIEW_UID = packUid(groupId, ComponentIds.CONTENT_VIEW);
     const THUMB_UID = packUid(groupId, ComponentIds.SCROLLBAR_THUMB);
-    const primaryRowBase =
-        rowKind === "text" ? ComponentIds.TEXT_ROW_LINE_BASE : ComponentIds.ICON_ROW_NAME_BASE;
-    const centerRowBase = rowKind === "text" ? ComponentIds.TEXT_ROW_CENTER_BASE : null;
-    const dividerRowBase = rowKind === "text" ? ComponentIds.TEXT_ROW_DIVIDER_BASE : null;
+    const primaryRowBases =
+        rowKind === "mixed"
+            ? [ComponentIds.TEXT_ROW_LINE_BASE, ComponentIds.ICON_ROW_NAME_BASE]
+            : [rowKind === "text" ? ComponentIds.TEXT_ROW_LINE_BASE : ComponentIds.ICON_ROW_NAME_BASE];
+    const centerRowBase = rowKind === "icon" ? null : ComponentIds.TEXT_ROW_CENTER_BASE;
+    const dividerRowBase = rowKind === "icon" ? null : ComponentIds.TEXT_ROW_DIVIDER_BASE;
 
     function isScrollbarWidget(widget: unknown, widgetManager: WidgetManager): boolean {
         let current = widget as { uid?: number; parentUid?: number } | undefined;
@@ -70,23 +72,29 @@ export function createScrollController(
     function computeVisibleRowCount(widgetManager: WidgetManager): number {
         let count = 0;
         for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
-            const primary = widgetManager.getWidgetByUid(packUid(groupId, primaryRowBase + i)) as
-                | { hidden?: boolean; isHidden?: boolean }
-                | undefined;
-            const isPrimaryVisible = !!primary && !primary.hidden && !primary.isHidden;
+            // `hidden` is the runtime visibility source used by widget
+            // rendering. `isHidden` can retain a cache-default value while a
+            // server update is queued, which made populated UIKit rows look
+            // visible yet report zero rows and hide their scrollbar.
+            const isPrimaryVisible = primaryRowBases.some((base) => {
+                const primary = widgetManager.getWidgetByUid(packUid(groupId, base + i)) as
+                    | { hidden?: boolean }
+                    | undefined;
+                return !!primary && !primary.hidden;
+            });
 
             let isAltVisible = false;
             if (centerRowBase !== null) {
                 const centered = widgetManager.getWidgetByUid(
                     packUid(groupId, centerRowBase + i),
                 ) as { hidden?: boolean; isHidden?: boolean } | undefined;
-                isAltVisible = isAltVisible || (!!centered && !centered.hidden && !centered.isHidden);
+                isAltVisible = isAltVisible || (!!centered && !centered.hidden);
             }
             if (dividerRowBase !== null) {
                 const divider = widgetManager.getWidgetByUid(
                     packUid(groupId, dividerRowBase + i),
                 ) as { hidden?: boolean; isHidden?: boolean } | undefined;
-                isAltVisible = isAltVisible || (!!divider && !divider.hidden && !divider.isHidden);
+                isAltVisible = isAltVisible || (!!divider && !divider.hidden);
             }
 
             if (isPrimaryVisible || isAltVisible) count = i + 1;

@@ -100,10 +100,9 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         height: layout.height,
         xPositionMode: 1,
         yPositionMode: 1,
-        // A main-modal panel must consume clicks inside its bounds. Without
-        // this, clicking the steelborder close button (or any blank panel
-        // space) can also reach the world and issue a walk command.
-        noClickThrough: true,
+        // UIKit modal panels capture pointer input by default, including
+        // blank space and the steelborder close button.
+        noClickThrough: layout.inputCapture !== false,
     });
     widgets.set(root.uid, root);
 
@@ -258,7 +257,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         widgets.set(text.uid, text);
     }
 
-    if (layout.content.rowKind === "text") {
+    const includesTextRows = layout.content.rowKind === "text" || layout.content.rowKind === "mixed";
+    const includesIconRows = layout.content.rowKind === "icon" || layout.content.rowKind === "mixed";
+
+    if (includesTextRows) {
         for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
             const rawY = i * rowHeight;
             const line = makeWidget(
@@ -332,7 +334,9 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             );
             widgets.set(centered.uid, centered);
         }
-    } else {
+    }
+
+    if (includesIconRows) {
         const levelWidth = 26;
         const iconSize = 26;
         for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
@@ -435,6 +439,40 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         }
     }
 
+    if (layout.menuButtons) {
+        const columns = layout.menuButtons.columns ?? 2;
+        const gap = layout.menuButtons.gap ?? 8;
+        const buttonHeight = layout.menuButtons.buttonHeight ?? 52;
+        const iconSize = layout.menuButtons.iconSize ?? 36;
+        const buttonWidth = Math.max(1, Math.floor((contentWidth - gap * (columns - 1)) / columns));
+        for (let i = 0; i < ComponentIds.MAX_MENU_BUTTONS; i++) {
+            const column = i % columns;
+            const row = Math.floor(i / columns);
+            const button = makeWidget(groupId, ComponentIds.MENU_BUTTON_BACKGROUND_BASE + i, contentViewUid, {
+                type: 3,
+                rawX: column * (buttonWidth + gap), rawY: row * (buttonHeight + gap),
+                rawWidth: buttonWidth, rawHeight: buttonHeight, width: buttonWidth, height: buttonHeight,
+                filled: true, color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 32,
+                actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
+            });
+            widgets.set(button.uid, button);
+            const icon = makeWidget(groupId, ComponentIds.MENU_BUTTON_ICON_BASE + i, button.uid, {
+                type: 5, rawX: 8, rawY: Math.max(0, Math.floor((buttonHeight - iconSize) / 2)),
+                rawWidth: iconSize, rawHeight: iconSize, width: iconSize, height: iconSize,
+                itemId: -1, itemQuantity: 1,
+            });
+            widgets.set(icon.uid, icon);
+            const label = makeWidget(groupId, ComponentIds.MENU_BUTTON_LABEL_BASE + i, button.uid, {
+                type: 4, rawX: iconSize + 16, rawY: 0,
+                rawWidth: buttonWidth - iconSize - 22, rawHeight: buttonHeight,
+                width: buttonWidth - iconSize - 22, height: buttonHeight,
+                text: "", fontId: FONT_BOLD_12, textColor: 0xffd27f, textShadowed: true,
+                xTextAlignment: 0, yTextAlignment: 1,
+            });
+            widgets.set(label.uid, label);
+        }
+    }
+
     if (layout.content.scrollbarWidth > 0) {
         const scrollbarX = layout.width - layout.content.scrollbarWidth - 12;
         const scrollbar = makeWidget(groupId, ComponentIds.SCROLLBAR, rootUid, {
@@ -491,16 +529,29 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             color: 0x241e16,
             mouseOverColor: 0x3a3022,
             opacity: 32,
+            actions: ["View"],
+            flags: FLAG_TRANSMIT_OP1,
+        });
+        widgets.set(footerButton.uid, footerButton);
+        // Rectangle widgets cannot render text themselves. Keep the label as
+        // a child so it inherits the button's visibility and stays layered
+        // above the background without becoming a separate click target.
+        const footerLabel = makeWidget(groupId, ComponentIds.FOOTER_BUTTON_LABEL, footerButton.uid, {
+            type: 4,
+            rawX: 0,
+            rawY: 0,
+            rawWidth: 140,
+            rawHeight: 20,
+            width: 140,
+            height: 20,
             text: "",
             fontId: FONT_BOLD_12,
             textColor: 0xffd27f,
             textShadowed: true,
             xTextAlignment: 1,
             yTextAlignment: 1,
-            actions: ["View"],
-            flags: FLAG_TRANSMIT_OP1,
         });
-        widgets.set(footerButton.uid, footerButton);
+        widgets.set(footerLabel.uid, footerLabel);
     }
 
     if (layout.controls) {

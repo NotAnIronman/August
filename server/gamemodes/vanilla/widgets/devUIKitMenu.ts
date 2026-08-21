@@ -1,5 +1,6 @@
 import {
     DEV_UIKIT_ICON_PANEL_GROUP_ID,
+    DEV_UIKIT_MENU_PANEL_GROUP_ID,
     DEV_UIKIT_TEXT_PANEL_GROUP_ID,
 } from "../../../../client/common/ui/widgets/custom/journalPanel.cs2";
 import { ComponentIds, type UiIconRow, type UiTextRow } from "../../../../client/common/uikit/contracts";
@@ -11,6 +12,7 @@ import {
     sendUiControls,
     sendUiFooterButton,
     sendUiIconRows,
+    sendUiMenuButtons,
     sendUiTabs,
     sendUiTextRows,
 } from "../uikit/panelData";
@@ -71,8 +73,26 @@ function openTextMenu(player: PlayerState, services: ScriptServices, activeTab =
     sendUiTextRows(services, player.id, DEV_UIKIT_TEXT_PANEL_GROUP_ID, tabRows);
     sendUiControls(services, player.id, DEV_UIKIT_TEXT_PANEL_GROUP_ID, [
         { label: "Icon rows" },
+        { label: "Menu grid" },
         { label: "Refresh" },
     ]);
+}
+
+const MENU_BUTTONS = [
+    { itemId: 4151, label: "Weapons" },
+    { itemId: 554, label: "Magic" },
+    { itemId: 995, label: "Currency" },
+    { itemId: 1265, label: "Tools" },
+    { itemId: 385, label: "Supplies" },
+    { itemId: 1127, label: "Equipment" },
+    { itemId: 3144, label: "Travel" },
+] as const;
+
+function openMenuGrid(player: PlayerState, services: ScriptServices, selectedIndex?: number): void {
+    openUiPanel(services, player, DEV_UIKIT_MENU_PANEL_GROUP_ID, "Developer Menu Buttons");
+    sendUiMenuButtons(services, player.id, DEV_UIKIT_MENU_PANEL_GROUP_ID, MENU_BUTTONS);
+    const selected = selectedIndex === undefined ? "Back to text rows" : `Selected: ${MENU_BUTTONS[selectedIndex]?.label ?? "button"}`;
+    sendUiFooterButton(services, player.id, DEV_UIKIT_MENU_PANEL_GROUP_ID, selected);
 }
 
 function openIconMenu(player: PlayerState, services: ScriptServices, activeTab = 0): void {
@@ -113,6 +133,11 @@ export function registerDevUIKitMenu(
         },
         {
             componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 1,
+            actionId: "show_menu_grid",
+            handle: ({ player }) => openMenuGrid(player, services),
+        },
+        {
+            componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 2,
             actionId: "refresh_text_rows",
             handle: ({ player }) => openTextMenu(player, services),
         },
@@ -133,6 +158,19 @@ export function registerDevUIKitMenu(
             componentId: ComponentIds.TAB_BASE + tabIndex,
             actionId: `select_icon_tab_${tabIndex}`,
             handle: ({ player }: { player: PlayerState }) => openIconMenu(player, services, tabIndex),
+        })),
+    ]);
+
+    registerUiPanelActions(registry, services, DEV_UIKIT_MENU_PANEL_GROUP_ID, [
+        {
+            componentId: ComponentIds.FOOTER_BUTTON,
+            actionId: "show_text_rows",
+            handle: ({ player }) => openTextMenu(player, services),
+        },
+        ...MENU_BUTTONS.map((_, buttonIndex) => ({
+            componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE + buttonIndex,
+            actionId: `select_menu_button_${buttonIndex}`,
+            handle: ({ player }: { player: PlayerState }) => openMenuGrid(player, services, buttonIndex),
         })),
     ]);
 }

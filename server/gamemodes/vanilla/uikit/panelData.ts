@@ -2,6 +2,8 @@ import {
     ComponentIds,
     type UiControl,
     type UiIconRow,
+    type UiMenuButton,
+    type UiPanelRow,
     type UiTextRow,
 } from "../../../../client/common/uikit/contracts";
 import {
@@ -186,7 +188,7 @@ export function sendUiIconRows(
     services: ScriptServices,
     playerId: number,
     groupId: number,
-    rows: readonly UiIconRowData[],
+    rows: readonly (UiIconRowData | undefined)[],
 ): void {
     assertCapacity("rows", rows.length, ComponentIds.MAX_ROWS);
     for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
@@ -248,6 +250,24 @@ export function sendUiIconRows(
     }
 }
 
+/** Populates a panel that intentionally mixes text and icon entries by row. */
+export function sendUiMixedRows(
+    services: ScriptServices,
+    playerId: number,
+    groupId: number,
+    rows: readonly UiPanelRow[],
+): void {
+    assertCapacity("rows", rows.length, ComponentIds.MAX_ROWS);
+    const textRows: UiTextRow[] = rows.map((row): UiTextRow =>
+        "kind" in row ? row : { kind: "spacer" },
+    );
+    const iconRows: Array<UiIconRowData | undefined> = rows.map((row): UiIconRowData | undefined =>
+        "kind" in row ? undefined : row,
+    );
+    sendUiTextRows(services, playerId, groupId, textRows);
+    sendUiIconRows(services, playerId, groupId, iconRows);
+}
+
 /** Sets the label on a panel's optional footer button (layout.footerButton
  *  in types.ts). Safe to call at open time or any time after. */
 export function sendUiFooterButton(
@@ -258,7 +278,7 @@ export function sendUiFooterButton(
 ): void {
     services.dialog.queueWidgetEvent(playerId, {
         action: "set_text",
-        uid: packUid(groupId, ComponentIds.FOOTER_BUTTON),
+        uid: packUid(groupId, ComponentIds.FOOTER_BUTTON_LABEL),
         text: label,
     });
 }
@@ -283,6 +303,40 @@ export function sendUiControls(
         });
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_hidden", uid: labelUid, hidden: !control,
+        });
+    }
+}
+
+/** Populates the large two-column menu-button grid. */
+export function sendUiMenuButtons(
+    services: ScriptServices,
+    playerId: number,
+    groupId: number,
+    buttons: readonly UiMenuButton[],
+): void {
+    assertCapacity("menu buttons", buttons.length, ComponentIds.MAX_MENU_BUTTONS);
+    for (let i = 0; i < ComponentIds.MAX_MENU_BUTTONS; i++) {
+        const button = buttons[i];
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_item",
+            uid: packUid(groupId, ComponentIds.MENU_BUTTON_ICON_BASE + i),
+            itemId: button?.itemId ?? -1,
+            quantity: 1,
+        });
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_transparency",
+            uid: packUid(groupId, ComponentIds.MENU_BUTTON_ICON_BASE + i),
+            transparency: button?.transparency ?? 0,
+        });
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_text",
+            uid: packUid(groupId, ComponentIds.MENU_BUTTON_LABEL_BASE + i),
+            text: button?.label ?? "",
+        });
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden",
+            uid: packUid(groupId, ComponentIds.MENU_BUTTON_BACKGROUND_BASE + i),
+            hidden: !button,
         });
     }
 }
