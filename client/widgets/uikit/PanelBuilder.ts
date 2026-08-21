@@ -100,6 +100,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         height: layout.height,
         xPositionMode: 1,
         yPositionMode: 1,
+        // A main-modal panel must consume clicks inside its bounds. Without
+        // this, clicking the steelborder close button (or any blank panel
+        // space) can also reach the world and issue a walk command.
+        noClickThrough: true,
     });
     widgets.set(root.uid, root);
 

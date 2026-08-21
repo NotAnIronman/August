@@ -48,10 +48,27 @@ const ICON_ROWS: readonly UiIconRow[] = [
     })),
 ];
 
-function openTextMenu(player: PlayerState, services: ScriptServices): void {
+function openTextMenu(player: PlayerState, services: ScriptServices, activeTab = 0): void {
     openUiPanel(services, player, DEV_UIKIT_TEXT_PANEL_GROUP_ID, "Developer UIKit Test");
-    sendUiTabs(services, player.id, DEV_UIKIT_TEXT_PANEL_GROUP_ID, TEXT_TABS, 0);
-    sendUiTextRows(services, player.id, DEV_UIKIT_TEXT_PANEL_GROUP_ID, TEXT_ROWS);
+    sendUiTabs(services, player.id, DEV_UIKIT_TEXT_PANEL_GROUP_ID, TEXT_TABS, activeTab);
+    const tabRows: readonly UiTextRow[] =
+        activeTab === 1
+            ? [
+                  { kind: "heading", text: "Controls", style: { color: "ffcf70", bold: true } },
+                  { kind: "text", text: "The buttons below are server-authoritative." },
+                  { kind: "divider" },
+                  { kind: "text", text: "Icon rows opens the alternate UIKit layout." },
+                  { kind: "text", text: "Refresh redraws this developer screen." },
+              ]
+            : activeTab === 2
+              ? [
+                    { kind: "heading", text: "Search", style: { color: "ffcf70", bold: true } },
+                    { kind: "text", text: "Click the search field and type to verify local text input." },
+                    { kind: "divider" },
+                    { kind: "text", text: "Search is intentionally local for this prototype." },
+                ]
+              : TEXT_ROWS;
+    sendUiTextRows(services, player.id, DEV_UIKIT_TEXT_PANEL_GROUP_ID, tabRows);
     sendUiControls(services, player.id, DEV_UIKIT_TEXT_PANEL_GROUP_ID, [
         { label: "Icon rows" },
         { label: "Refresh" },
@@ -67,7 +84,15 @@ function openIconMenu(player: PlayerState, services: ScriptServices, activeTab =
         [{ label: "Items" }, { label: "Assets" }, { label: "Scroll" }],
         activeTab,
     );
-    sendUiIconRows(services, player.id, DEV_UIKIT_ICON_PANEL_GROUP_ID, ICON_ROWS);
+    const iconRows = ICON_ROWS.map((row) => ({
+        ...row,
+        description: activeTab === 0
+            ? row.description
+            : activeTab === 1
+              ? "Asset tab selected."
+              : "Scroll tab selected.",
+    }));
+    sendUiIconRows(services, player.id, DEV_UIKIT_ICON_PANEL_GROUP_ID, iconRows);
     sendUiFooterButton(services, player.id, DEV_UIKIT_ICON_PANEL_GROUP_ID, "Back to text rows");
 }
 
@@ -91,6 +116,11 @@ export function registerDevUIKitMenu(
             actionId: "refresh_text_rows",
             handle: ({ player }) => openTextMenu(player, services),
         },
+        ...[0, 1, 2].map((tabIndex) => ({
+            componentId: ComponentIds.TAB_BASE + tabIndex,
+            actionId: `select_text_tab_${tabIndex}`,
+            handle: ({ player }: { player: PlayerState }) => openTextMenu(player, services, tabIndex),
+        })),
     ]);
 
     registerUiPanelActions(registry, services, DEV_UIKIT_ICON_PANEL_GROUP_ID, [

@@ -54,11 +54,14 @@ export function createSearchController(
                 focused = false;
                 return;
             }
-            widgetManager.ensureLayout(background);
-            const x = (background._absX ?? background.x ?? 0) | 0;
-            const y = (background._absY ?? background.y ?? 0) | 0;
-            const over = frame.mx >= x && frame.mx < x + (background.width | 0) &&
-                frame.my >= y && frame.my < y + (background.height | 0);
+            // Use the frame's hit stack rather than raw widget coordinates.
+            // UIKit panels can be centred/scaled by their modal parent, so a
+            // widget's x/y alone are not screen coordinates until it has been
+            // rendered or hit-tested at least once.
+            const over = frame.collectFromAllRoots(frame.mx, frame.my).some((widget) => {
+                const uid = (widget?.uid ?? -1) | 0;
+                return uid === backgroundUid || uid === textUid;
+            });
             if (frame.input.clickMode2 === ClickMode.LEFT) {
                 const nextFocused = over;
                 if (nextFocused !== focused) {

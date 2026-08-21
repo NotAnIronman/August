@@ -4,8 +4,6 @@ import type { WidgetInteractionController } from "../../game/widgets/WidgetInter
 import type { WidgetInputFrame } from "../../game/widgets/input/widgetInputTypes";
 import { ComponentIds, type UiRowKind } from "./types";
 
-const SCROLLBAR_WIDTH = 16;
-
 function packUid(groupId: number, componentId: number): number {
     return ((groupId & 0xffff) << 16) | (componentId & 0xffff);
 }
@@ -121,7 +119,6 @@ export function createScrollController(
         const contentHeight = Math.max(viewportHeight, rowCount * rowHeight);
         const maxScrollY = Math.max(0, contentHeight - viewportHeight);
 
-        const scrollbarX = (scrollbar._absX ?? scrollbar.x ?? 0) | 0;
         const scrollbarY = (scrollbar._absY ?? scrollbar.y ?? 0) | 0;
         const scrollbarHeight = Math.max(0, scrollbar.height | 0);
 
@@ -176,16 +173,19 @@ export function createScrollController(
         setScrollY(content.scrollY | 0);
 
         const { input, mx, my } = frame;
-        const isOverContent =
-            mx >= ((content._absX ?? content.x ?? 0) | 0) &&
-            mx < ((content._absX ?? content.x ?? 0) | 0) + (content.width | 0) &&
-            my >= ((content._absY ?? content.y ?? 0) | 0) &&
-            my < ((content._absY ?? content.y ?? 0) | 0) + viewportHeight;
-        const isOverScrollbar =
-            mx >= scrollbarX &&
-            mx < scrollbarX + Math.max(SCROLLBAR_WIDTH, scrollbar.width | 0) &&
-            my >= scrollbarY &&
-            my < scrollbarY + scrollbarHeight;
+        // Hit-test in screen space. A UIKit panel is usually centred inside a
+        // modal parent, and raw widget x/y values are local to that parent.
+        // The precomputed hit stack already accounts for parent position,
+        // scrolling, and display scaling.
+        const hitStack = frame.collectFromAllRoots(mx, my);
+        const isOverContent = hitStack.some((widget) => {
+            const uid = (widget?.uid ?? -1) | 0;
+            return uid === CONTENT_VIEW_UID || (widget?.parentUid | 0) === CONTENT_VIEW_UID;
+        });
+        const isOverScrollbar = hitStack.some((widget) => {
+            const uid = (widget?.uid ?? -1) | 0;
+            return uid === SCROLLBAR_UID || uid === THUMB_UID || (widget?.parentUid | 0) === SCROLLBAR_UID;
+        });
 
         if (input.wheelDeltaY !== 0 && (isOverContent || isOverScrollbar)) {
             setScrollY((content.scrollY | 0) + input.wheelDeltaY * rowHeight);
