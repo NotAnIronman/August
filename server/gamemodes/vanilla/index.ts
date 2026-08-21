@@ -81,6 +81,7 @@ import { registerAccountSummaryWidgetHandlers } from "./widgets/accountSummaryWi
 import { registerCollectionLogWidgetHandlers } from "./widgets/collectionLogWidgets";
 import { registerCombatWidgetHandlers } from "./widgets/combatWidgets";
 import { registerDiaryJournalWidgetHandlers } from "./widgets/diaryJournalWidgets";
+import { registerDevUIKitMenu } from "./widgets/devUIKitMenu";
 import { registerEmoteWidgetHandlers } from "./widgets/emoteWidgets";
 import { registerMinimapWidgetHandlers } from "./widgets/minimapWidgets";
 import { registerMusicWidgetHandlers } from "./widgets/musicWidgets";
@@ -236,6 +237,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerShopWidgetHandlers(registry, services);
         registerZaffHandlers(registry, services);
         registerVanillaCommandHandlers(registry, services);
+        registerDevUIKitMenu(registry, services);
 
         // Content
         registerClimbingHandlers(registry, services);

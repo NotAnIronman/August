@@ -1,6 +1,6 @@
 /**
  * Custom panel group ids for quest journal, quest overview, achievement
- * diary, and skill guide.
+ * diary, skill guide, and developer UIKit test panels.
  *
  * These replace the cache-sourced Quest Journal (119), Quest Overview
  * (782), Achievement Diary scroll (741) and Skill Guide (214) interfaces,
@@ -18,3 +18,6 @@ export const QUEST_JOURNAL_PANEL_GROUP_ID = 30020;
 export const QUEST_OVERVIEW_PANEL_GROUP_ID = 30021;
 export const ACHIEVEMENT_DIARY_PANEL_GROUP_ID = 30022;
 export const SKILL_GUIDE_PANEL_GROUP_ID = 30023;
+/** Developer-only UIKit component showcase (opened with ::Dev). */
+export const DEV_UIKIT_TEXT_PANEL_GROUP_ID = 30024;
+export const DEV_UIKIT_ICON_PANEL_GROUP_ID = 30025;

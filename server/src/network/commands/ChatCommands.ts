@@ -10,6 +10,7 @@ const BUILTIN_COMMAND_PERMISSIONS: Readonly<Record<string, PlayerPermission>> = 
     commands: "player",
     promote: "developer",
     demote: "developer",
+    dev: "developer",
     setdialogue: "developer",
     cleardialogue: "developer",
     editdialogue: "developer",

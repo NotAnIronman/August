@@ -10,6 +10,7 @@ import { getRegisteredUiPanel } from "../uikit/registry";
 import "./skillGuidePanel";
 import "./questJournalPanel";
 import "./diaryPanel";
+import "./devUIKitPanels";
 import { buildSmithingBarModalGroup } from "./smithing.cs2";
 
 type WidgetGroupLoadResult = { root: WidgetNode | undefined; widgets: Map<number, WidgetNode> };
