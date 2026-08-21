@@ -1,31 +1,13 @@
-import {
-    ACHIEVEMENT_DIARY_PANEL_GROUP_ID,
-    DIARY_TABBED_COMPONENT_FRAME,
-    DIARY_TABBED_COMPONENT_LINE_BASE,
-    DIARY_TABBED_COMPONENT_TAB_BASE,
-    DIARY_TABBED_COMPONENT_TAB_HIGHLIGHT_BASE,
-    DIARY_TABBED_MAX_LINES,
-    DIARY_TABBED_TAB_COUNT,
-} from "../../../../client/common/ui/widgets";
+import { ACHIEVEMENT_DIARY_PANEL_GROUP_ID } from "../../../../client/common/ui/widgets";
+import { ComponentIds } from "../../../../client/widgets/uikit/types";
 import type { PlayerState } from "../../../src/game/player";
 import { achievementTaskTracker } from "../diaryTasks/AchievementTaskTracker";
 import { getDiaryAreaTasks } from "../diaryTasks";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
+import { openUiPanel, sendUiTabs, sendUiTextRows } from "../uikit/panelData";
 
-// Rebuilt as a custom widget group (see client/widgets/custom/diaryTabbed.cs2.ts),
-// mounted in mainmodal + steelbordered at open time, instead of the cache
-// interface (741) whose background never renders in this client. Now uses
-// the same sidebar-tabs architecture as the skill guide (Easy/Medium/Hard/
-// Elite as tabs) instead of one flat scrolling list of all 4 tiers.
-//
-// SCRIPT_STEELBORDER (227, not the "_NOCLOSE" variant) draws the title bar
-// text AND a working X close button directly onto the frame, matching
-// Bank/Settings/Trade - no separate title widget or stone button needed.
-const SCRIPT_STEELBORDER = 227;
-
-function packUid(groupId: number, componentId: number): number {
-    return ((groupId & 0xffff) << 16) | (componentId & 0xffff);
-}
+/** Achievement diary always has exactly these 4 tiers as tabs. */
+const TIER_COUNT = 4;
 
 // ============================================================================
 // Constants
@@ -305,39 +287,16 @@ function renderDiaryPanel(
     areaId: number,
     activeTierIndex: number,
 ): void {
-    for (let i = 0; i < DIARY_TABBED_TAB_COUNT; i++) {
-        const tabUid = packUid(ACHIEVEMENT_DIARY_PANEL_GROUP_ID, DIARY_TABBED_COMPONENT_TAB_BASE + i);
-        const highlightUid = packUid(
-            ACHIEVEMENT_DIARY_PANEL_GROUP_ID,
-            DIARY_TABBED_COMPONENT_TAB_HIGHLIGHT_BASE + i,
-        );
-        services.dialog.queueWidgetEvent(playerId, {
-            action: "set_text",
-            uid: tabUid,
-            text: i === activeTierIndex ? `<col=ffffff>${TIER_NAMES[i]}</col>` : TIER_NAMES[i],
-        });
-        services.dialog.queueWidgetEvent(playerId, {
-            action: "set_hidden",
-            uid: highlightUid,
-            hidden: i !== activeTierIndex,
-        });
-    }
+    sendUiTabs(
+        services,
+        playerId,
+        ACHIEVEMENT_DIARY_PANEL_GROUP_ID,
+        TIER_NAMES.map((label) => ({ label })),
+        activeTierIndex,
+    );
 
     const lines = buildDiaryTierLines(player, area, areaId, activeTierIndex);
-    for (let i = 0; i < DIARY_TABBED_MAX_LINES; i++) {
-        const lineUid = packUid(ACHIEVEMENT_DIARY_PANEL_GROUP_ID, DIARY_TABBED_COMPONENT_LINE_BASE + i);
-        const line = i < lines.length ? lines[i] : undefined;
-        services.dialog.queueWidgetEvent(playerId, {
-            action: "set_text",
-            uid: lineUid,
-            text: line ?? "",
-        });
-        services.dialog.queueWidgetEvent(playerId, {
-            action: "set_hidden",
-            uid: lineUid,
-            hidden: line === undefined,
-        });
-    }
+    sendUiTextRows(services, playerId, ACHIEVEMENT_DIARY_PANEL_GROUP_ID, lines);
 }
 
 function openDiaryJournal(player: PlayerState, areaId: number, services: ScriptServices): void {
@@ -347,17 +306,8 @@ function openDiaryJournal(player: PlayerState, areaId: number, services: ScriptS
     const playerId = player.id;
     const title = `${area.name} Area Tasks`;
 
-    const interfaceService = services.dialog.getInterfaceService();
-    interfaceService?.openModal(player, ACHIEVEMENT_DIARY_PANEL_GROUP_ID, {
-        areaId,
-    } satisfies DiaryPanelState);
-
-    // Draws the frame, title bar text, and a working X close button -
-    // no separate title widget or stone button needed.
-    services.dialog.queueWidgetEvent(playerId, {
-        action: "run_script",
-        scriptId: SCRIPT_STEELBORDER,
-        args: [packUid(ACHIEVEMENT_DIARY_PANEL_GROUP_ID, DIARY_TABBED_COMPONENT_FRAME), title],
+    openUiPanel(services, player, ACHIEVEMENT_DIARY_PANEL_GROUP_ID, title, {
+        data: { areaId } satisfies DiaryPanelState,
     });
 
     renderDiaryPanel(services, playerId, player, area, areaId, 0);
@@ -418,10 +368,10 @@ export function registerDiaryJournalWidgetHandlers(
     });
 
     // Sidebar tab clicks - switch the active tier without reopening the modal.
-    for (let i = 0; i < DIARY_TABBED_TAB_COUNT; i++) {
+    for (let i = 0; i < TIER_COUNT; i++) {
         registry.onButton(
             ACHIEVEMENT_DIARY_PANEL_GROUP_ID,
-            DIARY_TABBED_COMPONENT_TAB_BASE + i,
+            ComponentIds.TAB_BASE + i,
             (event) => {
                 const { player } = event;
                 const state = services.dialog

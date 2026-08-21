@@ -53,6 +53,10 @@ export const ComponentIds = {
     ICON_ROW_DESC_BASE: 700, // 700..799
 
     MAX_ROWS: 100,
+
+    /** Optional single footer action button (e.g. quest journal's
+     *  "View Quest Overview" toggle). */
+    FOOTER_BUTTON: 900,
 } as const;
 
 /**
@@ -81,6 +85,11 @@ export interface UiPanelLayout {
          *  it and text doesn't get clipped by the frame's right edge. */
         scrollbarWidth: number;
     };
+    /** A single bottom-center action button, e.g. quest journal's
+     *  "View Quest Overview" toggle. Its label is set server-side (same
+     *  set_text mechanism as everything else) since it can vary per
+     *  panel instance (e.g. "View Journal" vs "View Quest Overview"). */
+    footerButton?: boolean;
 }
 
 /** A single tab in a panel's sidebar. */

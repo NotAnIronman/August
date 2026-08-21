@@ -1,9 +1,8 @@
 import {
-    JOURNAL_PANEL_COMPONENT_FRAME,
-    JOURNAL_PANEL_COMPONENT_SWITCH,
     QUEST_JOURNAL_PANEL_GROUP_ID,
     QUEST_OVERVIEW_PANEL_GROUP_ID,
 } from "../../../../client/common/ui/widgets";
+import { ComponentIds } from "../../../../client/widgets/uikit/types";
 import type { PlayerState } from "../../../src/game/player";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
 import { getQuestDefinition, getQuestDefinitionByKey } from "../quests/QuestRegistry";
@@ -13,7 +12,14 @@ import {
     type QuestEntry,
 } from "./questListData";
 import { findPlayerQuestListQuestBySlot } from "./questListUi";
-import { reflowLines, sendJournalPanelLines, wrapTextToLines } from "./journalPanelHelpers";
+import {
+    openUiPanel,
+    packUid,
+    reflowLines,
+    sendUiFooterButton,
+    sendUiTextRows,
+    wrapTextToLines,
+} from "../uikit/panelData";
 
 // ============================================================================
 // Constants
@@ -31,19 +37,6 @@ const VARP_QJ_LINES = 4398;
 
 /** OP ID for "Read journal:" right-click option */
 const OP_READ_JOURNAL = 2;
-
-// Rebuilt as custom widget groups (see client/widgets/custom/journalPanel.cs2.ts)
-// mounted in mainmodal + steelbordered at open time, instead of the cache
-// interfaces (119 / 782) whose backgrounds never render in this client.
-//
-// SCRIPT_STEELBORDER (227, not the "_NOCLOSE" variant) draws the title bar
-// text AND a working X close button directly onto the frame, matching
-// Bank/Settings/Trade - no separate title widget or stone button needed.
-const SCRIPT_STEELBORDER = 227;
-
-function packUid(groupId: number, componentId: number): number {
-    return ((groupId & 0xffff) << 16) | (componentId & 0xffff);
-}
 
 // ============================================================================
 // Journal text generation
@@ -160,7 +153,7 @@ export function registerQuestJournalWidgetHandlers(
     });
 
     // Switch View button: journal text -> quest overview
-    registry.onButton(QUEST_JOURNAL_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_SWITCH, (event) => {
+    registry.onButton(QUEST_JOURNAL_PANEL_GROUP_ID, ComponentIds.FOOTER_BUTTON, (event) => {
         const { player } = event;
         const dbrowId = player.varps.getVarpValue(VARP_LATEST_QUEST_JOURNAL);
         if (dbrowId <= 0) return;
@@ -172,7 +165,7 @@ export function registerQuestJournalWidgetHandlers(
     });
 
     // Switch View button: quest overview -> journal text
-    registry.onButton(QUEST_OVERVIEW_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_SWITCH, (event) => {
+    registry.onButton(QUEST_OVERVIEW_PANEL_GROUP_ID, ComponentIds.FOOTER_BUTTON, (event) => {
         const { player } = event;
         const dbrowId = player.varps.getVarpValue(VARP_LATEST_QUEST_JOURNAL);
         if (dbrowId <= 0) return;
@@ -188,20 +181,6 @@ export function registerQuestJournalWidgetHandlers(
 // Quest journal opening
 // ============================================================================
 
-/**
- * Open the quest journal overlay for a specific quest.
- *
- * Client parity note: Unlike OSRS where widget state persists across open/close,
- * this client only resolves set_text for widgets that are currently loaded.
- * Therefore we must open the interface FIRST, then set text and run scripts.
- *
- * Flow:
- * 1. Set varps (latest_quest_journal, qj_lines)
- * 2. Open interface 119 as overlay (loads widgets)
- * 3. Run quest_journal_reset to clear stale text
- * 4. Set title and journal line text
- * 5. Run scroll configuration script
- */
 function openQuestJournal(player: PlayerState, quest: QuestEntry, services: ScriptServices): void {
     // Reflow: each quest's journal.ts hard-wraps its lines for the old,
     // narrower cache interface. Re-wrapping to our panel's actual width
@@ -211,46 +190,30 @@ function openQuestJournal(player: PlayerState, quest: QuestEntry, services: Scri
     const lineCount = lines.length;
     const playerId = player.id;
 
-    // 1. Set varps
     player.varps.setVarpValue(VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
     services.variables.sendVarp?.(player, VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
     player.varps.setVarpValue(VARP_QJ_LINES, lineCount);
     services.variables.sendVarp?.(player, VARP_QJ_LINES, lineCount);
 
-    // 2. Open the quest journal panel (custom widget group, mounted in mainmodal).
-    const interfaceService = services.dialog.getInterfaceService();
-    interfaceService?.openModal(player, QUEST_JOURNAL_PANEL_GROUP_ID, undefined, {
+    openUiPanel(services, player, QUEST_JOURNAL_PANEL_GROUP_ID, quest.displayName, {
         varps: {
             [VARP_LATEST_QUEST_JOURNAL]: quest.dbrowId,
             [VARP_QJ_LINES]: lineCount,
         },
     });
 
-    // 3. Draw the frame, title bar text, and a working X close button.
-    services.dialog.queueWidgetEvent(playerId, {
-        action: "run_script",
-        scriptId: SCRIPT_STEELBORDER,
-        args: [
-            packUid(QUEST_JOURNAL_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_FRAME),
-            quest.displayName,
-        ],
-    });
+    sendUiTextRows(services, playerId, QUEST_JOURNAL_PANEL_GROUP_ID, lines);
 
-    // 4. Set journal line text (blank-line entries render as dividers)
-    sendJournalPanelLines(services, playerId, QUEST_JOURNAL_PANEL_GROUP_ID, lines);
-
-    // 5. Show the "View Quest Overview" switch button, if this quest has one.
+    // Show the "View Quest Overview" switch button, if this quest has one.
     const definition = getQuestDefinition(quest.displayName);
     services.dialog.queueWidgetEvent(playerId, {
         action: "set_hidden",
-        uid: packUid(QUEST_JOURNAL_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_SWITCH),
+        uid: packUid(QUEST_JOURNAL_PANEL_GROUP_ID, ComponentIds.FOOTER_BUTTON),
         hidden: !definition?.overviewStartText,
     });
-    services.dialog.queueWidgetEvent(playerId, {
-        action: "set_text",
-        uid: packUid(QUEST_JOURNAL_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_SWITCH),
-        text: "View Quest Overview",
-    });
+    if (definition?.overviewStartText) {
+        sendUiFooterButton(services, playerId, QUEST_JOURNAL_PANEL_GROUP_ID, "View Quest Overview");
+    }
 
     services.system.logger.info?.(
         `[quest-journal] Opened journal for player=${playerId} quest="${quest.displayName}" (id=${quest.questId}, dbrow=${quest.dbrowId}) lines=${lineCount}`,
@@ -272,31 +235,15 @@ function openQuestOverview(player: PlayerState, quest: QuestEntry, services: Scr
     player.varps.setVarpValue(VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
     services.variables.sendVarp?.(player, VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
 
-    // Open the quest overview panel (custom widget group, mounted in mainmodal).
-    const interfaceService = services.dialog.getInterfaceService();
-    interfaceService?.openModal(player, QUEST_OVERVIEW_PANEL_GROUP_ID, undefined, {
+    openUiPanel(services, player, QUEST_OVERVIEW_PANEL_GROUP_ID, quest.displayName, {
         varps: {
             [VARP_LATEST_QUEST_JOURNAL]: quest.dbrowId,
             [definition.varpId]: player.varps.getVarpValue(definition.varpId),
         },
     });
 
-    services.dialog.queueWidgetEvent(playerId, {
-        action: "run_script",
-        scriptId: SCRIPT_STEELBORDER,
-        args: [
-            packUid(QUEST_OVERVIEW_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_FRAME),
-            quest.displayName,
-        ],
-    });
-
-    sendJournalPanelLines(services, playerId, QUEST_OVERVIEW_PANEL_GROUP_ID, lines);
-
-    services.dialog.queueWidgetEvent(playerId, {
-        action: "set_text",
-        uid: packUid(QUEST_OVERVIEW_PANEL_GROUP_ID, JOURNAL_PANEL_COMPONENT_SWITCH),
-        text: "View Journal",
-    });
+    sendUiTextRows(services, playerId, QUEST_OVERVIEW_PANEL_GROUP_ID, lines);
+    sendUiFooterButton(services, playerId, QUEST_OVERVIEW_PANEL_GROUP_ID, "View Journal");
 
     services.system.logger.info?.(
         `[quest-journal] Opened overview for player=${playerId} quest="${quest.displayName}" (id=${quest.questId}, dbrow=${quest.dbrowId})`,

@@ -48,3 +48,64 @@ export const Colors = {
     WHITE: "ffffff",
     ORANGE: "ff981f",
 } as const;
+
+/**
+ * Naive word-wrap for plain text into panel-width lines. Tuned for the
+ * kit's default body font/width (FONT_PLAIN_12 in a ~460px-wide column) -
+ * an approximation, not real font-metric measurement.
+ */
+export function wrapTextToLines(text: string, maxCharsPerLine = 62): string[] {
+    const paragraphs = String(text ?? "").split(/\r?\n/);
+    const lines: string[] = [];
+    for (const paragraph of paragraphs) {
+        const words = paragraph.split(/\s+/).filter((w) => w.length > 0);
+        let current = "";
+        for (const word of words) {
+            const candidate = current.length > 0 ? `${current} ${word}` : word;
+            if (candidate.length > maxCharsPerLine && current.length > 0) {
+                lines.push(current);
+                current = word;
+            } else {
+                current = candidate;
+            }
+        }
+        if (current.length > 0 || paragraph.length === 0) lines.push(current);
+    }
+    return lines;
+}
+
+/**
+ * Reflows a lines array that was hand-wrapped for a narrower interface
+ * (e.g. a quest's journal.ts, whose short manually-broken lines were
+ * sized for the old cache interface's column width) into paragraphs that
+ * fill the current, wider panel.
+ *
+ * Consecutive non-blank entries are joined into a single paragraph (so
+ * the original hard line-breaks stop mattering) and then re-wrapped with
+ * wrapTextToLines. A blank entry (DIVIDER_LINE) is preserved as-is - it's
+ * the section-break marker sendUiTextRows turns into a divider, so it
+ * must survive reflow untouched, and it also flushes the current
+ * paragraph.
+ */
+export function reflowLines(lines: readonly string[], maxCharsPerLine = 62): string[] {
+    const result: string[] = [];
+    let buffer: string[] = [];
+
+    const flush = () => {
+        if (buffer.length === 0) return;
+        result.push(...wrapTextToLines(buffer.join(" "), maxCharsPerLine));
+        buffer = [];
+    };
+
+    for (const line of lines) {
+        if (line === DIVIDER_LINE) {
+            flush();
+            result.push(DIVIDER_LINE);
+        } else {
+            buffer.push(line);
+        }
+    }
+    flush();
+
+    return result;
+}

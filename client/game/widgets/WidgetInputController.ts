@@ -5,14 +5,16 @@ import {
     isQuestListScrollbarWidget,
     processQuestListScrollbarInput,
 } from "./input/questListScrollbarInput";
-import {
-    isDiaryScrollbarWidget,
-    processDiaryScrollbarInput,
-} from "./input/diaryScrollbarInput";
-// Skill guide's scrollbar is now handled by the UI kit's generic
-// controller (client/widgets/uikit/ScrollController.ts), not a
-// dedicated per-panel file - see skillGuideScrollController below.
+// Skill guide, diary, quest journal, and quest overview all use the UI
+// kit's generic scroll controller now (client/widgets/uikit/
+// ScrollController.ts), not dedicated per-panel files - see the
+// controller instances imported below.
 import { skillGuideScrollController } from "../../widgets/custom/skillGuidePanel";
+import { diaryScrollController } from "../../widgets/custom/diaryPanel";
+import {
+    questJournalScrollController,
+    questOverviewScrollController,
+} from "../../widgets/custom/questJournalPanel";
 import { shouldSkipWidgetClickInput } from "./input/widgetClickGuard";
 import { processWidgetClickInput } from "./input/widgetClickInput";
 import { processWidgetDragInput } from "./input/widgetDragInput";
@@ -72,7 +74,9 @@ export class WidgetInputController {
         );
         processQuestListScrollbarInput(frame, widgetManager, widgetInteraction);
         skillGuideScrollController.process(frame, widgetManager, widgetInteraction);
-        processDiaryScrollbarInput(frame, widgetManager, widgetInteraction);
+        diaryScrollController.process(frame, widgetManager, widgetInteraction);
+        questJournalScrollController.process(frame, widgetManager, widgetInteraction);
+        questOverviewScrollController.process(frame, widgetManager, widgetInteraction);
         processWidgetScrollWheelInput(this.deps, frame, widgetManager, widgetInteraction);
 
         if (shouldSkipWidgetClickInput(this.deps, frame)) return;
@@ -99,16 +103,27 @@ export class WidgetInputController {
             getPrimaryWidgetAction,
             isNewClick,
         );
-        // The quest list and skill guide have dedicated scroll controllers.
-        // Their cached scrollbar thumbs must not become generic draggable
-        // widgets.
+        // Every kit-built panel's scrollbar thumb has its own dedicated
+        // scroll controller (same reason as the quest list's). Must not
+        // become a generic draggable widget.
         if (
             !isQuestListScrollbarWidget(widgetInteraction.clickedWidget, widgetManager) &&
             !skillGuideScrollController.isScrollbarWidget(
                 widgetInteraction.clickedWidget,
                 widgetManager,
             ) &&
-            !isDiaryScrollbarWidget(widgetInteraction.clickedWidget, widgetManager)
+            !diaryScrollController.isScrollbarWidget(
+                widgetInteraction.clickedWidget,
+                widgetManager,
+            ) &&
+            !questJournalScrollController.isScrollbarWidget(
+                widgetInteraction.clickedWidget,
+                widgetManager,
+            ) &&
+            !questOverviewScrollController.isScrollbarWidget(
+                widgetInteraction.clickedWidget,
+                widgetManager,
+            )
         ) {
             processWidgetDragInput(this.deps, frame, widgetManager, widgetInteraction, isHolding);
         }

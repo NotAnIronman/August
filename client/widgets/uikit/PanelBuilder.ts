@@ -176,7 +176,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     const contentLeft = layout.sidebar ? sidebarWidth + 12 + 16 : CONTENT_MARGIN_X;
     const contentWidth =
         layout.width - contentLeft - CONTENT_MARGIN_X - layout.content.scrollbarWidth;
-    const contentHeight = layout.height - CONTENT_TOP - CONTENT_BOTTOM_MARGIN;
+    // More bottom margin reserved when a footer button exists, so the
+    // last content row doesn't render underneath it.
+    const contentBottomMargin = layout.footerButton ? 36 : CONTENT_BOTTOM_MARGIN;
+    const contentHeight = layout.height - CONTENT_TOP - contentBottomMargin;
     const rowHeight = layout.content.rowHeight;
 
     const contentView = makeWidget(groupId, ComponentIds.CONTENT_VIEW, rootUid, {
@@ -411,6 +414,33 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             mouseOverColor: 0xc5b79b,
         });
         widgets.set(thumb.uid, thumb);
+    }
+
+    if (layout.footerButton) {
+        const footerButton = makeWidget(groupId, ComponentIds.FOOTER_BUTTON, rootUid, {
+            type: 3,
+            rawX: 0,
+            rawY: 10,
+            rawWidth: 140,
+            rawHeight: 20,
+            xPositionMode: 1,
+            yPositionMode: 2,
+            width: 140,
+            height: 20,
+            filled: true,
+            color: 0x241e16,
+            mouseOverColor: 0x3a3022,
+            opacity: 32,
+            text: "",
+            fontId: FONT_BOLD_12,
+            textColor: 0xffd27f,
+            textShadowed: true,
+            xTextAlignment: 1,
+            yTextAlignment: 1,
+            actions: ["View"],
+            flags: FLAG_TRANSMIT_OP1,
+        });
+        widgets.set(footerButton.uid, footerButton);
     }
 
     return { root, widgets };

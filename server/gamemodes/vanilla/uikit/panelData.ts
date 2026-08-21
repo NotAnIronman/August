@@ -2,7 +2,9 @@ import { ComponentIds } from "../../../../client/widgets/uikit/types";
 import {
     centerLine as buildCenterLine,
     isCenteredLine,
+    reflowLines,
     stripCenterPrefix,
+    wrapTextToLines,
 } from "../../../../client/widgets/uikit/textMarkup";
 import type { PlayerState } from "../../../src/game/player";
 import type { ScriptServices } from "../../../src/game/scripts/types";
@@ -214,6 +216,21 @@ export function sendUiIconRows(
     }
 }
 
+/** Sets the label on a panel's optional footer button (layout.footerButton
+ *  in types.ts). Safe to call at open time or any time after. */
+export function sendUiFooterButton(
+    services: ScriptServices,
+    playerId: number,
+    groupId: number,
+    label: string,
+): void {
+    services.dialog.queueWidgetEvent(playerId, {
+        action: "set_text",
+        uid: packUid(groupId, ComponentIds.FOOTER_BUTTON),
+        text: label,
+    });
+}
+
 // Re-export so consumers only need one import for the whole kit's
 // server-side surface.
-export { buildCenterLine as centerLine };
+export { buildCenterLine as centerLine, reflowLines, wrapTextToLines };
