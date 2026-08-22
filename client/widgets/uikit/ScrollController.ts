@@ -46,6 +46,7 @@ export function createScrollController(
     rowHeight: number,
 ): UiScrollController {
     const SCROLLBAR_UID = packUid(groupId, ComponentIds.SCROLLBAR);
+    const TRACK_UID = packUid(groupId, ComponentIds.SCROLLBAR_TRACK);
     const CONTENT_VIEW_UID = packUid(groupId, ComponentIds.CONTENT_VIEW);
     const THUMB_UID = packUid(groupId, ComponentIds.SCROLLBAR_THUMB);
     const primaryRowBases =
@@ -58,7 +59,8 @@ export function createScrollController(
     function isScrollbarWidget(widget: unknown, widgetManager: WidgetManager): boolean {
         let current = widget as { uid?: number; parentUid?: number } | undefined;
         for (let depth = 0; current && depth < 16; depth++) {
-            if ((current.uid ?? -1) === SCROLLBAR_UID) return true;
+            const uid = current.uid ?? -1;
+            if (uid === SCROLLBAR_UID || uid === TRACK_UID || uid === THUMB_UID) return true;
             const parentUid = current.parentUid;
             if (typeof parentUid !== "number" || parentUid < 0) return false;
             current = widgetManager.getWidgetByUid(parentUid);
@@ -97,7 +99,7 @@ export function createScrollController(
                 isAltVisible = isAltVisible || (!!divider && !divider.hidden);
             }
 
-            if (isPrimaryVisible || isAltVisible) count = i + 1;
+            if (isPrimaryVisible || isAltVisible) count++;
         }
         return count;
     }
@@ -115,9 +117,10 @@ export function createScrollController(
         }
 
         const scrollbar = widgetManager.getWidgetByUid(SCROLLBAR_UID);
+        const track = widgetManager.getWidgetByUid(TRACK_UID);
         const content = widgetManager.getWidgetByUid(CONTENT_VIEW_UID);
         const thumb = widgetManager.getWidgetByUid(THUMB_UID);
-        if (!scrollbar || !content || !thumb) return;
+        if (!scrollbar || !track || !content || !thumb) return;
 
         widgetManager.ensureLayout(scrollbar);
         widgetManager.ensureLayout(content);
@@ -139,25 +142,30 @@ export function createScrollController(
             const draggableHeight = Math.max(0, scrollbarHeight - thumbHeight);
             const thumbOffset =
                 maxScrollY > 0 ? Math.floor((draggableHeight * scrollY) / maxScrollY) : 0;
-            thumb.rawY = thumbOffset;
-            thumb.y = thumbOffset;
+            const trackTop = scrollbar.rawY ?? 0;
+            thumb.rawY = trackTop + thumbOffset;
+            thumb.y = thumb.rawY;
             thumb.rawHeight = thumbHeight;
             thumb.height = thumbHeight;
             widgetManager.invalidateWidget(thumb, "uikit-scrollbar-thumb");
         };
 
         if (maxScrollY <= 0) {
-            scrollbar.hidden = true;
-            scrollbar.isHidden = true;
+            for (const widget of [scrollbar, track, thumb]) {
+                widget.hidden = true;
+                widget.isHidden = true;
+            }
             if ((content.scrollY | 0) !== 0) {
                 content.scrollY = 0;
                 widgetManager.invalidateScroll(content);
             }
             return;
         }
-        if (scrollbar.hidden || scrollbar.isHidden) {
-            scrollbar.hidden = false;
-            scrollbar.isHidden = false;
+        if (scrollbar.hidden || scrollbar.isHidden || track.hidden || thumb.hidden) {
+            for (const widget of [scrollbar, track, thumb]) {
+                widget.hidden = false;
+                widget.isHidden = false;
+            }
         }
 
         const setScrollY = (value: number): void => {
@@ -192,7 +200,8 @@ export function createScrollController(
         });
         const isOverScrollbar = hitStack.some((widget) => {
             const uid = (widget?.uid ?? -1) | 0;
-            return uid === SCROLLBAR_UID || uid === THUMB_UID || (widget?.parentUid | 0) === SCROLLBAR_UID;
+            return uid === SCROLLBAR_UID || uid === TRACK_UID || uid === THUMB_UID ||
+                (widget?.parentUid | 0) === SCROLLBAR_UID;
         });
 
         if (input.wheelDeltaY !== 0 && (isOverContent || isOverScrollbar)) {

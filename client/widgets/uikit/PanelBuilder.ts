@@ -236,18 +236,21 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     const contentViewUid = contentView.uid;
 
     if (layout.search) {
+        // Steelborder owns the outermost pixels of a modal. Keep UIKit input
+        // controls inset from that border even when callers request a wide field.
+        const searchInset = 10;
         const searchWidth = Math.min(
             Math.max(80, layout.search.width ?? contentWidth),
-            contentWidth,
+            Math.max(80, contentWidth - searchInset * 2),
         );
         const searchY = tabsBottom + 4;
         const background = makeWidget(groupId, ComponentIds.SEARCH_BACKGROUND, rootUid, {
-            type: 3, rawX: contentLeft, rawY: searchY, rawWidth: searchWidth,
+            type: 3, rawX: contentLeft + searchInset, rawY: searchY, rawWidth: searchWidth,
             rawHeight: 22, width: searchWidth, height: 22, filled: true,
             color: 0x2b241b, mouseOverColor: 0x342b20,
         });
         const text = makeWidget(groupId, ComponentIds.SEARCH_TEXT, rootUid, {
-            type: 4, rawX: contentLeft + 6, rawY: searchY, rawWidth: searchWidth - 12,
+            type: 4, rawX: contentLeft + searchInset + 6, rawY: searchY, rawWidth: searchWidth - 12,
             rawHeight: 22, width: searchWidth - 12, height: 22,
             text: `<col=8f7f66>${layout.search.placeholder}</col>`, fontId: FONT_PLAIN_12,
             textColor: 0xe8ded0, textShadowed: true, xTextAlignment: 0, yTextAlignment: 1,
@@ -444,16 +447,22 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         const gap = layout.menuButtons.gap ?? 8;
         const rows = Math.max(1, layout.menuButtons.rows ?? 4);
         const requestedButtonHeight = layout.menuButtons.buttonHeight ?? 52;
+        const maxHeightFraction = Math.min(
+            1,
+            Math.max(0.1, layout.menuButtons.maxHeightFraction ?? 0.5),
+        );
+        const gridHeight = Math.max(20, Math.floor(contentHeight * maxHeightFraction));
         // Keep the declared menu grid within the content viewport. Extra
-        // button slots are hidden by the server until populated.
+        // button slots are hidden by the server until populated. A compact
+        // grid also prevents menu buttons from visually swallowing a modal.
         const buttonHeight = Math.max(
             20,
             Math.min(
                 requestedButtonHeight,
-                Math.floor((contentHeight - gap * (rows - 1)) / rows),
+                Math.floor((gridHeight - gap * (rows - 1)) / rows),
             ),
         );
-        const iconSize = layout.menuButtons.iconSize ?? 36;
+        const iconSize = Math.max(12, Math.min(layout.menuButtons.iconSize ?? 36, buttonHeight - 12));
         const buttonWidth = Math.max(1, Math.floor((contentWidth - gap * (columns - 1)) / columns));
         for (let i = 0; i < ComponentIds.MAX_MENU_BUTTONS; i++) {
             const column = i % columns;
@@ -462,7 +471,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 type: 3,
                 rawX: column * (buttonWidth + gap), rawY: row * (buttonHeight + gap),
                 rawWidth: buttonWidth, rawHeight: buttonHeight, width: buttonWidth, height: buttonHeight,
-                filled: true, color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 32,
+                filled: true, color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 104,
                 actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
             });
             widgets.set(button.uid, button);
@@ -502,10 +511,13 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         });
         widgets.set(scrollbar.uid, scrollbar);
 
-        const track = makeWidget(groupId, ComponentIds.SCROLLBAR_TRACK, scrollbar.uid, {
+        // Keep the visible rail and thumb as root siblings. Static children
+        // of a generated scrollbar container were not consistently rendered
+        // by the GL widget walker, even though scrolling itself worked.
+        const track = makeWidget(groupId, ComponentIds.SCROLLBAR_TRACK, rootUid, {
             type: 3,
-            rawX: 0,
-            rawY: 0,
+            rawX: scrollbarX,
+            rawY: contentTop,
             rawWidth: layout.content.scrollbarWidth,
             rawHeight: contentHeight,
             width: layout.content.scrollbarWidth,
@@ -515,10 +527,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         });
         widgets.set(track.uid, track);
 
-        const thumb = makeWidget(groupId, ComponentIds.SCROLLBAR_THUMB, scrollbar.uid, {
+        const thumb = makeWidget(groupId, ComponentIds.SCROLLBAR_THUMB, rootUid, {
             type: 3,
-            rawX: 1,
-            rawY: 0,
+            rawX: scrollbarX + 1,
+            rawY: contentTop,
             rawWidth: layout.content.scrollbarWidth - 2,
             rawHeight: contentHeight,
             width: layout.content.scrollbarWidth - 2,
@@ -544,7 +556,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             filled: true,
             color: 0x241e16,
             mouseOverColor: 0x3a3022,
-            opacity: 32,
+            opacity: 104,
             actions: ["View"],
             flags: FLAG_TRANSMIT_OP1,
         });
@@ -588,7 +600,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             const background = makeWidget(groupId, ComponentIds.CONTROL_BACKGROUND_BASE + i, rootUid, {
                 type: 3, rawX: x, rawY: 10, rawWidth: controlWidth, rawHeight: controlHeight,
                 yPositionMode: 2, width: controlWidth, height: controlHeight, filled: true,
-                color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 32,
+                color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 104,
                 actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
             });
             const label = makeWidget(groupId, ComponentIds.CONTROL_LABEL_BASE + i, rootUid, {
