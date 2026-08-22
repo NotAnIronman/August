@@ -28,14 +28,19 @@ export function drawScrollBar(
     const EDGE_HEIGHT = Math.min(Math.max(1, height), scaleLogicalPixels(scaleY, 1));
 
     const scrollbarSpriteArchiveId = opts.widgetManager?.scrollbarSpriteArchiveId ?? -1;
+    // These named assets are the cache's current native scrollbar arrows. The
+    // GraphicsDefaults archive is retained as a version-safe fallback for
+    // caches that predate scrollbar_v2.
     const upArrow =
-        scrollbarSpriteArchiveId >= 0
+        tc.getByNameToken("scrollbar_v2,0") ??
+        (scrollbarSpriteArchiveId >= 0
             ? tc.getSpriteByArchiveFrame(scrollbarSpriteArchiveId, 0)
-            : undefined;
+            : undefined);
     const downArrow =
-        scrollbarSpriteArchiveId >= 0
+        tc.getByNameToken("scrollbar_v2,1") ??
+        (scrollbarSpriteArchiveId >= 0
             ? tc.getSpriteByArchiveFrame(scrollbarSpriteArchiveId, 1)
-            : undefined;
+            : undefined);
 
     // Draw up arrow
     if (upArrow) {
@@ -55,13 +60,19 @@ export function drawScrollBar(
         );
     }
 
-    // Draw track (area between arrows)
+    // Draw track (area between arrows). scrollbar_dragger_v2 is the native
+    // cache set used by the game's CS2 scrollbar builder.
     const trackHeight = height - ARROW_HEIGHT * 2;
     if (trackHeight > 0) {
-        const tr = ((SCROLLBAR_TRACK_COLOR >>> 16) & 0xff) / 255;
-        const tg = ((SCROLLBAR_TRACK_COLOR >>> 8) & 0xff) / 255;
-        const tb = (SCROLLBAR_TRACK_COLOR & 0xff) / 255;
-        glr.drawRect(x, y + ARROW_HEIGHT, SCROLLBAR_WIDTH, trackHeight, [tr, tg, tb, 1]);
+        const nativeTrack = tc.getByNameToken("scrollbar_dragger_v2,3");
+        if (nativeTrack) {
+            glr.drawTexture(nativeTrack, x, y + ARROW_HEIGHT, SCROLLBAR_WIDTH, trackHeight, 1, 1);
+        } else {
+            const tr = ((SCROLLBAR_TRACK_COLOR >>> 16) & 0xff) / 255;
+            const tg = ((SCROLLBAR_TRACK_COLOR >>> 8) & 0xff) / 255;
+            const tb = (SCROLLBAR_TRACK_COLOR & 0xff) / 255;
+            glr.drawRect(x, y + ARROW_HEIGHT, SCROLLBAR_WIDTH, trackHeight, [tr, tg, tb, 1]);
+        }
     }
 
     // Calculate thumb size and position
@@ -77,12 +88,48 @@ export function drawScrollBar(
     const thumbY =
         maxScrollY > 0 ? Math.floor(((availableTrack - thumbHeight) * scrollY) / maxScrollY) : 0;
 
-    // Draw thumb
+    // Draw thumb. The native cache scrollbar has separate top, centre and
+    // bottom slices. Compose them only when all three are available; retaining
+    // the geometric fallback makes this work against older/partial caches too.
     if (thumbHeight > 0 && thumbHeight < trackHeight) {
+        const nativeThumbTop = tc.getByNameToken("scrollbar_dragger_v2,0");
+        const nativeThumbCentre = tc.getByNameToken("scrollbar_dragger_v2,1");
+        const nativeThumbBottom = tc.getByNameToken("scrollbar_dragger_v2,2");
+        const thumbTop = y + ARROW_HEIGHT + thumbY;
+        if (nativeThumbTop && nativeThumbCentre && nativeThumbBottom) {
+            const desiredTop = Math.max(1, Math.round(nativeThumbTop.h * scaleY));
+            const desiredBottom = Math.max(1, Math.round(nativeThumbBottom.h * scaleY));
+            const topHeight = Math.min(desiredTop, Math.max(1, Math.floor(thumbHeight / 2)));
+            const bottomHeight = Math.min(
+                desiredBottom,
+                Math.max(1, thumbHeight - topHeight - 1),
+            );
+            const centreHeight = Math.max(1, thumbHeight - topHeight - bottomHeight);
+            glr.drawTexture(nativeThumbTop, x, thumbTop, SCROLLBAR_WIDTH, topHeight, 1, 1);
+            glr.drawTexture(
+                nativeThumbCentre,
+                x,
+                thumbTop + topHeight,
+                SCROLLBAR_WIDTH,
+                centreHeight,
+                1,
+                1,
+            );
+            glr.drawTexture(
+                nativeThumbBottom,
+                x,
+                thumbTop + topHeight + centreHeight,
+                SCROLLBAR_WIDTH,
+                bottomHeight,
+                1,
+                1,
+            );
+            return;
+        }
+
         const tr = ((SCROLLBAR_THUMB_COLOR >>> 16) & 0xff) / 255;
         const tg = ((SCROLLBAR_THUMB_COLOR >>> 8) & 0xff) / 255;
         const tb = (SCROLLBAR_THUMB_COLOR & 0xff) / 255;
-        const thumbTop = y + ARROW_HEIGHT + thumbY;
         glr.drawRect(x, thumbTop, SCROLLBAR_WIDTH, thumbHeight, [tr, tg, tb, 1]);
 
         // Draw thumb highlight (left and top edges)

@@ -122,18 +122,25 @@ export class SpriteLoader {
     static loadFromIndex(spriteIndex: CacheIndex, id: number): boolean {
         if (id == null || id < 0) return false;
         let file = undefined as ReturnType<CacheIndex["getFile"]> | undefined;
-        // Try IF3-style combined id: high 16 bits = archive id, low 16 bits = file id
+        // Widget sprite IDs are normally a raw sprite archive ID, which is
+        // stored as (archive=id, file=0). A packed ID is only used when the
+        // high 16 bits are non-zero (e.g. an explicitly selected frame).
+        // Treating every small raw ID as (archive=0, file=id) made most UI
+        // sprites silently fail to load while a few coincidental entries did.
         const archiveId = (id >>> 16) & 0xffff;
         const fileId = id & 0xffff;
         try {
-            if (archiveId !== 0 || fileId !== 0) {
+            if (archiveId !== 0) {
                 file = spriteIndex.getFile(archiveId, fileId);
+            } else {
+                file = spriteIndex.getFile(fileId, 0);
             }
         } catch {}
         if (!file) {
             try {
-                // Fallback to (id, 0) which is common for sprites
-                file = spriteIndex.getFile(id, 0);
+                // Compatibility fallback for the old archive-0/file-ID
+                // interpretation used by a small number of legacy callers.
+                file = spriteIndex.getFile(0, fileId);
             } catch {}
         }
         if (file) {

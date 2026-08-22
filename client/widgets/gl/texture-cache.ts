@@ -6,6 +6,10 @@ import type { GLRenderer } from "./renderer";
 
 type Texture = { tex: WebGLTexture; w: number; h: number };
 
+// Renderers live across hot reloads. Bump this whenever sprite lookup
+// semantics change so old, incorrectly decoded textures are not reused.
+const SPRITE_LOOKUP_CACHE_VERSION = "2";
+
 export interface SpriteMaskData {
     texture: Texture;
     width: number;
@@ -239,7 +243,7 @@ export class TextureCache {
     }
 
     getSpriteById(id: number) {
-        const key = `spr:${id}`;
+        const key = `spr:${SPRITE_LOOKUP_CACHE_VERSION}:${id}`;
         const cached = this.glr.getTexture(key);
         if (cached) return cached;
         try {
@@ -269,7 +273,7 @@ export class TextureCache {
             return this.getSpriteById(id);
         }
 
-        const key = `wspr:${id}:${borderType | 0}:${shadowColor | 0}:${flipH ? 1 : 0}:${
+        const key = `wspr:${SPRITE_LOOKUP_CACHE_VERSION}:${id}:${borderType | 0}:${shadowColor | 0}:${flipH ? 1 : 0}:${
             flipV ? 1 : 0
         }`;
         const cached = this.glr.getTexture(key);
@@ -303,7 +307,7 @@ export class TextureCache {
         const shadowColor = options?.shadowColor ?? 0;
         const flipH = options?.flipH === true;
         const flipV = options?.flipV === true;
-        const key = `wmask:${id}:${borderType | 0}:${shadowColor | 0}:${flipH ? 1 : 0}:${
+        const key = `wmask:${SPRITE_LOOKUP_CACHE_VERSION}:${id}:${borderType | 0}:${shadowColor | 0}:${flipH ? 1 : 0}:${
             flipV ? 1 : 0
         }`;
         let maskCache = (this as any).__spriteMaskCache as Map<string, SpriteMaskData> | undefined;
@@ -319,8 +323,8 @@ export class TextureCache {
                     : widgetSpriteToCanvas(sprite, flipH, flipV, borderType | 0, shadowColor | 0);
             const textureKey =
                 borderType === 0 && shadowColor === 0 && !flipH && !flipV
-                    ? `spr:${id}`
-                    : `wspr:${id}:${borderType | 0}:${shadowColor | 0}:${
+                    ? `spr:${SPRITE_LOOKUP_CACHE_VERSION}:${id}`
+                    : `wspr:${SPRITE_LOOKUP_CACHE_VERSION}:${id}:${borderType | 0}:${shadowColor | 0}:${
                           flipH ? 1 : 0
                       }:${flipV ? 1 : 0}`;
             const texture = this.glr.createTextureFromCanvas(textureKey, canvas);
@@ -339,7 +343,7 @@ export class TextureCache {
     getSpriteByArchiveFrame(archiveId: number, frameIndex: number) {
         const archive = archiveId | 0;
         const frame = frameIndex | 0;
-        const key = `sprf:${archive}:${frame}`;
+        const key = `sprf:${SPRITE_LOOKUP_CACHE_VERSION}:${archive}:${frame}`;
         const cached = this.glr.getTexture(key);
         if (cached) return cached;
         try {
@@ -354,7 +358,7 @@ export class TextureCache {
     }
 
     getByNameToken(token: string) {
-        const key = `tok:${token}`;
+        const key = `tok:${SPRITE_LOOKUP_CACHE_VERSION}:${token}`;
         const cached = this.glr.getTexture(key);
         if (cached) return cached;
         try {
@@ -398,7 +402,7 @@ export class TextureCache {
      * @param spriteId The sprite archive ID
      */
     getBySpriteId(spriteId: number) {
-        const key = `sprite:${spriteId}`;
+        const key = `sprite:${SPRITE_LOOKUP_CACHE_VERSION}:${spriteId}`;
         const cached = this.glr.getTexture(key);
         if (cached) return cached;
         try {
