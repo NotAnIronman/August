@@ -2974,6 +2974,11 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                   : typeof w.spriteId === "number" && w.spriteId >= 0
                     ? w.spriteId | 0
                     : -1;
+            const cacheSpriteToken =
+                typeof (w as any).cacheSpriteToken === "string" &&
+                (w as any).cacheSpriteToken.length > 0
+                    ? (w as any).cacheSpriteToken as string
+                    : undefined;
 
             // Check borderType for sprite outline (set via CS2 CC_SETOUTLINE/IF_SETOUTLINE)
             // borderType >= 2 = white pixel-perfect outline around sprite
@@ -2996,13 +3001,15 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             const itemId = typeof w.itemId === "number" ? (w.itemId as number) | 0 : -1;
             const renderItemSprite = isIf3 && itemId >= 0;
 
-            if (!renderItemSprite && effectiveSpriteId >= 0) {
-                const tex = tc.getWidgetSpriteById(effectiveSpriteId, {
-                    borderType,
-                    shadowColor: spriteShadow,
-                    flipH: hFlip,
-                    flipV: vFlip,
-                });
+            if (!renderItemSprite && (effectiveSpriteId >= 0 || cacheSpriteToken)) {
+                const tex = cacheSpriteToken
+                    ? tc.getByNameToken(cacheSpriteToken)
+                    : tc.getWidgetSpriteById(effectiveSpriteId, {
+                          borderType,
+                          shadowColor: spriteShadow,
+                          flipH: hFlip,
+                          flipV: vFlip,
+                      });
                 if (!tex && (window as any).__debugMissingSprites) {
                     // TEMP DIAGNOSTIC (invisible-background investigation) — remove once resolved.
                     // Toggle in devtools console: window.__debugMissingSprites = true

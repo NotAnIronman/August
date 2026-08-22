@@ -4,6 +4,7 @@ import type { UiSearchController } from "./SearchController";
 import type { WidgetManager } from "../WidgetManager";
 import type { WidgetInteractionController } from "../../game/widgets/WidgetInteractionController";
 import type { WidgetInputFrame } from "../../game/widgets/input/widgetInputTypes";
+import { syncCacheUiAssetsForGroup } from "./CacheUiAssets";
 
 /**
  * UI Kit - panel registry.
@@ -48,6 +49,7 @@ export function processRegisteredUiPanelInput(
     widgetInteraction: WidgetInteractionController,
 ): void {
     for (const panel of registeredPanels.values()) {
+        syncCacheUiAssetsForGroup(widgetManager, panel.groupId);
         panel.onProcess?.(widgetManager);
         panel.scrollController?.process(frame, widgetManager, widgetInteraction);
         panel.searchController?.process(frame, widgetManager, widgetInteraction);

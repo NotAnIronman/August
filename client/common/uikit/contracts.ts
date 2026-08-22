@@ -59,6 +59,8 @@ export type UiPanelLayout = {
     /** Large item-icon buttons, laid out in a two-column grid inside content. */
     menuButtons?: {
         columns?: 2; rows?: number; buttonHeight?: number; gap?: number; iconSize?: number;
+        /** Optional semantic cache skin, resolved client-side by UIKit. */
+        backgroundAsset?: string;
         /** Keeps a menu grid compact instead of letting it occupy the whole panel. */
         maxHeightFraction?: number;
         /** Limits the grid width and centres it within the content column. */

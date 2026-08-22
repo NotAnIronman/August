@@ -136,6 +136,10 @@ export interface WidgetNode {
 
     spriteId?: number; // primary sprite (IF3/cache sprite and what CC_SETGRAPHIC/IF_SETGRAPHIC set)
     spriteId2?: number; // alternate sprite (legacy IF1 CS1 / CC_SETGRAPHIC2)
+    /** Named cache sprite/archive frame (for example, "scrollbar_v2,0"). */
+    cacheSpriteToken?: string;
+    /** Semantic UIKit skin key resolved through the cache UI asset registry. */
+    cacheUiAsset?: string;
 
     // IF1 hover redirect
     mouseOverRedirect?: number; // IF1: same-group fileId to treat as hovered instead (-1 = none)

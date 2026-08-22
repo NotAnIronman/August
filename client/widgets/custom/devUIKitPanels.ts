@@ -10,6 +10,7 @@ import { ComponentIds } from "../../common/uikit/contracts";
 import { createSearchController } from "../uikit/SearchController";
 import { registerUiPanel } from "../uikit/registry";
 import { createScrollController } from "../uikit/ScrollController";
+import { CacheUiAssetKey } from "../uikit/CacheUiAssets";
 
 const TEXT_ROW_HEIGHT = 18;
 const ICON_ROW_HEIGHT = 34;
@@ -174,6 +175,7 @@ registerUiPanel({
         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
         menuButtons: {
             columns: 2, rows: 4, buttonHeight: 58, gap: 8, iconSize: 40,
+            backgroundAsset: CacheUiAssetKey.MENU_BUTTON_BACKGROUND,
             maxHeightFraction: 0.375, maxWidthFraction: 0.75,
         },
         footerButton: true,
@@ -191,6 +193,7 @@ registerUiPanel({
         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
         menuButtons: {
             columns: 2, rows: 3, buttonHeight: 86, gap: 10, iconSize: 40,
+            backgroundAsset: CacheUiAssetKey.MENU_BUTTON_BACKGROUND,
             maxHeightFraction: 0.5, maxWidthFraction: 0.75,
         },
         footerButton: true,

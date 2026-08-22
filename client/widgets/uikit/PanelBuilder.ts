@@ -484,6 +484,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 rawX: gridOffsetX + column * (buttonWidth + gap), rawY: row * (buttonHeight + gap),
                 rawWidth: buttonWidth, rawHeight: buttonHeight, width: buttonWidth, height: buttonHeight,
                 filled: true, color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 104,
+                cacheUiAsset: layout.menuButtons.backgroundAsset,
                 actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
             });
             widgets.set(button.uid, button);
