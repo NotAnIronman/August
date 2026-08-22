@@ -1713,10 +1713,16 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             }
         }
 
-        // IF1 type 0 containers draw scrollbar when scrollHeight > height
+        // IF1 type 0 containers draw scrollbar when scrollHeight > height.
+        // UIKit uses the same renderer, but opts in explicitly because its
+        // content containers are IF3 and live inside a steelborder modal.
         // Widget border rendering
         // Scrollbar is drawn on the right edge of the container
-        if (w.type === 0 && !isIf3 && (w.scrollHeight ?? 0) > logicalHeight) {
+        if (
+            w.type === 0 &&
+            (!isIf3 || w.uikitScrollbar === true) &&
+            (w.scrollHeight ?? 0) > logicalHeight
+        ) {
             const scrollbarStartMs = profileWidgetRender ? performance.now() : 0;
             drawScrollBar(
                 glr,

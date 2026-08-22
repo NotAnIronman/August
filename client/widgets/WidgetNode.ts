@@ -206,6 +206,8 @@ export interface WidgetNode {
     hasListener?: boolean;
     prioritizeMenuEntry?: boolean; // If true, this widget's menu entry appears first
     isScrollBar?: boolean; // If true, widget is a scrollbar component
+    /** UIKit-only: draw a native scrollbar beside this scroll container. */
+    uikitScrollbar?: boolean;
     dataText?: string; // Extra text data (used by some widgets)
 
     // Dragging

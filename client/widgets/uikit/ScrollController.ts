@@ -119,58 +119,43 @@ export function createScrollController(
             return;
         }
 
+        const content = widgetManager.getWidgetByUid(CONTENT_VIEW_UID);
         const scrollbar = widgetManager.getWidgetByUid(SCROLLBAR_UID);
         const track = widgetManager.getWidgetByUid(TRACK_UID);
-        const content = widgetManager.getWidgetByUid(CONTENT_VIEW_UID);
         const thumb = widgetManager.getWidgetByUid(THUMB_UID);
         if (!scrollbar || !track || !content || !thumb) return;
 
-        widgetManager.ensureLayout(scrollbar);
         widgetManager.ensureLayout(content);
 
         const rowCount = computeVisibleRowCount(widgetManager);
         const viewportHeight = Math.max(0, content.height | 0);
         const contentHeight = Math.max(viewportHeight, rowCount * rowHeight);
         const maxScrollY = Math.max(0, contentHeight - viewportHeight);
+        if ((content.scrollHeight | 0) !== contentHeight) {
+            content.scrollHeight = contentHeight;
+            widgetManager.invalidateWidgetRender(content);
+        }
 
-        const scrollbarY = (scrollbar._absY ?? scrollbar.y ?? 0) | 0;
-        const scrollbarHeight = Math.max(0, scrollbar.height | 0);
-
-        const setThumb = (scrollY: number) => {
-            if (scrollbarHeight <= 0) return;
-            const thumbHeight =
-                maxScrollY > 0
-                    ? Math.max(20, Math.floor((viewportHeight * scrollbarHeight) / contentHeight))
-                    : scrollbarHeight;
-            const draggableHeight = Math.max(0, scrollbarHeight - thumbHeight);
-            const thumbOffset =
-                maxScrollY > 0 ? Math.floor((draggableHeight * scrollY) / maxScrollY) : 0;
-            const trackTop = scrollbar.rawY ?? 0;
-            thumb.rawY = trackTop + thumbOffset;
-            thumb.y = thumb.rawY;
-            thumb.rawHeight = thumbHeight;
-            thumb.height = thumbHeight;
-            widgetManager.invalidateWidget(thumb, "uikit-scrollbar-thumb");
-        };
+        // UIKit scrollbars are drawn beside the actual content viewport by
+        // renderWidgetTree. Keep the old generated widgets hidden: the
+        // steelborder host uses a different coordinate space.
+        for (const widget of [scrollbar, track, thumb]) {
+            widget.hidden = true;
+            widget.isHidden = true;
+        }
+        const scrollbarX = ((content._absX ?? content.x ?? 0) +
+            (content._absWidth ?? content.width ?? 0)) | 0;
+        const scrollbarY = (content._absY ?? content.y ?? 0) | 0;
+        const scrollbarHeight = viewportHeight;
+        const scrollbarWidth = Math.max(1, scrollbar.width | 0);
 
         if (maxScrollY <= 0) {
-            for (const widget of [scrollbar, track, thumb]) {
-                widget.hidden = true;
-                widget.isHidden = true;
-            }
             if ((content.scrollY | 0) !== 0) {
                 content.scrollY = 0;
                 widgetManager.invalidateScroll(content);
             }
             return;
         }
-        if (scrollbar.hidden || scrollbar.isHidden || track.hidden || thumb.hidden) {
-            for (const widget of [scrollbar, track, thumb]) {
-                widget.hidden = false;
-                widget.isHidden = false;
-            }
-        }
-
         const setScrollY = (value: number): void => {
             const next = clampScrollY(value, maxScrollY);
             const changed = (content.scrollY | 0) !== next;
@@ -178,9 +163,8 @@ export function createScrollController(
                 content.scrollY = next;
                 widgetManager.invalidateScroll(content);
             }
-            setThumb(next);
             if (changed) {
-                widgetManager.invalidateWidget(scrollbar, "uikit-scroll");
+                widgetManager.invalidateWidgetRender(content);
             }
         };
 
@@ -201,11 +185,9 @@ export function createScrollController(
             const uid = (widget?.uid ?? -1) | 0;
             return uid === CONTENT_VIEW_UID || (widget?.parentUid | 0) === CONTENT_VIEW_UID;
         });
-        const isOverScrollbar = hitStack.some((widget) => {
-            const uid = (widget?.uid ?? -1) | 0;
-            return uid === SCROLLBAR_UID || uid === TRACK_UID || uid === THUMB_UID ||
-                (widget?.parentUid | 0) === SCROLLBAR_UID;
-        });
+        const isOverScrollbar =
+            mx >= scrollbarX && mx < scrollbarX + scrollbarWidth &&
+            my >= scrollbarY && my < scrollbarY + scrollbarHeight;
 
         if (input.wheelDeltaY !== 0 && (isOverContent || isOverScrollbar)) {
             setScrollY((content.scrollY | 0) + input.wheelDeltaY * rowHeight);
@@ -214,12 +196,10 @@ export function createScrollController(
 
         if (input.clickMode2 !== ClickMode.LEFT || !isOverScrollbar) return;
 
-        const thumbHeight = Math.max(
-            20,
-            Math.floor((viewportHeight * scrollbarHeight) / contentHeight),
-        );
-        const draggableHeight = Math.max(0, scrollbarHeight - thumbHeight);
-        const thumbOffset = my - scrollbarY - (thumbHeight >> 1);
+        const trackHeight = Math.max(1, scrollbarHeight - 32);
+        const thumbHeight = Math.max(8, Math.floor((scrollbarHeight * trackHeight) / contentHeight));
+        const draggableHeight = Math.max(0, trackHeight - thumbHeight);
+        const thumbOffset = my - scrollbarY - 16 - (thumbHeight >> 1);
         setScrollY(
             draggableHeight > 0 ? Math.floor((thumbOffset * maxScrollY) / draggableHeight) : 0,
         );

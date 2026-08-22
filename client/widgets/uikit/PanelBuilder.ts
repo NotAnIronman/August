@@ -94,13 +94,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
 
     const root = makeWidget(groupId, ComponentIds.ROOT, -1, {
         type: 0,
-        // The root is the modal itself, not the full canvas. Using
-        // setsize_minus here made its descendants use canvas coordinates,
-        // which displaced generated scrollbars and distorted panel sizing.
-        widthMode: 0,
-        heightMode: 0,
-        rawWidth: layout.width,
-        rawHeight: layout.height,
+        // Steelborder is a cache script that expects a full-modal host. The
+        // visible border is produced inside this canvas-sized component.
+        widthMode: 1,
+        heightMode: 1,
         width: layout.width,
         height: layout.height,
         xPositionMode: 1,
@@ -115,10 +112,8 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     // the border/backdrop/title bar/close button onto this component.
     const frame = makeWidget(groupId, ComponentIds.FRAME, rootUid, {
         type: layout.plainFrame ? 3 : 0,
-        widthMode: 0,
-        heightMode: 0,
-        rawWidth: layout.width,
-        rawHeight: layout.height,
+        widthMode: 1,
+        heightMode: 1,
         width: layout.width,
         height: layout.height,
         filled: layout.plainFrame ? true : undefined,
@@ -240,6 +235,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         scrollY: 0,
         scrollWidth: contentWidth,
         scrollHeight: (layout.content.rowCapacity ?? ComponentIds.MAX_ROWS) * rowHeight,
+        uikitScrollbar: layout.content.scrollbarWidth > 0,
     });
     widgets.set(contentView.uid, contentView);
     const contentViewUid = contentView.uid;
@@ -559,6 +555,8 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             rawHeight: contentHeight,
             width: layout.content.scrollbarWidth,
             height: contentHeight,
+            isHidden: true,
+            hidden: true,
         });
         widgets.set(scrollbar.uid, scrollbar);
 
@@ -575,6 +573,8 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             height: contentHeight,
             filled: true,
             color: 0x55452f,
+            isHidden: true,
+            hidden: true,
         });
         widgets.set(track.uid, track);
 
@@ -589,6 +589,8 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             filled: true,
             color: 0xffcf70,
             mouseOverColor: 0xffffff,
+            isHidden: true,
+            hidden: true,
         });
         widgets.set(thumb.uid, thumb);
     }
