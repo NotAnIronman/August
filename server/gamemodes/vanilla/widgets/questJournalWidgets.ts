@@ -215,11 +215,13 @@ function openQuestJournal(player: PlayerState, quest: QuestEntry, services: Scri
 
     // Show the "View Quest Overview" switch button, if this quest has one.
     const definition = getQuestDefinition(quest.displayName);
-    services.dialog.queueWidgetEvent(playerId, {
-        action: "set_hidden",
-        uid: packUid(QUEST_JOURNAL_PANEL_GROUP_ID, ComponentIds.FOOTER_BUTTON),
-        hidden: !definition?.overviewStartText,
-    });
+    for (const componentId of [ComponentIds.FOOTER_BUTTON, ComponentIds.FOOTER_BUTTON_LABEL]) {
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden",
+            uid: packUid(QUEST_JOURNAL_PANEL_GROUP_ID, componentId),
+            hidden: !definition?.overviewStartText,
+        });
+    }
     if (definition?.overviewStartText) {
         sendUiFooterButton(services, playerId, QUEST_JOURNAL_PANEL_GROUP_ID, "View Quest Overview");
     }

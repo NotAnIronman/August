@@ -51,7 +51,7 @@ export type UiPanelLayout = {
     /** A local input primitive. Server filtering must use an explicit validated action. */
     search?: { placeholder: string; width?: number };
     /** Large item-icon buttons, laid out in a two-column grid inside content. */
-    menuButtons?: { columns?: 2; buttonHeight?: number; gap?: number; iconSize?: number };
+    menuButtons?: { columns?: 2; rows?: number; buttonHeight?: number; gap?: number; iconSize?: number };
 };
 
 export type UiTab = { label: string };

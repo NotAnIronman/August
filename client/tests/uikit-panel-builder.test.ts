@@ -21,7 +21,7 @@ assert.equal(topTabs.widgets.get(uid(ComponentIds.FOOTER_BUTTON))?.actions?.[0],
 assert.equal(topTabs.root?.noClickThrough, true);
 assert.equal(
     topTabs.widgets.get(uid(ComponentIds.FOOTER_BUTTON_LABEL))?.parentUid,
-    uid(ComponentIds.FOOTER_BUTTON),
+    uid(ComponentIds.ROOT),
 );
 assert.equal(topTabs.widgets.size, 1 + 1 + ComponentIds.MAX_TABS * 2 + 1 + ComponentIds.MAX_ROWS * 3 + 5);
 
@@ -77,5 +77,5 @@ assert.equal(mixedMenuHarness.has(ComponentIds.ICON_ROW_ICON_BASE), true);
 assert.equal(mixedMenuHarness.menuButtonCount(), ComponentIds.MAX_MENU_BUTTONS);
 assert.equal(
     mixedMenuHarness.parentOf(ComponentIds.MENU_BUTTON_LABEL_BASE),
-    ((groupId + 4) << 16) | ComponentIds.MENU_BUTTON_BACKGROUND_BASE,
+    ((groupId + 4) << 16) | ComponentIds.CONTENT_VIEW,
 );

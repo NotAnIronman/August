@@ -281,6 +281,13 @@ export function sendUiFooterButton(
         uid: packUid(groupId, ComponentIds.FOOTER_BUTTON_LABEL),
         text: label,
     });
+    for (const componentId of [ComponentIds.FOOTER_BUTTON, ComponentIds.FOOTER_BUTTON_LABEL]) {
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden",
+            uid: packUid(groupId, componentId),
+            hidden: false,
+        });
+    }
 }
 
 /** Populates the optional generic action-button strip (layout.controls). */
@@ -338,6 +345,16 @@ export function sendUiMenuButtons(
             uid: packUid(groupId, ComponentIds.MENU_BUTTON_BACKGROUND_BASE + i),
             hidden: !button,
         });
+        for (const componentBase of [
+            ComponentIds.MENU_BUTTON_ICON_BASE,
+            ComponentIds.MENU_BUTTON_LABEL_BASE,
+        ]) {
+            services.dialog.queueWidgetEvent(playerId, {
+                action: "set_hidden",
+                uid: packUid(groupId, componentBase + i),
+                hidden: !button,
+            });
+        }
     }
 }
 

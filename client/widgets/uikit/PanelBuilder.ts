@@ -442,7 +442,17 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     if (layout.menuButtons) {
         const columns = layout.menuButtons.columns ?? 2;
         const gap = layout.menuButtons.gap ?? 8;
-        const buttonHeight = layout.menuButtons.buttonHeight ?? 52;
+        const rows = Math.max(1, layout.menuButtons.rows ?? 4);
+        const requestedButtonHeight = layout.menuButtons.buttonHeight ?? 52;
+        // Keep the declared menu grid within the content viewport. Extra
+        // button slots are hidden by the server until populated.
+        const buttonHeight = Math.max(
+            20,
+            Math.min(
+                requestedButtonHeight,
+                Math.floor((contentHeight - gap * (rows - 1)) / rows),
+            ),
+        );
         const iconSize = layout.menuButtons.iconSize ?? 36;
         const buttonWidth = Math.max(1, Math.floor((contentWidth - gap * (columns - 1)) / columns));
         for (let i = 0; i < ComponentIds.MAX_MENU_BUTTONS; i++) {
@@ -456,14 +466,20 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
             });
             widgets.set(button.uid, button);
-            const icon = makeWidget(groupId, ComponentIds.MENU_BUTTON_ICON_BASE + i, button.uid, {
-                type: 5, rawX: 8, rawY: Math.max(0, Math.floor((buttonHeight - iconSize) / 2)),
+            const icon = makeWidget(groupId, ComponentIds.MENU_BUTTON_ICON_BASE + i, contentViewUid, {
+                // Rectangle widgets do not traverse static children, so item
+                // icons and labels must be siblings inside the content view.
+                type: 5,
+                rawX: column * (buttonWidth + gap) + 8,
+                rawY: row * (buttonHeight + gap) + Math.max(0, Math.floor((buttonHeight - iconSize) / 2)),
                 rawWidth: iconSize, rawHeight: iconSize, width: iconSize, height: iconSize,
                 itemId: -1, itemQuantity: 1,
             });
             widgets.set(icon.uid, icon);
-            const label = makeWidget(groupId, ComponentIds.MENU_BUTTON_LABEL_BASE + i, button.uid, {
-                type: 4, rawX: iconSize + 16, rawY: 0,
+            const label = makeWidget(groupId, ComponentIds.MENU_BUTTON_LABEL_BASE + i, contentViewUid, {
+                type: 4,
+                rawX: column * (buttonWidth + gap) + iconSize + 16,
+                rawY: row * (buttonHeight + gap),
                 rawWidth: buttonWidth - iconSize - 22, rawHeight: buttonHeight,
                 width: buttonWidth - iconSize - 22, height: buttonHeight,
                 text: "", fontId: FONT_BOLD_12, textColor: 0xffd27f, textShadowed: true,
@@ -533,15 +549,16 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             flags: FLAG_TRANSMIT_OP1,
         });
         widgets.set(footerButton.uid, footerButton);
-        // Rectangle widgets cannot render text themselves. Keep the label as
-        // a child so it inherits the button's visibility and stays layered
-        // above the background without becoming a separate click target.
-        const footerLabel = makeWidget(groupId, ComponentIds.FOOTER_BUTTON_LABEL, footerButton.uid, {
+        // Rectangle widgets cannot render text or traverse static children.
+        // Render the label as a sibling and mirror visibility server-side.
+        const footerLabel = makeWidget(groupId, ComponentIds.FOOTER_BUTTON_LABEL, rootUid, {
             type: 4,
             rawX: 0,
-            rawY: 0,
+            rawY: 10,
             rawWidth: 140,
             rawHeight: 20,
+            xPositionMode: 1,
+            yPositionMode: 2,
             width: 140,
             height: 20,
             text: "",

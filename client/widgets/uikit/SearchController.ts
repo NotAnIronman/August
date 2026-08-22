@@ -21,7 +21,7 @@ export interface UiSearchController {
 export function createSearchController(
     groupId: number,
     placeholder: string,
-    onQueryChange: (query: string) => void,
+    onQueryChange: (query: string, widgetManager: WidgetManager) => void,
 ): UiSearchController {
     const backgroundUid = packUid(groupId, ComponentIds.SEARCH_BACKGROUND);
     const textUid = packUid(groupId, ComponentIds.SEARCH_TEXT);
@@ -87,7 +87,7 @@ export function createSearchController(
             if (changed) {
                 query = next;
                 sync();
-                onQueryChange(query);
+                if (lastWidgetManager) onQueryChange(query, lastWidgetManager);
             }
             return true;
         },

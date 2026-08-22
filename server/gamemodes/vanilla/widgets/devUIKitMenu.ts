@@ -1,4 +1,5 @@
 import {
+    DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID,
     DEV_UIKIT_ICON_PANEL_GROUP_ID,
     DEV_UIKIT_MENU_PANEL_GROUP_ID,
     DEV_UIKIT_TEXT_PANEL_GROUP_ID,
@@ -21,6 +22,7 @@ const TEXT_TABS = [
     { label: "Text rows" },
     { label: "Controls" },
     { label: "Search" },
+    { label: "Components" },
 ];
 
 const TEXT_ROWS: readonly UiTextRow[] = [
@@ -88,6 +90,40 @@ const MENU_BUTTONS = [
     { itemId: 3144, label: "Travel" },
 ] as const;
 
+const COMPONENT_INTERFACE_BUTTONS = [
+    { itemId: 4151, label: "Collection Log (621)" },
+    { itemId: 554, label: "Settings sidebar (116)" },
+    { itemId: 995, label: "Settings modal (134)" },
+] as const;
+
+function openComponentsMenu(player: PlayerState, services: ScriptServices): void {
+    openUiPanel(
+        services,
+        player,
+        DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID,
+        "Native Interface Components",
+    );
+    sendUiMenuButtons(
+        services,
+        player.id,
+        DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID,
+        COMPONENT_INTERFACE_BUTTONS,
+    );
+    sendUiFooterButton(
+        services,
+        player.id,
+        DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID,
+        "Back to UIKit overview",
+    );
+}
+
+function openNativeInterface(player: PlayerState, services: ScriptServices, groupId: number): void {
+    // Opening the cache group directly renders every component exactly as it
+    // exists in this cache revision. The native close button returns to game;
+    // ::Dev reopens this launcher when another group needs inspection.
+    services.dialog.getInterfaceService()?.openModal(player, groupId);
+}
+
 function openMenuGrid(player: PlayerState, services: ScriptServices, selectedIndex?: number): void {
     openUiPanel(services, player, DEV_UIKIT_MENU_PANEL_GROUP_ID, "Developer Menu Buttons");
     sendUiMenuButtons(services, player.id, DEV_UIKIT_MENU_PANEL_GROUP_ID, MENU_BUTTONS);
@@ -146,6 +182,11 @@ export function registerDevUIKitMenu(
             actionId: `select_text_tab_${tabIndex}`,
             handle: ({ player }: { player: PlayerState }) => openTextMenu(player, services, tabIndex),
         })),
+        {
+            componentId: ComponentIds.TAB_BASE + 3,
+            actionId: "show_native_components",
+            handle: ({ player }) => openComponentsMenu(player, services),
+        },
     ]);
 
     registerUiPanelActions(registry, services, DEV_UIKIT_ICON_PANEL_GROUP_ID, [
@@ -171,6 +212,24 @@ export function registerDevUIKitMenu(
             componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE + buttonIndex,
             actionId: `select_menu_button_${buttonIndex}`,
             handle: ({ player }: { player: PlayerState }) => openMenuGrid(player, services, buttonIndex),
+        })),
+    ]);
+
+    registerUiPanelActions(registry, services, DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID, [
+        {
+            componentId: ComponentIds.FOOTER_BUTTON,
+            actionId: "show_text_rows",
+            handle: ({ player }) => openTextMenu(player, services),
+        },
+        ...COMPONENT_INTERFACE_BUTTONS.map((_, buttonIndex) => ({
+            componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE + buttonIndex,
+            actionId: `open_native_interface_${buttonIndex}`,
+            handle: ({ player }: { player: PlayerState }) =>
+                openNativeInterface(
+                    player,
+                    services,
+                    [621, 116, 134][buttonIndex] ?? 621,
+                ),
         })),
     ]);
 }

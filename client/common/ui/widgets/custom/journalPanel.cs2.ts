@@ -22,3 +22,5 @@ export const SKILL_GUIDE_PANEL_GROUP_ID = 30023;
 export const DEV_UIKIT_TEXT_PANEL_GROUP_ID = 30024;
 export const DEV_UIKIT_ICON_PANEL_GROUP_ID = 30025;
 export const DEV_UIKIT_MENU_PANEL_GROUP_ID = 30026;
+/** Developer-only launcher for inspecting native cache interface components. */
+export const DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID = 30027;
