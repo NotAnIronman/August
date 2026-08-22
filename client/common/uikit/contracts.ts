@@ -14,9 +14,12 @@ export const ComponentIds = {
     PICKER_SOURCE: 1200, PICKER_ROW_PREVIEW_BASE: 2000,
     PICKER_ROW_LABEL_BASE: 2600, PICKER_ROW_ALT_PREVIEW_BASE: 3200,
     MAX_PICKER_ROWS: 500,
+    /** Fixed thumbnail grid used by the dedicated full-cache sprite browser. */
+    SPRITE_GALLERY_SOURCE: 1201, SPRITE_GALLERY_CELL_BASE: 4000,
+    SPRITE_GALLERY_LABEL_BASE: 4100, MAX_SPRITE_GALLERY_CELLS: 48,
 } as const;
 
-export type UiRowKind = "text" | "icon" | "mixed" | "picker";
+export type UiRowKind = "text" | "icon" | "mixed" | "picker" | "sprite-gallery";
 export type UiTabPosition = "left" | "top";
 export type UiTextAlignment = "left" | "center";
 export type UiTextStyle = { color?: string; bold?: boolean; strikethrough?: boolean };
@@ -53,7 +56,7 @@ export type UiPanelLayout = {
     plainFrame?: boolean;
     footerButton?: boolean;
     /** A bottom-aligned row of reusable server-authoritative action buttons. */
-    controls?: { width?: number; height?: number; gap?: number };
+    controls?: { width?: number; height?: number; gap?: number; count?: number };
     /** A local input primitive. Server filtering must use an explicit validated action. */
     search?: { placeholder: string; width?: number };
     /** Large item-icon buttons, laid out in a two-column grid inside content. */

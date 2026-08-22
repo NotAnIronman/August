@@ -26,3 +26,5 @@ export const DEV_UIKIT_MENU_PANEL_GROUP_ID = 30026;
 export const DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID = 30027;
 /** Developer-only cache-widget asset/component picker. */
 export const DEV_UIKIT_COMPONENT_PICKER_GROUP_ID = 30028;
+/** Developer-only paginated visual browser for every sprite in the cache. */
+export const DEV_UIKIT_SPRITE_GALLERY_GROUP_ID = 30029;

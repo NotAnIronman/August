@@ -296,9 +296,11 @@ export function sendUiControls(
     playerId: number,
     groupId: number,
     controls: readonly UiControl[],
+    controlCapacity = ComponentIds.MAX_CONTROLS,
 ): void {
-    assertCapacity("controls", controls.length, ComponentIds.MAX_CONTROLS);
-    for (let i = 0; i < ComponentIds.MAX_CONTROLS; i++) {
+    const capacity = Math.max(1, Math.min(ComponentIds.MAX_CONTROLS, controlCapacity | 0));
+    assertCapacity("controls", controls.length, capacity);
+    for (let i = 0; i < capacity; i++) {
         const control = controls[i];
         const backgroundUid = packUid(groupId, ComponentIds.CONTROL_BACKGROUND_BASE + i);
         const labelUid = packUid(groupId, ComponentIds.CONTROL_LABEL_BASE + i);

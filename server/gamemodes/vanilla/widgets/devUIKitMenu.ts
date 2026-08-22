@@ -3,6 +3,7 @@ import {
     DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID,
     DEV_UIKIT_ICON_PANEL_GROUP_ID,
     DEV_UIKIT_MENU_PANEL_GROUP_ID,
+    DEV_UIKIT_SPRITE_GALLERY_GROUP_ID,
     DEV_UIKIT_TEXT_PANEL_GROUP_ID,
 } from "../../../../client/common/ui/widgets/custom/journalPanel.cs2";
 import { ComponentIds, type UiIconRow, type UiTextRow } from "../../../../client/common/uikit/contracts";
@@ -96,6 +97,7 @@ const COMPONENT_PICKER_BUTTONS = [
     { itemId: 4151, label: "Browse Log assets" },
     { itemId: 554, label: "Browse sidebar assets" },
     { itemId: 995, label: "Browse modal assets" },
+    { itemId: 1733, label: "Browse all cache sprites" },
 ] as const;
 
 const NATIVE_INTERFACE_BUTTONS = [
@@ -105,8 +107,10 @@ const NATIVE_INTERFACE_BUTTONS = [
 ] as const;
 
 const COMPONENT_INTERFACE_BUTTONS = [...COMPONENT_PICKER_BUTTONS, ...NATIVE_INTERFACE_BUTTONS] as const;
+const spriteGalleryPageByPlayerId = new Map<number, number>();
 
 function openComponentsMenu(player: PlayerState, services: ScriptServices): void {
+    spriteGalleryPageByPlayerId.delete(player.id);
     openUiPanel(
         services,
         player,
@@ -127,7 +131,11 @@ function openComponentsMenu(player: PlayerState, services: ScriptServices): void
     );
 }
 
-function openComponentPicker(player: PlayerState, services: ScriptServices, sourceGroupId: number): void {
+function openComponentPicker(
+    player: PlayerState,
+    services: ScriptServices,
+    sourceGroupId: number,
+): void {
     // The native steelborder script dynamically builds children and rejects
     // the large developer inspection panel. This panel uses its own plain
     // backdrop and footer instead, avoiding that cache-script limitation.
@@ -138,6 +146,22 @@ function openComponentPicker(player: PlayerState, services: ScriptServices, sour
         text: String(sourceGroupId),
     });
     sendUiFooterButton(services, player.id, DEV_UIKIT_COMPONENT_PICKER_GROUP_ID, "Back to Components");
+}
+
+function openSpriteGallery(player: PlayerState, services: ScriptServices, page: number): void {
+    const safePage = Math.max(0, page | 0);
+    spriteGalleryPageByPlayerId.set(player.id, safePage);
+    services.dialog.getInterfaceService()?.openModal(player, DEV_UIKIT_SPRITE_GALLERY_GROUP_ID);
+    services.dialog.queueWidgetEvent(player.id, {
+        action: "set_text",
+        uid: packUid(DEV_UIKIT_SPRITE_GALLERY_GROUP_ID, ComponentIds.SPRITE_GALLERY_SOURCE),
+        text: String(safePage),
+    });
+    sendUiControls(services, player.id, DEV_UIKIT_SPRITE_GALLERY_GROUP_ID, [
+        { label: "Previous page" },
+        { label: "Next page" },
+        { label: "Back to Components" },
+    ], 3);
 }
 
 function openNativeInterface(player: PlayerState, services: ScriptServices, groupId: number): void {
@@ -249,7 +273,9 @@ export function registerDevUIKitMenu(
             actionId: `open_native_interface_${buttonIndex}`,
             handle: ({ player }: { player: PlayerState }) =>
                 buttonIndex < COMPONENT_PICKER_BUTTONS.length
-                    ? openComponentPicker(player, services, [621, 116, 134][buttonIndex] ?? 621)
+                    ? buttonIndex === 3
+                        ? openSpriteGallery(player, services, 0)
+                        : openComponentPicker(player, services, [621, 116, 134][buttonIndex] ?? 621)
                     : openNativeInterface(player, services, [621, 116, 134][buttonIndex - COMPONENT_PICKER_BUTTONS.length] ?? 621),
         })),
     ]);
@@ -258,6 +284,30 @@ export function registerDevUIKitMenu(
         {
             componentId: ComponentIds.FOOTER_BUTTON,
             actionId: "show_components",
+            handle: ({ player }) => openComponentsMenu(player, services),
+        },
+    ]);
+
+    registerUiPanelActions(registry, services, DEV_UIKIT_SPRITE_GALLERY_GROUP_ID, [
+        {
+            componentId: ComponentIds.CONTROL_BACKGROUND_BASE,
+            actionId: "sprite_gallery_previous",
+            handle: ({ player }) => openSpriteGallery(
+                player,
+                services,
+                Math.max(0, (spriteGalleryPageByPlayerId.get(player.id) ?? 0) - 1),
+            ),
+        },
+        {
+            componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 1,
+            actionId: "sprite_gallery_next",
+            handle: ({ player }) => {
+                openSpriteGallery(player, services, (spriteGalleryPageByPlayerId.get(player.id) ?? 0) + 1);
+            },
+        },
+        {
+            componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 2,
+            actionId: "sprite_gallery_back",
             handle: ({ player }) => openComponentsMenu(player, services),
         },
     ]);

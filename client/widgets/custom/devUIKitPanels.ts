@@ -3,6 +3,7 @@ import {
     DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID,
     DEV_UIKIT_ICON_PANEL_GROUP_ID,
     DEV_UIKIT_MENU_PANEL_GROUP_ID,
+    DEV_UIKIT_SPRITE_GALLERY_GROUP_ID,
     DEV_UIKIT_TEXT_PANEL_GROUP_ID,
 } from "../../common/ui/widgets/custom/journalPanel.cs2";
 import { buildUiPanel } from "../uikit/PanelBuilder";
@@ -10,26 +11,146 @@ import { ComponentIds } from "../../common/uikit/contracts";
 import { createSearchController } from "../uikit/SearchController";
 import { registerUiPanel } from "../uikit/registry";
 import { createScrollController } from "../uikit/ScrollController";
-import { cacheWidgetAssetKey, cacheWidgetComponentKey } from "../uikit/CacheUiAssets";
+import {
+    cacheWidgetAssetKey,
+    cacheWidgetComponentKey,
+} from "../uikit/CacheUiAssets";
+import { IndexType } from "../../rs/cache/IndexType";
+import { SpriteLoader } from "../../rs/sprite/SpriteLoader";
 
 const TEXT_ROW_HEIGHT = 18;
 const ICON_ROW_HEIGHT = 34;
+const SPRITE_GALLERY_ARCHIVES_PER_PAGE = 32;
+
+type GalleryEntry = { archiveId: number; frame: number; width: number; height: number };
+
+function cacheSpriteGallery(widgetManager: any): void {
+    const uid = (componentId: number) =>
+        ((DEV_UIKIT_SPRITE_GALLERY_GROUP_ID & 0xffff) << 16) | componentId;
+    const sourceWidget = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_SOURCE));
+    // The registry processes every UIKit panel each frame, including panels
+    // that have not been opened or loaded yet.
+    if (!sourceWidget) return;
+    const page = Math.max(0, Number.parseInt(sourceWidget?.text ?? "", 10) || 0);
+    const pickerKey = `uikit-sprite-gallery:${page}`;
+    if (sourceWidget.__uikitPickerKey === pickerKey) return;
+    const content = widgetManager.getWidgetByUid(uid(ComponentIds.CONTENT_VIEW));
+    if (content) {
+        content.scrollY = 0;
+        // This is a fixed page, not another long list: all 48 cells are laid
+        // out inside the viewport and navigation owns changing pages.
+        content.scrollHeight = content.height;
+        widgetManager.invalidateScroll(content);
+    }
+
+    let spriteIndex: any;
+    try {
+        spriteIndex = widgetManager.osrsClient?.cacheSystem?.getIndex?.(IndexType.DAT2.sprites);
+    } catch {
+        spriteIndex = undefined;
+    }
+    if (!spriteIndex) return;
+
+    const archiveIds = Array.from(spriteIndex.getArchiveIds?.() ?? [])
+        .map((archiveId) => Number(archiveId) | 0)
+        .sort((left, right) => left - right);
+    const firstArchive = Math.max(0, page | 0) * SPRITE_GALLERY_ARCHIVES_PER_PAGE;
+    const lastArchive = Math.min(archiveIds.length, firstArchive + SPRITE_GALLERY_ARCHIVES_PER_PAGE);
+    const entries: GalleryEntry[] = [];
+    for (let archiveIndex = firstArchive; archiveIndex < lastArchive; archiveIndex++) {
+        const archiveId = archiveIds[archiveIndex];
+        try {
+            const sprites = SpriteLoader.loadIntoIndexedSprites(spriteIndex, archiveId);
+            if (!sprites) continue;
+            for (let frame = 0; frame < sprites.length && entries.length < ComponentIds.MAX_SPRITE_GALLERY_CELLS; frame++) {
+                const sprite = sprites[frame];
+                entries.push({
+                    archiveId,
+                    frame,
+                    width: sprite.subWidth | 0,
+                    height: sprite.subHeight | 0,
+                });
+            }
+        } catch {
+            // Some sprite-index archives are non-visual data. Skip them; the
+            // gallery is intentionally a visual browser, not a cache validator.
+        }
+    }
+
+    for (let index = 0; index < ComponentIds.MAX_SPRITE_GALLERY_CELLS; index++) {
+        const preview = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_CELL_BASE + index));
+        const label = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_LABEL_BASE + index));
+        const entry = entries[index];
+        if (!preview || !label) continue;
+        if (!entry) {
+            preview.hidden = preview.isHidden = true;
+            label.hidden = label.isHidden = true;
+            continue;
+        }
+        preview.hidden = preview.isHidden = false;
+        preview.type = 5;
+        preview.isIf3 = true;
+        preview.itemId = -1;
+        preview.spriteId = -1;
+        preview.spriteId2 = -1;
+        preview.cacheSpriteToken = undefined;
+        preview.cacheSpriteArchiveId = entry.archiveId;
+        preview.cacheSpriteFrame = entry.frame;
+        const maxWidth = Math.max(1, preview.__uikitGalleryMaxWidth ?? preview.width ?? 42);
+        const maxHeight = Math.max(1, preview.__uikitGalleryMaxHeight ?? preview.height ?? 42);
+        const spriteWidth = Math.max(1, entry.width);
+        const spriteHeight = Math.max(1, entry.height);
+        const scale = Math.min(maxWidth / spriteWidth, maxHeight / spriteHeight);
+        const previewWidth = Math.max(1, Math.round(spriteWidth * scale));
+        const previewHeight = Math.max(1, Math.round(spriteHeight * scale));
+        const centerX = preview.__uikitGalleryCenterX ?? preview.rawX + Math.floor(maxWidth / 2);
+        const topY = preview.__uikitGalleryTopY ?? preview.rawY;
+        preview.rawX = centerX - Math.floor(previewWidth / 2);
+        preview.rawY = topY + Math.floor((maxHeight - previewHeight) / 2);
+        preview.rawWidth = preview.width = previewWidth;
+        preview.rawHeight = preview.height = previewHeight;
+        preview.opacity = 0;
+        preview.transparency = 0;
+        // The compact visible id maps directly to the reusable key
+        // `cache.sprite.<archiveId>.<frame>` without clipping in a grid cell.
+        label.text = `${entry.archiveId}:${entry.frame}`;
+        label.hidden = label.isHidden = false;
+        widgetManager.invalidateWidgetRender(preview);
+        widgetManager.invalidateWidgetRender(label);
+    }
+    sourceWidget.__uikitPickerKey = pickerKey;
+}
 
 function cacheComponentPicker(widgetManager: any): void {
     const uid = (componentId: number) =>
         ((DEV_UIKIT_COMPONENT_PICKER_GROUP_ID & 0xffff) << 16) | componentId;
     const sourceWidget = widgetManager.getWidgetByUid(uid(ComponentIds.PICKER_SOURCE));
-    const sourceGroupId = Number.parseInt(sourceWidget?.text ?? "", 10);
+    const sourceToken = String(sourceWidget?.text ?? "").trim();
+    const sourceGroupId = Number.parseInt(sourceToken, 10);
     if (!Number.isInteger(sourceGroupId) || sourceGroupId < 0) return;
     const pickerKey = `uikit-picker:${sourceGroupId}`;
     if (sourceWidget.__uikitPickerKey === pickerKey) return;
+    const content = widgetManager.getWidgetByUid(uid(ComponentIds.CONTENT_VIEW));
+    if (content) {
+        content.scrollY = 0;
+        widgetManager.invalidateScroll(content);
+    }
 
     let sourceWidgets = widgetManager.getWidgetsForGroup(sourceGroupId);
     if (sourceWidgets.length === 0) {
         widgetManager.loadGroup(sourceGroupId);
         sourceWidgets = widgetManager.getWidgetsForGroup(sourceGroupId);
     }
-    sourceWidgets.sort((a: any, b: any) => (a.fileId ?? 0) - (b.fileId ?? 0));
+    // The old inspector placed every layout container in the same list as
+    // images. Containers (type 0) deliberately have nothing to render, so an
+    // asset browser should show only real sprites and previewable models.
+    sourceWidgets = sourceWidgets
+        .filter((source: any) => {
+            const type = source.type ?? 0;
+            const hasSprite = (source.spriteId ?? -1) >= 0 || (source.spriteId2 ?? -1) >= 0;
+            return (type === 5 && hasSprite) || type === 6;
+        })
+        .sort((a: any, b: any) => (a.fileId ?? 0) - (b.fileId ?? 0));
 
     for (let index = 0; index < ComponentIds.MAX_PICKER_ROWS; index++) {
         const preview = widgetManager.getWidgetByUid(uid(ComponentIds.PICKER_ROW_PREVIEW_BASE + index));
@@ -68,6 +189,8 @@ function cacheComponentPicker(widgetManager: any): void {
         preview.spriteId = spriteId;
         preview.spriteId2 = -1;
         preview.cacheSpriteToken = undefined;
+        preview.cacheSpriteArchiveId = undefined;
+        preview.cacheSpriteFrame = undefined;
         preview.opacity = 0;
         preview.transparency = 0;
         preview.borderType = source.borderType;
@@ -82,6 +205,8 @@ function cacheComponentPicker(widgetManager: any): void {
         alternatePreview.spriteId = alternateSpriteId;
         alternatePreview.spriteId2 = -1;
         alternatePreview.cacheSpriteToken = undefined;
+        alternatePreview.cacheSpriteArchiveId = undefined;
+        alternatePreview.cacheSpriteFrame = undefined;
         alternatePreview.itemId = -1;
         alternatePreview.itemQuantity = 1;
         alternatePreview.opacity = 0;
@@ -198,8 +323,8 @@ registerUiPanel({
         height: 390,
         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
         menuButtons: {
-            columns: 2, rows: 3, buttonHeight: 86, gap: 10, iconSize: 40,
-            maxHeightFraction: 0.5, maxWidthFraction: 0.75,
+            columns: 2, rows: 4, buttonHeight: 58, gap: 10, iconSize: 36,
+            maxHeightFraction: 0.78, maxWidthFraction: 0.75,
         },
         footerButton: true,
     }),
@@ -221,6 +346,23 @@ registerUiPanel({
         ComponentIds.MAX_PICKER_ROWS,
     ),
     onProcess: cacheComponentPicker,
+});
+
+registerUiPanel({
+    groupId: DEV_UIKIT_SPRITE_GALLERY_GROUP_ID,
+    build: () => buildUiPanel(DEV_UIKIT_SPRITE_GALLERY_GROUP_ID, {
+        width: 720,
+        height: 570,
+        plainFrame: true,
+        content: {
+            rowKind: "sprite-gallery",
+            rowHeight: 58,
+            rowCapacity: ComponentIds.MAX_SPRITE_GALLERY_CELLS,
+            scrollbarWidth: 0,
+        },
+        controls: { count: 3, width: 146, height: 20, gap: 10 },
+    }),
+    onProcess: cacheSpriteGallery,
 });
 
 registerUiPanel({

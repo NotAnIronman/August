@@ -27,6 +27,11 @@ export type CacheWidgetAssetReference = {
     field: CacheWidgetAssetField;
 };
 
+export type CacheSpriteAssetReference = {
+    archiveId: number;
+    frame: number;
+};
+
 type NamedSpriteAsset = {
     kind: "named-sprite";
     token: string;
@@ -39,7 +44,13 @@ type WidgetSpriteAsset = {
     description: string;
 };
 
-export type CacheUiAsset = NamedSpriteAsset | WidgetSpriteAsset;
+type ArchiveSpriteAsset = {
+    kind: "archive-sprite";
+    source: CacheSpriteAssetReference;
+    description: string;
+};
+
+export type CacheUiAsset = NamedSpriteAsset | WidgetSpriteAsset | ArchiveSpriteAsset;
 
 /**
  * Stable blank-reference format shown next to every component in the picker.
@@ -58,6 +69,11 @@ export function cacheWidgetAssetKey(
     return `${cacheWidgetComponentKey(groupId, componentId)}.${field}`;
 }
 
+/** Stable reference for an individual frame in the full cache sprite gallery. */
+export function cacheSpriteAssetKey(archiveId: number, frame = 0): string {
+    return `cache.sprite.${archiveId | 0}.${Math.max(0, frame | 0)}`;
+}
+
 function parseCacheWidgetAssetKey(key: string): CacheWidgetAssetReference | undefined {
     const match = /^cache\.widget\.(\d+)\.(\d+)\.(sprite|alternate)$/.exec(key);
     if (!match) return undefined;
@@ -66,6 +82,12 @@ function parseCacheWidgetAssetKey(key: string): CacheWidgetAssetReference | unde
         componentId: Number(match[2]) | 0,
         field: match[3] as CacheWidgetAssetField,
     };
+}
+
+function parseCacheSpriteAssetKey(key: string): CacheSpriteAssetReference | undefined {
+    const match = /^cache\.sprite\.(\d+)\.(\d+)$/.exec(key);
+    if (!match) return undefined;
+    return { archiveId: Number(match[1]) | 0, frame: Number(match[2]) | 0 };
 }
 
 /** Initial named entries whose cache identifiers are already known and stable. */
@@ -119,6 +141,26 @@ export const CACHE_UI_ASSET_ALIASES: Readonly<Record<string, CacheUiAsset>> = {
         source: { groupId: 116, componentId: 11, field: "sprite" },
         description: "Settings sidebar brightness/sun icon (sprite 659 in the current cache).",
     },
+    "settings.display-icon": {
+        kind: "widget-sprite",
+        source: { groupId: 116, componentId: 82, field: "sprite" },
+        description: "Settings sidebar display icon (sprite 2932 in the current cache).",
+    },
+    "settings.volume-knob": {
+        kind: "widget-sprite",
+        source: { groupId: 116, componentId: 137, field: "sprite" },
+        description: "Settings sidebar volume slider knob (sprite 4894 in the current cache).",
+    },
+    "settings.volume-bar-left": {
+        kind: "widget-sprite",
+        source: { groupId: 116, componentId: 14, field: "sprite" },
+        description: "Settings sidebar volume bar left cap (sprite 2852 in the current cache).",
+    },
+    "settings.volume-bar-right": {
+        kind: "widget-sprite",
+        source: { groupId: 116, componentId: 135, field: "sprite" },
+        description: "Settings sidebar volume bar right cap (sprite 2857 in the current cache).",
+    },
 };
 
 type ResolvedWidgetSprite = {
@@ -135,9 +177,13 @@ function resolveAssetDefinition(assetKey: string): CacheUiAsset | undefined {
     if (curated) return curated;
     const alias = CACHE_UI_ASSET_ALIASES[assetKey];
     if (alias) return alias;
-    const source = parseCacheWidgetAssetKey(assetKey);
-    return source
-        ? { kind: "widget-sprite", source, description: "Unlabelled cache component reference." }
+    const widgetSource = parseCacheWidgetAssetKey(assetKey);
+    if (widgetSource) {
+        return { kind: "widget-sprite", source: widgetSource, description: "Unlabelled cache component reference." };
+    }
+    const spriteSource = parseCacheSpriteAssetKey(assetKey);
+    return spriteSource
+        ? { kind: "archive-sprite", source: spriteSource, description: "Unlabelled cache sprite frame." }
         : undefined;
 }
 
@@ -178,6 +224,8 @@ function restoreDefaultMenuButton(widget: WidgetNode): void {
     widget.spriteId = -1;
     widget.spriteId2 = -1;
     widget.cacheSpriteToken = undefined;
+    widget.cacheSpriteArchiveId = undefined;
+    widget.cacheSpriteFrame = undefined;
     widget.spriteTiling = false;
 }
 
@@ -207,6 +255,25 @@ export function syncCacheUiAssetsForGroup(widgetManager: WidgetManager, groupId:
             widget.isIf3 = true;
             widget.itemId = -1;
             widget.cacheSpriteToken = asset.token;
+            widget.cacheSpriteArchiveId = undefined;
+            widget.cacheSpriteFrame = undefined;
+            widget.spriteId = -1;
+            widget.spriteId2 = -1;
+            widget.transparency = 0;
+            (widget as any).__cacheUiAssetSignature = signature;
+            widgetManager.invalidateWidgetRender(widget, "cache-ui-asset");
+            continue;
+        }
+
+        if (asset.kind === "archive-sprite") {
+            const signature = `${assetKey}:${asset.source.archiveId}:${asset.source.frame}`;
+            if ((widget as any).__cacheUiAssetSignature === signature) continue;
+            widget.type = 5;
+            widget.isIf3 = true;
+            widget.itemId = -1;
+            widget.cacheSpriteToken = undefined;
+            widget.cacheSpriteArchiveId = asset.source.archiveId;
+            widget.cacheSpriteFrame = asset.source.frame;
             widget.spriteId = -1;
             widget.spriteId2 = -1;
             widget.transparency = 0;
@@ -223,6 +290,8 @@ export function syncCacheUiAssetsForGroup(widgetManager: WidgetManager, groupId:
         widget.isIf3 = true;
         widget.itemId = -1;
         widget.cacheSpriteToken = undefined;
+        widget.cacheSpriteArchiveId = undefined;
+        widget.cacheSpriteFrame = undefined;
         widget.spriteId = resolved.spriteId;
         widget.spriteId2 = -1;
         widget.spriteTiling = resolved.spriteTiling;

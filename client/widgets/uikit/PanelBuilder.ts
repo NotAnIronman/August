@@ -268,6 +268,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     const includesTextRows = layout.content.rowKind === "text" || layout.content.rowKind === "mixed";
     const includesIconRows = layout.content.rowKind === "icon" || layout.content.rowKind === "mixed";
     const includesPickerRows = layout.content.rowKind === "picker";
+    const includesSpriteGallery = layout.content.rowKind === "sprite-gallery";
 
     if (includesTextRows) {
         for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
@@ -546,6 +547,65 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         widgets.set(source.uid, source);
     }
 
+    if (includesSpriteGallery) {
+        const columns = 6;
+        const rows = Math.ceil(ComponentIds.MAX_SPRITE_GALLERY_CELLS / columns);
+        const gap = 8;
+        const cellWidth = Math.max(40, Math.floor((contentWidth - gap * (columns - 1)) / columns));
+        const cellHeight = Math.max(48, Math.floor(contentHeight / rows));
+        const previewMaxWidth = Math.max(24, cellWidth - 8);
+        const previewMaxHeight = Math.min(42, Math.max(24, cellHeight - 18));
+        for (let i = 0; i < ComponentIds.MAX_SPRITE_GALLERY_CELLS; i++) {
+            const column = i % columns;
+            const row = Math.floor(i / columns);
+            const rawX = column * (cellWidth + gap);
+            const rawY = row * cellHeight;
+            const preview = makeWidget(groupId, ComponentIds.SPRITE_GALLERY_CELL_BASE + i, contentViewUid, {
+                type: 5,
+                rawX: rawX + Math.floor((cellWidth - previewMaxWidth) / 2),
+                rawY,
+                rawWidth: previewMaxWidth,
+                rawHeight: previewMaxHeight,
+                width: previewMaxWidth,
+                height: previewMaxHeight,
+                itemId: -1,
+                itemQuantity: 1,
+                isHidden: true,
+                hidden: true,
+            });
+            // Retained as local presentation metadata so later gallery pages
+            // can fit each sprite without stretching it.
+            (preview as any).__uikitGalleryMaxWidth = previewMaxWidth;
+            (preview as any).__uikitGalleryMaxHeight = previewMaxHeight;
+            (preview as any).__uikitGalleryCenterX = rawX + Math.floor(cellWidth / 2);
+            (preview as any).__uikitGalleryTopY = rawY;
+            const label = makeWidget(groupId, ComponentIds.SPRITE_GALLERY_LABEL_BASE + i, contentViewUid, {
+                type: 4,
+                rawX,
+                rawY: rawY + previewMaxHeight,
+                rawWidth: cellWidth,
+                rawHeight: Math.max(14, cellHeight - previewMaxHeight),
+                width: cellWidth,
+                height: Math.max(14, cellHeight - previewMaxHeight),
+                text: "",
+                fontId: FONT_PLAIN_11,
+                textColor: 0xe8ded0,
+                textShadowed: true,
+                xTextAlignment: 1,
+                yTextAlignment: 1,
+                isHidden: true,
+                hidden: true,
+            });
+            widgets.set(preview.uid, preview);
+            widgets.set(label.uid, label);
+        }
+        const source = makeWidget(groupId, ComponentIds.SPRITE_GALLERY_SOURCE, rootUid, {
+            type: 4, rawWidth: 1, rawHeight: 1, width: 1, height: 1,
+            text: "", isHidden: true, hidden: true,
+        });
+        widgets.set(source.uid, source);
+    }
+
     if (layout.content.scrollbarWidth > 0) {
         const scrollbarX = layout.width - layout.content.scrollbarWidth - 12;
         const scrollbar = makeWidget(groupId, ComponentIds.SCROLLBAR, rootUid, {
@@ -638,18 +698,21 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     }
 
     if (layout.controls) {
+        const controlCount = Math.max(
+            1,
+            Math.min(ComponentIds.MAX_CONTROLS, layout.controls.count ?? ComponentIds.MAX_CONTROLS),
+        );
         const controlGap = layout.controls.gap ?? 6;
         const maxControlWidth = Math.max(
             1,
-            Math.floor((layout.width - CONTENT_MARGIN_X * 2 - controlGap * (ComponentIds.MAX_CONTROLS - 1)) /
-                ComponentIds.MAX_CONTROLS),
+            Math.floor((layout.width - CONTENT_MARGIN_X * 2 - controlGap * (controlCount - 1)) /
+                controlCount),
         );
         const controlWidth = Math.min(layout.controls.width ?? 92, maxControlWidth);
         const controlHeight = layout.controls.height ?? 20;
-        const totalWidth = ComponentIds.MAX_CONTROLS * controlWidth +
-            (ComponentIds.MAX_CONTROLS - 1) * controlGap;
+        const totalWidth = controlCount * controlWidth + (controlCount - 1) * controlGap;
         const firstX = Math.max(CONTENT_MARGIN_X, Math.floor((layout.width - totalWidth) / 2));
-        for (let i = 0; i < ComponentIds.MAX_CONTROLS; i++) {
+        for (let i = 0; i < controlCount; i++) {
             const x = firstX + i * (controlWidth + controlGap);
             const background = makeWidget(groupId, ComponentIds.CONTROL_BACKGROUND_BASE + i, rootUid, {
                 type: 3, rawX: x, rawY: 10, rawWidth: controlWidth, rawHeight: controlHeight,

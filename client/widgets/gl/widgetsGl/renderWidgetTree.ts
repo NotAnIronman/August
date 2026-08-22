@@ -2979,6 +2979,15 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                 (w as any).cacheSpriteToken.length > 0
                     ? (w as any).cacheSpriteToken as string
                     : undefined;
+            const cacheSpriteArchiveId =
+                typeof (w as any).cacheSpriteArchiveId === "number" &&
+                (w as any).cacheSpriteArchiveId >= 0
+                    ? (w as any).cacheSpriteArchiveId | 0
+                    : -1;
+            const cacheSpriteFrame =
+                typeof (w as any).cacheSpriteFrame === "number"
+                    ? Math.max(0, (w as any).cacheSpriteFrame | 0)
+                    : 0;
 
             // Check borderType for sprite outline (set via CS2 CC_SETOUTLINE/IF_SETOUTLINE)
             // borderType >= 2 = white pixel-perfect outline around sprite
@@ -3001,9 +3010,11 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             const itemId = typeof w.itemId === "number" ? (w.itemId as number) | 0 : -1;
             const renderItemSprite = isIf3 && itemId >= 0;
 
-            if (!renderItemSprite && (effectiveSpriteId >= 0 || cacheSpriteToken)) {
+            if (!renderItemSprite && (effectiveSpriteId >= 0 || cacheSpriteToken || cacheSpriteArchiveId >= 0)) {
                 const tex = cacheSpriteToken
                     ? tc.getByNameToken(cacheSpriteToken)
+                    : cacheSpriteArchiveId >= 0
+                      ? tc.getSpriteByArchiveFrame(cacheSpriteArchiveId, cacheSpriteFrame)
                     : tc.getWidgetSpriteById(effectiveSpriteId, {
                           borderType,
                           shadowColor: spriteShadow,
