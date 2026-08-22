@@ -10,7 +10,7 @@ import { ComponentIds } from "../../common/uikit/contracts";
 import { createSearchController } from "../uikit/SearchController";
 import { registerUiPanel } from "../uikit/registry";
 import { createScrollController } from "../uikit/ScrollController";
-import { CacheUiAssetKey } from "../uikit/CacheUiAssets";
+import { cacheWidgetAssetKey, cacheWidgetComponentKey } from "../uikit/CacheUiAssets";
 
 const TEXT_ROW_HEIGHT = 18;
 const ICON_ROW_HEIGHT = 34;
@@ -50,9 +50,14 @@ function cacheComponentPicker(widgetManager: any): void {
         const sourceType = source.type ?? 0;
         const modelId = typeof source.modelId === "number" ? source.modelId : -1;
         const sourceText = String(source.text ?? "").replace(/<[^>]+>/g, "").trim();
-        label.text = `[${sourceGroupId}:${source.fileId}] type ${sourceType} | sprite ${spriteId}` +
+        label.text = `[${sourceGroupId}:${source.fileId}] ref ${cacheWidgetComponentKey(sourceGroupId, source.fileId)}` +
+            ` | type ${sourceType} | sprite ${spriteId}` +
             (alternateSpriteId >= 0 ? ` / alt ${alternateSpriteId}` : "") +
             (modelId >= 0 ? ` | model ${modelId}` : "") +
+            (spriteId >= 0 ? ` | key ${cacheWidgetAssetKey(sourceGroupId, source.fileId)}` : "") +
+            (alternateSpriteId >= 0
+                ? ` / ${cacheWidgetAssetKey(sourceGroupId, source.fileId, "alternate")}`
+                : "") +
             (sourceText ? ` | ${sourceText.slice(0, 48)}` : "");
         label.hidden = label.isHidden = false;
         preview.hidden = preview.isHidden = sourceType !== 5 && sourceType !== 6 && spriteId < 0;
@@ -62,6 +67,7 @@ function cacheComponentPicker(widgetManager: any): void {
         preview.isIf3 = true;
         preview.spriteId = spriteId;
         preview.spriteId2 = -1;
+        preview.cacheSpriteToken = undefined;
         preview.opacity = 0;
         preview.transparency = 0;
         preview.borderType = source.borderType;
@@ -75,6 +81,7 @@ function cacheComponentPicker(widgetManager: any): void {
         alternatePreview.type = 5;
         alternatePreview.spriteId = alternateSpriteId;
         alternatePreview.spriteId2 = -1;
+        alternatePreview.cacheSpriteToken = undefined;
         alternatePreview.itemId = -1;
         alternatePreview.itemQuantity = 1;
         alternatePreview.opacity = 0;
@@ -175,7 +182,6 @@ registerUiPanel({
         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
         menuButtons: {
             columns: 2, rows: 4, buttonHeight: 58, gap: 8, iconSize: 40,
-            backgroundAsset: CacheUiAssetKey.MENU_BUTTON_BACKGROUND,
             maxHeightFraction: 0.375, maxWidthFraction: 0.75,
         },
         footerButton: true,
@@ -193,7 +199,6 @@ registerUiPanel({
         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
         menuButtons: {
             columns: 2, rows: 3, buttonHeight: 86, gap: 10, iconSize: 40,
-            backgroundAsset: CacheUiAssetKey.MENU_BUTTON_BACKGROUND,
             maxHeightFraction: 0.5, maxWidthFraction: 0.75,
         },
         footerButton: true,

@@ -2,15 +2,10 @@ import type { WidgetManager } from "../WidgetManager";
 import type { WidgetNode } from "../WidgetNode";
 
 /**
- * The cache-backed visual vocabulary available to UIKit. Keep entries semantic
- * (what UIKit needs) rather than scattering archive IDs through panel code.
- *
- * Named entries are stable cache archive/frame tokens. Widget entries retain
- * their source interface so a cache revision can select the appropriate
- * sprite without baking a revision-specific numeric sprite ID into UIKit.
+ * Curated cache-backed visual vocabulary for UIKit. Add a semantic alias here
+ * only after a developer has named a source component in the asset inspector.
  */
 export const CacheUiAssetKey = {
-    MENU_BUTTON_BACKGROUND: "menu.settings-tab-button",
     SCROLLBAR_ARROW_UP: "scrollbar.arrow-up",
     SCROLLBAR_ARROW_DOWN: "scrollbar.arrow-down",
     SCROLLBAR_TRACK: "scrollbar.track",
@@ -24,6 +19,13 @@ export const CacheUiAssetKey = {
 } as const;
 
 export type CacheUiAssetKey = (typeof CacheUiAssetKey)[keyof typeof CacheUiAssetKey];
+export type CacheWidgetAssetField = "sprite" | "alternate";
+
+export type CacheWidgetAssetReference = {
+    groupId: number;
+    componentId: number;
+    field: CacheWidgetAssetField;
+};
 
 type NamedSpriteAsset = {
     kind: "named-sprite";
@@ -31,27 +33,43 @@ type NamedSpriteAsset = {
     description: string;
 };
 
-type SettingsWidgetSpriteAsset = {
-    kind: "settings-widget-sprite";
-    sourceGroups: readonly number[];
+type WidgetSpriteAsset = {
+    kind: "widget-sprite";
+    source: CacheWidgetAssetReference;
     description: string;
 };
 
-export type CacheUiAsset = NamedSpriteAsset | SettingsWidgetSpriteAsset;
+export type CacheUiAsset = NamedSpriteAsset | WidgetSpriteAsset;
 
 /**
- * Initial curated compendium. This is deliberately data-only so new cache
- * discoveries add one entry here and can be reused by any UIKit panel.
+ * Stable blank-reference format shown next to every component in the picker.
+ * It is deliberately based on interface/component IDs, not the raw sprite ID:
+ * the component remains useful if a later cache revision changes its sprite.
  */
-export const CACHE_UI_ASSETS: Readonly<Record<CacheUiAssetKey, CacheUiAsset>> = {
-    [CacheUiAssetKey.MENU_BUTTON_BACKGROUND]: {
-        kind: "settings-widget-sprite",
-        // Settings modal first: it contains the visual tab treatment. The
-        // side panel supplies a safe alternative for revisions where its tabs
-        // are dynamically built by CS2 rather than stored statically.
-        sourceGroups: [134, 116],
-        description: "Settings tab/button background, discovered from the native interface.",
-    },
+export function cacheWidgetComponentKey(groupId: number, componentId: number): string {
+    return `cache.widget.${groupId | 0}.${componentId | 0}`;
+}
+
+export function cacheWidgetAssetKey(
+    groupId: number,
+    componentId: number,
+    field: CacheWidgetAssetField = "sprite",
+): string {
+    return `${cacheWidgetComponentKey(groupId, componentId)}.${field}`;
+}
+
+function parseCacheWidgetAssetKey(key: string): CacheWidgetAssetReference | undefined {
+    const match = /^cache\.widget\.(\d+)\.(\d+)\.(sprite|alternate)$/.exec(key);
+    if (!match) return undefined;
+    return {
+        groupId: Number(match[1]) | 0,
+        componentId: Number(match[2]) | 0,
+        field: match[3] as CacheWidgetAssetField,
+    };
+}
+
+/** Initial named entries whose cache identifiers are already known and stable. */
+export const CACHE_UI_ASSETS: Readonly<Record<CacheUiAssetKey, NamedSpriteAsset>> = {
     [CacheUiAssetKey.SCROLLBAR_ARROW_UP]: {
         kind: "named-sprite", token: "scrollbar_v2,0", description: "Native scrollbar up arrow.",
     },
@@ -84,9 +102,26 @@ export const CACHE_UI_ASSETS: Readonly<Record<CacheUiAssetKey, CacheUiAsset>> = 
     },
 };
 
+/**
+ * The human-named half of the compendium. Names are assigned only after the
+ * developer identifies the cache reference in the picker. Example entry once
+ * a tab background is identified:
+ *
+ * "settings.tab-button": {
+ *   kind: "widget-sprite",
+ *   source: { groupId: 134, componentId: 42, field: "sprite" },
+ *   description: "Settings tab button background.",
+ * }
+ */
+export const CACHE_UI_ASSET_ALIASES: Readonly<Record<string, CacheUiAsset>> = {
+    "settings.brightness-icon": {
+        kind: "widget-sprite",
+        source: { groupId: 116, componentId: 11, field: "sprite" },
+        description: "Settings sidebar brightness/sun icon (sprite 659 in the current cache).",
+    },
+};
+
 type ResolvedWidgetSprite = {
-    groupId: number;
-    componentId: number;
     spriteId: number;
     spriteTiling: boolean;
     borderType?: number;
@@ -95,86 +130,75 @@ type ResolvedWidgetSprite = {
     vFlip?: boolean;
 };
 
-const resolvedSettingsButtonByManager = new WeakMap<
-    object,
-    { value: ResolvedWidgetSprite | undefined }
->();
-
-function spriteIdOf(widget: WidgetNode): number {
-    return typeof widget.spriteId === "number" && widget.spriteId >= 0 ? widget.spriteId | 0 : -1;
+function resolveAssetDefinition(assetKey: string): CacheUiAsset | undefined {
+    const curated = (CACHE_UI_ASSETS as Record<string, CacheUiAsset>)[assetKey];
+    if (curated) return curated;
+    const alias = CACHE_UI_ASSET_ALIASES[assetKey];
+    if (alias) return alias;
+    const source = parseCacheWidgetAssetKey(assetKey);
+    return source
+        ? { kind: "widget-sprite", source, description: "Unlabelled cache component reference." }
+        : undefined;
 }
 
-function sourceDimension(widget: WidgetNode, dimension: "width" | "height"): number {
-    const raw = dimension === "width" ? widget.rawWidth : widget.rawHeight;
-    const laidOut = dimension === "width" ? widget.width : widget.height;
-    return Math.max(0, Number(raw ?? laidOut ?? 0) | 0);
-}
-
-/**
- * Locate the broad, stateful sprite used for a native Settings tab/button.
- * Cache revisions move component IDs, so dimensions, state sprites, and
- * tiling are a safer contract than a brittle single component number.
- */
-function resolveSettingsButtonSprite(widgetManager: WidgetManager): ResolvedWidgetSprite | undefined {
-    const cached = resolvedSettingsButtonByManager.get(widgetManager);
-    if (cached) return cached.value;
-
-    const definition = CACHE_UI_ASSETS[CacheUiAssetKey.MENU_BUTTON_BACKGROUND] as SettingsWidgetSpriteAsset;
-    let best: { score: number; source: WidgetNode } | undefined;
-    for (let groupOrder = 0; groupOrder < definition.sourceGroups.length; groupOrder++) {
-        const groupId = definition.sourceGroups[groupOrder];
-        let widgets = widgetManager.getWidgetsForGroup(groupId);
-        if (widgets.length === 0) {
-            try {
-                widgetManager.loadGroup(groupId);
-                widgets = widgetManager.getWidgetsForGroup(groupId);
-            } catch {
-                continue;
-            }
-        }
-        for (const source of widgets) {
-            if ((source.type ?? 0) !== 5 || spriteIdOf(source) < 0) continue;
-            const width = sourceDimension(source, "width");
-            const height = sourceDimension(source, "height");
-            const aspect = height > 0 ? width / height : 0;
-            let score = groupOrder === 0 ? 200 : 100;
-            // Native backgrounds normally have a hover/active companion.
-            if (typeof source.spriteId2 === "number" && source.spriteId2 >= 0) score += 500;
-            // Prefer a button-shaped sprite over a single square tab icon.
-            if (width >= 28 && height >= 12) score += 120;
-            if (aspect >= 1.25 && aspect <= 8) score += 220;
-            if (source.spriteTiling) score += 140;
-            if (width <= 18 || height <= 10) score -= 160;
-            if (!best || score > best.score) best = { score, source };
+function resolveWidgetSprite(
+    widgetManager: WidgetManager,
+    source: CacheWidgetAssetReference,
+): ResolvedWidgetSprite | undefined {
+    const uid = ((source.groupId & 0xffff) << 16) | (source.componentId & 0xffff);
+    let widget = widgetManager.getWidgetByUid(uid);
+    if (!widget) {
+        try {
+            widgetManager.loadGroup(source.groupId);
+            widget = widgetManager.getWidgetByUid(uid);
+        } catch {
+            return undefined;
         }
     }
-
-    const source = best?.source;
-    const resolved = source
-        ? {
-              groupId: source.groupId | 0,
-              componentId: source.fileId | 0,
-              spriteId: spriteIdOf(source),
-              spriteTiling: source.spriteTiling === true,
-              borderType: source.borderType,
-              graphicShadow: source.graphicShadow,
-              hFlip: source.horizontalFlip ?? source.hFlip,
-              vFlip: source.verticalFlip ?? source.vFlip,
-          }
-        : undefined;
-    // Use a sentinel so panels do not repeatedly rescan source interfaces.
-    resolvedSettingsButtonByManager.set(widgetManager, { value: resolved });
-    return resolved;
+    if (!widget) return undefined;
+    const spriteId = source.field === "alternate" ? widget.spriteId2 : widget.spriteId;
+    if (!(typeof spriteId === "number") || spriteId < 0) return undefined;
+    return {
+        spriteId: spriteId | 0,
+        spriteTiling: widget.spriteTiling === true,
+        borderType: widget.borderType,
+        graphicShadow: widget.graphicShadow,
+        hFlip: widget.horizontalFlip ?? widget.hFlip,
+        vFlip: widget.verticalFlip ?? widget.vFlip,
+    };
 }
 
-/** Applies declared UIKit cache skins to every loaded widget in one panel. */
+function restoreDefaultMenuButton(widget: WidgetNode): void {
+    widget.type = 3;
+    widget.filled = true;
+    widget.color = 0x241e16;
+    widget.mouseOverColor = 0x3a3022;
+    widget.opacity = 104;
+    widget.transparency = 0;
+    widget.spriteId = -1;
+    widget.spriteId2 = -1;
+    widget.cacheSpriteToken = undefined;
+    widget.spriteTiling = false;
+}
+
+/** Applies declared cache skins to every loaded widget in one UIKit panel. */
 export function syncCacheUiAssetsForGroup(widgetManager: WidgetManager, groupId: number): void {
     const widgets = widgetManager.getWidgetsForGroup(groupId);
     for (const widget of widgets) {
-        const assetKey = widget.cacheUiAsset as CacheUiAssetKey | undefined;
+        const assetKey = widget.cacheUiAsset;
         if (!assetKey) continue;
-        const asset = CACHE_UI_ASSETS[assetKey];
-        if (!asset) continue;
+        const asset = resolveAssetDefinition(assetKey);
+        if (!asset) {
+            // Clears the temporary auto-selected brightness icon from a live
+            // hot-reloaded dev panel and restores the normal UIKit fallback.
+            if ((widget as any).__cacheUiAssetSignature) {
+                restoreDefaultMenuButton(widget);
+                (widget as any).__cacheUiAssetSignature = undefined;
+                widget.cacheUiAsset = undefined;
+                widgetManager.invalidateWidgetRender(widget, "cache-ui-asset-reset");
+            }
+            continue;
+        }
 
         if (asset.kind === "named-sprite") {
             const signature = `${assetKey}:${asset.token}`;
@@ -191,24 +215,23 @@ export function syncCacheUiAssetsForGroup(widgetManager: WidgetManager, groupId:
             continue;
         }
 
-        const source = resolveSettingsButtonSprite(widgetManager);
-        if (!source) continue; // Retain the panel's ordinary rectangle fallback.
-        const signature = `${assetKey}:${source.groupId}:${source.componentId}:${source.spriteId}`;
+        const resolved = resolveWidgetSprite(widgetManager, asset.source);
+        if (!resolved) continue;
+        const signature = `${assetKey}:${resolved.spriteId}`;
         if ((widget as any).__cacheUiAssetSignature === signature) continue;
         widget.type = 5;
         widget.isIf3 = true;
         widget.itemId = -1;
         widget.cacheSpriteToken = undefined;
-        widget.spriteId = source.spriteId;
+        widget.spriteId = resolved.spriteId;
         widget.spriteId2 = -1;
-        widget.spriteTiling = source.spriteTiling;
-        widget.borderType = source.borderType;
-        widget.graphicShadow = source.graphicShadow;
-        widget.horizontalFlip = source.hFlip;
-        widget.verticalFlip = source.vFlip;
+        widget.spriteTiling = resolved.spriteTiling;
+        widget.borderType = resolved.borderType;
+        widget.graphicShadow = resolved.graphicShadow;
+        widget.horizontalFlip = resolved.hFlip;
+        widget.verticalFlip = resolved.vFlip;
         widget.transparency = 0;
         (widget as any).__cacheUiAssetSignature = signature;
-        (widget as any).__cacheUiAssetSource = source;
         widgetManager.invalidateWidgetRender(widget, "cache-ui-asset");
     }
 }
