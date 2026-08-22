@@ -455,6 +455,12 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             Math.max(0.1, layout.menuButtons.maxHeightFraction ?? 0.5),
         );
         const gridHeight = Math.max(20, Math.floor(contentHeight * maxHeightFraction));
+        const maxWidthFraction = Math.min(
+            1,
+            Math.max(0.1, layout.menuButtons.maxWidthFraction ?? 1),
+        );
+        const gridWidth = Math.max(1, Math.floor(contentWidth * maxWidthFraction));
+        const gridOffsetX = Math.floor((contentWidth - gridWidth) / 2);
         // Keep the declared menu grid within the content viewport. Extra
         // button slots are hidden by the server until populated. A compact
         // grid also prevents menu buttons from visually swallowing a modal.
@@ -466,13 +472,13 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             ),
         );
         const iconSize = Math.max(12, Math.min(layout.menuButtons.iconSize ?? 36, buttonHeight - 12));
-        const buttonWidth = Math.max(1, Math.floor((contentWidth - gap * (columns - 1)) / columns));
+        const buttonWidth = Math.max(1, Math.floor((gridWidth - gap * (columns - 1)) / columns));
         for (let i = 0; i < ComponentIds.MAX_MENU_BUTTONS; i++) {
             const column = i % columns;
             const row = Math.floor(i / columns);
             const button = makeWidget(groupId, ComponentIds.MENU_BUTTON_BACKGROUND_BASE + i, contentViewUid, {
                 type: 3,
-                rawX: column * (buttonWidth + gap), rawY: row * (buttonHeight + gap),
+                rawX: gridOffsetX + column * (buttonWidth + gap), rawY: row * (buttonHeight + gap),
                 rawWidth: buttonWidth, rawHeight: buttonHeight, width: buttonWidth, height: buttonHeight,
                 filled: true, color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 104,
                 actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
@@ -482,7 +488,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 // Rectangle widgets do not traverse static children, so item
                 // icons and labels must be siblings inside the content view.
                 type: 5,
-                rawX: column * (buttonWidth + gap) + 8,
+                rawX: gridOffsetX + column * (buttonWidth + gap) + 8,
                 rawY: row * (buttonHeight + gap) + Math.max(0, Math.floor((buttonHeight - iconSize) / 2)),
                 rawWidth: iconSize, rawHeight: iconSize, width: iconSize, height: iconSize,
                 itemId: -1, itemQuantity: 1,
@@ -490,7 +496,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             widgets.set(icon.uid, icon);
             const label = makeWidget(groupId, ComponentIds.MENU_BUTTON_LABEL_BASE + i, contentViewUid, {
                 type: 4,
-                rawX: column * (buttonWidth + gap) + iconSize + 16,
+                rawX: gridOffsetX + column * (buttonWidth + gap) + iconSize + 16,
                 rawY: row * (buttonHeight + gap),
                 rawWidth: buttonWidth - iconSize - 22, rawHeight: buttonHeight,
                 width: buttonWidth - iconSize - 22, height: buttonHeight,
@@ -551,7 +557,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             width: layout.content.scrollbarWidth,
             height: contentHeight,
             filled: true,
-            color: 0x241e16,
+            color: 0x55452f,
         });
         widgets.set(track.uid, track);
 
@@ -564,8 +570,8 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             width: layout.content.scrollbarWidth - 2,
             height: contentHeight,
             filled: true,
-            color: 0x8f7f66,
-            mouseOverColor: 0xc5b79b,
+            color: 0xffcf70,
+            mouseOverColor: 0xffffff,
         });
         widgets.set(thumb.uid, thumb);
     }

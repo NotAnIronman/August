@@ -42,6 +42,7 @@ function cacheComponentPicker(widgetManager: any): void {
         }
         const spriteId = typeof source.spriteId === "number" ? source.spriteId : -1;
         const alternateSpriteId = typeof source.spriteId2 === "number" ? source.spriteId2 : -1;
+        const previewSpriteId = spriteId >= 0 ? spriteId : alternateSpriteId;
         const sourceType = source.type ?? 0;
         const modelId = typeof source.modelId === "number" ? source.modelId : -1;
         const sourceText = String(source.text ?? "").replace(/<[^>]+>/g, "").trim();
@@ -50,10 +51,19 @@ function cacheComponentPicker(widgetManager: any): void {
             (modelId >= 0 ? ` | model ${modelId}` : "") +
             (sourceText ? ` | ${sourceText.slice(0, 48)}` : "");
         label.hidden = label.isHidden = false;
-        preview.hidden = preview.isHidden = sourceType !== 5 && sourceType !== 6 && spriteId < 0;
+        preview.hidden = preview.isHidden = sourceType !== 5 && sourceType !== 6 && previewSpriteId < 0;
         preview.type = sourceType === 6 ? 6 : 5;
-        preview.spriteId = spriteId;
-        preview.spriteId2 = alternateSpriteId;
+        // The picker uses a stable IF3 sprite path. Cache IF1 components can
+        // keep their visual in spriteId2, so promote that fallback explicitly.
+        preview.isIf3 = true;
+        preview.spriteId = previewSpriteId;
+        preview.spriteId2 = -1;
+        preview.opacity = 0;
+        preview.transparency = 0;
+        preview.borderType = source.borderType;
+        preview.graphicShadow = source.graphicShadow;
+        preview.flippedH = source.flippedH ?? source.horizontalFlip;
+        preview.flippedV = source.flippedV ?? source.verticalFlip;
         preview.itemId = typeof source.itemId === "number" ? source.itemId : -1;
         preview.itemQuantity = source.itemQuantity ?? 1;
         if (sourceType === 6) {
@@ -148,7 +158,8 @@ registerUiPanel({
         height: 390,
         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
         menuButtons: {
-            columns: 2, rows: 4, buttonHeight: 58, gap: 8, iconSize: 40, maxHeightFraction: 0.375,
+            columns: 2, rows: 4, buttonHeight: 58, gap: 8, iconSize: 40,
+            maxHeightFraction: 0.375, maxWidthFraction: 0.75,
         },
         footerButton: true,
     }),
@@ -164,7 +175,8 @@ registerUiPanel({
         height: 390,
         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
         menuButtons: {
-            columns: 2, rows: 3, buttonHeight: 86, gap: 10, iconSize: 40, maxHeightFraction: 0.5,
+            columns: 2, rows: 3, buttonHeight: 86, gap: 10, iconSize: 40,
+            maxHeightFraction: 0.5, maxWidthFraction: 0.75,
         },
         footerButton: true,
     }),

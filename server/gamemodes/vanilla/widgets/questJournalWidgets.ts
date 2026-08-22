@@ -195,7 +195,7 @@ function openQuestJournal(player: PlayerState, quest: QuestEntry, services: Scri
     // narrower cache interface. Re-wrapping to our panel's actual width
     // lets the text use the full available space instead of stopping
     // halfway across. Blank-line section breaks are preserved.
-    const lines = reflowLines(buildJournalLines(player, quest, services), 78);
+    const lines = reflowLines(buildJournalLines(player, quest, services), 92);
     const lineCount = lines.length;
     const playerId = player.id;
 
@@ -241,7 +241,7 @@ function openQuestOverview(player: PlayerState, quest: QuestEntry, services: Scr
         return;
     }
     const overviewStartText = definition.overviewStartText;
-    const lines = wrapTextToLines(overviewStartText, 78);
+    const lines = wrapTextToLines(overviewStartText, 92);
 
     player.varps.setVarpValue(VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
     services.variables.sendVarp?.(player, VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);

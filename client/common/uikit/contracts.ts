@@ -60,6 +60,8 @@ export type UiPanelLayout = {
         columns?: 2; rows?: number; buttonHeight?: number; gap?: number; iconSize?: number;
         /** Keeps a menu grid compact instead of letting it occupy the whole panel. */
         maxHeightFraction?: number;
+        /** Limits the grid width and centres it within the content column. */
+        maxWidthFraction?: number;
     };
 };
 
