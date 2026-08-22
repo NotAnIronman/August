@@ -110,6 +110,7 @@ function filterDevTextRows(query: string, widgetManager: any): void {
     }
     const content = widgetManager.getWidgetByUid(uid(ComponentIds.CONTENT_VIEW));
     if (content) {
+        content.scrollY = 0;
         content.scrollHeight = Math.max(content.height, visibleRowIndex * TEXT_ROW_HEIGHT);
         widgetManager.invalidateScroll(content);
     }
@@ -126,7 +127,7 @@ registerUiPanel({
         tabs: { position: "left", width: 124 },
         content: { rowKind: "text", rowHeight: TEXT_ROW_HEIGHT, scrollbarWidth: 16 },
         controls: { width: 108, height: 20, gap: 8 },
-        search: { placeholder: "Search is a local UIKit input", width: 360 },
+        search: { placeholder: "Search is a local UIKit input", width: 180 },
     }),
     scrollController: createScrollController(
         DEV_UIKIT_TEXT_PANEL_GROUP_ID,
@@ -147,7 +148,7 @@ registerUiPanel({
         height: 390,
         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
         menuButtons: {
-            columns: 2, rows: 4, buttonHeight: 58, gap: 8, iconSize: 40, maxHeightFraction: 0.5,
+            columns: 2, rows: 4, buttonHeight: 58, gap: 8, iconSize: 40, maxHeightFraction: 0.375,
         },
         footerButton: true,
     }),
@@ -174,6 +175,7 @@ registerUiPanel({
     build: () => buildUiPanel(DEV_UIKIT_COMPONENT_PICKER_GROUP_ID, {
         width: 640,
         height: 440,
+        plainFrame: true,
         content: { rowKind: "picker", rowHeight: 32, rowCapacity: ComponentIds.MAX_PICKER_ROWS, scrollbarWidth: 16 },
         footerButton: true,
     }),

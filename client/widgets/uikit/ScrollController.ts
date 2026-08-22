@@ -154,10 +154,14 @@ export function createScrollController(
         };
 
         if (maxScrollY <= 0) {
+            // Keep the rail visible even for short lists. Apart from being a
+            // useful affordance, this avoids a bad visibility calculation
+            // making an otherwise working scrollbar disappear completely.
             for (const widget of [scrollbar, track, thumb]) {
-                widget.hidden = true;
-                widget.isHidden = true;
+                widget.hidden = false;
+                widget.isHidden = false;
             }
+            setThumb(0);
             if ((content.scrollY | 0) !== 0) {
                 content.scrollY = 0;
                 widgetManager.invalidateScroll(content);

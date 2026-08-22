@@ -48,6 +48,8 @@ export type UiPanelLayout = {
     content: { rowKind: UiRowKind; rowHeight: number; scrollbarWidth: number; rowCapacity?: number };
     /** Defaults to true. Blocks world input for every pixel inside the modal. */
     inputCapture?: boolean;
+    /** Simple local background for developer tools that do not use steelborder. */
+    plainFrame?: boolean;
     footerButton?: boolean;
     /** A bottom-aligned row of reusable server-authoritative action buttons. */
     controls?: { width?: number; height?: number; gap?: number };

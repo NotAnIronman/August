@@ -45,7 +45,7 @@ const TEXT_ROWS: readonly UiTextRow[] = [
 const ICON_ROWS: readonly UiIconRow[] = [
     { level: 1, itemId: 4151, name: "Icon row", description: "Item icon, level, title, and description." },
     { level: 2, itemId: 995, name: "Second item", description: "A second UIKit icon row." },
-    { level: 3, itemId: 554, name: "Transparency", description: "This item is partially transparent.", transparency: 80 },
+    { level: 3, itemId: 554, name: "Transparency", description: "This item is strongly transparent.", transparency: 170 },
     ...Array.from({ length: 12 }, (_, index): UiIconRow => ({
         level: index + 4,
         itemId: 556,
@@ -128,7 +128,10 @@ function openComponentsMenu(player: PlayerState, services: ScriptServices): void
 }
 
 function openComponentPicker(player: PlayerState, services: ScriptServices, sourceGroupId: number): void {
-    openUiPanel(services, player, DEV_UIKIT_COMPONENT_PICKER_GROUP_ID, `Component picker: ${sourceGroupId}`);
+    // The native steelborder script dynamically builds children and rejects
+    // the large developer inspection panel. This panel uses its own plain
+    // backdrop and footer instead, avoiding that cache-script limitation.
+    services.dialog.getInterfaceService()?.openModal(player, DEV_UIKIT_COMPONENT_PICKER_GROUP_ID);
     services.dialog.queueWidgetEvent(player.id, {
         action: "set_text",
         uid: packUid(DEV_UIKIT_COMPONENT_PICKER_GROUP_ID, ComponentIds.PICKER_SOURCE),

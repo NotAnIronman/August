@@ -109,11 +109,13 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     // Frame is left as a plain, unfilled layer - SCRIPT_STEELBORDER paints
     // the border/backdrop/title bar/close button onto this component.
     const frame = makeWidget(groupId, ComponentIds.FRAME, rootUid, {
-        type: 0,
+        type: layout.plainFrame ? 3 : 0,
         widthMode: 1,
         heightMode: 1,
         width: layout.width,
         height: layout.height,
+        filled: layout.plainFrame ? true : undefined,
+        color: layout.plainFrame ? 0x17130f : undefined,
     });
     widgets.set(frame.uid, frame);
 
@@ -240,7 +242,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         // controls inset from that border even when callers request a wide field.
         const searchInset = 10;
         const searchWidth = Math.min(
-            Math.max(80, layout.search.width ?? contentWidth),
+            Math.max(80, layout.search.width ?? Math.floor(contentWidth / 2)),
             Math.max(80, contentWidth - searchInset * 2),
         );
         const searchY = tabsBottom + 4;
