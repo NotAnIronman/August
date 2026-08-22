@@ -12,7 +12,8 @@ export const ComponentIds = {
     MENU_BUTTON_LABEL_BASE: 1080, MAX_MENU_BUTTONS: 24,
     /** Client-local metadata and rows for cache interface component inspection. */
     PICKER_SOURCE: 1200, PICKER_ROW_PREVIEW_BASE: 2000,
-    PICKER_ROW_LABEL_BASE: 2600, MAX_PICKER_ROWS: 500,
+    PICKER_ROW_LABEL_BASE: 2600, PICKER_ROW_ALT_PREVIEW_BASE: 3200,
+    MAX_PICKER_ROWS: 500,
 } as const;
 
 export type UiRowKind = "text" | "icon" | "mixed" | "picker";

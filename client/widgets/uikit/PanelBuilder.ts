@@ -94,8 +94,13 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
 
     const root = makeWidget(groupId, ComponentIds.ROOT, -1, {
         type: 0,
-        widthMode: 1,
-        heightMode: 1,
+        // The root is the modal itself, not the full canvas. Using
+        // setsize_minus here made its descendants use canvas coordinates,
+        // which displaced generated scrollbars and distorted panel sizing.
+        widthMode: 0,
+        heightMode: 0,
+        rawWidth: layout.width,
+        rawHeight: layout.height,
         width: layout.width,
         height: layout.height,
         xPositionMode: 1,
@@ -110,8 +115,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     // the border/backdrop/title bar/close button onto this component.
     const frame = makeWidget(groupId, ComponentIds.FRAME, rootUid, {
         type: layout.plainFrame ? 3 : 0,
-        widthMode: 1,
-        heightMode: 1,
+        widthMode: 0,
+        heightMode: 0,
+        rawWidth: layout.width,
+        rawHeight: layout.height,
         width: layout.width,
         height: layout.height,
         filled: layout.plainFrame ? true : undefined,
@@ -515,13 +522,23 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 type: 5, rawX: 2, rawY: rawY + 2, rawWidth: 28, rawHeight: 28,
                 width: 28, height: 28, itemId: -1, itemQuantity: 1, isHidden: true, hidden: true,
             });
+            const alternatePreview = makeWidget(
+                groupId,
+                ComponentIds.PICKER_ROW_ALT_PREVIEW_BASE + i,
+                contentViewUid,
+                {
+                    type: 5, rawX: 34, rawY: rawY + 2, rawWidth: 28, rawHeight: 28,
+                    width: 28, height: 28, itemId: -1, itemQuantity: 1, isHidden: true, hidden: true,
+                },
+            );
             const label = makeWidget(groupId, ComponentIds.PICKER_ROW_LABEL_BASE + i, contentViewUid, {
-                type: 4, rawX: 38, rawY, rawWidth: 38, rawHeight: rowHeight,
-                widthMode: 1, width: contentWidth - 38, height: rowHeight, text: "",
+                type: 4, rawX: 70, rawY, rawWidth: 70, rawHeight: rowHeight,
+                widthMode: 1, width: contentWidth - 70, height: rowHeight, text: "",
                 fontId: FONT_PLAIN_11, textColor: 0xe8ded0, textShadowed: true,
                 xTextAlignment: 0, yTextAlignment: 1, isHidden: true, hidden: true,
             });
             widgets.set(preview.uid, preview);
+            widgets.set(alternatePreview.uid, alternatePreview);
             widgets.set(label.uid, label);
         }
         // The server sets this hidden text widget to the selected cache group.

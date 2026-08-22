@@ -32,17 +32,20 @@ function cacheComponentPicker(widgetManager: any): void {
 
     for (let index = 0; index < ComponentIds.MAX_PICKER_ROWS; index++) {
         const preview = widgetManager.getWidgetByUid(uid(ComponentIds.PICKER_ROW_PREVIEW_BASE + index));
+        const alternatePreview = widgetManager.getWidgetByUid(
+            uid(ComponentIds.PICKER_ROW_ALT_PREVIEW_BASE + index),
+        );
         const label = widgetManager.getWidgetByUid(uid(ComponentIds.PICKER_ROW_LABEL_BASE + index));
         const source = sourceWidgets[index];
-        if (!preview || !label) continue;
+        if (!preview || !alternatePreview || !label) continue;
         if (!source) {
             preview.hidden = preview.isHidden = true;
+            alternatePreview.hidden = alternatePreview.isHidden = true;
             label.hidden = label.isHidden = true;
             continue;
         }
         const spriteId = typeof source.spriteId === "number" ? source.spriteId : -1;
         const alternateSpriteId = typeof source.spriteId2 === "number" ? source.spriteId2 : -1;
-        const previewSpriteId = spriteId >= 0 ? spriteId : alternateSpriteId;
         const sourceType = source.type ?? 0;
         const modelId = typeof source.modelId === "number" ? source.modelId : -1;
         const sourceText = String(source.text ?? "").replace(/<[^>]+>/g, "").trim();
@@ -51,12 +54,12 @@ function cacheComponentPicker(widgetManager: any): void {
             (modelId >= 0 ? ` | model ${modelId}` : "") +
             (sourceText ? ` | ${sourceText.slice(0, 48)}` : "");
         label.hidden = label.isHidden = false;
-        preview.hidden = preview.isHidden = sourceType !== 5 && sourceType !== 6 && previewSpriteId < 0;
+        preview.hidden = preview.isHidden = sourceType !== 5 && sourceType !== 6 && spriteId < 0;
         preview.type = sourceType === 6 ? 6 : 5;
-        // The picker uses a stable IF3 sprite path. Cache IF1 components can
-        // keep their visual in spriteId2, so promote that fallback explicitly.
+        // Keep both cache sprite fields visible. IF1 components may use
+        // spriteId2 as their active/hover image, so one preview is not enough.
         preview.isIf3 = true;
-        preview.spriteId = previewSpriteId;
+        preview.spriteId = spriteId;
         preview.spriteId2 = -1;
         preview.opacity = 0;
         preview.transparency = 0;
@@ -66,6 +69,17 @@ function cacheComponentPicker(widgetManager: any): void {
         preview.flippedV = source.flippedV ?? source.verticalFlip;
         preview.itemId = typeof source.itemId === "number" ? source.itemId : -1;
         preview.itemQuantity = source.itemQuantity ?? 1;
+        alternatePreview.hidden = alternatePreview.isHidden = alternateSpriteId < 0;
+        alternatePreview.isIf3 = true;
+        alternatePreview.type = 5;
+        alternatePreview.spriteId = alternateSpriteId;
+        alternatePreview.spriteId2 = -1;
+        alternatePreview.itemId = -1;
+        alternatePreview.itemQuantity = 1;
+        alternatePreview.opacity = 0;
+        alternatePreview.transparency = 0;
+        alternatePreview.borderType = source.borderType;
+        alternatePreview.graphicShadow = source.graphicShadow;
         if (sourceType === 6) {
             Object.assign(preview, {
                 modelId: source.modelId, modelType: source.modelType, modelZoom: source.modelZoom,
@@ -75,6 +89,7 @@ function cacheComponentPicker(widgetManager: any): void {
             });
         }
         widgetManager.invalidateWidgetRender(preview);
+        widgetManager.invalidateWidgetRender(alternatePreview);
         widgetManager.invalidateWidgetRender(label);
     }
     sourceWidget.__uikitPickerKey = pickerKey;
