@@ -1,4 +1,5 @@
 import {
+    DEV_UIKIT_COMPONENT_PICKER_GROUP_ID,
     DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID,
     DEV_UIKIT_ICON_PANEL_GROUP_ID,
     DEV_UIKIT_MENU_PANEL_GROUP_ID,
@@ -12,6 +13,62 @@ import { createScrollController } from "../uikit/ScrollController";
 
 const TEXT_ROW_HEIGHT = 18;
 const ICON_ROW_HEIGHT = 34;
+
+function cacheComponentPicker(widgetManager: any): void {
+    const uid = (componentId: number) =>
+        ((DEV_UIKIT_COMPONENT_PICKER_GROUP_ID & 0xffff) << 16) | componentId;
+    const sourceWidget = widgetManager.getWidgetByUid(uid(ComponentIds.PICKER_SOURCE));
+    const sourceGroupId = Number.parseInt(sourceWidget?.text ?? "", 10);
+    if (!Number.isInteger(sourceGroupId) || sourceGroupId < 0) return;
+    const pickerKey = `uikit-picker:${sourceGroupId}`;
+    if (sourceWidget.__uikitPickerKey === pickerKey) return;
+
+    let sourceWidgets = widgetManager.getWidgetsForGroup(sourceGroupId);
+    if (sourceWidgets.length === 0) {
+        widgetManager.loadGroup(sourceGroupId);
+        sourceWidgets = widgetManager.getWidgetsForGroup(sourceGroupId);
+    }
+    sourceWidgets.sort((a: any, b: any) => (a.fileId ?? 0) - (b.fileId ?? 0));
+
+    for (let index = 0; index < ComponentIds.MAX_PICKER_ROWS; index++) {
+        const preview = widgetManager.getWidgetByUid(uid(ComponentIds.PICKER_ROW_PREVIEW_BASE + index));
+        const label = widgetManager.getWidgetByUid(uid(ComponentIds.PICKER_ROW_LABEL_BASE + index));
+        const source = sourceWidgets[index];
+        if (!preview || !label) continue;
+        if (!source) {
+            preview.hidden = preview.isHidden = true;
+            label.hidden = label.isHidden = true;
+            continue;
+        }
+        const spriteId = typeof source.spriteId === "number" ? source.spriteId : -1;
+        const alternateSpriteId = typeof source.spriteId2 === "number" ? source.spriteId2 : -1;
+        const sourceType = source.type ?? 0;
+        const modelId = typeof source.modelId === "number" ? source.modelId : -1;
+        const sourceText = String(source.text ?? "").replace(/<[^>]+>/g, "").trim();
+        label.text = `[${sourceGroupId}:${source.fileId}] type ${sourceType} | sprite ${spriteId}` +
+            (alternateSpriteId >= 0 ? ` / alt ${alternateSpriteId}` : "") +
+            (modelId >= 0 ? ` | model ${modelId}` : "") +
+            (sourceText ? ` | ${sourceText.slice(0, 48)}` : "");
+        label.hidden = label.isHidden = false;
+        preview.hidden = preview.isHidden = sourceType !== 5 && sourceType !== 6 && spriteId < 0;
+        preview.type = sourceType === 6 ? 6 : 5;
+        preview.spriteId = spriteId;
+        preview.spriteId2 = alternateSpriteId;
+        preview.itemId = typeof source.itemId === "number" ? source.itemId : -1;
+        preview.itemQuantity = source.itemQuantity ?? 1;
+        if (sourceType === 6) {
+            Object.assign(preview, {
+                modelId: source.modelId, modelType: source.modelType, modelZoom: source.modelZoom,
+                modelOffsetX: source.modelOffsetX, modelOffsetY: source.modelOffsetY,
+                rotationX: source.rotationX, rotationY: source.rotationY, rotationZ: source.rotationZ,
+                modelOrthog: source.modelOrthog,
+            });
+        }
+        widgetManager.invalidateWidgetRender(preview);
+        widgetManager.invalidateWidgetRender(label);
+    }
+    sourceWidget.__uikitPickerKey = pickerKey;
+}
 
 function filterDevTextRows(query: string, widgetManager: any): void {
     const normalizedQuery = query.trim().toLowerCase();
@@ -106,10 +163,27 @@ registerUiPanel({
         height: 390,
         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
         menuButtons: {
-            columns: 2, rows: 2, buttonHeight: 86, gap: 10, iconSize: 40, maxHeightFraction: 0.5,
+            columns: 2, rows: 3, buttonHeight: 86, gap: 10, iconSize: 40, maxHeightFraction: 0.5,
         },
         footerButton: true,
     }),
+});
+
+registerUiPanel({
+    groupId: DEV_UIKIT_COMPONENT_PICKER_GROUP_ID,
+    build: () => buildUiPanel(DEV_UIKIT_COMPONENT_PICKER_GROUP_ID, {
+        width: 640,
+        height: 440,
+        content: { rowKind: "picker", rowHeight: 32, rowCapacity: ComponentIds.MAX_PICKER_ROWS, scrollbarWidth: 16 },
+        footerButton: true,
+    }),
+    scrollController: createScrollController(
+        DEV_UIKIT_COMPONENT_PICKER_GROUP_ID,
+        "picker",
+        32,
+        ComponentIds.MAX_PICKER_ROWS,
+    ),
+    onProcess: cacheComponentPicker,
 });
 
 registerUiPanel({

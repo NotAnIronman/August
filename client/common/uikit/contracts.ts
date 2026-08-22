@@ -10,9 +10,12 @@ export const ComponentIds = {
     CONTROL_BACKGROUND_BASE: 920, CONTROL_LABEL_BASE: 930, MAX_CONTROLS: 8,
     MENU_BUTTON_BACKGROUND_BASE: 1000, MENU_BUTTON_ICON_BASE: 1040,
     MENU_BUTTON_LABEL_BASE: 1080, MAX_MENU_BUTTONS: 24,
+    /** Client-local metadata and rows for cache interface component inspection. */
+    PICKER_SOURCE: 1200, PICKER_ROW_PREVIEW_BASE: 2000,
+    PICKER_ROW_LABEL_BASE: 2600, MAX_PICKER_ROWS: 500,
 } as const;
 
-export type UiRowKind = "text" | "icon" | "mixed";
+export type UiRowKind = "text" | "icon" | "mixed" | "picker";
 export type UiTabPosition = "left" | "top";
 export type UiTextAlignment = "left" | "center";
 export type UiTextStyle = { color?: string; bold?: boolean; strikethrough?: boolean };
@@ -42,7 +45,7 @@ export type UiPanelLayout = {
     sidebar?: { width: number };
     /** Preferred spelling for new panels; sidebar remains backwards compatible. */
     tabs?: { position: UiTabPosition; width?: number; height?: number };
-    content: { rowKind: UiRowKind; rowHeight: number; scrollbarWidth: number };
+    content: { rowKind: UiRowKind; rowHeight: number; scrollbarWidth: number; rowCapacity?: number };
     /** Defaults to true. Blocks world input for every pixel inside the modal. */
     inputCapture?: boolean;
     footerButton?: boolean;

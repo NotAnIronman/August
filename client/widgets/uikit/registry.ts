@@ -21,6 +21,8 @@ export type UiPanelRegistration = {
     build: () => WidgetGroupLoadResult;
     scrollController?: UiScrollController;
     searchController?: UiSearchController;
+    /** Optional client-local presentation update (used by cache asset inspectors). */
+    onProcess?: (widgetManager: WidgetManager) => void;
 };
 
 const registeredPanels = new Map<number, UiPanelRegistration>();
@@ -46,6 +48,7 @@ export function processRegisteredUiPanelInput(
     widgetInteraction: WidgetInteractionController,
 ): void {
     for (const panel of registeredPanels.values()) {
+        panel.onProcess?.(widgetManager);
         panel.scrollController?.process(frame, widgetManager, widgetInteraction);
         panel.searchController?.process(frame, widgetManager, widgetInteraction);
     }

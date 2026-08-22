@@ -230,7 +230,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         scrollX: 0,
         scrollY: 0,
         scrollWidth: contentWidth,
-        scrollHeight: ComponentIds.MAX_ROWS * rowHeight,
+        scrollHeight: (layout.content.rowCapacity ?? ComponentIds.MAX_ROWS) * rowHeight,
     });
     widgets.set(contentView.uid, contentView);
     const contentViewUid = contentView.uid;
@@ -262,6 +262,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
 
     const includesTextRows = layout.content.rowKind === "text" || layout.content.rowKind === "mixed";
     const includesIconRows = layout.content.rowKind === "icon" || layout.content.rowKind === "mixed";
+    const includesPickerRows = layout.content.rowKind === "picker";
 
     if (includesTextRows) {
         for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
@@ -496,6 +497,31 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             });
             widgets.set(label.uid, label);
         }
+    }
+
+    if (includesPickerRows) {
+        const rowCapacity = layout.content.rowCapacity ?? ComponentIds.MAX_PICKER_ROWS;
+        for (let i = 0; i < rowCapacity; i++) {
+            const rawY = i * rowHeight;
+            const preview = makeWidget(groupId, ComponentIds.PICKER_ROW_PREVIEW_BASE + i, contentViewUid, {
+                type: 5, rawX: 2, rawY: rawY + 2, rawWidth: 28, rawHeight: 28,
+                width: 28, height: 28, itemId: -1, itemQuantity: 1, isHidden: true, hidden: true,
+            });
+            const label = makeWidget(groupId, ComponentIds.PICKER_ROW_LABEL_BASE + i, contentViewUid, {
+                type: 4, rawX: 38, rawY, rawWidth: 38, rawHeight: rowHeight,
+                widthMode: 1, width: contentWidth - 38, height: rowHeight, text: "",
+                fontId: FONT_PLAIN_11, textColor: 0xe8ded0, textShadowed: true,
+                xTextAlignment: 0, yTextAlignment: 1, isHidden: true, hidden: true,
+            });
+            widgets.set(preview.uid, preview);
+            widgets.set(label.uid, label);
+        }
+        // The server sets this hidden text widget to the selected cache group.
+        const source = makeWidget(groupId, ComponentIds.PICKER_SOURCE, rootUid, {
+            type: 4, rawWidth: 1, rawHeight: 1, width: 1, height: 1,
+            text: "", isHidden: true, hidden: true,
+        });
+        widgets.set(source.uid, source);
     }
 
     if (layout.content.scrollbarWidth > 0) {

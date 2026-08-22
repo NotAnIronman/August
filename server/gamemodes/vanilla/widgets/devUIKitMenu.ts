@@ -1,4 +1,5 @@
 import {
+    DEV_UIKIT_COMPONENT_PICKER_GROUP_ID,
     DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID,
     DEV_UIKIT_ICON_PANEL_GROUP_ID,
     DEV_UIKIT_MENU_PANEL_GROUP_ID,
@@ -10,6 +11,7 @@ import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/
 import { registerUiPanelActions } from "../uikit/actions";
 import {
     openUiPanel,
+    packUid,
     sendUiControls,
     sendUiFooterButton,
     sendUiIconRows,
@@ -90,11 +92,19 @@ const MENU_BUTTONS = [
     { itemId: 3144, label: "Travel" },
 ] as const;
 
-const COMPONENT_INTERFACE_BUTTONS = [
-    { itemId: 4151, label: "Collection Log (621)" },
-    { itemId: 554, label: "Settings sidebar (116)" },
-    { itemId: 995, label: "Settings modal (134)" },
+const COMPONENT_PICKER_BUTTONS = [
+    { itemId: 4151, label: "Browse Log assets" },
+    { itemId: 554, label: "Browse sidebar assets" },
+    { itemId: 995, label: "Browse modal assets" },
 ] as const;
+
+const NATIVE_INTERFACE_BUTTONS = [
+    { itemId: 4151, label: "Open Collection Log" },
+    { itemId: 554, label: "Open Settings sidebar" },
+    { itemId: 995, label: "Open Settings modal" },
+] as const;
+
+const COMPONENT_INTERFACE_BUTTONS = [...COMPONENT_PICKER_BUTTONS, ...NATIVE_INTERFACE_BUTTONS] as const;
 
 function openComponentsMenu(player: PlayerState, services: ScriptServices): void {
     openUiPanel(
@@ -115,6 +125,16 @@ function openComponentsMenu(player: PlayerState, services: ScriptServices): void
         DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID,
         "Back to UIKit overview",
     );
+}
+
+function openComponentPicker(player: PlayerState, services: ScriptServices, sourceGroupId: number): void {
+    openUiPanel(services, player, DEV_UIKIT_COMPONENT_PICKER_GROUP_ID, `Component picker: ${sourceGroupId}`);
+    services.dialog.queueWidgetEvent(player.id, {
+        action: "set_text",
+        uid: packUid(DEV_UIKIT_COMPONENT_PICKER_GROUP_ID, ComponentIds.PICKER_SOURCE),
+        text: String(sourceGroupId),
+    });
+    sendUiFooterButton(services, player.id, DEV_UIKIT_COMPONENT_PICKER_GROUP_ID, "Back to Components");
 }
 
 function openNativeInterface(player: PlayerState, services: ScriptServices, groupId: number): void {
@@ -225,11 +245,17 @@ export function registerDevUIKitMenu(
             componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE + buttonIndex,
             actionId: `open_native_interface_${buttonIndex}`,
             handle: ({ player }: { player: PlayerState }) =>
-                openNativeInterface(
-                    player,
-                    services,
-                    [621, 116, 134][buttonIndex] ?? 621,
-                ),
+                buttonIndex < COMPONENT_PICKER_BUTTONS.length
+                    ? openComponentPicker(player, services, [621, 116, 134][buttonIndex] ?? 621)
+                    : openNativeInterface(player, services, [621, 116, 134][buttonIndex - COMPONENT_PICKER_BUTTONS.length] ?? 621),
         })),
+    ]);
+
+    registerUiPanelActions(registry, services, DEV_UIKIT_COMPONENT_PICKER_GROUP_ID, [
+        {
+            componentId: ComponentIds.FOOTER_BUTTON,
+            actionId: "show_components",
+            handle: ({ player }) => openComponentsMenu(player, services),
+        },
     ]);
 }

@@ -44,13 +44,16 @@ export function createScrollController(
     groupId: number,
     rowKind: UiRowKind,
     rowHeight: number,
+    rowCapacity = ComponentIds.MAX_ROWS,
 ): UiScrollController {
     const SCROLLBAR_UID = packUid(groupId, ComponentIds.SCROLLBAR);
     const TRACK_UID = packUid(groupId, ComponentIds.SCROLLBAR_TRACK);
     const CONTENT_VIEW_UID = packUid(groupId, ComponentIds.CONTENT_VIEW);
     const THUMB_UID = packUid(groupId, ComponentIds.SCROLLBAR_THUMB);
     const primaryRowBases =
-        rowKind === "mixed"
+        rowKind === "picker"
+            ? [ComponentIds.PICKER_ROW_LABEL_BASE]
+            : rowKind === "mixed"
             ? [ComponentIds.TEXT_ROW_LINE_BASE, ComponentIds.ICON_ROW_NAME_BASE]
             : [rowKind === "text" ? ComponentIds.TEXT_ROW_LINE_BASE : ComponentIds.ICON_ROW_NAME_BASE];
     const centerRowBase = rowKind === "icon" ? null : ComponentIds.TEXT_ROW_CENTER_BASE;
@@ -73,7 +76,7 @@ export function createScrollController(
      *  currently shown - covers every way a text row can render. */
     function computeVisibleRowCount(widgetManager: WidgetManager): number {
         let count = 0;
-        for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
+        for (let i = 0; i < rowCapacity; i++) {
             // `hidden` is the runtime visibility source used by widget
             // rendering. `isHidden` can retain a cache-default value while a
             // server update is queued, which made populated UIKit rows look
