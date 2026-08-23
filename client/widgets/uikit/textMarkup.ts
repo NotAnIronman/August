@@ -79,7 +79,9 @@ export function wrapTextToLines(text: string, maxCharsPerLine = 62): string[] {
         let current = "";
         for (const word of words) {
             const candidate = current.length > 0 ? `${current} ${word}` : word;
-            if (candidate.length > maxCharsPerLine && current.length > 0) {
+            // UI markup such as <col=...> and <str> has no rendered width.
+            // Counting it made styled quest entries wrap sooner than plain text.
+            if (visibleTextLength(candidate) > maxCharsPerLine && current.length > 0) {
                 lines.push(current);
                 current = word;
             } else {
@@ -89,6 +91,11 @@ export function wrapTextToLines(text: string, maxCharsPerLine = 62): string[] {
         if (current.length > 0 || paragraph.length === 0) lines.push(current);
     }
     return lines;
+}
+
+/** Counts visible characters while retaining OSRS markup in emitted text. */
+function visibleTextLength(text: string): number {
+    return text.replace(/<[^>]*>/g, "").length;
 }
 
 /**

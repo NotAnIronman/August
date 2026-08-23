@@ -112,9 +112,13 @@ export function createScrollController(
         widgetManager: WidgetManager,
         widgetInteraction: WidgetInteractionController,
     ): void {
-        // Registered panels stay loaded after close. Never let stale bounds
-        // from a previously-open modal consume input meant for the game.
-        if (widgetManager.getInterfaceParentContainerUid(groupId) === undefined) return;
+        // All UIKit panels use the same modal coordinates. Only the group
+        // currently mounted in the interface tree may react; otherwise a
+        // closed panel with stale geometry can consume the active panel's
+        // wheel event before it sees it.
+        const mountUid = widgetManager.getInterfaceParentContainerUid(groupId);
+        if (mountUid === undefined || widgetManager.isEffectivelyHidden(mountUid)) return;
+
         if (
             widgetInteraction.isDraggingWidget &&
             !isScrollbarWidget(widgetInteraction.clickedWidget, widgetManager)
@@ -199,7 +203,13 @@ export function createScrollController(
             my >= scrollbarY && my < scrollbarY + scrollbarHeight;
 
         if (input.wheelDeltaY !== 0 && (isOverContent || isOverScrollbar)) {
-            setScrollY((content.scrollY | 0) + input.wheelDeltaY * rowHeight);
+            // Browser wheel deltas are device-dependent (a mouse commonly
+            // reports 100 while a trackpad can report a fraction). UIKit
+            // scrolls a predictable three rows per gesture instead of
+            // multiplying that raw browser value into an enormous—or zero—
+            // movement.
+            const wheelStep = Math.max(45, rowHeight * 3);
+            setScrollY((content.scrollY | 0) + (input.wheelDeltaY > 0 ? wheelStep : -wheelStep));
             input.wheelDeltaY = 0;
         }
 

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { ComponentIds } from "../common/uikit/contracts";
 import { buildUiPanel } from "../widgets/uikit/PanelBuilder";
 import { inspectUiPanel } from "../widgets/uikit/PanelTestHarness";
+import { wrapTextToLines } from "../widgets/uikit/textMarkup";
 
 const groupId = 31000;
 const topTabs = buildUiPanel(groupId, {
@@ -62,6 +63,11 @@ assert.equal(
     searched.widgets.get(searchedUid(ComponentIds.SEARCH_TEXT))?.text,
     "<col=8f7f66>Search entries</col>",
 );
+
+// Markup consumes source characters but no screen width. A 99-character
+// coloured journal line must therefore stay on one 100-character visual line.
+const styledJournalLine = `<col=ff0000>${Array.from({ length: 20 }, () => "four").join(" ")}</col>`;
+assert.equal(wrapTextToLines(styledJournalLine, 100).length, 1);
 
 const mixedMenu = buildUiPanel(groupId + 4, {
     width: 520,

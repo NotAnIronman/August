@@ -81,6 +81,7 @@ import { registerAccountSummaryWidgetHandlers } from "./widgets/accountSummaryWi
 import { registerCollectionLogWidgetHandlers } from "./widgets/collectionLogWidgets";
 import { registerCombatWidgetHandlers } from "./widgets/combatWidgets";
 import { registerDiaryJournalWidgetHandlers } from "./widgets/diaryJournalWidgets";
+import { achievementTaskTracker } from "./diaryTasks/AchievementTaskTracker";
 import { registerDevUIKitMenu } from "./widgets/devUIKitMenu";
 import { registerEmoteWidgetHandlers } from "./widgets/emoteWidgets";
 import { registerMinimapWidgetHandlers } from "./widgets/minimapWidgets";
@@ -110,6 +111,22 @@ export class VanillaGamemode extends BaseGamemode {
 
     getLoginVarps(_player: PlayerState): Array<[number, number]> {
         return DEFAULT_LOGIN_VARPS;
+    }
+
+    override initializePlayer(player: PlayerState): void {
+        // Player IDs are reused by the networking layer. Keep a new session
+        // from inheriting an old session's in-memory tracker entries before
+        // its own persisted diary state is loaded.
+        achievementTaskTracker.resetPlayer(player.id);
+    }
+
+    override serializePlayerState(player: PlayerState): Record<string, unknown> | undefined {
+        const achievementDiary = achievementTaskTracker.serializePlayerState(player.id);
+        return achievementDiary ? { achievementDiary } : undefined;
+    }
+
+    override deserializePlayerState(player: PlayerState, data: Record<string, unknown>): void {
+        achievementTaskTracker.deserializePlayerState(player.id, data.achievementDiary);
     }
 
     onPlayerRestore(player: PlayerState): void {

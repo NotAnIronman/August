@@ -25,11 +25,6 @@ import type { DiaryTaskArea, DiaryTaskTrigger } from "./types";
  *     agility obstacles, etc.)
  *   - talk: wherever NPC dialogue trees start/reach a specific node
  *
- * PERSISTENCE NOTE: completed-task state below is in-memory only (a
- * Map, not written to whatever save/database layer this server uses for
- * player data). It will NOT survive a server restart yet - not
- * addressed this round.
- *
  * TIER COUNT NOTE: this tracker does NOT write to the old aggregate
  * countVarbit/completeVarbit fields on DiaryTier anymore (an earlier
  * version did, and that was actually a bug - it used the OLD hardcoded
@@ -53,6 +48,12 @@ function matchesArea(area: DiaryTaskArea | undefined, x: number, y: number, leve
 
 type TaskLocation = { areaId: number; tierIndex: number; taskIndex: number };
 
+/** JSON-safe per-player diary state stored in VanillaGamemode's save data. */
+export type AchievementDiaryPersistentState = {
+    completed?: string[];
+    progress?: Record<string, number>;
+};
+
 /** Called after a task is newly completed, so the UI can refresh if open. */
 export type TaskCompletedCallback = (
     player: PlayerState,
@@ -71,6 +72,71 @@ export class AchievementTaskTracker {
 
     private taskKey(loc: TaskLocation): string {
         return `${loc.areaId}:${loc.tierIndex}:${loc.taskIndex}`;
+    }
+
+    /** Clears an id's transient state before a newly-created player uses it. */
+    resetPlayer(playerId: number): void {
+        this.progress.delete(playerId);
+        this.completed.delete(playerId);
+    }
+
+    /**
+     * Exports one player's completed tasks and partial trigger progress in a
+     * JSON-safe form. Player IDs are session-local, so only the values—not
+     * the outer player-id map—belong in the persistent save.
+     */
+    serializePlayerState(playerId: number): AchievementDiaryPersistentState | undefined {
+        const completed = [...(this.completed.get(playerId) ?? [])];
+        const progress: Record<string, number> = {};
+        for (const [key, value] of this.progress.get(playerId) ?? []) {
+            if (value > 0) progress[key] = value;
+        }
+        if (completed.length === 0 && Object.keys(progress).length === 0) return undefined;
+        return {
+            ...(completed.length > 0 ? { completed } : {}),
+            ...(Object.keys(progress).length > 0 ? { progress } : {}),
+        };
+    }
+
+    /** Restores a player's JSON-safe diary state after loading their save. */
+    deserializePlayerState(playerId: number, data: unknown): void {
+        this.resetPlayer(playerId);
+        if (!data || typeof data !== "object" || Array.isArray(data)) return;
+
+        const state = data as AchievementDiaryPersistentState;
+        const completed = new Set<string>();
+        if (Array.isArray(state.completed)) {
+            for (const key of state.completed) {
+                if (typeof key === "string" && this.isValidTaskKey(key)) completed.add(key);
+            }
+        }
+        if (completed.size > 0) this.completed.set(playerId, completed);
+
+        const progress = new Map<string, number>();
+        if (state.progress && typeof state.progress === "object" && !Array.isArray(state.progress)) {
+            for (const [key, rawValue] of Object.entries(state.progress)) {
+                const value = Math.floor(Number(rawValue));
+                if (completed.has(key) || !this.isValidTaskKey(key) || !Number.isFinite(value) || value <= 0)
+                    continue;
+                progress.set(key, value);
+            }
+        }
+        if (progress.size > 0) this.progress.set(playerId, progress);
+    }
+
+    /** Reject malformed or obsolete task keys from saved data. */
+    private isValidTaskKey(key: string): boolean {
+        const match = /^(\d+):(\d+):(\d+)$/.exec(key);
+        if (!match) return false;
+        const areaId = Number(match[1]);
+        const tierIndex = Number(match[2]);
+        const taskIndex = Number(match[3]);
+        if (!Number.isSafeInteger(areaId) || !Number.isSafeInteger(tierIndex) || !Number.isSafeInteger(taskIndex))
+            return false;
+        const area = DIARY_AREA_TASKS[areaId];
+        if (!area || tierIndex < 0 || tierIndex > 3 || taskIndex < 0) return false;
+        const tier = [area.easy, area.medium, area.hard, area.elite][tierIndex];
+        return taskIndex < tier.tasks.length;
     }
 
     isTaskComplete(playerId: number, loc: TaskLocation): boolean {
