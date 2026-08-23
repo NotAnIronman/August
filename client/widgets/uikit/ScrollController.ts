@@ -148,6 +148,12 @@ export function createScrollController(
         // second static rail entirely.
         for (const widget of [scrollbar, track, thumb]) {
             if (!widget) continue;
+            if (!widget.hidden || !widget.isHidden) {
+                // These can survive in an already-loaded group during hot
+                // reload. Invalidate their old rectangle as well as hiding
+                // them so a previously rendered tiny cache sprite is erased.
+                widgetManager.invalidateWidgetRender(widget, "uikit-remove-legacy-scrollbar");
+            }
             widget.hidden = true;
             widget.isHidden = true;
         }
