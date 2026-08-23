@@ -681,6 +681,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             rawHeight: contentHeight,
             width: layout.content.scrollbarWidth,
             height: contentHeight,
+            uikitScrollbarGhost: true,
             isHidden: true,
             hidden: true,
         });
@@ -699,6 +700,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             height: contentHeight,
             filled: true,
             color: 0x55452f,
+            uikitScrollbarGhost: true,
             isHidden: true,
             hidden: true,
         });
@@ -715,6 +717,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             filled: true,
             color: 0xffcf70,
             mouseOverColor: 0xffffff,
+            uikitScrollbarGhost: true,
             isHidden: true,
             hidden: true,
         });

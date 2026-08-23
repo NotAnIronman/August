@@ -1199,6 +1199,11 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
         clip: ClipRect = fullClip,
         deferDragged: boolean = true,
     ) {
+        // PanelBuilder retains invisible scrollbar widgets solely as stable
+        // input/layout anchors. The real UIKit scrollbar is rendered once by
+        // its content container below, so these can never become a second
+        // static rail if a later event changes their hidden state.
+        if ((w as any).uikitScrollbarGhost === true) return;
         const prepStartMs = profileWidgetRender ? performance.now() : 0;
         // contentType-driven widget mutations applied during draw.
         //

@@ -38,6 +38,8 @@ const VARP_QJ_LINES = 4398;
 
 /** OP ID for "Read journal:" right-click option */
 const OP_READ_JOURNAL = 2;
+/** The custom journal uses a much wider text column than the cache panel. */
+const QUEST_JOURNAL_CHARS_PER_LINE = 100;
 
 // ============================================================================
 // Journal text generation
@@ -195,7 +197,10 @@ function openQuestJournal(player: PlayerState, quest: QuestEntry, services: Scri
     // narrower cache interface. Re-wrapping to our panel's actual width
     // lets the text use the full available space instead of stopping
     // halfway across. Blank-line section breaks are preserved.
-    const lines = reflowLines(buildJournalLines(player, quest, services), 110);
+    const lines = reflowLines(
+        buildJournalLines(player, quest, services),
+        QUEST_JOURNAL_CHARS_PER_LINE,
+    );
     const lineCount = lines.length;
     const playerId = player.id;
 
@@ -241,7 +246,7 @@ function openQuestOverview(player: PlayerState, quest: QuestEntry, services: Scr
         return;
     }
     const overviewStartText = definition.overviewStartText;
-    const lines = wrapTextToLines(overviewStartText, 110);
+    const lines = wrapTextToLines(overviewStartText, QUEST_JOURNAL_CHARS_PER_LINE);
 
     player.varps.setVarpValue(VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
     services.variables.sendVarp?.(player, VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);

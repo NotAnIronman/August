@@ -112,6 +112,9 @@ export function createScrollController(
         widgetManager: WidgetManager,
         widgetInteraction: WidgetInteractionController,
     ): void {
+        // Registered panels stay loaded after close. Never let stale bounds
+        // from a previously-open modal consume input meant for the game.
+        if (widgetManager.getInterfaceParentContainerUid(groupId) === undefined) return;
         if (
             widgetInteraction.isDraggingWidget &&
             !isScrollbarWidget(widgetInteraction.clickedWidget, widgetManager)
@@ -181,7 +184,13 @@ export function createScrollController(
         // The precomputed hit stack already accounts for parent position,
         // scrolling, and display scaling.
         const hitStack = frame.collectFromAllRoots(mx, my);
-        const isOverContent = hitStack.some((widget) => {
+        const contentX = (content._absX ?? content.x ?? 0) | 0;
+        const contentY = (content._absY ?? content.y ?? 0) | 0;
+        const contentWidth = Math.max(0, (content._absWidth ?? content.width ?? 0) | 0);
+        const isWithinContentBounds =
+            mx >= contentX && mx < contentX + contentWidth &&
+            my >= contentY && my < contentY + viewportHeight;
+        const isOverContent = isWithinContentBounds || hitStack.some((widget) => {
             const uid = (widget?.uid ?? -1) | 0;
             return uid === CONTENT_VIEW_UID || (widget?.parentUid | 0) === CONTENT_VIEW_UID;
         });

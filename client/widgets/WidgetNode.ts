@@ -223,6 +223,8 @@ export interface WidgetNode {
     isScrollBar?: boolean; // If true, widget is a scrollbar component
     /** UIKit-only: draw a native scrollbar beside this scroll container. */
     uikitScrollbar?: boolean;
+    /** Internal UIKit input-layout scaffold; it must never be rendered. */
+    uikitScrollbarGhost?: boolean;
     dataText?: string; // Extra text data (used by some widgets)
 
     // Dragging

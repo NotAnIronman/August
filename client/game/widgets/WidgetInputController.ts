@@ -64,6 +64,10 @@ export class WidgetInputController {
 
         processWidgetMenuWheelInput(this.deps, frame);
         processWidgetMinimapWheelInput(this.deps, frame, widgetManager, widgetInteraction);
+        // UIKit panels draw their own scrollbars beside IF3 content. Give the
+        // active panel first claim on wheel input so a broad legacy IF1
+        // scrollbar hit-zone in the underlying gameframe cannot consume it.
+        processRegisteredUiPanelInput(frame, widgetManager, widgetInteraction);
         processWidgetIf1ScrollbarInput(
             this.deps,
             this.state,
@@ -72,7 +76,6 @@ export class WidgetInputController {
             widgetInteraction,
         );
         processQuestListScrollbarInput(frame, widgetManager, widgetInteraction);
-        processRegisteredUiPanelInput(frame, widgetManager, widgetInteraction);
         processWidgetScrollWheelInput(this.deps, frame, widgetManager, widgetInteraction);
 
         if (shouldSkipWidgetClickInput(this.deps, frame)) return;
