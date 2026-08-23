@@ -1,6 +1,7 @@
 import type { WidgetGroupLoadResult } from "./PanelBuilder";
 import type { UiScrollController } from "./ScrollController";
 import type { UiSearchController } from "./SearchController";
+import type { UiGalleryClickController } from "./GalleryClickController";
 import type { WidgetManager } from "../WidgetManager";
 import type { WidgetInteractionController } from "../../game/widgets/WidgetInteractionController";
 import type { WidgetInputFrame } from "../../game/widgets/input/widgetInputTypes";
@@ -22,6 +23,7 @@ export type UiPanelRegistration = {
     build: () => WidgetGroupLoadResult;
     scrollController?: UiScrollController;
     searchController?: UiSearchController;
+    galleryClickController?: UiGalleryClickController;
     /** Optional client-local presentation update (used by cache asset inspectors). */
     onProcess?: (widgetManager: WidgetManager) => void;
 };
@@ -53,6 +55,7 @@ export function processRegisteredUiPanelInput(
         panel.onProcess?.(widgetManager);
         panel.scrollController?.process(frame, widgetManager, widgetInteraction);
         panel.searchController?.process(frame, widgetManager, widgetInteraction);
+        panel.galleryClickController?.process(frame, widgetManager, widgetInteraction);
     }
 }
 

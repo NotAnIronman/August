@@ -361,6 +361,31 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             try {
                 const hover = clicks?.getHoverTarget?.();
                 const hid: string | undefined = hover?.id;
+                // Sprite gallery cells (group 30029 = DEV_UIKIT_SPRITE_GALLERY_
+                // GROUP_ID, component ranges 4000-4047/4100-4147 = SPRITE_
+                // GALLERY_CELL_BASE/LABEL_BASE - see client/common/uikit/
+                // contracts.ts) already handle right-click themselves
+                // (GalleryClickController.ts, ::Rename ... skip). They have
+                // no declared cache actions of their own, so the native
+                // right-click menu has nothing real to show for them anyway -
+                // suppress it outright rather than have it flash open empty
+                // on every one of the thousands of skip clicks this panel is
+                // built for. Hardcoded numbers (not an import) deliberately
+                // matches the existing convention for this same reason in
+                // WidgetManager.ts's debug log - this is low-level render
+                // code that shouldn't depend on the UIKit panel layer above it.
+                if (hid && hid.startsWith("widget:")) {
+                    const uidNum = Number.parseInt(hid.slice("widget:".length), 10);
+                    if (!Number.isNaN(uidNum)) {
+                        const groupId = (uidNum >>> 16) & 0xffff;
+                        const componentId = uidNum & 0xffff;
+                        const isSpriteGalleryCell =
+                            groupId === 30029 &&
+                            ((componentId >= 4000 && componentId < 4048) ||
+                                (componentId >= 4100 && componentId < 4148));
+                        if (isSpriteGalleryCell) return;
+                    }
+                }
                 let worldMapSurface = !hid;
                 if (hid && hid.startsWith("widget:") && getByUid) {
                     const uidNum = Number.parseInt(hid.slice("widget:".length), 10);

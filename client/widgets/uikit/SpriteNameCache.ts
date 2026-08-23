@@ -8,7 +8,11 @@ import { parseSpriteRef, spriteRefKey, type SpriteNameMap } from "../../common/u
  * webpack recompile, dev-server restart, or page reload needed.
  */
 const SPRITE_NAMES_URL = "/spriteNames.json";
-const POLL_INTERVAL_MS = 1500;
+// 1 game tick (600ms), not the earlier 1500ms - the original interval
+// assumed occasional single renames; bulk-skipping thousands of icons
+// wants the gallery to catch up in one tick, not lag a full second-plus
+// behind every click.
+const POLL_INTERVAL_MS = 600;
 
 let names: SpriteNameMap = {};
 let namesByCommonName: ReadonlyMap<string, { archiveId: number; frame: number }> = new Map();

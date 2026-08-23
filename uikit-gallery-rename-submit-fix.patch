@@ -1,0 +1,74 @@
+diff --git a/client/widgets/custom/devUIKitPanels.ts b/client/widgets/custom/devUIKitPanels.ts
+index 22359e4..7bbfda5 100644
+--- a/client/widgets/custom/devUIKitPanels.ts
++++ b/client/widgets/custom/devUIKitPanels.ts
+@@ -24,7 +24,7 @@ import {
+     getSpriteNamesVersion,
+     pollSpriteNames,
+ } from "../uikit/SpriteNameCache";
+-import { isValidSpriteCommonName, spriteRefKey } from "../../common/uikit/spriteNames";
++import { spriteRefKey } from "../../common/uikit/spriteNames";
+ import { sendChat } from "../../network/serverConnection/outgoing/inventoryChat";
+ 
+ const TEXT_ROW_HEIGHT = 18;
+@@ -110,16 +110,16 @@ function submitSpriteGalleryRename(query: string, _widgetManager: any): void {
+     const ref = galleryRenameTarget;
+     galleryRenameTarget = undefined;
+     gallerySpriteSearchController?.setActive(false);
++    gallerySpriteSearchController?.setQuery("", false);
+     if (!ref) return;
+     const name = query.trim();
+-    if (!name || !isValidSpriteCommonName(name)) {
+-        gallerySpriteSearchController?.setQuery("", false);
+-        return;
+-    }
+-    // Same command, same validation, same file write as typing it by hand -
+-    // this UI is a faster way to compose ::Rename, not a parallel path.
++    if (!name) return;
++    // Validation is intentionally NOT duplicated here. The server's ::Rename
++    // handler already validates and replies in chat with exactly what's
++    // wrong (e.g. "letters/numbers/./-/_ only, max 80 chars") - pre-checking
++    // client-side and silently dropping invalid input on failure just hid
++    // that message and made a rejected name look like nothing happened.
+     sendChat(`::Rename ${ref} ${name}`);
+-    gallerySpriteSearchController?.setQuery("", false);
+ }
+ 
+ function beginSpriteGalleryRename(ref: string): void {
+diff --git a/client/widgets/uikit/SearchController.ts b/client/widgets/uikit/SearchController.ts
+index 367b194..af81da1 100644
+--- a/client/widgets/uikit/SearchController.ts
++++ b/client/widgets/uikit/SearchController.ts
+@@ -95,11 +95,19 @@ export function createSearchController(
+             if (!focused) return false;
+             let next = query;
+             let changed = false;
++            let submitted = false;
+             for (const event of events) {
+                 if ((event.keyTyped | 0) === 13) {
++                    // Use `next`, not the stale outer `query` - if the final
++                    // character and Enter land in the same events batch
++                    // (normal for anyone typing at speed, since input is
++                    // polled per frame, not per keystroke), `query` here
++                    // would still be missing whatever was just typed.
++                    query = next;
+                     focused = false;
+                     sync();
+-                    if (lastWidgetManager) onSubmit?.(query, lastWidgetManager);
++                    if (lastWidgetManager) onSubmit?.(next, lastWidgetManager);
++                    submitted = true;
+                     continue;
+                 }
+                 if ((event.keyTyped | 0) === 85) {
+@@ -110,6 +118,11 @@ export function createSearchController(
+                 const char = String.fromCharCode(event.keyPressed | 0);
+                 if (/^[ -~]$/.test(char)) { next += char; changed = true; }
+             }
++            // If onSubmit fired this batch, it owns final state now (e.g. it
++            // may have called setQuery to clear the box) - the block below
++            // would otherwise unconditionally overwrite that with `next`,
++            // silently undoing whatever the submit handler just did.
++            if (submitted) return true;
+             if (changed) {
+                 query = next;
+                 sync();

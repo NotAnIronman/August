@@ -1,0 +1,20 @@
+diff --git a/client/widgets/uikit/SearchController.ts b/client/widgets/uikit/SearchController.ts
+index b2e6586..8ba8bc1 100644
+--- a/client/widgets/uikit/SearchController.ts
++++ b/client/widgets/uikit/SearchController.ts
+@@ -110,7 +110,14 @@ export function createSearchController(
+             let changed = false;
+             let submitted = false;
+             for (const event of events) {
+-                if ((event.keyTyped | 0) === 13) {
++                // OSRS_KEY_MAP in InputManager.ts remaps DOM keycodes to
++                // OSRS's own internal codes: DOM Enter (13) becomes OSRS 84.
++                // OSRS code 13 is actually DOM Escape (27) remapped - so this
++                // branch, checking keyTyped===13, matched real Enter presses
++                // NEVER: they arrive as keyTyped=84, fell through every
++                // branch below unmatched, and were silently dropped. 85 here
++                // (backspace) happens to already be correct in this map.
++                if ((event.keyTyped | 0) === 84) {
+                     // Use `next`, not the stale outer `query` - if the final
+                     // character and Enter land in the same events batch
+                     // (normal for anyone typing at speed, since input is

@@ -9,6 +9,7 @@ import {
 import { buildUiPanel } from "../uikit/PanelBuilder";
 import { ComponentIds } from "../../common/uikit/contracts";
 import { createSearchController } from "../uikit/SearchController";
+import { createGalleryClickController } from "../uikit/GalleryClickController";
 import { registerUiPanel } from "../uikit/registry";
 import { createScrollController } from "../uikit/ScrollController";
 import {
@@ -24,6 +25,7 @@ import {
     pollSpriteNames,
 } from "../uikit/SpriteNameCache";
 import { spriteRefKey } from "../../common/uikit/spriteNames";
+import { sendChat } from "../../network/serverConnection/outgoing/inventoryChat";
 
 const TEXT_ROW_HEIGHT = 18;
 const ICON_ROW_HEIGHT = 34;
@@ -44,6 +46,18 @@ const SKIP_MARKER_NAME = "skip";
 // guarantees every sprite in the cache is reachable exactly once.
 let cachedFlatSpriteIndex: GalleryEntry[] | undefined;
 let gallerySearchQuery = "";
+/** "archiveId:frame" currently being renamed via the (repurposed) search
+ *  box, or undefined when the box is in its normal search role. */
+let galleryRenameTarget: string | undefined;
+/** Set once at panel registration time (see registerUiPanel below) so
+ *  beginSpriteGalleryRename/submitSpriteGalleryRename can drive the same
+ *  search box instance without threading it through every call site. */
+let gallerySpriteSearchController: import("../uikit/SearchController").UiSearchController | undefined;
+/** What's actually on screen right now, indexed by grid slot - the click
+ *  controller's getCellRef reads this rather than recomputing the filtered/
+ *  paginated slice itself, so "what did the user click" always matches
+ *  "what did they see," even mid-filter-change. */
+let currentPageEntries: (GalleryEntry | undefined)[] = [];
 
 function buildFlatSpriteIndex(spriteIndex: any): GalleryEntry[] {
     const archiveIds = Array.from(spriteIndex.getArchiveIds?.() ?? [])
@@ -73,8 +87,12 @@ function buildFlatSpriteIndex(spriteIndex: any): GalleryEntry[] {
 
 /** Search box callback (see registerUiPanel below) - purely local state,
  *  same convention as filterDevTextRows. Forces a gallery rebuild via the
- *  pickerKey (built from a hash of the query, see cacheSpriteGallery). */
+ *  pickerKey (built from a hash of the query, see cacheSpriteGallery).
+ *  No-ops while a rename is in progress (galleryRenameTarget set) - the box
+ *  is temporarily repurposed as a name field, not a live filter, until
+ *  Enter submits or the target is cleared. */
 function filterSpriteGallery(query: string, widgetManager: any): void {
+    if (galleryRenameTarget) return;
     gallerySearchQuery = query.trim().toLowerCase();
     const uid = (componentId: number) =>
         ((DEV_UIKIT_SPRITE_GALLERY_GROUP_ID & 0xffff) << 16) | componentId;
@@ -83,6 +101,38 @@ function filterSpriteGallery(query: string, widgetManager: any): void {
     // text to its own value is a no-op for pagination but the key below also
     // folds in gallerySearchQuery, so cacheSpriteGallery still reprocesses.
     if (sourceWidget) sourceWidget.text = sourceWidget.text ?? "0";
+}
+
+/** Enter in the search box, called via SearchController's onSubmit. Only
+ *  meaningful while renaming (galleryRenameTarget set) - a plain search
+ *  Enter has nothing to submit, since filtering already happens live. */
+function submitSpriteGalleryRename(query: string, _widgetManager: any): void {
+    const ref = galleryRenameTarget;
+    galleryRenameTarget = undefined;
+    gallerySpriteSearchController?.setActive(false);
+    gallerySpriteSearchController?.setQuery("", false);
+    if (!ref) return;
+    const name = query.trim();
+    if (!name) return;
+    // Validation is intentionally NOT duplicated here. The server's ::Rename
+    // handler already validates and replies in chat with exactly what's
+    // wrong (e.g. "letters/numbers/./-/_ only, max 80 chars") - pre-checking
+    // client-side and silently dropping invalid input on failure just hid
+    // that message and made a rejected name look like nothing happened.
+    sendChat(`::Rename ${ref} ${name}`);
+}
+
+function beginSpriteGalleryRename(ref: string): void {
+    galleryRenameTarget = ref;
+    const [archiveId, frame] = ref.split(":").map(Number);
+    const currentName = getSpriteCommonName(archiveId, frame) ?? "";
+    gallerySpriteSearchController?.setActive(true);
+    gallerySpriteSearchController?.setQuery(currentName, true);
+}
+
+function skipSpriteGalleryEntry(ref: string): void {
+    // Same reserved name matchesGalleryFilter checks for "skipped".
+    sendChat(`::Rename ${ref} ${SKIP_MARKER_NAME}`);
 }
 
 function matchesGalleryFilter(
@@ -148,6 +198,7 @@ function cacheSpriteGallery(widgetManager: any): void {
     );
     const firstCell = page * ComponentIds.MAX_SPRITE_GALLERY_CELLS;
     const entries = filtered.slice(firstCell, firstCell + ComponentIds.MAX_SPRITE_GALLERY_CELLS);
+    currentPageEntries = entries;
 
     for (let index = 0; index < ComponentIds.MAX_SPRITE_GALLERY_CELLS; index++) {
         const preview = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_CELL_BASE + index));
@@ -457,12 +508,32 @@ registerUiPanel({
         // whatever actually fits (see PanelBuilder.ts's maxControlWidth),
         // so bumping count from 3 to 4 needed no other change here.
         controls: { count: 4, width: 146, height: 20, gap: 10 },
-        search: { placeholder: "Search name or archiveId:frame", width: 220 },
+        // Doubles as the rename field: clicking an icon repurposes this box
+        // (see beginSpriteGalleryRename/submitSpriteGalleryRename) instead
+        // of adding a second input and shrinking the grid further to fit it.
+        search: { placeholder: "Search, or click an icon to rename it", width: 220 },
     }),
-    searchController: createSearchController(
+    searchController: (() => {
+        const controller = createSearchController(
+            DEV_UIKIT_SPRITE_GALLERY_GROUP_ID,
+            "Search, or click an icon to rename it",
+            filterSpriteGallery,
+            submitSpriteGalleryRename,
+        );
+        gallerySpriteSearchController = controller;
+        return controller;
+    })(),
+    galleryClickController: createGalleryClickController(
         DEV_UIKIT_SPRITE_GALLERY_GROUP_ID,
-        "Search name or archiveId:frame",
-        filterSpriteGallery,
+        ComponentIds.MAX_SPRITE_GALLERY_CELLS,
+        ComponentIds.SPRITE_GALLERY_CELL_BASE,
+        ComponentIds.SPRITE_GALLERY_LABEL_BASE,
+        (index) => {
+            const entry = currentPageEntries[index];
+            return entry ? spriteRefKey(entry.archiveId, entry.frame) : undefined;
+        },
+        beginSpriteGalleryRename,
+        skipSpriteGalleryEntry,
     ),
     onProcess: cacheSpriteGallery,
 });
