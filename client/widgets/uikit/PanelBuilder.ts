@@ -645,6 +645,19 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             });
             widgets.set(preview.uid, preview);
             widgets.set(label.uid, label);
+            // Full-cell invisible hit zone (see ComponentIds.SPRITE_GALLERY_
+            // HITZONE_BASE) - covers the whole grid slot, not just the
+            // aspect-fit sprite's own tighter bounds, so clicking anywhere
+            // in a cell (including the padding around a small/narrow icon)
+            // reliably hits it.
+            const hitZone = makeWidget(groupId, ComponentIds.SPRITE_GALLERY_HITZONE_BASE + i, contentViewUid, {
+                type: 3,
+                rawX, rawY, rawWidth: cellWidth, rawHeight: cellHeight,
+                width: cellWidth, height: cellHeight,
+                filled: false,
+                isHidden: true, hidden: true,
+            });
+            widgets.set(hitZone.uid, hitZone);
         }
         const source = makeWidget(groupId, ComponentIds.SPRITE_GALLERY_SOURCE, rootUid, {
             type: 4, rawWidth: 1, rawHeight: 1, width: 1, height: 1,

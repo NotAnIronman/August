@@ -370,21 +370,48 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                 // right-click menu has nothing real to show for them anyway -
                 // suppress it outright rather than have it flash open empty
                 // on every one of the thousands of skip clicks this panel is
-                // built for. Hardcoded numbers (not an import) deliberately
-                // matches the existing convention for this same reason in
-                // WidgetManager.ts's debug log - this is low-level render
+                // built for.
+                //
+                // Deliberately NOT using clicks.getHoverTarget() for this:
+                // these cells are plain type-5 sprite widgets with no
+                // actions/CS2 click/inventory-item flags, so the renderer's
+                // own click-candidate gating (a few hundred lines up: needs
+                // primary/hasCs2Click/hasActions/isInventoryItem/etc.) never
+                // registers them into the click registry at all - hover
+                // tracking for them simply doesn't exist. Hit-testing (x,y)
+                // directly against each cell's own absolute rect (_absX/Y/
+                // Width/Height, populated during layout - see the widget
+                // interaction pass earlier in this function) is the same
+                // technique GalleryClickController.ts already uses
+                // successfully for the click itself, reused here for
+                // symmetry. Hardcoded numbers (not an import) deliberately
+                // matches the existing convention in WidgetManager.ts's
+                // debug log, for the same reason: this is low-level render
                 // code that shouldn't depend on the UIKit panel layer above it.
-                if (hid && hid.startsWith("widget:")) {
-                    const uidNum = Number.parseInt(hid.slice("widget:".length), 10);
-                    if (!Number.isNaN(uidNum)) {
-                        const groupId = (uidNum >>> 16) & 0xffff;
-                        const componentId = uidNum & 0xffff;
-                        const isSpriteGalleryCell =
-                            groupId === 30029 &&
-                            ((componentId >= 4000 && componentId < 4048) ||
-                                (componentId >= 4100 && componentId < 4148));
-                        if (isSpriteGalleryCell) return;
+                if (getByUid) {
+                    const GALLERY_GROUP_ID = 30029;
+                    // 4200 = SPRITE_GALLERY_HITZONE_BASE - the invisible
+                    // full-cell widget, not the tightly aspect-fit preview
+                    // (4000) or label (4100), which leave real dead space
+                    // around small/narrow icons. Same reasoning as
+                    // GalleryClickController.ts using the same hit zone for
+                    // the actual click.
+                    const HITZONE_BASE = 4200;
+                    let overGalleryCell = false;
+                    for (let i = 0; i < 48; i++) {
+                        const w = getByUid(((GALLERY_GROUP_ID & 0xffff) << 16) | (HITZONE_BASE + i)) as any;
+                        if (!w || w.hidden || w.isHidden) continue;
+                        const wx = w._absX;
+                        const wy = w._absY;
+                        const ww = w._absWidth;
+                        const wh = w._absHeight;
+                        if (typeof wx !== "number" || typeof wy !== "number") continue;
+                        if (x >= wx && x < wx + (ww | 0) && y >= wy && y < wy + (wh | 0)) {
+                            overGalleryCell = true;
+                            break;
+                        }
                     }
+                    if (overGalleryCell) return;
                 }
                 let worldMapSurface = !hid;
                 if (hid && hid.startsWith("widget:") && getByUid) {

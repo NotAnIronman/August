@@ -22,6 +22,7 @@ import {
     formatSpriteGalleryLabel,
     getSpriteCommonName,
     getSpriteNamesVersion,
+    applyLocalSpriteName,
     pollSpriteNames,
 } from "../uikit/SpriteNameCache";
 import { spriteRefKey } from "../../common/uikit/spriteNames";
@@ -114,6 +115,13 @@ function submitSpriteGalleryRename(query: string, _widgetManager: any): void {
     if (!ref) return;
     const name = query.trim();
     if (!name) return;
+    // Applied locally first, instantly - the server write (below) still
+    // happens and is still the source of truth, but there's no reason to
+    // make the gallery wait a poll cycle to reflect what the client already
+    // knows it just asked for. If the server ends up rejecting this name,
+    // the next poll quietly corrects it back within ~600ms.
+    const [archiveId, frame] = ref.split(":").map(Number);
+    applyLocalSpriteName(archiveId, frame, name);
     // Validation is intentionally NOT duplicated here. The server's ::Rename
     // handler already validates and replies in chat with exactly what's
     // wrong (e.g. "letters/numbers/./-/_ only, max 80 chars") - pre-checking
@@ -131,7 +139,13 @@ function beginSpriteGalleryRename(ref: string): void {
 }
 
 function skipSpriteGalleryEntry(ref: string): void {
-    // Same reserved name matchesGalleryFilter checks for "skipped".
+    // Same reserved name matchesGalleryFilter checks for "skipped". Applied
+    // locally first for the same instant-feedback reason as rename above -
+    // this is the one that matters most for bulk-clearing thousands of cells,
+    // since the whole point is the entry visibly leaving the "Unnamed" view
+    // the moment you right-click it, not up to 600ms later.
+    const [archiveId, frame] = ref.split(":").map(Number);
+    applyLocalSpriteName(archiveId, frame, SKIP_MARKER_NAME);
     sendChat(`::Rename ${ref} ${SKIP_MARKER_NAME}`);
 }
 
@@ -196,6 +210,18 @@ function cacheSpriteGallery(widgetManager: any): void {
     const filtered = cachedFlatSpriteIndex.filter((entry) =>
         matchesGalleryFilter(entry, filterMode, gallerySearchQuery),
     );
+    // Live count for whatever's currently in view, written directly onto the
+    // filter button rather than round-tripped through the server (which has
+    // no way to know this - it doesn't have the cache data this counts
+    // over). Whatever label text the server sent when the filter was last
+    // cycled gets overwritten here every rebuild, which is fine: this is
+    // strictly more current information, not a conflicting source of truth.
+    const filterLabelWidget = widgetManager.getWidgetByUid(uid(ComponentIds.CONTROL_LABEL_BASE + 3));
+    if (filterLabelWidget) {
+        const filterLabel = filterMode.charAt(0).toUpperCase() + filterMode.slice(1);
+        filterLabelWidget.text = `Filter: ${filterLabel} (${filtered.length})`;
+        widgetManager.invalidateWidgetRender(filterLabelWidget);
+    }
     const firstCell = page * ComponentIds.MAX_SPRITE_GALLERY_CELLS;
     const entries = filtered.slice(firstCell, firstCell + ComponentIds.MAX_SPRITE_GALLERY_CELLS);
     currentPageEntries = entries;
@@ -203,13 +229,16 @@ function cacheSpriteGallery(widgetManager: any): void {
     for (let index = 0; index < ComponentIds.MAX_SPRITE_GALLERY_CELLS; index++) {
         const preview = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_CELL_BASE + index));
         const label = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_LABEL_BASE + index));
+        const hitZone = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_HITZONE_BASE + index));
         const entry = entries[index];
         if (!preview || !label) continue;
         if (!entry) {
             preview.hidden = preview.isHidden = true;
             label.hidden = label.isHidden = true;
+            if (hitZone) hitZone.hidden = hitZone.isHidden = true;
             continue;
         }
+        if (hitZone) hitZone.hidden = hitZone.isHidden = false;
         preview.hidden = preview.isHidden = false;
         preview.type = 5;
         preview.isIf3 = true;
@@ -526,8 +555,7 @@ registerUiPanel({
     galleryClickController: createGalleryClickController(
         DEV_UIKIT_SPRITE_GALLERY_GROUP_ID,
         ComponentIds.MAX_SPRITE_GALLERY_CELLS,
-        ComponentIds.SPRITE_GALLERY_CELL_BASE,
-        ComponentIds.SPRITE_GALLERY_LABEL_BASE,
+        ComponentIds.SPRITE_GALLERY_HITZONE_BASE,
         (index) => {
             const entry = currentPageEntries[index];
             return entry ? spriteRefKey(entry.archiveId, entry.frame) : undefined;

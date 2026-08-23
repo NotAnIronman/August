@@ -12,12 +12,16 @@ export interface UiGalleryClickController {
 }
 
 /**
- * Left/right click hit-testing over a fixed grid of cells (preview + label
- * widget pair per cell), edge-detected on clickMode3 - the input system's
- * single-frame click pulse (see client/widgets/gl/ui-input.ts, which uses
- * the exact same "clickMode3 !== NONE && lastClickMode3 === NONE" pattern
- * for its own left/right dispatch) - so each physical click fires exactly
- * once, not once per frame while held.
+ * Left/right click hit-testing over a fixed grid of cells (one invisible
+ * full-cell hit-zone widget per cell - see ComponentIds.SPRITE_GALLERY_
+ * HITZONE_BASE - rather than the visually-precise preview/label widgets,
+ * which shrink to the sprite's own aspect-fit pixel size and leave real
+ * dead space around small/narrow icons that wouldn't register a click),
+ * edge-detected on clickMode3 - the input system's single-frame click pulse
+ * (see client/widgets/gl/ui-input.ts, which uses the exact same
+ * "clickMode3 !== NONE && lastClickMode3 === NONE" pattern for its own
+ * left/right dispatch) - so each physical click fires exactly once, not
+ * once per frame while held.
  *
  * getCellRef returns the "archiveId:frame" currently shown in a cell, or
  * undefined for an empty slot (end of a filtered/paginated list). Deliberately
@@ -27,8 +31,7 @@ export interface UiGalleryClickController {
 export function createGalleryClickController(
     groupId: number,
     cellCount: number,
-    previewBaseComponentId: number,
-    labelBaseComponentId: number,
+    hitZoneBaseComponentId: number,
     getCellRef: (index: number) => string | undefined,
     onLeftClick: (ref: string) => void,
     onRightClick: (ref: string) => void,
@@ -45,12 +48,8 @@ export function createGalleryClickController(
 
             const hits = frame.collectFromAllRoots(frame.mx, frame.my);
             for (let i = 0; i < cellCount; i++) {
-                const previewUid = packUid(groupId, previewBaseComponentId + i);
-                const labelUid = packUid(groupId, labelBaseComponentId + i);
-                const hit = hits.some((widget) => {
-                    const uid = (widget?.uid ?? -1) | 0;
-                    return uid === previewUid || uid === labelUid;
-                });
+                const hitZoneUid = packUid(groupId, hitZoneBaseComponentId + i);
+                const hit = hits.some((widget) => ((widget?.uid ?? -1) | 0) === hitZoneUid);
                 if (!hit) continue;
                 const ref = getCellRef(i);
                 if (!ref) return;

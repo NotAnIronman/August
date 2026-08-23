@@ -23,6 +23,12 @@ export const ComponentIds = {
     SPRITE_GALLERY_SOURCE: 1201, SPRITE_GALLERY_FILTER: 1202,
     SPRITE_GALLERY_CELL_BASE: 4000,
     SPRITE_GALLERY_LABEL_BASE: 4100, MAX_SPRITE_GALLERY_CELLS: 48,
+    /** Invisible full-cell click/hover target, decoupled from the tightly
+     *  aspect-fit preview widget (which shrinks to the sprite's own scaled
+     *  pixel size and leaves real dead space around small/narrow icons).
+     *  Click and right-click hit-testing use this instead of the preview's
+     *  own (visually correct but too-small-to-reliably-click) bounds. */
+    SPRITE_GALLERY_HITZONE_BASE: 4200,
 } as const;
 
 export type UiRowKind = "text" | "icon" | "mixed" | "picker" | "sprite-gallery";
