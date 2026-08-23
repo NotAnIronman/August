@@ -1,0 +1,35 @@
+diff --git a/client/game/OsrsClient.ts b/client/game/OsrsClient.ts
+index 6a9f2fe..647a1a9 100644
+--- a/client/game/OsrsClient.ts
++++ b/client/game/OsrsClient.ts
+@@ -2461,21 +2461,30 @@ export class OsrsClient {
+                     // that dimension as whatever the widget already had.
+                     // This is what fixes a sprite stretching to fill a
+                     // component whose native rect wasn't sized for it.
++                    // Forcing width/heightMode and x/yPositionMode to 0
++                    // (absolute) matters just as much as the raw values -
++                    // the native widget likely had one of these set to a
++                    // percentage/stretch mode, which would silently keep
++                    // overriding rawWidth/rawHeight otherwise.
+                     if (overrideWidth >= 0) {
+                         (w as any).rawWidth = overrideWidth;
+                         (w as any).width = overrideWidth;
++                        (w as any).widthMode = 0;
+                     }
+                     if (overrideHeight >= 0) {
+                         (w as any).rawHeight = overrideHeight;
+                         (w as any).height = overrideHeight;
++                        (w as any).heightMode = 0;
+                     }
+                     if (overrideX >= 0) {
+                         (w as any).rawX = overrideX;
+                         (w as any).x = overrideX;
++                        (w as any).xPositionMode = 0;
+                     }
+                     if (overrideY >= 0) {
+                         (w as any).rawY = overrideY;
+                         (w as any).y = overrideY;
++                        (w as any).yPositionMode = 0;
+                     }
+                     markWidgetInteractionDirty(w);
+                     this.widgetManager.invalidateWidgetRender(w);

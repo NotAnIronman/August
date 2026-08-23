@@ -10,12 +10,18 @@ export const ComponentIds = {
     CONTROL_BACKGROUND_BASE: 920, CONTROL_LABEL_BASE: 930, MAX_CONTROLS: 8,
     MENU_BUTTON_BACKGROUND_BASE: 1000, MENU_BUTTON_ICON_BASE: 1040,
     MENU_BUTTON_LABEL_BASE: 1080, MAX_MENU_BUTTONS: 24,
+    /** Reserved for a future always-visible tab background sprite layer
+     *  (tabs.backgroundAsset) - not yet consumed by PanelBuilder.ts. See
+     *  the note there before wiring it up; it needs every id below shifted
+     *  to make room, not just this one reservation. */
+    TAB_BACKGROUND_BASE: 1120,
     /** Client-local metadata and rows for cache interface component inspection. */
     PICKER_SOURCE: 1200, PICKER_ROW_PREVIEW_BASE: 2000,
     PICKER_ROW_LABEL_BASE: 2600, PICKER_ROW_ALT_PREVIEW_BASE: 3200,
     MAX_PICKER_ROWS: 500,
     /** Fixed thumbnail grid used by the dedicated full-cache sprite browser. */
-    SPRITE_GALLERY_SOURCE: 1201, SPRITE_GALLERY_CELL_BASE: 4000,
+    SPRITE_GALLERY_SOURCE: 1201, SPRITE_GALLERY_FILTER: 1202,
+    SPRITE_GALLERY_CELL_BASE: 4000,
     SPRITE_GALLERY_LABEL_BASE: 4100, MAX_SPRITE_GALLERY_CELLS: 48,
 } as const;
 
@@ -48,7 +54,17 @@ export type UiPanelLayout = {
     width: number; height: number;
     sidebar?: { width: number };
     /** Preferred spelling for new panels; sidebar remains backwards compatible. */
-    tabs?: { position: UiTabPosition; width?: number; height?: number };
+    tabs?: {
+        position: UiTabPosition; width?: number; height?: number;
+        /** NOT YET WIRED in PanelBuilder.ts - the highlight widget's id
+         *  range has no room for a second, always-visible background layer
+         *  without shifting every component id after it. See the note in
+         *  PanelBuilder.ts's tab-building code. */
+        backgroundAsset?: string;
+        /** Sprite shown in place of the plain highlight color for whichever
+         *  tab is currently active - wired now. */
+        backgroundHoverAsset?: string;
+    };
     content: { rowKind: UiRowKind; rowHeight: number; scrollbarWidth: number; rowCapacity?: number };
     /** Defaults to true. Blocks world input for every pixel inside the modal. */
     inputCapture?: boolean;
@@ -64,6 +80,8 @@ export type UiPanelLayout = {
         columns?: 2; rows?: number; buttonHeight?: number; gap?: number; iconSize?: number;
         /** Optional semantic cache skin, resolved client-side by UIKit. */
         backgroundAsset?: string;
+        /** Swapped in on mouse-over (real hover, not "active tab"). */
+        backgroundHoverAsset?: string;
         /** Keeps a menu grid compact instead of letting it occupy the whole panel. */
         maxHeightFraction?: number;
         /** Limits the grid width and centres it within the content column. */

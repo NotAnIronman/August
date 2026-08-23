@@ -1,0 +1,247 @@
+diff --git a/client/common/uikit/contracts.ts b/client/common/uikit/contracts.ts
+index cc27c4b..d8fb4a5 100644
+--- a/client/common/uikit/contracts.ts
++++ b/client/common/uikit/contracts.ts
+@@ -16,7 +16,7 @@ export const ComponentIds = {
+     MAX_PICKER_ROWS: 500,
+     /** Fixed thumbnail grid used by the dedicated full-cache sprite browser. */
+     SPRITE_GALLERY_SOURCE: 1201, SPRITE_GALLERY_CELL_BASE: 4000,
+-    SPRITE_GALLERY_LABEL_BASE: 4100, MAX_SPRITE_GALLERY_CELLS: 30,
++    SPRITE_GALLERY_LABEL_BASE: 4100, MAX_SPRITE_GALLERY_CELLS: 25,
+ } as const;
+ 
+ export type UiRowKind = "text" | "icon" | "mixed" | "picker" | "sprite-gallery";
+diff --git a/client/common/uikit/spriteNames.ts b/client/common/uikit/spriteNames.ts
+index 245b2c7..dd0dbed 100644
+--- a/client/common/uikit/spriteNames.ts
++++ b/client/common/uikit/spriteNames.ts
+@@ -1,46 +1,27 @@
+-import rawSpriteNames from "./spriteNames.json";
+-
+ /**
+- * Human-assigned names for individual cache sprites, keyed by the same
+- * "archiveId:frame" reference already shown in the sprite gallery label
+- * (see client/widgets/custom/devUIKitPanels.ts). This file is intentionally
+- * a flat, hand-editable JSON map rather than TypeScript: it's meant to be
+- * rewritten constantly (by hand or via the ::Rename command) without a
+- * recompile, and to stay a trivial, mergeable git diff.
++ * Shared, environment-agnostic helpers for the cache-sprite common-name
++ * registry - safe to import from both client and server code (no fetch, no
++ * bundled JSON, no Node fs). The actual name *data* lives in two places:
++ *
++ *   - server/src/world/SpriteNameCatalogFile.ts reads/writes the JSON file
++ *     on disk (used by the ::Rename command).
++ *   - client/widgets/uikit/SpriteNameCache.ts polls that same file over
++ *     HTTP at runtime and answers lookups in the sprite gallery.
+  *
+- * This is a *discovery* registry, not the semantic asset dictionary. Once a
+- * name here is actually wired into a real UIKit panel, promote it into
+- * CacheUiAssets.ts's CACHE_UI_ASSET_ALIASES instead - that's the curated,
+- * intent-carrying layer UIKit widgets read from. This file only answers
+- * "what is this sprite called", nothing more.
++ * Splitting it this way means a rename takes effect the next time the
++ * client polls (about a second, see SpriteNameCache.ts) with no rebuild,
++ * dev-server restart, or page reload required - editing the JSON directly
++ * on disk works the same way. Earlier versions imported the JSON as a
++ * bundled ES module, which only picked up new names after a full webpack
++ * recompile.
+  */
+ export type SpriteNameMap = Readonly<Record<string, string>>;
+ 
+-const SPRITE_NAMES: SpriteNameMap = rawSpriteNames as SpriteNameMap;
+-
+ /** Canonical "archiveId:frame" key format, matching the gallery's on-screen id. */
+ export function spriteRefKey(archiveId: number, frame: number): string {
+     return `${archiveId | 0}:${Math.max(0, frame | 0)}`;
+ }
+ 
+-export function getAllSpriteNames(): SpriteNameMap {
+-    return SPRITE_NAMES;
+-}
+-
+-/** Returns the assigned common name for a sprite, or undefined if unnamed. */
+-export function getSpriteCommonName(archiveId: number, frame: number): string | undefined {
+-    return SPRITE_NAMES[spriteRefKey(archiveId, frame)];
+-}
+-
+-/**
+- * Label text for a sprite gallery cell: the common name once assigned,
+- * otherwise the raw "archiveId:frame" reference so it stays referenceable
+- * (and pasteable into ::Rename) whether or not it has been named yet.
+- */
+-export function formatSpriteGalleryLabel(archiveId: number, frame: number): string {
+-    return getSpriteCommonName(archiveId, frame) ?? spriteRefKey(archiveId, frame);
+-}
+-
+ const SPRITE_REF_PATTERN = /^(\d+):(\d+)$/;
+ 
+ /** Parses a user-typed "archiveId:frame" reference, e.g. from ::Rename. */
+diff --git a/client/widgets/custom/devUIKitPanels.ts b/client/widgets/custom/devUIKitPanels.ts
+index 00d354e..8307b6c 100644
+--- a/client/widgets/custom/devUIKitPanels.ts
++++ b/client/widgets/custom/devUIKitPanels.ts
+@@ -17,7 +17,11 @@ import {
+ } from "../uikit/CacheUiAssets";
+ import { IndexType } from "../../rs/cache/IndexType";
+ import { SpriteLoader } from "../../rs/sprite/SpriteLoader";
+-import { formatSpriteGalleryLabel } from "../../common/uikit/spriteNames";
++import {
++    formatSpriteGalleryLabel,
++    getSpriteNamesVersion,
++    pollSpriteNames,
++} from "../uikit/SpriteNameCache";
+ 
+ const TEXT_ROW_HEIGHT = 18;
+ const ICON_ROW_HEIGHT = 34;
+@@ -65,13 +69,20 @@ function cacheSpriteGallery(widgetManager: any): void {
+     // The registry processes every UIKit panel each frame, including panels
+     // that have not been opened or loaded yet.
+     if (!sourceWidget) return;
++    // Cheap no-op most ticks; kicks off a background refresh roughly once a
++    // second so a fresh ::Rename shows up without reopening the gallery.
++    pollSpriteNames();
+     const page = Math.max(0, Number.parseInt(sourceWidget?.text ?? "", 10) || 0);
+-    const pickerKey = `uikit-sprite-gallery:${page}`;
++    // Names version is part of the key on purpose: a successful name poll
++    // forces the same page to redraw its labels even though nothing else
++    // about the page changed. Redrawing is cheap - the expensive sprite
++    // decode is cached separately in cachedFlatSpriteIndex.
++    const pickerKey = `uikit-sprite-gallery:${page}:${getSpriteNamesVersion()}`;
+     if (sourceWidget.__uikitPickerKey === pickerKey) return;
+     const content = widgetManager.getWidgetByUid(uid(ComponentIds.CONTENT_VIEW));
+     if (content) {
+         content.scrollY = 0;
+-        // This is a fixed page, not another long list: all 48 cells are laid
++        // This is a fixed page, not another long list: every cell is laid
+         // out inside the viewport and navigation owns changing pages.
+         content.scrollHeight = content.height;
+         widgetManager.invalidateScroll(content);
+@@ -126,7 +137,7 @@ function cacheSpriteGallery(widgetManager: any): void {
+         preview.opacity = 0;
+         preview.transparency = 0;
+         // Shows the assigned common name once one exists (see
+-        // client/common/uikit/spriteNames.json / ::Rename); otherwise falls
++        // client/public/spriteNames.json / ::Rename); otherwise falls
+         // back to the raw "archiveId:frame" reference so unnamed sprites
+         // stay identifiable and pasteable straight into ::Rename.
+         label.text = formatSpriteGalleryLabel(entry.archiveId, entry.frame);
+diff --git a/client/widgets/uikit/PanelBuilder.ts b/client/widgets/uikit/PanelBuilder.ts
+index ab1763e..4bbaf8d 100644
+--- a/client/widgets/uikit/PanelBuilder.ts
++++ b/client/widgets/uikit/PanelBuilder.ts
+@@ -548,7 +548,12 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
+     }
+ 
+     if (includesSpriteGallery) {
+-        const columns = 6;
++        // 5x5 rather than 6 columns: 6 columns' worth of cells (even sized
++        // to fit contentWidth on paper) still crowded the panel's actual
++        // rendered width in the real client, clipping the rightmost column.
++        // 5 columns leaves comfortable margin instead of chasing an exact
++        // pixel fit against a container size we can't directly measure.
++        const columns = 5;
+         const rows = Math.ceil(ComponentIds.MAX_SPRITE_GALLERY_CELLS / columns);
+         const gap = 8;
+         // cellWidth/cellHeight are an exact fit for the content area (no
+diff --git a/client/widgets/uikit/SpriteNameCache.ts b/client/widgets/uikit/SpriteNameCache.ts
+new file mode 100644
+index 0000000..653a11d
+--- /dev/null
++++ b/client/widgets/uikit/SpriteNameCache.ts
+@@ -0,0 +1,60 @@
++import { spriteRefKey, type SpriteNameMap } from "../../common/uikit/spriteNames";
++
++/**
++ * Polls client/public/spriteNames.json over HTTP instead of importing it as
++ * a bundled module. Files under client/public are served unbundled by the
++ * dev server straight off disk, so a write from the ::Rename command (or a
++ * hand-edit of the file) shows up here within one poll interval - no
++ * webpack recompile, dev-server restart, or page reload needed.
++ */
++const SPRITE_NAMES_URL = "/spriteNames.json";
++const POLL_INTERVAL_MS = 1500;
++
++let names: SpriteNameMap = {};
++let version = 0;
++let lastPollStartedAt = 0;
++let pollInFlight = false;
++
++function pollIfDue(): void {
++    const now = Date.now();
++    if (pollInFlight || now - lastPollStartedAt < POLL_INTERVAL_MS) return;
++    lastPollStartedAt = now;
++    pollInFlight = true;
++    fetch(SPRITE_NAMES_URL, { cache: "no-store" })
++        .then((response) => (response.ok ? response.json() : undefined))
++        .then((data) => {
++            if (data && typeof data === "object" && !Array.isArray(data)) {
++                names = data as SpriteNameMap;
++                version++;
++            }
++        })
++        .catch(() => {
++            // Keep the last known-good names on a transient fetch failure
++            // (e.g. dev server mid-restart) rather than blanking everything.
++        })
++        .finally(() => {
++            pollInFlight = false;
++        });
++}
++
++/**
++ * Call once per gallery render tick. Cheap no-op between poll intervals;
++ * kicks off a background fetch when the cache is due for a refresh.
++ */
++export function pollSpriteNames(): void {
++    pollIfDue();
++}
++
++/** Bumps every time a poll returns successfully - use to invalidate a render cache key. */
++export function getSpriteNamesVersion(): number {
++    return version;
++}
++
++export function getSpriteCommonName(archiveId: number, frame: number): string | undefined {
++    return names[spriteRefKey(archiveId, frame)];
++}
++
++/** Common name once assigned, otherwise the raw "archiveId:frame" reference. */
++export function formatSpriteGalleryLabel(archiveId: number, frame: number): string {
++    return getSpriteCommonName(archiveId, frame) ?? spriteRefKey(archiveId, frame);
++}
+diff --git a/server/src/world/SpriteNameCatalogFile.ts b/server/src/world/SpriteNameCatalogFile.ts
+index 0fc0f52..1b329d5 100644
+--- a/server/src/world/SpriteNameCatalogFile.ts
++++ b/server/src/world/SpriteNameCatalogFile.ts
+@@ -4,14 +4,15 @@ import path from "path";
+ import { clientPath } from "../paths";
+ 
+ /**
+- * Server-side read/write for client/common/uikit/spriteNames.json - the
+- * shared cache-sprite common-name registry (see client/common/uikit/
+- * spriteNames.ts for the reader used by both client and server code).
++ * Server-side read/write for client/public/spriteNames.json - the shared
++ * cache-sprite common-name registry (see client/widgets/uikit/
++ * SpriteNameCache.ts for the browser-side reader, and client/common/uikit/
++ * spriteNames.ts for the environment-agnostic key/validation helpers).
+  *
+- * The file lives under client/common on purpose: it's imported directly by
+- * client/widgets/custom/devUIKitPanels.ts to render names in the sprite
+- * gallery, and the dev server's file watcher (Vite) picks up this write and
+- * hot-reloads that import automatically - no extra sync channel needed.
++ * The file lives under client/public on purpose: files there are served by
++ * the client dev server directly off disk, unbundled. The browser polls it
++ * over HTTP, so a write here shows up in the sprite gallery within about a
++ * second - no webpack recompile, dev-server restart, or page reload.
+  */
+ export type SpriteNameCatalog = Readonly<Record<string, string>>;
+ 
+@@ -19,7 +20,7 @@ const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+ const REF_PATTERN = /^\d+:\d+$/;
+ 
+ export function defaultSpriteNameCatalogPath(): string {
+-    return clientPath("common", "uikit", "spriteNames.json");
++    return clientPath("public", "spriteNames.json");
+ }
+ 
+ function isValidEntry(key: string, value: unknown): value is string {

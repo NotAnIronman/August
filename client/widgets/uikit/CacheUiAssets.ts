@@ -1,5 +1,6 @@
 import type { WidgetManager } from "../WidgetManager";
 import type { WidgetNode } from "../WidgetNode";
+import { resolveSpriteByCommonName } from "./SpriteNameCache";
 
 /**
  * Curated cache-backed visual vocabulary for UIKit. Add a semantic alias here
@@ -182,8 +183,18 @@ function resolveAssetDefinition(assetKey: string): CacheUiAsset | undefined {
         return { kind: "widget-sprite", source: widgetSource, description: "Unlabelled cache component reference." };
     }
     const spriteSource = parseCacheSpriteAssetKey(assetKey);
-    return spriteSource
-        ? { kind: "archive-sprite", source: spriteSource, description: "Unlabelled cache sprite frame." }
+    if (spriteSource) {
+        return { kind: "archive-sprite", source: spriteSource, description: "Unlabelled cache sprite frame." };
+    }
+    // Anything named via ::Rename (client/public/spriteNames.json) resolves
+    // directly - no separate promotion into CACHE_UI_ASSET_ALIASES needed.
+    // That hand-curated dictionary is still worth using for assets that need
+    // extra metadata (e.g. pulling a sprite off an existing widget component
+    // rather than a standalone archive), but for the common case - "I named
+    // it, now I want to use it" - this is the whole workflow.
+    const named = resolveSpriteByCommonName(assetKey);
+    return named
+        ? { kind: "archive-sprite", source: named, description: `Named via ::Rename as "${assetKey}".` }
         : undefined;
 }
 
@@ -226,7 +237,34 @@ function restoreDefaultMenuButton(widget: WidgetNode): void {
     widget.cacheSpriteToken = undefined;
     widget.cacheSpriteArchiveId = undefined;
     widget.cacheSpriteFrame = undefined;
+    widget.cacheSpriteTokenHover = undefined;
+    widget.cacheSpriteArchiveIdHover = undefined;
+    widget.cacheSpriteFrameHover = undefined;
     widget.spriteTiling = false;
+}
+
+/** Resolves widget.cacheUiAssetHover (if any) into the matching hover-swap
+ *  field for whichever sprite path the default asset used. Called after the
+ *  default asset is applied in each of the three branches below. */
+function applyHoverAsset(widgetManager: WidgetManager, widget: WidgetNode): void {
+    const hoverKey = widget.cacheUiAssetHover;
+    const hoverAsset = hoverKey ? resolveAssetDefinition(hoverKey) : undefined;
+
+    widget.cacheSpriteTokenHover = undefined;
+    widget.cacheSpriteArchiveIdHover = undefined;
+    widget.cacheSpriteFrameHover = undefined;
+    widget.spriteId2 = -1;
+
+    if (!hoverAsset) return;
+    if (hoverAsset.kind === "named-sprite") {
+        widget.cacheSpriteTokenHover = hoverAsset.token;
+    } else if (hoverAsset.kind === "archive-sprite") {
+        widget.cacheSpriteArchiveIdHover = hoverAsset.source.archiveId;
+        widget.cacheSpriteFrameHover = hoverAsset.source.frame;
+    } else {
+        const resolved = resolveWidgetSprite(widgetManager, hoverAsset.source);
+        if (resolved) widget.spriteId2 = resolved.spriteId;
+    }
 }
 
 /** Applies declared cache skins to every loaded widget in one UIKit panel. */
@@ -249,7 +287,7 @@ export function syncCacheUiAssetsForGroup(widgetManager: WidgetManager, groupId:
         }
 
         if (asset.kind === "named-sprite") {
-            const signature = `${assetKey}:${asset.token}`;
+            const signature = `${assetKey}:${asset.token}:${widget.cacheUiAssetHover ?? ""}`;
             if ((widget as any).__cacheUiAssetSignature === signature) continue;
             widget.type = 5;
             widget.isIf3 = true;
@@ -258,15 +296,17 @@ export function syncCacheUiAssetsForGroup(widgetManager: WidgetManager, groupId:
             widget.cacheSpriteArchiveId = undefined;
             widget.cacheSpriteFrame = undefined;
             widget.spriteId = -1;
-            widget.spriteId2 = -1;
             widget.transparency = 0;
+            applyHoverAsset(widgetManager, widget);
             (widget as any).__cacheUiAssetSignature = signature;
             widgetManager.invalidateWidgetRender(widget, "cache-ui-asset");
             continue;
         }
 
         if (asset.kind === "archive-sprite") {
-            const signature = `${assetKey}:${asset.source.archiveId}:${asset.source.frame}`;
+            const signature =
+                `${assetKey}:${asset.source.archiveId}:${asset.source.frame}` +
+                `:${widget.cacheUiAssetHover ?? ""}`;
             if ((widget as any).__cacheUiAssetSignature === signature) continue;
             widget.type = 5;
             widget.isIf3 = true;
@@ -275,8 +315,8 @@ export function syncCacheUiAssetsForGroup(widgetManager: WidgetManager, groupId:
             widget.cacheSpriteArchiveId = asset.source.archiveId;
             widget.cacheSpriteFrame = asset.source.frame;
             widget.spriteId = -1;
-            widget.spriteId2 = -1;
             widget.transparency = 0;
+            applyHoverAsset(widgetManager, widget);
             (widget as any).__cacheUiAssetSignature = signature;
             widgetManager.invalidateWidgetRender(widget, "cache-ui-asset");
             continue;
@@ -284,7 +324,7 @@ export function syncCacheUiAssetsForGroup(widgetManager: WidgetManager, groupId:
 
         const resolved = resolveWidgetSprite(widgetManager, asset.source);
         if (!resolved) continue;
-        const signature = `${assetKey}:${resolved.spriteId}`;
+        const signature = `${assetKey}:${resolved.spriteId}:${widget.cacheUiAssetHover ?? ""}`;
         if ((widget as any).__cacheUiAssetSignature === signature) continue;
         widget.type = 5;
         widget.isIf3 = true;
@@ -293,13 +333,13 @@ export function syncCacheUiAssetsForGroup(widgetManager: WidgetManager, groupId:
         widget.cacheSpriteArchiveId = undefined;
         widget.cacheSpriteFrame = undefined;
         widget.spriteId = resolved.spriteId;
-        widget.spriteId2 = -1;
         widget.spriteTiling = resolved.spriteTiling;
         widget.borderType = resolved.borderType;
         widget.graphicShadow = resolved.graphicShadow;
         widget.horizontalFlip = resolved.hFlip;
         widget.verticalFlip = resolved.vFlip;
         widget.transparency = 0;
+        applyHoverAsset(widgetManager, widget);
         (widget as any).__cacheUiAssetSignature = signature;
         widgetManager.invalidateWidgetRender(widget, "cache-ui-asset");
     }

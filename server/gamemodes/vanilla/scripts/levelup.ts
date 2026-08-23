@@ -2,6 +2,7 @@ import { MAX_REAL_LEVEL, SkillId, getSkillName } from "../../../../client/rs/ski
 import type { GameEventBus } from "../../../src/game/events/GameEventBus";
 import type { PlayerState } from "../../../src/game/player";
 import type { ScriptServices } from "../../../src/game/scripts/types";
+import { resolveSpriteRefByName } from "../../../src/world/SpriteNameCatalogFile";
 import {
     LEVELUP_COMBAT_COMPONENT,
     LEVELUP_CONTINUE_COMPONENT,
@@ -134,6 +135,32 @@ function showSkillLevelUp(
         uid: (LEVELUP_INTERFACE_ID << 16) | LEVELUP_COMBAT_COMPONENT,
         hidden: true,
     });
+    // The interface's baked-in cache icon for this component is either
+    // missing, wrong, or absent for this revision - push the named sprite
+    // (::Rename'd via the sprite gallery, e.g. "skill.attack") explicitly.
+    // The component's native rect isn't a square icon slot (it stretched a
+    // replacement sprite across the whole width), so this also overrides
+    // the geometry to a small square in the top-left. Wrapped defensively:
+    // this is a nice-to-have on top of the popup, and must never be able to
+    // take the actual text down with it if something about the lookup or
+    // the send goes wrong.
+    try {
+        const iconRef = resolveSpriteRefByName(`skill.${skillName.toLowerCase()}`);
+        if (iconRef) {
+            queueWidget(services, playerId, {
+                action: "set_sprite",
+                uid: (LEVELUP_INTERFACE_ID << 16) | (targetComp & 0xffff),
+                archiveId: iconRef.archiveId,
+                frame: iconRef.frame,
+                x: 24,
+                y: 22,
+                width: 48,
+                height: 48,
+            });
+        }
+    } catch (err) {
+        console.error(`[levelup] set_sprite lookup/send failed for skill ${skillName}:`, err);
+    }
     queueWidget(services, playerId, {
         action: "set_text",
         uid: (LEVELUP_INTERFACE_ID << 16) | LEVELUP_TEXT1_COMPONENT,

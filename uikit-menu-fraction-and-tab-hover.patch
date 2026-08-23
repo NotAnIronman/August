@@ -1,0 +1,100 @@
+diff --git a/client/common/uikit/contracts.ts b/client/common/uikit/contracts.ts
+index d8fb4a5..b01d8b4 100644
+--- a/client/common/uikit/contracts.ts
++++ b/client/common/uikit/contracts.ts
+@@ -10,6 +10,11 @@ export const ComponentIds = {
+     CONTROL_BACKGROUND_BASE: 920, CONTROL_LABEL_BASE: 930, MAX_CONTROLS: 8,
+     MENU_BUTTON_BACKGROUND_BASE: 1000, MENU_BUTTON_ICON_BASE: 1040,
+     MENU_BUTTON_LABEL_BASE: 1080, MAX_MENU_BUTTONS: 24,
++    /** Reserved for a future always-visible tab background sprite layer
++     *  (tabs.backgroundAsset) - not yet consumed by PanelBuilder.ts. See
++     *  the note there before wiring it up; it needs every id below shifted
++     *  to make room, not just this one reservation. */
++    TAB_BACKGROUND_BASE: 1120,
+     /** Client-local metadata and rows for cache interface component inspection. */
+     PICKER_SOURCE: 1200, PICKER_ROW_PREVIEW_BASE: 2000,
+     PICKER_ROW_LABEL_BASE: 2600, PICKER_ROW_ALT_PREVIEW_BASE: 3200,
+@@ -48,7 +53,17 @@ export type UiPanelLayout = {
+     width: number; height: number;
+     sidebar?: { width: number };
+     /** Preferred spelling for new panels; sidebar remains backwards compatible. */
+-    tabs?: { position: UiTabPosition; width?: number; height?: number };
++    tabs?: {
++        position: UiTabPosition; width?: number; height?: number;
++        /** NOT YET WIRED in PanelBuilder.ts - the highlight widget's id
++         *  range has no room for a second, always-visible background layer
++         *  without shifting every component id after it. See the note in
++         *  PanelBuilder.ts's tab-building code. */
++        backgroundAsset?: string;
++        /** Sprite shown in place of the plain highlight color for whichever
++         *  tab is currently active - wired now. */
++        backgroundHoverAsset?: string;
++    };
+     content: { rowKind: UiRowKind; rowHeight: number; scrollbarWidth: number; rowCapacity?: number };
+     /** Defaults to true. Blocks world input for every pixel inside the modal. */
+     inputCapture?: boolean;
+diff --git a/client/widgets/custom/devUIKitPanels.ts b/client/widgets/custom/devUIKitPanels.ts
+index 12c7d0c..217bd20 100644
+--- a/client/widgets/custom/devUIKitPanels.ts
++++ b/client/widgets/custom/devUIKitPanels.ts
+@@ -333,8 +333,17 @@ registerUiPanel({
+         height: 390,
+         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
+         menuButtons: {
++            // maxHeightFraction was 0.375 here vs 0.78 on the components
++            // page below - same button grid code, but this one was only
++            // ever allowed to use ~38% of the available height, which is
++            // why it rendered noticeably smaller. Matched to the working
++            // reference. Default background now points at the raw sprite
++            // (293:0) directly - once you've named it via ::Rename, swap
++            // this string for that name; the raw "cache.sprite.293.0" key
++            // keeps working either way.
+             columns: 2, rows: 4, buttonHeight: 58, gap: 8, iconSize: 40,
+-            maxHeightFraction: 0.375, maxWidthFraction: 0.75,
++            maxHeightFraction: 0.78, maxWidthFraction: 0.75,
++            backgroundAsset: "cache.sprite.293.0",
+         },
+         footerButton: true,
+     }),
+diff --git a/client/widgets/uikit/PanelBuilder.ts b/client/widgets/uikit/PanelBuilder.ts
+index e1c0425..836126c 100644
+--- a/client/widgets/uikit/PanelBuilder.ts
++++ b/client/widgets/uikit/PanelBuilder.ts
+@@ -166,7 +166,17 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
+ 
+             // Highlight's component id is LOWER than the tab text's (see
+             // the fileId z-order note in types.ts) so it draws behind,
+-            // not on top of, the label.
++            // not on top of, the label. The server only ever reveals this
++            // widget for the currently-active tab (sendUiTabs in
++            // panelData.ts), so backgroundHoverAsset - not backgroundAsset -
++            // is what belongs here: it's already exactly the "this tab is
++            // selected" signal, just swapping a sprite in for the plain
++            // color instead of a persistent all-tabs background. A true
++            // always-visible backgroundAsset needs its own widget below
++            // TAB_BASE in the id space, which the current 3..12 range has
++            // no room left for without shifting every id after it -
++            // deliberately not doing that shift silently in the same patch
++            // as everything else this round.
+             const highlight = makeWidget(
+                 groupId,
+                 ComponentIds.TAB_HIGHLIGHT_BASE + i,
+@@ -181,6 +191,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
+                     height: TAB_HEIGHT - 2,
+                     filled: true,
+                     color: 0x3a2e1f,
++                    cacheUiAsset: layout.tabs?.backgroundHoverAsset,
+                     isHidden: true,
+                     hidden: true,
+                 },
+@@ -217,7 +228,9 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
+             const highlight = makeWidget(groupId, ComponentIds.TAB_HIGHLIGHT_BASE + i, rootUid, {
+                 type: 3, rawX: tabX, rawY: CONTENT_TOP - 2, rawWidth: tabWidth - 2,
+                 rawHeight: tabHeight, width: tabWidth - 2, height: tabHeight,
+-                filled: true, color: 0x3a2e1f, isHidden: true, hidden: true,
++                filled: true, color: 0x3a2e1f,
++                cacheUiAsset: layout.tabs?.backgroundHoverAsset,
++                isHidden: true, hidden: true,
+             });
+             widgets.set(highlight.uid, highlight);
+             const tab = makeWidget(groupId, ComponentIds.TAB_BASE + i, rootUid, {

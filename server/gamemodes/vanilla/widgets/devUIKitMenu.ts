@@ -7,8 +7,10 @@ import {
     DEV_UIKIT_TEXT_PANEL_GROUP_ID,
 } from "../../../../client/common/ui/widgets/custom/journalPanel.cs2";
 import { ComponentIds, type UiIconRow, type UiTextRow } from "../../../../client/common/uikit/contracts";
+import { isValidSpriteCommonName, parseSpriteRef } from "../../../../client/common/uikit/spriteNames";
 import type { PlayerState } from "../../../src/game/player";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
+import { setSpriteName } from "../../../src/world/SpriteNameCatalogFile";
 import { registerUiPanelActions } from "../uikit/actions";
 import {
     openUiPanel,
@@ -108,9 +110,19 @@ const NATIVE_INTERFACE_BUTTONS = [
 
 const COMPONENT_INTERFACE_BUTTONS = [...COMPONENT_PICKER_BUTTONS, ...NATIVE_INTERFACE_BUTTONS] as const;
 const spriteGalleryPageByPlayerId = new Map<number, number>();
+const SPRITE_GALLERY_FILTER_MODES = ["all", "unnamed", "named", "skipped"] as const;
+type SpriteGalleryFilterMode = (typeof SPRITE_GALLERY_FILTER_MODES)[number];
+const SPRITE_GALLERY_FILTER_LABELS: Record<SpriteGalleryFilterMode, string> = {
+    all: "Filter: All",
+    unnamed: "Filter: Unnamed",
+    named: "Filter: Named",
+    skipped: "Filter: Skipped",
+};
+const spriteGalleryFilterByPlayerId = new Map<number, SpriteGalleryFilterMode>();
 
 function openComponentsMenu(player: PlayerState, services: ScriptServices): void {
     spriteGalleryPageByPlayerId.delete(player.id);
+    spriteGalleryFilterByPlayerId.delete(player.id);
     openUiPanel(
         services,
         player,
@@ -151,17 +163,24 @@ function openComponentPicker(
 function openSpriteGallery(player: PlayerState, services: ScriptServices, page: number): void {
     const safePage = Math.max(0, page | 0);
     spriteGalleryPageByPlayerId.set(player.id, safePage);
+    const filterMode = spriteGalleryFilterByPlayerId.get(player.id) ?? "all";
     services.dialog.getInterfaceService()?.openModal(player, DEV_UIKIT_SPRITE_GALLERY_GROUP_ID);
     services.dialog.queueWidgetEvent(player.id, {
         action: "set_text",
         uid: packUid(DEV_UIKIT_SPRITE_GALLERY_GROUP_ID, ComponentIds.SPRITE_GALLERY_SOURCE),
         text: String(safePage),
     });
+    services.dialog.queueWidgetEvent(player.id, {
+        action: "set_text",
+        uid: packUid(DEV_UIKIT_SPRITE_GALLERY_GROUP_ID, ComponentIds.SPRITE_GALLERY_FILTER),
+        text: filterMode,
+    });
     sendUiControls(services, player.id, DEV_UIKIT_SPRITE_GALLERY_GROUP_ID, [
         { label: "Previous page" },
         { label: "Next page" },
         { label: "Back to Components" },
-    ], 3);
+        { label: SPRITE_GALLERY_FILTER_LABELS[filterMode] },
+    ], 4);
 }
 
 function openNativeInterface(player: PlayerState, services: ScriptServices, groupId: number): void {
@@ -206,6 +225,30 @@ export function registerDevUIKitMenu(
 ): void {
     registry.registerCommand("dev", ({ player }) => {
         openTextMenu(player, services);
+    });
+
+    // ::Rename <archiveId>:<frame> <common name>
+    // e.g. ::Rename 169:0 Minimap.Compass-dial
+    // Writes to client/common/uikit/spriteNames.json, which the sprite
+    // gallery (and eventually other UIKit tooling) reads by common name.
+    registry.registerCommand("rename", ({ args }) => {
+        const ref = parseSpriteRef(args[0] ?? "");
+        const name = args[1];
+        if (!ref || !name) {
+            return "Usage: ::Rename <archiveId>:<frame> <common-name>, e.g. ::Rename 169:0 Minimap.Compass-dial";
+        }
+        if (!isValidSpriteCommonName(name)) {
+            return "Common names must be letters/numbers/./-/_ only (e.g. Minimap.Compass-dial), max 80 chars.";
+        }
+        const result = setSpriteName(ref.archiveId, ref.frame, name);
+        if (!result.ok) {
+            return result.reason === "invalid-ref"
+                ? "That doesn't look like a valid archiveId:frame reference."
+                : "That name isn't valid.";
+        }
+        return result.previousName
+            ? `Renamed ${result.ref} from "${result.previousName}" to "${result.name}".`
+            : `Named ${result.ref} as "${result.name}".`;
     });
 
     registerUiPanelActions(registry, services, DEV_UIKIT_TEXT_PANEL_GROUP_ID, [
@@ -309,6 +352,20 @@ export function registerDevUIKitMenu(
             componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 2,
             actionId: "sprite_gallery_back",
             handle: ({ player }) => openComponentsMenu(player, services),
+        },
+        {
+            componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 3,
+            actionId: "sprite_gallery_cycle_filter",
+            handle: ({ player }) => {
+                const current = spriteGalleryFilterByPlayerId.get(player.id) ?? "all";
+                const nextIndex =
+                    (SPRITE_GALLERY_FILTER_MODES.indexOf(current) + 1) % SPRITE_GALLERY_FILTER_MODES.length;
+                spriteGalleryFilterByPlayerId.set(player.id, SPRITE_GALLERY_FILTER_MODES[nextIndex]);
+                // A different filter can easily have fewer pages than
+                // wherever you were - reset to page 0 rather than risk
+                // landing on a now-empty page.
+                openSpriteGallery(player, services, 0);
+            },
         },
     ]);
 }

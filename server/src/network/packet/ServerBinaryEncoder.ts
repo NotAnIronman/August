@@ -609,6 +609,26 @@ export class ServerBinaryEncoder {
         return this.buffer.toPacket(ServerPacketId.WIDGET_SET_ITEM);
     }
 
+    encodeWidgetSetSprite(
+        uid: number,
+        archiveId: number,
+        frame: number,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+    ): Uint8Array {
+        this.buffer.reset();
+        this.buffer.writeInt(uid);
+        this.buffer.writeInt(archiveId);
+        this.buffer.writeInt(frame);
+        this.buffer.writeInt(x);
+        this.buffer.writeInt(y);
+        this.buffer.writeInt(width);
+        this.buffer.writeInt(height);
+        return this.buffer.toPacket(ServerPacketId.WIDGET_SET_SPRITE);
+    }
+
     encodeWidgetSetTransparency(uid: number, transparency: number): Uint8Array {
         this.buffer.reset();
         this.buffer.writeInt(uid);

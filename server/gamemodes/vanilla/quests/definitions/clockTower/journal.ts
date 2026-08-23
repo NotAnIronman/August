@@ -16,8 +16,7 @@ export function buildClockTowerJournal(
     const stage = getQuestStage(player, quest);
     if (stage === STAGE_NOT_STARTED) {
         return [
-            "I can start this quest by talking to <col=800000>Brother Kojo</col>",
-            "at the <col=800000>Clock Tower</col> south of <col=800000>Ardougne</col>.",
+            "I can start this quest by talking to <col=800000>Brother Kojo</col> at the <col=800000>Clock Tower</col> south of <col=800000>Ardougne</col>.",
         ];
     }
 

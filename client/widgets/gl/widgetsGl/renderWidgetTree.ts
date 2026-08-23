@@ -2964,9 +2964,11 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             }
 
             const effectiveSpriteId = isIf3
-                ? typeof w.spriteId === "number" && w.spriteId >= 0
-                    ? w.spriteId | 0
-                    : -1
+                ? isWidgetHovered && typeof w.spriteId2 === "number" && w.spriteId2 >= 0
+                    ? w.spriteId2 | 0
+                    : typeof w.spriteId === "number" && w.spriteId >= 0
+                      ? w.spriteId | 0
+                      : -1
                 : cs1Result
                   ? typeof w.spriteId2 === "number" && w.spriteId2 >= 0
                       ? w.spriteId2 | 0
@@ -2974,20 +2976,55 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                   : typeof w.spriteId === "number" && w.spriteId >= 0
                     ? w.spriteId | 0
                     : -1;
+            const hoverTokenConfigured =
+                typeof (w as any).cacheSpriteTokenHover === "string" &&
+                (w as any).cacheSpriteTokenHover.length > 0
+                    ? (w as any).cacheSpriteTokenHover as string
+                    : undefined;
+            const hoverArchiveConfigured =
+                typeof (w as any).cacheSpriteArchiveIdHover === "number" &&
+                (w as any).cacheSpriteArchiveIdHover >= 0
+                    ? (w as any).cacheSpriteArchiveIdHover | 0
+                    : -1;
+            const hoverFrameConfigured = Math.max(0, ((w as any).cacheSpriteFrameHover ?? 0) | 0);
+
+            const hoverCacheSpriteToken = isWidgetHovered ? hoverTokenConfigured : undefined;
             const cacheSpriteToken =
-                typeof (w as any).cacheSpriteToken === "string" &&
+                hoverCacheSpriteToken ??
+                (typeof (w as any).cacheSpriteToken === "string" &&
                 (w as any).cacheSpriteToken.length > 0
                     ? (w as any).cacheSpriteToken as string
-                    : undefined;
+                    : undefined);
+            const hoverCacheSpriteArchiveId = isWidgetHovered ? hoverArchiveConfigured : -1;
             const cacheSpriteArchiveId =
-                typeof (w as any).cacheSpriteArchiveId === "number" &&
-                (w as any).cacheSpriteArchiveId >= 0
-                    ? (w as any).cacheSpriteArchiveId | 0
-                    : -1;
+                hoverCacheSpriteArchiveId >= 0
+                    ? hoverCacheSpriteArchiveId
+                    : typeof (w as any).cacheSpriteArchiveId === "number" &&
+                        (w as any).cacheSpriteArchiveId >= 0
+                      ? (w as any).cacheSpriteArchiveId | 0
+                      : -1;
             const cacheSpriteFrame =
-                typeof (w as any).cacheSpriteFrame === "number"
-                    ? Math.max(0, (w as any).cacheSpriteFrame | 0)
-                    : 0;
+                hoverCacheSpriteArchiveId >= 0
+                    ? hoverFrameConfigured
+                    : typeof (w as any).cacheSpriteFrame === "number"
+                      ? Math.max(0, (w as any).cacheSpriteFrame | 0)
+                      : 0;
+
+            // Pre-warm whichever hover sprite is configured, on every normal
+            // (non-hovered) render - not just the first time someone actually
+            // hovers. Decoding a cache sprite and uploading it as a GPU
+            // texture is real, one-time work; paying that cost during a
+            // routine render pass is invisible, paying it at the exact
+            // moment of the user's first hover is not. getByNameToken /
+            // getSpriteByArchiveFrame already cache by key and return
+            // instantly once warm, so this is a no-op after the first call.
+            if (!isWidgetHovered) {
+                if (hoverTokenConfigured) {
+                    tc.getByNameToken(hoverTokenConfigured);
+                } else if (hoverArchiveConfigured >= 0) {
+                    tc.getSpriteByArchiveFrame(hoverArchiveConfigured, hoverFrameConfigured);
+                }
+            }
 
             // Check borderType for sprite outline (set via CS2 CC_SETOUTLINE/IF_SETOUTLINE)
             // borderType >= 2 = white pixel-perfect outline around sprite
@@ -3009,6 +3046,18 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             const alpha = (255 - trans) / 255;
             const itemId = typeof w.itemId === "number" ? (w.itemId as number) | 0 : -1;
             const renderItemSprite = isIf3 && itemId >= 0;
+
+            // Same pre-warm as above, for the widget-sprite (spriteId2) hover
+            // path: create its texture during a normal render pass instead
+            // of at the moment of first hover.
+            if (isIf3 && !isWidgetHovered && typeof w.spriteId2 === "number" && w.spriteId2 >= 0) {
+                tc.getWidgetSpriteById(w.spriteId2 | 0, {
+                    borderType,
+                    shadowColor: spriteShadow,
+                    flipH: hFlip,
+                    flipV: vFlip,
+                });
+            }
 
             if (!renderItemSprite && (effectiveSpriteId >= 0 || cacheSpriteToken || cacheSpriteArchiveId >= 0)) {
                 const tex = cacheSpriteToken

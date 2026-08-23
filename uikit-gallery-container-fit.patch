@@ -1,0 +1,38 @@
+diff --git a/client/common/uikit/contracts.ts b/client/common/uikit/contracts.ts
+index f4bf649..cc27c4b 100644
+--- a/client/common/uikit/contracts.ts
++++ b/client/common/uikit/contracts.ts
+@@ -16,7 +16,7 @@ export const ComponentIds = {
+     MAX_PICKER_ROWS: 500,
+     /** Fixed thumbnail grid used by the dedicated full-cache sprite browser. */
+     SPRITE_GALLERY_SOURCE: 1201, SPRITE_GALLERY_CELL_BASE: 4000,
+-    SPRITE_GALLERY_LABEL_BASE: 4100, MAX_SPRITE_GALLERY_CELLS: 48,
++    SPRITE_GALLERY_LABEL_BASE: 4100, MAX_SPRITE_GALLERY_CELLS: 30,
+ } as const;
+ 
+ export type UiRowKind = "text" | "icon" | "mixed" | "picker" | "sprite-gallery";
+diff --git a/client/widgets/custom/devUIKitPanels.ts b/client/widgets/custom/devUIKitPanels.ts
+index 3b695ee..00d354e 100644
+--- a/client/widgets/custom/devUIKitPanels.ts
++++ b/client/widgets/custom/devUIKitPanels.ts
+@@ -366,9 +366,18 @@ registerUiPanel({
+ 
+ registerUiPanel({
+     groupId: DEV_UIKIT_SPRITE_GALLERY_GROUP_ID,
++    // Mounted via openModal into the real client's mainmodal container,
++    // which is meaningfully smaller than a full game screen (the mobile
++    // variant of this container is documented as 512x334 in
++    // server/src/widgets/viewport/index.ts; desktop isn't much bigger).
++    // 720x570 overflowed it - the root widget's xPositionMode/yPositionMode
++    // centering math goes negative once the panel is bigger than its
++    // parent, so content spills off the right and bottom edges. Matched to
++    // 640x440, the same size already used successfully by the component
++    // picker on this same openModal path.
+     build: () => buildUiPanel(DEV_UIKIT_SPRITE_GALLERY_GROUP_ID, {
+-        width: 720,
+-        height: 570,
++        width: 640,
++        height: 440,
+         plainFrame: true,
+         content: {
+             rowKind: "sprite-gallery",

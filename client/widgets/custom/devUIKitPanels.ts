@@ -17,52 +17,44 @@ import {
 } from "../uikit/CacheUiAssets";
 import { IndexType } from "../../rs/cache/IndexType";
 import { SpriteLoader } from "../../rs/sprite/SpriteLoader";
+import {
+    formatSpriteGalleryLabel,
+    getSpriteCommonName,
+    getSpriteNamesVersion,
+    pollSpriteNames,
+} from "../uikit/SpriteNameCache";
+import { spriteRefKey } from "../../common/uikit/spriteNames";
 
 const TEXT_ROW_HEIGHT = 18;
 const ICON_ROW_HEIGHT = 34;
-const SPRITE_GALLERY_ARCHIVES_PER_PAGE = 32;
 
 type GalleryEntry = { archiveId: number; frame: number; width: number; height: number };
+type GalleryFilterMode = "all" | "unnamed" | "named" | "skipped";
 
-function cacheSpriteGallery(widgetManager: any): void {
-    const uid = (componentId: number) =>
-        ((DEV_UIKIT_SPRITE_GALLERY_GROUP_ID & 0xffff) << 16) | componentId;
-    const sourceWidget = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_SOURCE));
-    // The registry processes every UIKit panel each frame, including panels
-    // that have not been opened or loaded yet.
-    if (!sourceWidget) return;
-    const page = Math.max(0, Number.parseInt(sourceWidget?.text ?? "", 10) || 0);
-    const pickerKey = `uikit-sprite-gallery:${page}`;
-    if (sourceWidget.__uikitPickerKey === pickerKey) return;
-    const content = widgetManager.getWidgetByUid(uid(ComponentIds.CONTENT_VIEW));
-    if (content) {
-        content.scrollY = 0;
-        // This is a fixed page, not another long list: all 48 cells are laid
-        // out inside the viewport and navigation owns changing pages.
-        content.scrollHeight = content.height;
-        widgetManager.invalidateScroll(content);
-    }
+/** ::Rename'd with this exact name to mean "reviewed, not an icon - skip it
+ *  in future passes." Deliberately a normal name (not a separate data file)
+ *  so it round-trips through ::Rename and the existing catalog untouched. */
+const SKIP_MARKER_NAME = "skip";
 
-    let spriteIndex: any;
-    try {
-        spriteIndex = widgetManager.osrsClient?.cacheSystem?.getIndex?.(IndexType.DAT2.sprites);
-    } catch {
-        spriteIndex = undefined;
-    }
-    if (!spriteIndex) return;
+// Built once per client session and reused for every page. Paginating over
+// archives directly (32 archives/page, 48 cells/page) used to silently drop
+// every frame past the 48th in an archive that overflowed a page boundary,
+// since the next page resumed at the next archive rather than the leftover
+// frames. Indexing every frame up front and paginating the flat list instead
+// guarantees every sprite in the cache is reachable exactly once.
+let cachedFlatSpriteIndex: GalleryEntry[] | undefined;
+let gallerySearchQuery = "";
 
+function buildFlatSpriteIndex(spriteIndex: any): GalleryEntry[] {
     const archiveIds = Array.from(spriteIndex.getArchiveIds?.() ?? [])
         .map((archiveId) => Number(archiveId) | 0)
         .sort((left, right) => left - right);
-    const firstArchive = Math.max(0, page | 0) * SPRITE_GALLERY_ARCHIVES_PER_PAGE;
-    const lastArchive = Math.min(archiveIds.length, firstArchive + SPRITE_GALLERY_ARCHIVES_PER_PAGE);
     const entries: GalleryEntry[] = [];
-    for (let archiveIndex = firstArchive; archiveIndex < lastArchive; archiveIndex++) {
-        const archiveId = archiveIds[archiveIndex];
+    for (const archiveId of archiveIds) {
         try {
             const sprites = SpriteLoader.loadIntoIndexedSprites(spriteIndex, archiveId);
             if (!sprites) continue;
-            for (let frame = 0; frame < sprites.length && entries.length < ComponentIds.MAX_SPRITE_GALLERY_CELLS; frame++) {
+            for (let frame = 0; frame < sprites.length; frame++) {
                 const sprite = sprites[frame];
                 entries.push({
                     archiveId,
@@ -76,6 +68,86 @@ function cacheSpriteGallery(widgetManager: any): void {
             // gallery is intentionally a visual browser, not a cache validator.
         }
     }
+    return entries;
+}
+
+/** Search box callback (see registerUiPanel below) - purely local state,
+ *  same convention as filterDevTextRows. Forces a gallery rebuild via the
+ *  pickerKey (built from a hash of the query, see cacheSpriteGallery). */
+function filterSpriteGallery(query: string, widgetManager: any): void {
+    gallerySearchQuery = query.trim().toLowerCase();
+    const uid = (componentId: number) =>
+        ((DEV_UIKIT_SPRITE_GALLERY_GROUP_ID & 0xffff) << 16) | componentId;
+    const sourceWidget = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_SOURCE));
+    // Any change to the source widget's picker key forces a rebuild; setting
+    // text to its own value is a no-op for pagination but the key below also
+    // folds in gallerySearchQuery, so cacheSpriteGallery still reprocesses.
+    if (sourceWidget) sourceWidget.text = sourceWidget.text ?? "0";
+}
+
+function matchesGalleryFilter(
+    entry: GalleryEntry,
+    filterMode: GalleryFilterMode,
+    query: string,
+): boolean {
+    const name = getSpriteCommonName(entry.archiveId, entry.frame);
+    const isSkipped = name === SKIP_MARKER_NAME;
+    if (filterMode === "unnamed" && (name !== undefined || isSkipped)) return false;
+    if (filterMode === "named" && (name === undefined || isSkipped)) return false;
+    if (filterMode === "skipped" && !isSkipped) return false;
+    if (filterMode === "all" && isSkipped) return false;
+    if (!query) return true;
+    if (spriteRefKey(entry.archiveId, entry.frame).includes(query)) return true;
+    return !!name && name.toLowerCase().includes(query);
+}
+
+function cacheSpriteGallery(widgetManager: any): void {
+    const uid = (componentId: number) =>
+        ((DEV_UIKIT_SPRITE_GALLERY_GROUP_ID & 0xffff) << 16) | componentId;
+    const sourceWidget = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_SOURCE));
+    // The registry processes every UIKit panel each frame, including panels
+    // that have not been opened or loaded yet.
+    if (!sourceWidget) return;
+    // Cheap no-op most ticks; kicks off a background refresh roughly once a
+    // second so a fresh ::Rename shows up without reopening the gallery.
+    pollSpriteNames();
+    const page = Math.max(0, Number.parseInt(sourceWidget?.text ?? "", 10) || 0);
+    const filterWidget = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_FILTER));
+    const filterMode = ((filterWidget?.text ?? "all") as GalleryFilterMode) || "all";
+    // Names version, search query, and filter mode are all part of the key
+    // on purpose: any of them changing forces the same page number to
+    // recompute and redraw, even though pagination itself didn't change.
+    // Redrawing is cheap - the expensive sprite decode is cached separately
+    // in cachedFlatSpriteIndex.
+    const pickerKey = `uikit-sprite-gallery:${page}:${getSpriteNamesVersion()}:${filterMode}:${gallerySearchQuery}`;
+    if (sourceWidget.__uikitPickerKey === pickerKey) return;
+    const content = widgetManager.getWidgetByUid(uid(ComponentIds.CONTENT_VIEW));
+    if (content) {
+        content.scrollY = 0;
+        // This is a fixed page, not another long list: every cell is laid
+        // out inside the viewport and navigation owns changing pages.
+        content.scrollHeight = content.height;
+        widgetManager.invalidateScroll(content);
+    }
+
+    if (!cachedFlatSpriteIndex) {
+        let spriteIndex: any;
+        try {
+            spriteIndex = widgetManager.osrsClient?.cacheSystem?.getIndex?.(IndexType.DAT2.sprites);
+        } catch {
+            spriteIndex = undefined;
+        }
+        if (!spriteIndex) return;
+        cachedFlatSpriteIndex = buildFlatSpriteIndex(spriteIndex);
+    }
+
+    // 7500 simple string checks is well under a millisecond - no separate
+    // cache needed beyond the flat index itself.
+    const filtered = cachedFlatSpriteIndex.filter((entry) =>
+        matchesGalleryFilter(entry, filterMode, gallerySearchQuery),
+    );
+    const firstCell = page * ComponentIds.MAX_SPRITE_GALLERY_CELLS;
+    const entries = filtered.slice(firstCell, firstCell + ComponentIds.MAX_SPRITE_GALLERY_CELLS);
 
     for (let index = 0; index < ComponentIds.MAX_SPRITE_GALLERY_CELLS; index++) {
         const preview = widgetManager.getWidgetByUid(uid(ComponentIds.SPRITE_GALLERY_CELL_BASE + index));
@@ -111,9 +183,11 @@ function cacheSpriteGallery(widgetManager: any): void {
         preview.rawHeight = preview.height = previewHeight;
         preview.opacity = 0;
         preview.transparency = 0;
-        // The compact visible id maps directly to the reusable key
-        // `cache.sprite.<archiveId>.<frame>` without clipping in a grid cell.
-        label.text = `${entry.archiveId}:${entry.frame}`;
+        // Shows the assigned common name once one exists (see
+        // client/public/spriteNames.json / ::Rename); otherwise falls
+        // back to the raw "archiveId:frame" reference so unnamed sprites
+        // stay identifiable and pasteable straight into ::Rename.
+        label.text = formatSpriteGalleryLabel(entry.archiveId, entry.frame);
         label.hidden = label.isHidden = false;
         widgetManager.invalidateWidgetRender(preview);
         widgetManager.invalidateWidgetRender(label);
@@ -306,8 +380,18 @@ registerUiPanel({
         height: 390,
         content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
         menuButtons: {
+            // maxHeightFraction was 0.375 here vs 0.78 on the components
+            // page below - same button grid code, but this one was only
+            // ever allowed to use ~38% of the available height, which is
+            // why it rendered noticeably smaller. Matched to the working
+            // reference. Default background now points at the raw sprite
+            // (293:0) directly - once you've named it via ::Rename, swap
+            // this string for that name; the raw "cache.sprite.293.0" key
+            // keeps working either way.
             columns: 2, rows: 4, buttonHeight: 58, gap: 8, iconSize: 40,
-            maxHeightFraction: 0.375, maxWidthFraction: 0.75,
+            maxHeightFraction: 0.78, maxWidthFraction: 0.75,
+            backgroundAsset: "cache.sprite.293.0",
+            backgroundHoverAsset: "cache.sprite.294.0",
         },
         footerButton: true,
     }),
@@ -350,9 +434,17 @@ registerUiPanel({
 
 registerUiPanel({
     groupId: DEV_UIKIT_SPRITE_GALLERY_GROUP_ID,
+    // Mounted via openModal into the real client's mainmodal container.
+    // 720x570, then 640x440, both still overflowed it - the "component
+    // picker works at 640x440" assumption behind the second attempt was
+    // wrong; it was very likely overflowing too, just less obviously.
+    // buildUiPanel now clamps every panel to a safe 512x334 centrally (see
+    // PanelBuilder.ts), so the width/height requested here no longer needs
+    // to be exactly right - this is left at 640x440 as the "ideal" size and
+    // relies on the shared clamp, rather than hand-tuning per panel again.
     build: () => buildUiPanel(DEV_UIKIT_SPRITE_GALLERY_GROUP_ID, {
-        width: 720,
-        height: 570,
+        width: 640,
+        height: 440,
         plainFrame: true,
         content: {
             rowKind: "sprite-gallery",
@@ -360,8 +452,18 @@ registerUiPanel({
             rowCapacity: ComponentIds.MAX_SPRITE_GALLERY_CELLS,
             scrollbarWidth: 0,
         },
-        controls: { count: 3, width: 146, height: 20, gap: 10 },
+        // 4th control is the named/unnamed/skipped filter toggle - see
+        // devUIKitMenu.ts's cycleSpriteGalleryFilter. Width auto-clamps to
+        // whatever actually fits (see PanelBuilder.ts's maxControlWidth),
+        // so bumping count from 3 to 4 needed no other change here.
+        controls: { count: 4, width: 146, height: 20, gap: 10 },
+        search: { placeholder: "Search name or archiveId:frame", width: 220 },
     }),
+    searchController: createSearchController(
+        DEV_UIKIT_SPRITE_GALLERY_GROUP_ID,
+        "Search name or archiveId:frame",
+        filterSpriteGallery,
+    ),
     onProcess: cacheSpriteGallery,
 });
 

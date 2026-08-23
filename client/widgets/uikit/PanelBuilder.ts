@@ -79,6 +79,14 @@ function makeWidget(
  * controller and a single generic tab/row population helper work for
  * ANY panel, instead of each panel needing its own copy of that logic.
  */
+/** Documented in server/src/widgets/viewport/index.ts as the mainmodal
+ *  container's mobile size; every UIKit dev panel (720x570, 640x440,
+ *  560x360) has overflowed its real container on desktop too, so this is
+ *  applied everywhere as a working ceiling until the console diagnostic in
+ *  WidgetManager.openSubInterface confirms the exact desktop number. */
+const MAINMODAL_SAFE_WIDTH = 512;
+const MAINMODAL_SAFE_HEIGHT = 334;
+
 export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGroupLoadResult {
     if (!Number.isInteger(groupId) || groupId < 0) {
         throw new RangeError("UIKit panel groupId must be a non-negative integer");
@@ -88,6 +96,16 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     }
     if (layout.footerButton && layout.controls) {
         throw new Error("UIKit panels may use either footerButton or controls, not both");
+    }
+    // Clamped centrally so every panel built through this function is safe
+    // by construction, instead of each panel guessing its own size and
+    // getting clipped by the real mainmodal container one at a time.
+    if (layout.width > MAINMODAL_SAFE_WIDTH || layout.height > MAINMODAL_SAFE_HEIGHT) {
+        layout = {
+            ...layout,
+            width: Math.min(layout.width, MAINMODAL_SAFE_WIDTH),
+            height: Math.min(layout.height, MAINMODAL_SAFE_HEIGHT),
+        };
     }
     const widgets = new Map<number, WidgetNode>();
     const rootUid = panelWidgetUid(groupId, ComponentIds.ROOT);
@@ -148,7 +166,17 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
 
             // Highlight's component id is LOWER than the tab text's (see
             // the fileId z-order note in types.ts) so it draws behind,
-            // not on top of, the label.
+            // not on top of, the label. The server only ever reveals this
+            // widget for the currently-active tab (sendUiTabs in
+            // panelData.ts), so backgroundHoverAsset - not backgroundAsset -
+            // is what belongs here: it's already exactly the "this tab is
+            // selected" signal, just swapping a sprite in for the plain
+            // color instead of a persistent all-tabs background. A true
+            // always-visible backgroundAsset needs its own widget below
+            // TAB_BASE in the id space, which the current 3..12 range has
+            // no room left for without shifting every id after it -
+            // deliberately not doing that shift silently in the same patch
+            // as everything else this round.
             const highlight = makeWidget(
                 groupId,
                 ComponentIds.TAB_HIGHLIGHT_BASE + i,
@@ -163,6 +191,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                     height: TAB_HEIGHT - 2,
                     filled: true,
                     color: 0x3a2e1f,
+                    cacheUiAsset: layout.tabs?.backgroundHoverAsset,
                     isHidden: true,
                     hidden: true,
                 },
@@ -199,7 +228,9 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             const highlight = makeWidget(groupId, ComponentIds.TAB_HIGHLIGHT_BASE + i, rootUid, {
                 type: 3, rawX: tabX, rawY: CONTENT_TOP - 2, rawWidth: tabWidth - 2,
                 rawHeight: tabHeight, width: tabWidth - 2, height: tabHeight,
-                filled: true, color: 0x3a2e1f, isHidden: true, hidden: true,
+                filled: true, color: 0x3a2e1f,
+                cacheUiAsset: layout.tabs?.backgroundHoverAsset,
+                isHidden: true, hidden: true,
             });
             widgets.set(highlight.uid, highlight);
             const tab = makeWidget(groupId, ComponentIds.TAB_BASE + i, rootUid, {
@@ -486,6 +517,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 rawWidth: buttonWidth, rawHeight: buttonHeight, width: buttonWidth, height: buttonHeight,
                 filled: true, color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 104,
                 cacheUiAsset: layout.menuButtons.backgroundAsset,
+                cacheUiAssetHover: layout.menuButtons.backgroundHoverAsset,
                 actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
             });
             widgets.set(button.uid, button);
@@ -548,13 +580,28 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     }
 
     if (includesSpriteGallery) {
-        const columns = 6;
+        // 8x6 fits comfortably inside the 512x334 mainmodal ceiling even
+        // with the search bar's 30px eating into contentHeight - verified
+        // by the same fits-by-construction math as before (columns*cellWidth
+        // + gaps <= contentWidth, rows*cellHeight <= contentHeight).
+        const columns = 8;
         const rows = Math.ceil(ComponentIds.MAX_SPRITE_GALLERY_CELLS / columns);
         const gap = 8;
-        const cellWidth = Math.max(40, Math.floor((contentWidth - gap * (columns - 1)) / columns));
-        const cellHeight = Math.max(48, Math.floor(contentHeight / rows));
-        const previewMaxWidth = Math.max(24, cellWidth - 8);
-        const previewMaxHeight = Math.min(42, Math.max(24, cellHeight - 18));
+        // cellWidth/cellHeight are an exact fit for the content area (no
+        // minimum-size floor). A previous version clamped cellHeight to a
+        // 48px minimum, which - once the last row's rawY + cellHeight is
+        // computed - could sit past contentHeight and render the bottom row
+        // of sprites outside the panel. Correctness (fits in the window)
+        // takes priority over a cosmetic minimum cell size.
+        const cellWidth = Math.max(1, Math.floor((contentWidth - gap * (columns - 1)) / columns));
+        const cellHeight = Math.max(1, Math.floor(contentHeight / rows));
+        // The label gets a guaranteed share of the cell first, and the
+        // preview gets what's left, so preview + label can never together
+        // exceed cellHeight - independent per-part minimums (the previous
+        // approach) could each grow past their share of a small cell.
+        const labelHeight = Math.max(1, Math.floor(cellHeight * 0.22));
+        const previewMaxWidth = Math.max(1, cellWidth - 8);
+        const previewMaxHeight = Math.min(42, Math.max(1, cellHeight - labelHeight));
         for (let i = 0; i < ComponentIds.MAX_SPRITE_GALLERY_CELLS; i++) {
             const column = i % columns;
             const row = Math.floor(i / columns);
@@ -584,9 +631,9 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 rawX,
                 rawY: rawY + previewMaxHeight,
                 rawWidth: cellWidth,
-                rawHeight: Math.max(14, cellHeight - previewMaxHeight),
+                rawHeight: cellHeight - previewMaxHeight,
                 width: cellWidth,
-                height: Math.max(14, cellHeight - previewMaxHeight),
+                height: cellHeight - previewMaxHeight,
                 text: "",
                 fontId: FONT_PLAIN_11,
                 textColor: 0xe8ded0,
@@ -604,6 +651,11 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             text: "", isHidden: true, hidden: true,
         });
         widgets.set(source.uid, source);
+        const filter = makeWidget(groupId, ComponentIds.SPRITE_GALLERY_FILTER, rootUid, {
+            type: 4, rawWidth: 1, rawHeight: 1, width: 1, height: 1,
+            text: "all", isHidden: true, hidden: true,
+        });
+        widgets.set(filter.uid, filter);
     }
 
     if (layout.content.scrollbarWidth > 0) {

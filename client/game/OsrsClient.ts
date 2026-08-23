@@ -2439,6 +2439,56 @@ export class OsrsClient {
                         this.widgetManager.invalidateWidgetRender(w);
                     }
                 }
+            } else if (payload?.action === "set_sprite") {
+                const uid = Number(payload.uid) | 0;
+                const archiveId = Number(payload.archiveId) | 0;
+                const frame = Math.max(0, Number(payload.frame) | 0);
+                const overrideX = Number(payload.x);
+                const overrideY = Number(payload.y);
+                const overrideWidth = Number(payload.width);
+                const overrideHeight = Number(payload.height);
+                const w = this.widgetManager?.getWidgetByUid(uid);
+                if (w) {
+                    (w as any).type = 5;
+                    (w as any).isIf3 = true;
+                    (w as any).itemId = -1;
+                    (w as any).modelId = -1;
+                    (w as any).spriteId = -1;
+                    (w as any).cacheSpriteToken = undefined;
+                    (w as any).cacheSpriteArchiveId = archiveId >= 0 ? archiveId : undefined;
+                    (w as any).cacheSpriteFrame = archiveId >= 0 ? frame : undefined;
+                    // -1 (the "omitted" sentinel from the server) means leave
+                    // that dimension as whatever the widget already had.
+                    // This is what fixes a sprite stretching to fill a
+                    // component whose native rect wasn't sized for it.
+                    // Forcing width/heightMode and x/yPositionMode to 0
+                    // (absolute) matters just as much as the raw values -
+                    // the native widget likely had one of these set to a
+                    // percentage/stretch mode, which would silently keep
+                    // overriding rawWidth/rawHeight otherwise.
+                    if (overrideWidth >= 0) {
+                        (w as any).rawWidth = overrideWidth;
+                        (w as any).width = overrideWidth;
+                        (w as any).widthMode = 0;
+                    }
+                    if (overrideHeight >= 0) {
+                        (w as any).rawHeight = overrideHeight;
+                        (w as any).height = overrideHeight;
+                        (w as any).heightMode = 0;
+                    }
+                    if (overrideX >= 0) {
+                        (w as any).rawX = overrideX;
+                        (w as any).x = overrideX;
+                        (w as any).xPositionMode = 0;
+                    }
+                    if (overrideY >= 0) {
+                        (w as any).rawY = overrideY;
+                        (w as any).y = overrideY;
+                        (w as any).yPositionMode = 0;
+                    }
+                    markWidgetInteractionDirty(w);
+                    this.widgetManager.invalidateWidgetRender(w);
+                }
             } else if (payload?.action === "set_transparency") {
                 const uid = Number(payload.uid) | 0;
                 const transparency = Math.max(0, Math.min(255, Number(payload.transparency) | 0));

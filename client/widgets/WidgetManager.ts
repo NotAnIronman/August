@@ -1569,6 +1569,22 @@ export class WidgetManager {
         const layoutWidth = targetHostW > 0 ? targetHostW : this.canvasWidth || 0;
         const layoutHeight = targetHostH > 0 ? targetHostH : this.canvasHeight || 0;
 
+        // TEMP DEBUG - remove once UIKit panel sizing is confirmed fitting.
+        // Group ids 30024/30028/30029 are DEV_UIKIT_TEXT_PANEL_GROUP_ID /
+        // DEV_UIKIT_COMPONENT_PICKER_GROUP_ID / DEV_UIKIT_SPRITE_GALLERY_GROUP_ID
+        // (client/common/ui/widgets/custom/journalPanel.cs2.ts). This prints
+        // the REAL container size a UIKit panel gets laid out against, so we
+        // stop guessing panel dimensions and use the actual number.
+        if (groupId === 30024 || groupId === 30028 || groupId === 30029) {
+            console.log(
+                `[UIKit debug] group ${groupId} mounted into container uid ${targetUid} ` +
+                    `(${targetUid >> 16}:${targetUid & 0xffff}): ` +
+                    `container.width=${targetWidget.width} container.height=${targetWidget.height} ` +
+                    `container.scrollWidth=${targetWidget.scrollWidth} container.scrollHeight=${targetWidget.scrollHeight} ` +
+                    `=> layoutWidth=${layoutWidth} layoutHeight=${layoutHeight}`,
+            );
+        }
+
         // Pass static children callback for
         const getStaticChildren = (uid: number) => this.getStaticChildrenByParentUid(uid);
 

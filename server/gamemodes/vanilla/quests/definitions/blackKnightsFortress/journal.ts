@@ -49,8 +49,7 @@ export function buildBlackKnightsFortressJournal(
         ];
     }
     return [
-        "I can start this quest by speaking to <col=800000>Sir Amik Varze</col>",
-        "on the upper floor of <col=800000>Falador Castle</col>.",
+        "I can start this quest by speaking to <col=800000>Sir Amik Varze</col>on the upper floor of <col=800000>Falador Castle</col>.",
         "",
         "I need at least <col=800000>12 Quest Points</col>.",
     ];

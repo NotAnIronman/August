@@ -143,6 +143,14 @@ export interface WidgetNode {
     cacheSpriteFrame?: number;
     /** Semantic UIKit skin key resolved through the cache UI asset registry. */
     cacheUiAsset?: string;
+    /** Mouse-over variant of cacheUiAsset - same resolution, swapped in on hover. */
+    cacheUiAssetHover?: string;
+    /** Hover-swap counterparts of cacheSpriteToken/ArchiveId/Frame, set by
+     *  CacheUiAssets.ts when a widget has cacheUiAssetHover resolved. IF3
+     *  sprite widgets read these in renderWidgetTree.ts when hovered. */
+    cacheSpriteTokenHover?: string;
+    cacheSpriteArchiveIdHover?: number;
+    cacheSpriteFrameHover?: number;
 
     // IF1 hover redirect
     mouseOverRedirect?: number; // IF1: same-group fileId to treat as hovered instead (-1 = none)

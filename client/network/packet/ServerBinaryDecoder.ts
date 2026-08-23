@@ -876,6 +876,21 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
                 },
             };
 
+        case ServerPacketId.WIDGET_SET_SPRITE:
+            return {
+                type: "widget",
+                payload: {
+                    action: "set_sprite",
+                    uid: reader.readInt(),
+                    archiveId: reader.readInt(),
+                    frame: reader.readInt(),
+                    x: reader.readInt(),
+                    y: reader.readInt(),
+                    width: reader.readInt(),
+                    height: reader.readInt(),
+                },
+            };
+
         case ServerPacketId.WIDGET_SET_TRANSPARENCY:
             return {
                 type: "widget",

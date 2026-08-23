@@ -42,12 +42,19 @@ export class WidgetBroadcaster implements BroadcastDomain {
             isClosePhaseWidgetAction(evt.action),
         );
         for (const evt of closeEvents) {
-            const sock = ctx.getSocketByPlayerId(evt.playerId);
-            ctx.sendWithGuard(
-                sock,
-                encodeMessage({ type: "widget", payload: evt.action }),
-                "widget_close_event",
-            );
+            try {
+                const sock = ctx.getSocketByPlayerId(evt.playerId);
+                ctx.sendWithGuard(
+                    sock,
+                    encodeMessage({ type: "widget", payload: evt.action }),
+                    "widget_close_event",
+                );
+            } catch (err) {
+                // One bad widget event must not silently drop every other
+                // queued event this tick (e.g. the level-up popup's icon
+                // failing must never also take its text down with it).
+                console.error("[WidgetBroadcaster] failed to send close event:", evt.action, err);
+            }
         }
     }
 
@@ -58,13 +65,17 @@ export class WidgetBroadcaster implements BroadcastDomain {
             (evt: { action?: WidgetAction }) => !isClosePhaseWidgetAction(evt.action),
         );
         for (const evt of nonCloseEvents) {
-            const sock = ctx.getSocketByPlayerId(evt.playerId);
-            ctx.sendWithGuard(
-                sock,
-                encodeMessage({ type: "widget", payload: evt.action }),
-                "widget_event",
-            );
-            this.services.syncPostWidgetOpenState(evt.playerId, evt.action);
+            try {
+                const sock = ctx.getSocketByPlayerId(evt.playerId);
+                ctx.sendWithGuard(
+                    sock,
+                    encodeMessage({ type: "widget", payload: evt.action }),
+                    "widget_event",
+                );
+                this.services.syncPostWidgetOpenState(evt.playerId, evt.action);
+            } catch (err) {
+                console.error("[WidgetBroadcaster] failed to send widget event:", evt.action, err);
+            }
         }
     }
 }

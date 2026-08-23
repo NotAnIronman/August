@@ -53,6 +53,25 @@ export type WidgetAction =
     | { action: "set_text"; uid: number; text: string }
     | { action: "set_hidden"; uid: number; hidden: boolean; phase?: "close" }
     | { action: "set_item"; uid: number; itemId: number; quantity?: number }
+    | {
+          /** Sets a widget to show a raw cache sprite by archive/frame - the
+           *  same reference the sprite gallery and CACHE_UI_ASSET_ALIASES
+           *  use, for native (non-UIKit) interfaces that need one (e.g. the
+           *  level-up popup). See client/common/uikit/spriteNames.ts for
+           *  looking up a name -> archiveId/frame, and
+           *  SpriteNameCatalogFile.ts to resolve it server-side.
+           *  x/y/width/height optionally override the widget's native rect -
+           *  needed when that rect wasn't shaped for the replacement sprite
+           *  (e.g. a wide text-adjacent slot instead of a square icon). */
+          action: "set_sprite";
+          uid: number;
+          archiveId: number;
+          frame: number;
+          x?: number;
+          y?: number;
+          width?: number;
+          height?: number;
+      }
     /** 0 is opaque and 255 is fully transparent. */
     | { action: "set_transparency"; uid: number; transparency: number }
     | { action: "set_npc_head"; uid: number; npcId: number }

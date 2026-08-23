@@ -123,6 +123,14 @@ export function shouldCheckWidgetHoverVisual(w: any, isIf3: boolean): boolean {
             (isIf3 && typeof w.text2 === "string" && w.text2.length > 0)
         );
     }
+    if (type === 5) {
+        // Any hover-variant sprite reference makes this widget hover-checkable.
+        return (
+            (typeof w.spriteId2 === "number" && w.spriteId2 >= 0) ||
+            (typeof w.cacheSpriteTokenHover === "string" && w.cacheSpriteTokenHover.length > 0) ||
+            (typeof w.cacheSpriteArchiveIdHover === "number" && w.cacheSpriteArchiveIdHover >= 0)
+        );
+    }
     return false;
 }
 

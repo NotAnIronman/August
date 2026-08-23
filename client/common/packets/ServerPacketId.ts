@@ -77,6 +77,7 @@ export const enum ServerPacketId {
     WIDGET_SET_ANIMATION = 114,
     WIDGET_SET_PLAYER_HEAD = 115,
     WIDGET_SET_QUEST_LIST = 116,
+    WIDGET_SET_SPRITE = 117,
 
     // ========================================
     // CHAT/MESSAGES (120-129)
@@ -206,6 +207,7 @@ export const SERVER_PACKET_LENGTHS: Record<ServerPacketId, number> = {
     [ServerPacketId.WIDGET_SET_ANIMATION]: 6, // uid(4) + animId(2)
     [ServerPacketId.WIDGET_SET_PLAYER_HEAD]: 4, // uid(4)
     [ServerPacketId.WIDGET_SET_QUEST_LIST]: -2,
+    [ServerPacketId.WIDGET_SET_SPRITE]: 28, // uid(4) + archiveId(4) + frame(4) + x(4) + y(4) + width(4) + height(4), -1 = unchanged
 
     [ServerPacketId.CHAT_MESSAGE]: -1,
     [ServerPacketId.FRIENDS_CHAT_UPDATE]: -2,

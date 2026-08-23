@@ -1,0 +1,212 @@
+diff --git a/client/common/packets/ServerPacketId.ts b/client/common/packets/ServerPacketId.ts
+index b1770a8..fa25d24 100644
+--- a/client/common/packets/ServerPacketId.ts
++++ b/client/common/packets/ServerPacketId.ts
+@@ -77,6 +77,7 @@ export const enum ServerPacketId {
+     WIDGET_SET_ANIMATION = 114,
+     WIDGET_SET_PLAYER_HEAD = 115,
+     WIDGET_SET_QUEST_LIST = 116,
++    WIDGET_SET_SPRITE = 117,
+ 
+     // ========================================
+     // CHAT/MESSAGES (120-129)
+@@ -206,6 +207,7 @@ export const SERVER_PACKET_LENGTHS: Record<ServerPacketId, number> = {
+     [ServerPacketId.WIDGET_SET_ANIMATION]: 6, // uid(4) + animId(2)
+     [ServerPacketId.WIDGET_SET_PLAYER_HEAD]: 4, // uid(4)
+     [ServerPacketId.WIDGET_SET_QUEST_LIST]: -2,
++    [ServerPacketId.WIDGET_SET_SPRITE]: 12, // uid(4) + archiveId(4) + frame(4)
+ 
+     [ServerPacketId.CHAT_MESSAGE]: -1,
+     [ServerPacketId.FRIENDS_CHAT_UPDATE]: -2,
+diff --git a/client/game/OsrsClient.ts b/client/game/OsrsClient.ts
+index 0b96869..ac1b77e 100644
+--- a/client/game/OsrsClient.ts
++++ b/client/game/OsrsClient.ts
+@@ -2439,6 +2439,23 @@ export class OsrsClient {
+                         this.widgetManager.invalidateWidgetRender(w);
+                     }
+                 }
++            } else if (payload?.action === "set_sprite") {
++                const uid = Number(payload.uid) | 0;
++                const archiveId = Number(payload.archiveId) | 0;
++                const frame = Math.max(0, Number(payload.frame) | 0);
++                const w = this.widgetManager?.getWidgetByUid(uid);
++                if (w) {
++                    (w as any).type = 5;
++                    (w as any).isIf3 = true;
++                    (w as any).itemId = -1;
++                    (w as any).modelId = -1;
++                    (w as any).spriteId = -1;
++                    (w as any).cacheSpriteToken = undefined;
++                    (w as any).cacheSpriteArchiveId = archiveId >= 0 ? archiveId : undefined;
++                    (w as any).cacheSpriteFrame = archiveId >= 0 ? frame : undefined;
++                    markWidgetInteractionDirty(w);
++                    this.widgetManager.invalidateWidgetRender(w);
++                }
+             } else if (payload?.action === "set_transparency") {
+                 const uid = Number(payload.uid) | 0;
+                 const transparency = Math.max(0, Math.min(255, Number(payload.transparency) | 0));
+diff --git a/client/network/packet/ServerBinaryDecoder.ts b/client/network/packet/ServerBinaryDecoder.ts
+index 1ea72a9..b81097f 100644
+--- a/client/network/packet/ServerBinaryDecoder.ts
++++ b/client/network/packet/ServerBinaryDecoder.ts
+@@ -876,6 +876,17 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
+                 },
+             };
+ 
++        case ServerPacketId.WIDGET_SET_SPRITE:
++            return {
++                type: "widget",
++                payload: {
++                    action: "set_sprite",
++                    uid: reader.readInt(),
++                    archiveId: reader.readInt(),
++                    frame: reader.readInt(),
++                },
++            };
++
+         case ServerPacketId.WIDGET_SET_TRANSPARENCY:
+             return {
+                 type: "widget",
+diff --git a/client/network/serverConnection/types/widgets.ts b/client/network/serverConnection/types/widgets.ts
+index 2a8e22f..2440222 100644
+--- a/client/network/serverConnection/types/widgets.ts
++++ b/client/network/serverConnection/types/widgets.ts
+@@ -44,6 +44,15 @@ export type WidgetServerPayload =
+           itemId: number;
+           quantity?: number;
+       }
++    | {
++          /** Sets a widget to show a raw cache sprite by archive/frame - the
++           *  same reference the sprite gallery and CACHE_UI_ASSET_ALIASES
++           *  use, for native (non-UIKit) interfaces that need one. */
++          action: "set_sprite";
++          uid: number;
++          archiveId: number;
++          frame: number;
++      }
+     | {
+           action: "set_npc_head";
+           uid: number;
+diff --git a/server/gamemodes/vanilla/scripts/levelup.ts b/server/gamemodes/vanilla/scripts/levelup.ts
+index f6fdc2b..c9933dc 100644
+--- a/server/gamemodes/vanilla/scripts/levelup.ts
++++ b/server/gamemodes/vanilla/scripts/levelup.ts
+@@ -2,6 +2,7 @@ import { MAX_REAL_LEVEL, SkillId, getSkillName } from "../../../../client/rs/ski
+ import type { GameEventBus } from "../../../src/game/events/GameEventBus";
+ import type { PlayerState } from "../../../src/game/player";
+ import type { ScriptServices } from "../../../src/game/scripts/types";
++import { resolveSpriteRefByName } from "../../../src/world/SpriteNameCatalogFile";
+ import {
+     LEVELUP_COMBAT_COMPONENT,
+     LEVELUP_CONTINUE_COMPONENT,
+@@ -134,6 +135,19 @@ function showSkillLevelUp(
+         uid: (LEVELUP_INTERFACE_ID << 16) | LEVELUP_COMBAT_COMPONENT,
+         hidden: true,
+     });
++    // The interface's baked-in cache icon for this component is either
++    // missing, wrong, or absent for this revision - push the named sprite
++    // (::Rename'd via the sprite gallery, e.g. "skill.attack") explicitly.
++    // Silently does nothing if that skill hasn't been named yet.
++    const iconRef = resolveSpriteRefByName(`skill.${skillName.toLowerCase()}`);
++    if (iconRef) {
++        queueWidget(services, playerId, {
++            action: "set_sprite",
++            uid: (LEVELUP_INTERFACE_ID << 16) | (targetComp & 0xffff),
++            archiveId: iconRef.archiveId,
++            frame: iconRef.frame,
++        });
++    }
+     queueWidget(services, playerId, {
+         action: "set_text",
+         uid: (LEVELUP_INTERFACE_ID << 16) | LEVELUP_TEXT1_COMPONENT,
+diff --git a/server/src/network/messages.ts b/server/src/network/messages.ts
+index eed54f5..4009411 100644
+--- a/server/src/network/messages.ts
++++ b/server/src/network/messages.ts
+@@ -1118,6 +1118,12 @@ function encodeWidgetToBinary(payload: WidgetServerPayload): Uint8Array {
+                 payload.itemId,
+                 payload.quantity ?? 0,
+             );
++        case "set_sprite":
++            return serverEncoder.encodeWidgetSetSprite(
++                payload.uid,
++                payload.archiveId,
++                payload.frame,
++            );
+         case "set_transparency":
+             return serverEncoder.encodeWidgetSetTransparency(payload.uid, payload.transparency);
+         case "set_npc_head":
+diff --git a/server/src/network/packet/ServerBinaryEncoder.ts b/server/src/network/packet/ServerBinaryEncoder.ts
+index 908b043..b3db7d9 100644
+--- a/server/src/network/packet/ServerBinaryEncoder.ts
++++ b/server/src/network/packet/ServerBinaryEncoder.ts
+@@ -609,6 +609,14 @@ export class ServerBinaryEncoder {
+         return this.buffer.toPacket(ServerPacketId.WIDGET_SET_ITEM);
+     }
+ 
++    encodeWidgetSetSprite(uid: number, archiveId: number, frame: number): Uint8Array {
++        this.buffer.reset();
++        this.buffer.writeInt(uid);
++        this.buffer.writeInt(archiveId);
++        this.buffer.writeInt(frame);
++        return this.buffer.toPacket(ServerPacketId.WIDGET_SET_SPRITE);
++    }
++
+     encodeWidgetSetTransparency(uid: number, transparency: number): Uint8Array {
+         this.buffer.reset();
+         this.buffer.writeInt(uid);
+diff --git a/server/src/widgets/WidgetManager.ts b/server/src/widgets/WidgetManager.ts
+index 23691cd..0a0e6e4 100644
+--- a/server/src/widgets/WidgetManager.ts
++++ b/server/src/widgets/WidgetManager.ts
+@@ -53,6 +53,18 @@ export type WidgetAction =
+     | { action: "set_text"; uid: number; text: string }
+     | { action: "set_hidden"; uid: number; hidden: boolean; phase?: "close" }
+     | { action: "set_item"; uid: number; itemId: number; quantity?: number }
++    | {
++          /** Sets a widget to show a raw cache sprite by archive/frame - the
++           *  same reference the sprite gallery and CACHE_UI_ASSET_ALIASES
++           *  use, for native (non-UIKit) interfaces that need one (e.g. the
++           *  level-up popup). See client/common/uikit/spriteNames.ts for
++           *  looking up a name -> archiveId/frame, and
++           *  SpriteNameCatalogFile.ts to resolve it server-side. */
++          action: "set_sprite";
++          uid: number;
++          archiveId: number;
++          frame: number;
++      }
+     /** 0 is opaque and 255 is fully transparent. */
+     | { action: "set_transparency"; uid: number; transparency: number }
+     | { action: "set_npc_head"; uid: number; npcId: number }
+diff --git a/server/src/world/SpriteNameCatalogFile.ts b/server/src/world/SpriteNameCatalogFile.ts
+index 1b329d5..6619ec1 100644
+--- a/server/src/world/SpriteNameCatalogFile.ts
++++ b/server/src/world/SpriteNameCatalogFile.ts
+@@ -48,6 +48,26 @@ export function readSpriteNameCatalog(filePath: string = defaultSpriteNameCatalo
+     }
+ }
+ 
++/**
++ * Reverse lookup: common name (e.g. "skill.attack") -> archiveId/frame.
++ * Used by server-side scripts (e.g. levelup.ts) that need to push a named
++ * sprite to a native widget via the "set_sprite" action, since native
++ * interfaces aren't reached by the client-side cacheUiAsset resolver.
++ */
++export function resolveSpriteRefByName(
++    name: string,
++    filePath: string = defaultSpriteNameCatalogPath(),
++): { archiveId: number; frame: number } | undefined {
++    const catalog = readSpriteNameCatalog(filePath);
++    for (const [ref, entryName] of Object.entries(catalog)) {
++        if (entryName === name) {
++            const [archiveId, frame] = ref.split(":").map(Number);
++            return { archiveId, frame };
++        }
++    }
++    return undefined;
++}
++
+ function writeSpriteNameCatalog(filePath: string, catalog: SpriteNameCatalog): void {
+     fs.mkdirSync(path.dirname(filePath), { recursive: true });
+     fs.writeFileSync(filePath, `${JSON.stringify(catalog, null, 4)}\n`, "utf8");

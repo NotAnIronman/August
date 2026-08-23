@@ -45,6 +45,23 @@ export type WidgetServerPayload =
           quantity?: number;
       }
     | {
+          /** Sets a widget to show a raw cache sprite by archive/frame - the
+           *  same reference the sprite gallery and CACHE_UI_ASSET_ALIASES
+           *  use, for native (non-UIKit) interfaces that need one. */
+          action: "set_sprite";
+          uid: number;
+          archiveId: number;
+          frame: number;
+          /** Optional geometry override (use when the target component's
+           *  native rect isn't sized/shaped for the replacement sprite -
+           *  e.g. it was a wide text-adjacent slot, not a square icon).
+           *  Omit any of these to leave that dimension unchanged. */
+          x?: number;
+          y?: number;
+          width?: number;
+          height?: number;
+      }
+    | {
           action: "set_npc_head";
           uid: number;
           npcId: number;
