@@ -671,56 +671,6 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         widgets.set(filter.uid, filter);
     }
 
-    if (layout.content.scrollbarWidth > 0) {
-        const scrollbarX = layout.width - layout.content.scrollbarWidth - 12;
-        const scrollbar = makeWidget(groupId, ComponentIds.SCROLLBAR, rootUid, {
-            type: 0,
-            rawX: scrollbarX,
-            rawY: contentTop,
-            rawWidth: layout.content.scrollbarWidth,
-            rawHeight: contentHeight,
-            width: layout.content.scrollbarWidth,
-            height: contentHeight,
-            isHidden: true,
-            hidden: true,
-        });
-        widgets.set(scrollbar.uid, scrollbar);
-
-        // Keep the visible rail and thumb as root siblings. Static children
-        // of a generated scrollbar container were not consistently rendered
-        // by the GL widget walker, even though scrolling itself worked.
-        const track = makeWidget(groupId, ComponentIds.SCROLLBAR_TRACK, rootUid, {
-            type: 3,
-            rawX: scrollbarX,
-            rawY: contentTop,
-            rawWidth: layout.content.scrollbarWidth,
-            rawHeight: contentHeight,
-            width: layout.content.scrollbarWidth,
-            height: contentHeight,
-            filled: true,
-            color: 0x55452f,
-            isHidden: true,
-            hidden: true,
-        });
-        widgets.set(track.uid, track);
-
-        const thumb = makeWidget(groupId, ComponentIds.SCROLLBAR_THUMB, rootUid, {
-            type: 3,
-            rawX: scrollbarX + 1,
-            rawY: contentTop,
-            rawWidth: layout.content.scrollbarWidth - 2,
-            rawHeight: contentHeight,
-            width: layout.content.scrollbarWidth - 2,
-            height: contentHeight,
-            filled: true,
-            color: 0xffcf70,
-            mouseOverColor: 0xffffff,
-            isHidden: true,
-            hidden: true,
-        });
-        widgets.set(thumb.uid, thumb);
-    }
-
     if (layout.footerButton) {
         const footerButton = makeWidget(groupId, ComponentIds.FOOTER_BUTTON, rootUid, {
             type: 3,

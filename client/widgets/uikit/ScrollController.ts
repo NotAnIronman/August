@@ -116,8 +116,7 @@ export function createScrollController(
         // currently mounted in the interface tree may react; otherwise a
         // closed panel with stale geometry can consume the active panel's
         // wheel event before it sees it.
-        const mountUid = widgetManager.getInterfaceParentContainerUid(groupId);
-        if (mountUid === undefined || widgetManager.isEffectivelyHidden(mountUid)) return;
+        if (widgetManager.getInterfaceParentContainerUid(groupId) === undefined) return;
 
         if (
             widgetInteraction.isDraggingWidget &&
@@ -130,7 +129,7 @@ export function createScrollController(
         const scrollbar = widgetManager.getWidgetByUid(SCROLLBAR_UID);
         const track = widgetManager.getWidgetByUid(TRACK_UID);
         const thumb = widgetManager.getWidgetByUid(THUMB_UID);
-        if (!scrollbar || !track || !content || !thumb) return;
+        if (!content) return;
 
         widgetManager.ensureLayout(content);
 
@@ -144,9 +143,11 @@ export function createScrollController(
         }
 
         // UIKit scrollbars are drawn beside the actual content viewport by
-        // renderWidgetTree. Keep the old generated widgets hidden: the
-        // steelborder host uses a different coordinate space.
+        // renderWidgetTree. Hide obsolete virtual widgets as a hot-reload
+        // safeguard; new panels no longer create them, which removes the
+        // second static rail entirely.
         for (const widget of [scrollbar, track, thumb]) {
+            if (!widget) continue;
             widget.hidden = true;
             widget.isHidden = true;
         }
@@ -154,7 +155,7 @@ export function createScrollController(
             (content._absWidth ?? content.width ?? 0)) | 0;
         const scrollbarY = (content._absY ?? content.y ?? 0) | 0;
         const scrollbarHeight = viewportHeight;
-        const scrollbarWidth = Math.max(1, scrollbar.width | 0);
+        const scrollbarWidth = Math.max(1, scrollbar?.width ?? 16);
 
         if (maxScrollY <= 0) {
             if ((content.scrollY | 0) !== 0) {

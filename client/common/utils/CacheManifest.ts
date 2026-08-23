@@ -12,6 +12,9 @@ export interface CacheManifestEntry {
     revision?: number;
 }
 
+/** Result of comparing a saved manifest against the browser CacheStorage. */
+export type CacheManifestStatus = "complete" | "partial" | "missing";
+
 function openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
         if (typeof indexedDB === "undefined") {
@@ -95,24 +98,30 @@ function extractCacheFileName(url: string): string {
     }
 }
 
-export async function isCacheManifestComplete(entry: CacheManifestEntry): Promise<boolean> {
+export async function getCacheManifestStatus(entry: CacheManifestEntry): Promise<CacheManifestStatus> {
     if (typeof (globalThis as any).caches === "undefined") {
-        return true;
+        return "complete";
     }
     try {
         const cache = await (globalThis as any).caches.open(resolveCacheKey(entry.cacheName));
         const requests: Request[] = await cache.keys();
+        if (requests.length === 0) return "missing";
         const existing = new Set<string>();
         for (const req of requests) {
             existing.add(extractCacheFileName(req.url));
         }
         for (const expected of entry.files) {
             if (!existing.has(expected)) {
-                return false;
+                return "partial";
             }
         }
-        return true;
+        return "complete";
     } catch {
-        return false;
+        return "missing";
     }
+}
+
+/** Backward-compatible complete/incomplete helper for non-UI callers. */
+export async function isCacheManifestComplete(entry: CacheManifestEntry): Promise<boolean> {
+    return (await getCacheManifestStatus(entry)) === "complete";
 }

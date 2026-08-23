@@ -24,7 +24,7 @@ assert.equal(
     topTabs.widgets.get(uid(ComponentIds.FOOTER_BUTTON_LABEL))?.parentUid,
     uid(ComponentIds.ROOT),
 );
-assert.equal(topTabs.widgets.size, 1 + 1 + ComponentIds.MAX_TABS * 2 + 1 + ComponentIds.MAX_ROWS * 3 + 5);
+assert.equal(topTabs.widgets.size, 1 + 1 + ComponentIds.MAX_TABS * 2 + 1 + ComponentIds.MAX_ROWS * 3 + 2);
 
 assert.throws(
     () => buildUiPanel(-1, { width: 1, height: 1, content: { rowKind: "text", rowHeight: 1, scrollbarWidth: 0 } }),
@@ -64,10 +64,10 @@ assert.equal(
     "<col=8f7f66>Search entries</col>",
 );
 
-// Markup consumes source characters but no screen width. A 99-character
-// coloured journal line must therefore stay on one 100-character visual line.
-const styledJournalLine = `<col=ff0000>${Array.from({ length: 20 }, () => "four").join(" ")}</col>`;
-assert.equal(wrapTextToLines(styledJournalLine, 100).length, 1);
+// Markup consumes source characters but no screen width. A 79-character
+// coloured journal line must therefore stay on one 80-character visual line.
+const styledJournalLine = `<col=ff0000>${Array.from({ length: 16 }, () => "four").join(" ")}</col>`;
+assert.equal(wrapTextToLines(styledJournalLine, 80).length, 1);
 
 const mixedMenu = buildUiPanel(groupId + 4, {
     width: 520,

@@ -12,7 +12,7 @@ import { pruneCacheStorage, resolveCacheKey } from "../rs/cache/CacheFiles";
 import { IndexType } from "../rs/cache/IndexType";
 import {
     getCacheManifestEntry,
-    isCacheManifestComplete,
+    getCacheManifestStatus,
     removeCacheManifestEntry,
     writeCacheManifestEntry,
 } from "../common/utils/CacheManifest";
@@ -266,13 +266,22 @@ function OsrsClientApp() {
             const manifestEntry = await getCacheManifestEntry(cacheInfo.name);
             let cacheInvalidated = false;
             if (manifestEntry) {
-                const complete = await isCacheManifestComplete(manifestEntry);
-                if (!complete) {
-                    cacheInvalidated = true;
+                const manifestStatus = await getCacheManifestStatus(manifestEntry);
+                if (manifestStatus !== "complete") {
                     await removeCacheManifestEntry(cacheInfo.name);
-                    addStorageWarning(
-                        "Cached RuneScape data was cleared by the browser; assets will be re-downloaded.",
-                    );
+                    if (manifestStatus === "missing") {
+                        cacheInvalidated = true;
+                        addStorageWarning(
+                            "Cached RuneScape data was cleared by the browser; assets will be re-downloaded.",
+                        );
+                    } else {
+                        // A partial cache is normal when a deferred cache
+                        // asset has not been retained by the browser. Keep
+                        // the healthy files and let the normal loader fetch
+                        // only the missing ones instead of deleting all data
+                        // and showing a misleading eviction warning.
+                        console.info("[storage] Cache manifest is partial; retaining available assets.");
+                    }
                 }
             }
 

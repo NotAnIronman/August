@@ -39,7 +39,7 @@ const VARP_QJ_LINES = 4398;
 /** OP ID for "Read journal:" right-click option */
 const OP_READ_JOURNAL = 2;
 /** The custom journal uses a much wider text column than the cache panel. */
-const QUEST_JOURNAL_CHARS_PER_LINE = 100;
+const QUEST_JOURNAL_CHARS_PER_LINE = 80;
 
 // ============================================================================
 // Journal text generation
