@@ -55,6 +55,13 @@ import type { WorldMapLabelDraw, WorldMapLabelMetrics } from "./worldMapLabels";
 export type { WidgetNode };
 type Widget = WidgetNode;
 
+// Dialogue portraits are deliberate camera shots, not ordinary widget models.
+// A 64-unit yaw is 11.25° (2048 units per turn); keep the values named so
+// visual tuning is a one-number change after comparing them in-game.
+const DIALOGUE_CHATHEAD_ZOOM = 860;
+const NPC_DIALOGUE_CHATHEAD_YAW = 64;
+const PLAYER_DIALOGUE_CHATHEAD_YAW = -64;
+
 export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRenderOpts) {
     // PERF: Reset widget count for this render pass
     ps._widgetRenderCount = 0;
@@ -3334,16 +3341,19 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             // describe its old placeholder model, not the NPC/player head
             // inserted later by CC_SETNPCHEAD / CC_SETPLAYERHEAD. Reusing
             // those angles turns a face edge-on (the reported "/" result).
-            // A chathead is always framed upright and front-on; the lower
-            // camera distance below also replaces the generic zero-zoom
-            // fallback of 2000, which made heads appear much too small.
+            // A chathead is framed upright with a subtle opposing yaw so the
+            // NPC and player visually look toward one another. The camera
+            // distance replaces the generic zero-zoom fallback of 2000,
+            // which made heads appear much too small.
             const isDialogueChathead =
                 (w as any).isNpcChathead === true || (w as any).isPlayerChathead === true;
             if (isDialogueChathead) {
                 rx = 0;
-                ry = 0;
+                ry = (w as any).isNpcChathead
+                    ? NPC_DIALOGUE_CHATHEAD_YAW
+                    : PLAYER_DIALOGUE_CHATHEAD_YAW;
                 rz = 0;
-                zoom = 750;
+                zoom = DIALOGUE_CHATHEAD_ZOOM;
                 offX = 0;
                 offY = 0;
             }

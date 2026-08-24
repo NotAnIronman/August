@@ -2157,22 +2157,29 @@ export class PlayerEcs {
                                         ? 1 + (this._queueLen(i) | 0)
                                         : this._queueLen(i) | 0;
 
-                                // Base speed (var8)
+                                // Base speed (var8). A queued server run is already
+                                // authoritative: it represents one half of a two-tile
+                                // movement frame. Do not apply the local long-path
+                                // catch-up or turning slowdown to it, or the first few
+                                // run steps visibly walk before the buffer fills.
+                                const traversal = segFactor >= 1.5 ? 2 : segFactor <= 0.5 ? 0 : 1;
+                                const isAuthoritativeRun = traversal === 2;
                                 let var8 = 4;
                                 const turnPenalty =
                                     rot !== movementOrientation &&
                                     !isInteracting &&
                                     ((this.rotationSpeed[i] | 0) as number) !== 0;
-                                if (turnPenalty) var8 = 2;
-                                if (pathLength > 2) var8 = 6;
-                                if (pathLength > 3) var8 = 8;
-                                if ((this.movementDelayCounter[i] | 0) > 0 && pathLength > 1) {
-                                    var8 = 8;
-                                    this.decrementMovementDelay(i);
+                                if (!isAuthoritativeRun) {
+                                    if (turnPenalty) var8 = 2;
+                                    if (pathLength > 2) var8 = 6;
+                                    if (pathLength > 3) var8 = 8;
+                                    if ((this.movementDelayCounter[i] | 0) > 0 && pathLength > 1) {
+                                        var8 = 8;
+                                        this.decrementMovementDelay(i);
+                                    }
                                 }
 
                                 // Apply traversal: 2 doubles, 0 halves (post base selection).
-                                const traversal = segFactor >= 1.5 ? 2 : segFactor <= 0.5 ? 0 : 1;
                                 if (traversal === 2) var8 = var8 << 1;
                                 else if (traversal === 0) var8 = var8 >> 1;
 
