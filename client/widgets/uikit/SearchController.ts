@@ -33,6 +33,12 @@ export function createSearchController(
      *  typing," which onQueryChange alone can't do since it never fires for
      *  the Enter keystroke itself (Enter doesn't change the query text). */
     onSubmit?: (query: string, widgetManager: WidgetManager) => void,
+    /**
+     * Maximum number of printable characters accepted by this input. UIKit
+     * search fields retain the OSRS-standard 80 character limit by default;
+     * editor panels can opt into a larger, explicitly bounded value.
+     */
+    maxLength: number = 80,
 ): UiSearchController {
     const backgroundUid = packUid(groupId, ComponentIds.SEARCH_BACKGROUND);
     const textUid = packUid(groupId, ComponentIds.SEARCH_TEXT);
@@ -41,6 +47,7 @@ export function createSearchController(
     let active = false;
     let lastWidgetManager: WidgetManager | undefined;
     let lastClickMode3 = ClickMode.NONE;
+    const inputMaxLength = Math.max(1, Math.trunc(maxLength) || 80);
 
     const sync = () => {
         const manager = lastWidgetManager;
@@ -134,7 +141,7 @@ export function createSearchController(
                     if (next.length) { next = next.slice(0, -1); changed = true; }
                     continue;
                 }
-                if ((event.keyPressed | 0) <= 0 || next.length >= 80) continue;
+                if ((event.keyPressed | 0) <= 0 || next.length >= inputMaxLength) continue;
                 const char = String.fromCharCode(event.keyPressed | 0);
                 if (/^[ -~]$/.test(char)) { next += char; changed = true; }
             }

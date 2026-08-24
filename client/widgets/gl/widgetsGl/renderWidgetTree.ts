@@ -3330,6 +3330,24 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             let offY = (w.modelOffsetY ?? 0) | 0;
             const ortho = !!w.modelOrthog;
 
+            // Chathead widgets are special: the cache's generic model angles
+            // describe its old placeholder model, not the NPC/player head
+            // inserted later by CC_SETNPCHEAD / CC_SETPLAYERHEAD. Reusing
+            // those angles turns a face edge-on (the reported "/" result).
+            // A chathead is always framed upright and front-on; the lower
+            // camera distance below also replaces the generic zero-zoom
+            // fallback of 2000, which made heads appear much too small.
+            const isDialogueChathead =
+                (w as any).isNpcChathead === true || (w as any).isPlayerChathead === true;
+            if (isDialogueChathead) {
+                rx = 0;
+                ry = 0;
+                rz = 0;
+                zoom = 750;
+                offX = 0;
+                offY = 0;
+            }
+
             // No client-side bob if no sequence; rely on server/script-provided sequence/animationId.
 
             // If this widget is currently set to display an item, override angles/offsets/zoom

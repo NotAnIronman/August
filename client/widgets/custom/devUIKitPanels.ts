@@ -584,6 +584,11 @@ registerUiPanel({
             "Click a row, or a toolbar icon, to type here",
             () => {},
             submitDialogueInput,
+            // Dialogue prose needs materially more room than an ordinary
+            // UIKit search term. The server still enforces the four-line
+            // chatbox limit; this only removes the editor's accidental
+            // two-visual-line/80-character authoring ceiling.
+            240,
         );
         dialogueSearchController = controller;
         return controller;
