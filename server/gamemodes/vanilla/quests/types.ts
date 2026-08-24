@@ -32,11 +32,13 @@ export interface QuestSkillRequirement {
     label: string;
 }
 
-export interface QuestProgressRequirement {
-    varpId: number;
+export type QuestProgressRequirement = (
+    | { varpId: number; varbitId?: never }
+    | { varbitId: number; varpId?: never }
+) & {
     minValue: number;
     label: string;
-}
+};
 
 export interface QuestRequirements {
     questPoints?: number;
@@ -52,17 +54,13 @@ export interface QuestRewards {
     other?: string[];
 }
 
-export interface QuestDefinition {
+interface QuestDefinitionBase {
     /** Stable content key used by gamemodes and server systems */
     key: string;
     /** Display name exactly as it appears in the cache quest DB (table 0) */
     name: string;
     /** Whether the quest belongs in the members quest-list group. */
     members?: boolean;
-    /** Quest progress varp */
-    varpId: number;
-    /** Inclusive bit range when quest progress occupies only part of the varp. */
-    stageBits?: { start: number; end: number };
     /** Varp value once the quest has been started */
     startedValue: number;
     /** Varp value once the quest is complete */
@@ -78,3 +76,23 @@ export interface QuestDefinition {
     /** Register the quest's interaction handlers (NPCs, locs, items) */
     register(registry: IScriptRegistry, services: ScriptServices): void;
 }
+
+/** A quest whose stage is stored in a varp, optionally using a bit range. */
+export interface VarpQuestDefinition extends QuestDefinitionBase {
+    /** Quest progress varp. */
+    varpId: number;
+    varbitId?: never;
+    /** Inclusive bit range when quest progress occupies only part of the varp. */
+    stageBits?: { start: number; end: number };
+}
+
+/** A quest whose cache-defined state is stored directly in a varbit. */
+export interface VarbitQuestDefinition extends QuestDefinitionBase {
+    varpId?: never;
+    /** Quest progress varbit. This value is persisted and synchronized like a varp. */
+    varbitId: number;
+    stageBits?: never;
+}
+
+/** A quest uses exactly one cache-backed progress source. */
+export type QuestDefinition = VarpQuestDefinition | VarbitQuestDefinition;

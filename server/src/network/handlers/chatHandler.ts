@@ -200,6 +200,14 @@ const QUEST_DATA: Array<{
         unlocks: "Spellbook Swap, extra Lunar spells",
     },
     {
+        name: "The Ribbiting Tale of a Lily Pad Labour Dispute",
+        aliases: ["lilypad", "lily", "lilypadlabour", "ribbiting"],
+        varpId: -1,
+        completionValue: 0,
+        varbitEntries: [{ varbitId: 9844, value: 32 }],
+        unlocks: "The Hardwood Farming patch at Locus Oasis",
+    },
+    {
         name: "Arceuus Favour",
         aliases: ["arceuus", "arceuusfavour", "arceuusfavor"],
         varpId: -1,

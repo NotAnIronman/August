@@ -1,6 +1,7 @@
 import type { PlayerState } from "../../../../../src/game/player";
 import type { ScriptServices } from "../../../../../src/game/scripts/types";
 import type { QuestDefinition } from "../../types";
+import { getQuestStage } from "../../QuestService";
 import {
     CANNON_REPAIR_MASK,
     RAIL_MASK,
@@ -23,7 +24,7 @@ export function buildDwarfCannonJournal(
     _services: ScriptServices,
     quest: QuestDefinition,
 ): string[] {
-    const stage = player.varps.getVarpValue(quest.varpId);
+    const stage = getQuestStage(player, quest);
     const multi = player.varps.getVarpValue(VARP_DWARF_CANNON_MULTI);
     if (stage >= STAGE_COMPLETE) {
         return [

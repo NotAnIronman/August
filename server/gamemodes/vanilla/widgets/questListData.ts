@@ -136,6 +136,10 @@ const QUEST_COMPLETION_DATA = new Map<string, QuestCompletionInfo>([
     ["witch's potion", { varpId: 67, completionValue: 3 }],
     ["black knights' fortress", { varpId: 130, completionValue: 4 }],
     [
+        "the ribbiting tale of a lily pad labour dispute",
+        { varpId: -1, completionValue: 0, varbitEntries: [{ varbitId: 9844, value: 32 }] },
+    ],
+    [
         "pandemonium",
         { varpId: -1, completionValue: 0, varbitEntries: [{ varbitId: 18314, value: 6 }] },
     ],

@@ -33,6 +33,7 @@ import { heroesQuest } from "./definitions/heroesQuest";
 import { impCatcherQuest } from "./definitions/impCatcher";
 import { junglePotionQuest } from "./definitions/junglePotion";
 import { knightsSwordQuest } from "./definitions/knightsSword";
+import { lilyPadQuest } from "./definitions/lilyPad";
 import { lostCityQuest } from "./definitions/lostCity";
 import { merlinsCrystalQuest } from "./definitions/merlinsCrystal";
 import { monksFriendQuest } from "./definitions/monksFriend";
@@ -87,6 +88,7 @@ const QUEST_DEFINITIONS: QuestDefinition[] = [
     impCatcherQuest,
     junglePotionQuest,
     knightsSwordQuest,
+    lilyPadQuest,
     lostCityQuest,
     merlinsCrystalQuest,
     monksFriendQuest,
@@ -141,7 +143,7 @@ export function registerQuestHandlers(registry: IScriptRegistry, services: Scrip
     registry.registerCommand("resetquests", ({ player }) => {
         for (const quest of QUEST_DEFINITIONS) {
             setQuestStage(player, quest, services, 0);
-            if (quest.stageBits) {
+            if (quest.varpId !== undefined && quest.stageBits) {
                 player.varps.setVarpValue(quest.varpId, 0);
                 services.variables.sendVarp(player, quest.varpId, 0);
             }
@@ -213,4 +215,6 @@ export type {
     QuestRequirements,
     QuestRewards,
     QuestSkillRequirement,
+    VarbitQuestDefinition,
+    VarpQuestDefinition,
 } from "./types";

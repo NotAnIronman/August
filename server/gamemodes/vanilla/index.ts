@@ -5,7 +5,6 @@ import { BaseGamemode } from "../../src/game/gamemodes/BaseGamemode";
 import type {
     GamemodeDefinition,
     GamemodeInitContext,
-    GamemodeQuestListGroup,
     GamemodeServerServices,
     GamemodeUiBridge,
     GamemodeUiController,
@@ -44,7 +43,8 @@ import { registerSmithingBarModalHandler } from "./modals/smithingBarModalHandle
 import { registerWidgetCloseHandlers } from "./modals/widgetCloseHandlers";
 import { registerWidgetOpenHandlers } from "./modals/widgetOpenHandlers";
 import { registerNpcDialogueHandlers } from "./npcs";
-import { getRegisteredQuests, getQuestDefinitionByKey, normalizeQuestKey, registerQuestHandlers } from "./quests";
+import { getQuestDefinitionByKey, normalizeQuestKey, registerQuestHandlers } from "./quests";
+import { VANILLA_QUEST_LIST_GROUPS } from "./questCatalog";
 import { getQuestStage, setQuestStage } from "./quests/QuestService";
 import { registerVanillaCommandHandlers } from "./scripts/commands";
 import { registerAlKharidBorderHandlers } from "./scripts/content/alKharidBorder";
@@ -149,16 +149,8 @@ export class VanillaGamemode extends BaseGamemode {
         return new VanillaUiController(bridge, (player) => this.getQuestListGroups(player));
     }
 
-    override getQuestListGroups(_player: PlayerState): readonly GamemodeQuestListGroup[] {
-        const registered = getRegisteredQuests();
-        const freeQuests = registered.filter((quest) => !quest.members).map((quest) => quest.key);
-        const memberQuests = registered.filter((quest) => quest.members).map((quest) => quest.key);
-        const groups: GamemodeQuestListGroup[] = [];
-        if (freeQuests.length > 0) groups.push({ title: "Free Quests", quests: freeQuests });
-        if (memberQuests.length > 0) {
-            groups.push({ title: "Member Quests", quests: memberQuests });
-        }
-        return groups;
+    override getQuestListGroups(_player: PlayerState) {
+        return VANILLA_QUEST_LIST_GROUPS;
     }
 
     private registerProviders(): void {

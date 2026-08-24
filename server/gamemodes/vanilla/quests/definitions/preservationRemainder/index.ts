@@ -21,7 +21,7 @@ import {
     takeQuestItems,
 } from "../../QuestService";
 import { choose, option, run, sayNpc, sayPlayer, startConversation } from "../../dialogue";
-import type { QuestDefinition, QuestRewards, QuestRequirements } from "../../types";
+import type { QuestDefinition, QuestRewards, QuestRequirements, VarpQuestDefinition } from "../../types";
 
 type ItemStack = { itemId: number; quantity?: number };
 type Step = {
@@ -148,9 +148,9 @@ function createDefinition(config: {
     rewardItemId?: number;
     startText: string;
     journal: (stage: number) => string[];
-    register: (quest: QuestDefinition, registry: IScriptRegistry, services: ScriptServices) => void;
-}): QuestDefinition {
-    const quest: QuestDefinition = {
+    register: (quest: VarpQuestDefinition, registry: IScriptRegistry, services: ScriptServices) => void;
+}): VarpQuestDefinition {
+    const quest: VarpQuestDefinition = {
         key: config.key,
         name: config.name,
         members: true,

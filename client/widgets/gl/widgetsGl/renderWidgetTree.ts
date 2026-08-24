@@ -56,11 +56,11 @@ export type { WidgetNode };
 type Widget = WidgetNode;
 
 // Dialogue portraits are deliberate camera shots, not ordinary widget models.
-// A 64-unit yaw is 11.25° (2048 units per turn); keep the values named so
+// A 96-unit yaw is 16.875° (2048 units per turn); keep the values named so
 // visual tuning is a one-number change after comparing them in-game.
 const DIALOGUE_CHATHEAD_ZOOM = 860;
-const NPC_DIALOGUE_CHATHEAD_YAW = 64;
-const PLAYER_DIALOGUE_CHATHEAD_YAW = -64;
+const NPC_DIALOGUE_CHATHEAD_YAW = -96;
+const PLAYER_DIALOGUE_CHATHEAD_YAW = 96;
 
 export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRenderOpts) {
     // PERF: Reset widget count for this render pass

@@ -30,10 +30,13 @@ const QC_CLOSE_LAYER_CHILD = 16;
 const QUEST_COMPLETE_JINGLE_ID = 152;
 
 // ============================================================================
-// Quest stage state (varp-backed)
+// Quest stage state (cache-backed varps and varbits)
 // ============================================================================
 
 export function getQuestStage(player: PlayerState, quest: QuestDefinition): number {
+    if (quest.varbitId !== undefined) {
+        return player.varps.getVarbitValue(quest.varbitId);
+    }
     const value = player.varps.getVarpValue(quest.varpId);
     if (!quest.stageBits) return value;
     const width = quest.stageBits.end - quest.stageBits.start + 1;
@@ -47,6 +50,13 @@ export function setQuestStage(
     services: ScriptServices,
     value: number,
 ): void {
+    if (quest.varbitId !== undefined) {
+        player.varps.setVarbitValue(quest.varbitId, value);
+        services.variables.sendVarbit(player, quest.varbitId, value);
+        queuePlayerQuestListUi(player, services.dialog);
+        return;
+    }
+
     let nextValue = value;
     if (quest.stageBits) {
         const width = quest.stageBits.end - quest.stageBits.start + 1;
@@ -88,7 +98,11 @@ export function getUnmetQuestRequirements(
         }
     }
     for (const requirement of requirements.quests ?? []) {
-        if (player.varps.getVarpValue(requirement.varpId) < requirement.minValue) {
+        const current =
+            requirement.varbitId !== undefined
+                ? player.varps.getVarbitValue(requirement.varbitId)
+                : player.varps.getVarpValue(requirement.varpId);
+        if (current < requirement.minValue) {
             unmet.push(requirement.label);
         }
     }

@@ -61,6 +61,7 @@ function buildJournalLines(
     if (definition) {
         return definition.buildJournal(player, services);
     }
+
     // Check if quest was completed via ::quest command by checking known quest varps
     const completionEntry = getQuestCompletionInfo(quest.displayName);
     if (completionEntry) {
@@ -87,11 +88,14 @@ function buildJournalLines(
         }
     }
 
-    // Not started (default state)
+    // Display-only default for wiki-catalogued quests that have not been
+    // implemented yet. This deliberately provides no objectives, triggers,
+    // or completion state until the quest is built.
     return [
-        "I should read the quest overview for",
-        "more information on how to start",
-        "this quest.",
+        "This quest is not implemented yet.",
+        "",
+        "Quest objectives and completion checks will be added",
+        "in a future update.",
     ];
 }
 
@@ -144,15 +148,16 @@ export function registerQuestJournalWidgetHandlers(
         const quest =
             findQuestByQuestListKey(visibleQuest.key) ??
             findQuestByDisplayName(visibleQuest.displayName);
-        if (!quest) {
-            const label = `slot=${slot} key="${visibleQuest.key}" name="${visibleQuest.displayName}"`;
-            services.system.logger.info?.(
-                `[quest-journal] No quest found for visible ${label}`,
-            );
-            return;
-        }
+        // The catalog can advance ahead of the cache revision. Keep those
+        // rows readable with a display-only journal rather than making the
+        // UI look broken; a cache-backed entry is used whenever available.
+        const resolvedQuest = quest ?? {
+            questId: 0,
+            dbrowId: 0,
+            displayName: visibleQuest.displayName,
+        };
 
-        openQuestJournal(player, quest, services);
+        openQuestJournal(player, resolvedQuest, services);
     });
 
     // Server-authoritative footer actions: a forged component packet is
@@ -254,7 +259,6 @@ function openQuestOverview(player: PlayerState, quest: QuestEntry, services: Scr
     openUiPanel(services, player, QUEST_OVERVIEW_PANEL_GROUP_ID, quest.displayName, {
         varps: {
             [VARP_LATEST_QUEST_JOURNAL]: quest.dbrowId,
-            [definition.varpId]: player.varps.getVarpValue(definition.varpId),
         },
     });
 

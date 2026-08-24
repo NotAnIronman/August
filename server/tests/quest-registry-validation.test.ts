@@ -4,13 +4,26 @@ import {
     getQuestDefinitionByName,
     registerQuestDefinition,
 } from "../gamemodes/vanilla/quests/QuestRegistry";
-import type { QuestDefinition } from "../gamemodes/vanilla/quests/types";
+import type { QuestDefinition, VarbitQuestDefinition } from "../gamemodes/vanilla/quests/types";
 
 function definition(key: string, name: string, varpId: number): QuestDefinition {
     return {
         key,
         name,
         varpId,
+        startedValue: 1,
+        completionValue: 2,
+        rewards: { questPoints: 1 },
+        buildJournal: () => [],
+        register: () => undefined,
+    };
+}
+
+function varbitDefinition(key: string, name: string, varbitId: number): VarbitQuestDefinition {
+    return {
+        key,
+        name,
+        varbitId,
         startedValue: 1,
         completionValue: 2,
         rewards: { questPoints: 1 },
@@ -38,6 +51,13 @@ assert.throws(
 assert.throws(
     () => registerQuestDefinition(definition("third-key", "Third Quest", 60000)),
     /Duplicate quest varp/,
+);
+const varbitQuest = varbitDefinition("registry-test-varbit", "Registry Test Varbit", 60000);
+registerQuestDefinition(varbitQuest);
+assert.equal(getQuestDefinitionByKey("registry-test-varbit"), varbitQuest);
+assert.throws(
+    () => registerQuestDefinition(varbitDefinition("fourth-key", "Fourth Quest", 60000)),
+    /Duplicate quest varbit/,
 );
 assert.throws(
     () => registerQuestDefinition(definition("", "Missing Key", 60003)),
