@@ -41,6 +41,10 @@ const OP_READ_JOURNAL = 2;
 /** The custom journal uses a much wider text column than the cache panel. */
 const QUEST_JOURNAL_CHARS_PER_LINE = 80;
 
+/** The selected quest must survive a journal/overview view switch even when
+ * the current cache does not have a dbrow for a newly catalogued quest. */
+type QuestJournalPanelState = { quest: QuestEntry };
+
 // ============================================================================
 // Journal text generation
 // ============================================================================
@@ -135,6 +139,19 @@ export function registerQuestJournalWidgetHandlers(
         return findQuestByDisplayName(definition.name);
     };
 
+    const getOpenQuest = (player: PlayerState): QuestEntry | undefined => {
+        const panelState = services.dialog
+            .getInterfaceService()
+            ?.getModalData<QuestJournalPanelState>(player);
+        if (panelState?.quest) return panelState.quest;
+
+        // Cache-backed legacy journal opens may not have modal data (for
+        // example, an already-open panel after a hot reload), so retain the
+        // dbrow lookup as a backwards-compatible fallback.
+        const dbrowId = player.varps.getVarpValue(VARP_LATEST_QUEST_JOURNAL);
+        return dbrowId > 0 ? findQuestByDbrowId(dbrowId) : undefined;
+    };
+
     // Handle quest list clicks (399:7)
     // Gamemode-owned dynamic children use the visible row slot as their child index.
     registry.onButton(QUEST_LIST_GROUP_ID, QUEST_LIST_COMPONENT, (event) => {
@@ -166,14 +183,10 @@ export function registerQuestJournalWidgetHandlers(
         componentId: ComponentIds.FOOTER_BUTTON,
         actionId: "view_quest_overview",
         handle: (event) => {
-        const { player } = event;
-        const dbrowId = player.varps.getVarpValue(VARP_LATEST_QUEST_JOURNAL);
-        if (dbrowId <= 0) return;
+            const quest = getOpenQuest(event.player);
+            if (!quest) return;
 
-        const quest = findQuestByDbrowId(dbrowId);
-        if (!quest) return;
-
-        openQuestOverview(player, quest, services);
+            openQuestOverview(event.player, quest, services);
         },
     }]);
 
@@ -181,14 +194,10 @@ export function registerQuestJournalWidgetHandlers(
         componentId: ComponentIds.FOOTER_BUTTON,
         actionId: "view_quest_journal",
         handle: (event) => {
-        const { player } = event;
-        const dbrowId = player.varps.getVarpValue(VARP_LATEST_QUEST_JOURNAL);
-        if (dbrowId <= 0) return;
+            const quest = getOpenQuest(event.player);
+            if (!quest) return;
 
-        const quest = findQuestByDbrowId(dbrowId);
-        if (!quest) return;
-
-        openQuestJournal(player, quest, services);
+            openQuestJournal(event.player, quest, services);
         },
     }]);
 }
@@ -215,6 +224,7 @@ function openQuestJournal(player: PlayerState, quest: QuestEntry, services: Scri
     services.variables.sendVarp?.(player, VARP_QJ_LINES, lineCount);
 
     openUiPanel(services, player, QUEST_JOURNAL_PANEL_GROUP_ID, quest.displayName, {
+        data: { quest } satisfies QuestJournalPanelState,
         varps: {
             [VARP_LATEST_QUEST_JOURNAL]: quest.dbrowId,
             [VARP_QJ_LINES]: lineCount,
@@ -257,6 +267,7 @@ function openQuestOverview(player: PlayerState, quest: QuestEntry, services: Scr
     services.variables.sendVarp?.(player, VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
 
     openUiPanel(services, player, QUEST_OVERVIEW_PANEL_GROUP_ID, quest.displayName, {
+        data: { quest } satisfies QuestJournalPanelState,
         varps: {
             [VARP_LATEST_QUEST_JOURNAL]: quest.dbrowId,
         },

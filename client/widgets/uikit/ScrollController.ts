@@ -212,10 +212,12 @@ export function createScrollController(
         if (input.wheelDeltaY !== 0 && (isOverContent || isOverScrollbar)) {
             // Browser wheel deltas are device-dependent (a mouse commonly
             // reports 100 while a trackpad can report a fraction). UIKit
-            // scrolls a predictable three rows per gesture instead of
-            // multiplying that raw browser value into an enormous—or zero—
-            // movement.
-            const wheelStep = Math.max(45, rowHeight * 3);
+            // scrolls one predictable row per gesture instead of multiplying
+            // that raw browser value into an enormous—or zero—movement. A
+            // three-row step skipped the entire remaining overflow in short
+            // quest journals, making their thumb appear to jump directly
+            // between the endpoints.
+            const wheelStep = Math.max(1, rowHeight);
             setScrollY((content.scrollY | 0) + (input.wheelDeltaY > 0 ? wheelStep : -wheelStep));
             input.wheelDeltaY = 0;
         }

@@ -4,7 +4,7 @@ import type { PlayerState } from "../../../src/game/player";
 import { achievementTaskTracker } from "../diaryTasks/AchievementTaskTracker";
 import { getDiaryAreaTasks } from "../diaryTasks";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
-import { openUiPanel, sendUiTabs, sendUiTextRows } from "../uikit/panelData";
+import { openUiPanel, sendUiTabs, sendUiTextRows, wrapTextToLines } from "../uikit/panelData";
 
 /** Achievement diary always has exactly these 4 tiers as tabs. */
 const TIER_COUNT = 4;
@@ -29,6 +29,8 @@ const OP_OPEN_JOURNAL = 1;
 const OP_WIKI_JOURNAL = 2;
 
 const TIER_NAMES = ["Easy", "Medium", "Hard", "Elite"] as const;
+/** Keep completed and incomplete diary tasks equally readable in the journal. */
+const DIARY_TASK_CHARS_PER_LINE = 60;
 
 // ============================================================================
 // Diary area data
@@ -246,15 +248,27 @@ function buildDiaryTierLines(
     const header = `<col=${colour}>${TIER_NAMES[tierIndex]} tasks: ${doneCount}/${totalCount}</col>`;
 
     const lines = [header, ""];
+    let displayedTaskNumber = 0;
     for (let taskIndex = 0; taskIndex < tasks.length; taskIndex++) {
         const task = tasks[taskIndex];
         if (task.description.trim().length === 0) continue;
+        displayedTaskNumber++;
         const done = achievementTaskTracker.isTaskComplete(player.id, {
             areaId,
             tierIndex,
             taskIndex,
         });
-        lines.push(done ? `<str>${task.description}` : task.description);
+        const prefix = `${displayedTaskNumber}. `;
+        const continuationPrefix = " ".repeat(prefix.length);
+        const wrappedDescription = wrapTextToLines(
+            task.description,
+            Math.max(1, DIARY_TASK_CHARS_PER_LINE - prefix.length),
+        );
+        for (let lineIndex = 0; lineIndex < wrappedDescription.length; lineIndex++) {
+            const linePrefix = lineIndex === 0 ? prefix : continuationPrefix;
+            const line = `${linePrefix}${wrappedDescription[lineIndex]}`;
+            lines.push(done ? `<str>${line}` : line);
+        }
     }
     return lines;
 }

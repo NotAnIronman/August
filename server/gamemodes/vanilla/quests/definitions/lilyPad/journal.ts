@@ -38,15 +38,14 @@ export function buildLilyPadJournal(
         return [
             "I can start this quest by talking to <col=800000>Marcellus</col> in the <col=800000>Locus Oasis</col>.",
             "",
-            "<col=000080>Difficulty:</col>",
-            "<col=800000>Novice</col>",
-            "<col=000080>Length:</col>",
-            "<col=800000>Very Short</col>",
-            "<col=000080>Storyline:</col>",
-            "<col=800000>Standalone</col>",
-            "<col=000080>Requirements:</col>",
-            "<col=800000>Children of the Sun</col>",
-            "<col=800000>Level 15 Woodcutting</col>",
+            // Newlines are intentional. questJournalWidgets reflows prose
+            // to use the full panel width, while preserving explicit line
+            // breaks for structured overview fields such as these.
+            "<col=000080>Difficulty:</col>\n<col=800000>Novice</col>\n<br>\n" +
+                "<col=000080>Length:</col>\n<col=800000>Very Short</col>\n<br>\n" +
+                "<col=000080>Storyline:</col>\n<col=800000>Standalone</col>\n<br>\n" +
+                "<col=000080>Requirements:</col>\n<col=800000>Children of the Sun</col>\n" +
+                "<col=800000>Level 15 Woodcutting</col>",
         ];
     }
 

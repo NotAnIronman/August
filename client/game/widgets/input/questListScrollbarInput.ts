@@ -9,7 +9,7 @@ const QUEST_LIST_CONTENT_UID = (QUEST_LIST_GROUP_ID << 16) | 7;
 
 const SCROLLBAR_WIDTH = 16;
 const ARROW_HEIGHT = 16;
-const WHEEL_STEP = 45;
+const WHEEL_STEP = 16;
 
 function clampScrollY(value: number, maximum: number): number {
     return Math.min(Math.max(0, value | 0), maximum);
@@ -128,7 +128,12 @@ export function processQuestListScrollbarInput(
     };
 
     if (input.wheelDeltaY !== 0 && (isOverContent || isOverScrollbar)) {
-        setScrollY((content.scrollY | 0) + input.wheelDeltaY * WHEEL_STEP);
+        // Browser wheel deltas vary wildly by device (a mouse often reports
+        // +/-100). Treat each gesture as one quest row, rather than turning
+        // that browser value into an instant jump to the list endpoint.
+        setScrollY(
+            (content.scrollY | 0) + (input.wheelDeltaY > 0 ? WHEEL_STEP : -WHEEL_STEP),
+        );
         input.wheelDeltaY = 0;
     }
 

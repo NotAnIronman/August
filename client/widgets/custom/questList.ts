@@ -208,6 +208,11 @@ export function applyQuestListWidgetGroups(
     list.height = viewportHeight;
     list.scrollHeight = contentHeight;
     list.scrollY = Math.min(list.scrollY | 0, Math.max(0, contentHeight - viewportHeight));
+    // The cache's 399:5 scrollbar host has no drawable children in several
+    // revisions, which left this list scrollable but visually blank. Mark the
+    // real scrolling container for the shared UIKit/native scrollbar renderer
+    // instead; its right edge is the same reserved scrollbar column.
+    list.uikitScrollbar = true;
 
     if (textContainer) {
         textContainer.scrollHeight = list.scrollHeight;
