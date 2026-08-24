@@ -1,6 +1,7 @@
 import {
     DEV_UIKIT_COMPONENT_PICKER_GROUP_ID,
     DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID,
+    DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID,
     DEV_UIKIT_ICON_PANEL_GROUP_ID,
     DEV_UIKIT_MENU_PANEL_GROUP_ID,
     DEV_UIKIT_SPRITE_GALLERY_GROUP_ID,
@@ -493,6 +494,146 @@ registerUiPanel({
         footerButton: true,
     }),
 });
+
+// Numbered outline view of a DialogueTree (see server/src/game/dialogue/
+// DialogueTree.ts and gamemodes/vanilla/widgets/devDialogueEditor.ts).
+// Structural edits (select/edit/delete/reorder/add) are click-driven, same
+// mechanism as the sprite gallery: an invisible full-row hit-zone per row
+// (content.clickableRows -> DIALOGUE_ROW_HITZONE_BASE), hit-tested here via
+// the same reusable GalleryClickController, and an icon toolbar (the
+// controls row, using UiControl.itemId) for structural actions. Only actual
+// dialogue *text* still requires typing - there's no way around that -
+// which happens through the search box, repurposed exactly like the
+// gallery's rename field: left-click a row selects it, right-click a row
+// pre-fills the box with its current text for editing, and a toolbar
+// "add" icon pre-arms the box (server-side) for a new line/option.
+const DIALOGUE_COLOR_TAG_RE = /<\/?col[^>]*>/g;
+const DIALOGUE_MAX_CLICKABLE_ROWS = ComponentIds.MAX_ROWS;
+let dialogueLastWidgetManager: any;
+/** true/false = last observed DIALOGUE_ACTIVATE_SIGNAL hidden state,
+ *  undefined = not seen yet (panel hasn't rendered). Used for rising-edge
+ *  detection - see the onProcess hook below. */
+let dialogueLastActivateSignalHidden: boolean | undefined;
+
+function dialogueRowText(index: number): string | undefined {
+    const manager = dialogueLastWidgetManager;
+    if (!manager) return undefined;
+    const uid = ((DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID & 0xffff) << 16) | (ComponentIds.TEXT_ROW_LINE_BASE + index);
+    return manager.getWidgetByUid(uid)?.text as string | undefined;
+}
+
+/** The path label a row is showing right now (e.g. "1A1"), or undefined for
+ *  an empty/out-of-range row - read straight from the row's own rendered
+ *  text rather than tracked separately, so "what did the user click" always
+ *  matches "what they saw," the same guarantee currentPageEntries gives the
+ *  sprite gallery. */
+function dialogueRowPath(index: number): string | undefined {
+    const raw = dialogueRowText(index);
+    if (!raw) return undefined;
+    const plain = raw.replace(DIALOGUE_COLOR_TAG_RE, "");
+    // Leading "-- "/"---- " etc. is the nesting-depth indent (see
+    // devDialogueEditor.ts renderSteps) — real, non-whitespace characters,
+    // so they must be skipped explicitly or every indented (nested) row
+    // fails to parse here at all, making it unselectable/uneditable.
+    return /^(?:-+\s+)?\s*(?:\u25b8\s*)?(\S+)\.\)/.exec(plain)?.[1];
+}
+
+/** The row's own text with its "1A.) " path prefix and any [bracketed]
+ *  condition/action tag stripped, for pre-filling the edit box. Best-effort:
+ *  a small formatting mismatch here just means a slightly off pre-fill, not
+ *  a broken edit - the server is still the source of truth for what actually
+ *  gets saved. */
+function dialogueRowEditableText(index: number): string {
+    const raw = dialogueRowText(index);
+    if (!raw) return "";
+    const plain = raw.replace(DIALOGUE_COLOR_TAG_RE, "");
+    const match = /^(?:-+\s+)?\s*(?:\u25b8\s*)?\S+\.\)\s*(?:\[[^\]]*\]\s*)?(.*)$/.exec(plain);
+    return (match?.[1] ?? "").trim();
+}
+
+let dialogueSearchController: import("../uikit/SearchController").UiSearchController | undefined;
+
+function submitDialogueInput(query: string, _widgetManager: any): void {
+    const text = query.trim();
+    dialogueSearchController?.setActive(false);
+    dialogueSearchController?.setQuery("", false);
+    if (!text) return;
+    // The server tracks its own "what is this input for" state (set by
+    // whichever toolbar icon or row right-click armed it) - the client
+    // doesn't need to know or duplicate that, it just forwards the raw text.
+    sendChat(`::dinput ${text}`);
+}
+
+registerUiPanel({
+    groupId: DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID,
+    build: () => buildUiPanel(DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID, {
+        width: 560,
+        height: 390,
+        content: { rowKind: "text", rowHeight: TEXT_ROW_HEIGHT, scrollbarWidth: 16, clickableRows: true, inlineRowActions: true },
+        controls: { count: 8, width: 80, height: 28, gap: 4 },
+        search: { placeholder: "Click a row, or a toolbar icon, to type here", width: 280 },
+    }),
+    scrollController: createScrollController(
+        DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID,
+        "text",
+        TEXT_ROW_HEIGHT,
+    ),
+    searchController: (() => {
+        const controller = createSearchController(
+            DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID,
+            "Click a row, or a toolbar icon, to type here",
+            () => {},
+            submitDialogueInput,
+        );
+        dialogueSearchController = controller;
+        return controller;
+    })(),
+    galleryClickController: createGalleryClickController(
+        DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID,
+        DIALOGUE_MAX_CLICKABLE_ROWS,
+        ComponentIds.DIALOGUE_ROW_HITZONE_BASE,
+        dialogueRowPath,
+        (path) => sendChat(`::dsel ${path}`),
+        (path) => {
+            dialogueSearchController?.setActive(true);
+            const index = dialoguePathToRowIndex(path);
+            dialogueSearchController?.setQuery(index !== undefined ? dialogueRowEditableText(index) : "", true);
+            sendChat(`::dedit ${path}`);
+        },
+    ),
+    onProcess: (widgetManager) => {
+        dialogueLastWidgetManager = widgetManager;
+        // Edge-detect DIALOGUE_ACTIVATE_SIGNAL going hidden(true) -> visible
+        // (false): the server toggles it whenever a toolbar button arms an
+        // add-line/add-reply pending action, since a server-processed
+        // button click has no client-local hook of its own to focus the
+        // search box from directly (unlike a row right-click, which does
+        // it itself). Comparing against the last-seen state, not just
+        // "is it currently false," is what keeps this a one-shot focus
+        // rather than fighting the player for focus on every later render
+        // while the same pending action is still armed.
+        const signalUid = ((DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID & 0xffff) << 16) | ComponentIds.DIALOGUE_ACTIVATE_SIGNAL;
+        const signalHidden = widgetManager.getWidgetByUid(signalUid)?.hidden as boolean | undefined;
+        if (signalHidden === false && dialogueLastActivateSignalHidden !== false) {
+            // setActive only tints the box's background color - it has
+            // nothing to do with keyboard focus (a real bug last round:
+            // this call alone did nothing toward actually focusing the
+            // box). setQuery's second argument is what grants focus.
+            dialogueSearchController?.setQuery("", true);
+        }
+        dialogueLastActivateSignalHidden = signalHidden;
+    },
+});
+
+/** dialogueRowPath already re-derives the path per row on demand; this just
+ *  finds which row currently shows a given path, for the right-click pre-fill
+ *  above (which has the path from the click, not the row index). */
+function dialoguePathToRowIndex(path: string): number | undefined {
+    for (let i = 0; i < DIALOGUE_MAX_CLICKABLE_ROWS; i++) {
+        if (dialogueRowPath(i) === path) return i;
+    }
+    return undefined;
+}
 
 registerUiPanel({
     groupId: DEV_UIKIT_COMPONENT_PICKER_GROUP_ID,

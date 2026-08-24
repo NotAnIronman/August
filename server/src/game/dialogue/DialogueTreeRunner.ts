@@ -5,7 +5,14 @@ import type {
     WidgetDialogHandler,
 } from "../actions/handlers/WidgetDialogHandler";
 import type { PlayerState } from "../player";
-import type { DialogueStep, DialogueTree } from "./DialogueTree";
+import type { ScriptServices } from "../scripts/types";
+import {
+    compareDialogueValues,
+    type DialogueCondition,
+    type DialogueOption,
+    type DialogueStep,
+    type DialogueTree,
+} from "./DialogueTree";
 
 export interface DialogueRunnerNpcInfo {
     npcId: number;
@@ -21,24 +28,78 @@ export interface DialogueRunnerNpcInfo {
 export type DialogueRunnerDialog = Pick<WidgetDialogHandler, "openDialog" | "openDialogOptions">;
 
 /**
+ * Evaluates a DialogueOption's optional gate. Missing facades (e.g. a
+ * gamemode that never contributed `services.quests`) fail closed — an
+ * ungated-looking option should never silently vanish just because a
+ * dependency wasn't wired up, so unresolvable conditions are treated as met
+ * rather than hidden. Authoring-time validation (the editor's ::dcond
+ * command) is where a bad quest key/item id should actually get caught.
+ */
+export function evaluateDialogueCondition(
+    services: ScriptServices,
+    player: PlayerState,
+    condition: DialogueCondition,
+): boolean {
+    switch (condition.type) {
+        case "questStage": {
+            const stage = services.quests?.getStage(player, condition.questKey);
+            if (stage === undefined) return true;
+            return compareDialogueValues(condition.comparator, stage, condition.value);
+        }
+        case "hasItem": {
+            const needed = condition.quantity ?? 1;
+            let total = 0;
+            for (const entry of services.inventory.getInventoryItems(player)) {
+                if (entry.itemId === condition.itemId) total += entry.quantity;
+            }
+            return total >= needed;
+        }
+        case "equippedItem": {
+            const equipped = services.equipment.getEquippedItem(player, condition.slot);
+            if (condition.itemId !== undefined) return equipped === condition.itemId;
+            return equipped > 0;
+        }
+        case "skillLevel": {
+            const level = services.skills.getSkill(player, condition.skillId).baseLevel;
+            return compareDialogueValues(condition.comparator, level, condition.level);
+        }
+    }
+}
+
+function visibleOptions(
+    services: ScriptServices,
+    player: PlayerState,
+    options: readonly DialogueOption[],
+): DialogueOption[] {
+    return options.filter(
+        (opt) => !opt.condition || evaluateDialogueCondition(services, player, opt.condition),
+    );
+}
+
+/**
  * Plays a DialogueTree for one player. Each "line" step opens a dialog and
  * waits for Continue before moving to the next step; each "options" step
- * opens the option list and recurses into whichever branch was chosen.
- * Mirrors how a hand-written gamemode dialogue script chains
- * openDialog(...).onContinue -> openDialog(...) calls.
+ * opens the option list (after filtering out options whose condition isn't
+ * met) and recurses into whichever branch was chosen; each "action" step
+ * applies its world-state change immediately and synchronously, then
+ * continues without waiting for player input (see DialogueActionStep for
+ * why — softlock safety on disconnect). Mirrors how a hand-written gamemode
+ * dialogue script chains openDialog(...).onContinue -> openDialog(...) calls.
  */
 export function runDialogueTree(
     dialog: DialogueRunnerDialog,
+    services: ScriptServices,
     player: PlayerState,
     npc: DialogueRunnerNpcInfo,
     tree: DialogueTree,
     onFinished?: () => void,
 ): void {
-    playSteps(dialog, player, npc, tree.steps, 0, onFinished);
+    playSteps(dialog, services, player, npc, tree.steps, 0, onFinished);
 }
 
 function playSteps(
     dialog: DialogueRunnerDialog,
+    services: ScriptServices,
     player: PlayerState,
     npc: DialogueRunnerNpcInfo,
     steps: DialogueStep[],
@@ -50,7 +111,7 @@ function playSteps(
         return;
     }
     const step = steps[index];
-    const next = () => playSteps(dialog, player, npc, steps, index + 1, onFinished);
+    const next = () => playSteps(dialog, services, player, npc, steps, index + 1, onFinished);
 
     if (step.kind === "line") {
         const request: ScriptDialogRequest = {
@@ -64,17 +125,37 @@ function playSteps(
         return;
     }
 
+    if (step.kind === "action") {
+        // Commit synchronously and keep walking — no Continue click gates a
+        // state change, so a mid-conversation disconnect right after this
+        // point can never leave the player stuck between two states.
+        if (step.action.type === "setQuestStage") {
+            services.quests?.setStage(player, step.action.questKey, step.action.value);
+        } else if (step.action.type === "giveItem") {
+            services.inventory.addItemToInventory(player, step.action.itemId, step.action.quantity);
+        }
+        next();
+        return;
+    }
+
     // options step
+    const options = visibleOptions(services, player, step.options);
+    if (options.length === 0) {
+        // Every option was gated out for this player — nothing to show,
+        // just continue past the branch point rather than opening an empty menu.
+        next();
+        return;
+    }
     const request: ScriptDialogOptionRequest = {
         title: step.title,
-        options: step.options.map((o) => o.label),
+        options: options.map((o) => o.label),
         onSelect: (choice: number) => {
-            const picked = step.options[choice];
+            const picked = options[choice];
             if (!picked) {
                 next();
                 return;
             }
-            playSteps(dialog, player, npc, picked.steps, 0, onFinished);
+            playSteps(dialog, services, player, npc, picked.steps, 0, onFinished);
         },
     };
     dialog.openDialogOptions(player, request);

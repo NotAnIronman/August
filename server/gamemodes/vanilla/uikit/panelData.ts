@@ -304,15 +304,112 @@ export function sendUiControls(
         const control = controls[i];
         const backgroundUid = packUid(groupId, ComponentIds.CONTROL_BACKGROUND_BASE + i);
         const labelUid = packUid(groupId, ComponentIds.CONTROL_LABEL_BASE + i);
+        const iconUid = packUid(groupId, ComponentIds.CONTROL_ICON_BASE + i);
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_text", uid: labelUid, text: control?.label ?? "",
         });
         services.dialog.queueWidgetEvent(playerId, {
-            action: "set_hidden", uid: backgroundUid, hidden: !control,
+            action: "set_hidden", uid: labelUid, hidden: !control?.label,
+        });
+        // set_sprite (not set_item): these are raw cache sprite references
+        // ("archiveId:frame", the same format ::Rename/the sprite gallery
+        // use), not real game items - set_item would render whatever
+        // inventory item happens to share that numeric id instead.
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_sprite",
+            uid: iconUid,
+            archiveId: control?.sprite?.archiveId ?? -1,
+            frame: control?.sprite?.frame ?? 0,
         });
         services.dialog.queueWidgetEvent(playerId, {
-            action: "set_hidden", uid: labelUid, hidden: !control,
+            action: "set_hidden", uid: iconUid, hidden: !control?.sprite,
         });
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden", uid: backgroundUid, hidden: !control,
+        });
+    }
+}
+
+/**
+ * Toggles DIALOGUE_ACTIVATE_SIGNAL - see its doc comment in contracts.ts.
+ * Call with `active` reflecting current truth (e.g. "a pending action is
+ * armed") every render; the client does its own edge-detection so it only
+ * reacts once per rising edge rather than every frame it stays true.
+ */
+export function sendUiActivateSignal(
+    services: ScriptServices,
+    playerId: number,
+    groupId: number,
+    active: boolean,
+): void {
+    services.dialog.queueWidgetEvent(playerId, {
+        action: "set_hidden",
+        uid: packUid(groupId, ComponentIds.DIALOGUE_ACTIVATE_SIGNAL),
+        hidden: !active,
+    });
+}
+
+/**
+ * Unhides the first `count` row hit-zones (see content.clickableRows /
+ * DIALOGUE_ROW_HITZONE_BASE) and hides the rest, mirroring whatever
+ * sendUiTextRows just populated. Call it right after sendUiTextRows with
+ * the same row count so a click can never land on a zone the player can't
+ * actually see text in.
+ */
+export function sendUiRowClickZones(
+    services: ScriptServices,
+    playerId: number,
+    groupId: number,
+    count: number,
+    capacity = ComponentIds.MAX_ROWS,
+): void {
+    const rowCapacity = Math.max(0, Math.min(ComponentIds.MAX_ROWS, capacity | 0));
+    const visibleCount = Math.max(0, Math.min(rowCapacity, count | 0));
+    for (let i = 0; i < rowCapacity; i++) {
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden",
+            uid: packUid(groupId, ComponentIds.DIALOGUE_ROW_HITZONE_BASE + i),
+            hidden: i >= visibleCount,
+        });
+    }
+}
+
+/**
+ * Shows/hides the per-row inline Up/Down/Delete buttons (see
+ * content.inlineRowActions) to match which of the first
+ * INLINE_ROW_ACTION_CAPACITY rows actually have real, actionable dialogue
+ * content - header/hint/divider rows never get buttons regardless of
+ * position, so this takes an explicit per-row flag rather than a simple
+ * count the way sendUiRowClickZones does.
+ */
+const ROW_ACTION_SPRITES: Record<number, { archiveId: number; frame: number }> = {
+    [ComponentIds.ROW_MOVE_UP_BASE]: { archiveId: 801, frame: 0 },
+    [ComponentIds.ROW_MOVE_DOWN_BASE]: { archiveId: 802, frame: 0 },
+    [ComponentIds.ROW_DELETE_BASE]: { archiveId: 535, frame: 0 },
+};
+
+export function sendUiRowActions(
+    services: ScriptServices,
+    playerId: number,
+    groupId: number,
+    rowHasAction: readonly boolean[],
+): void {
+    const capacity = ComponentIds.INLINE_ROW_ACTION_CAPACITY;
+    for (let i = 0; i < capacity; i++) {
+        const hidden = !rowHasAction[i];
+        for (const base of [ComponentIds.ROW_MOVE_UP_BASE, ComponentIds.ROW_MOVE_DOWN_BASE, ComponentIds.ROW_DELETE_BASE]) {
+            const uid = packUid(groupId, base + i);
+            // The widget was built with itemId: -1 (no sprite) and never
+            // given one afterward - real bug last round, the buttons were
+            // fully clickable but rendered nothing. Fixed sprite per
+            // button type, sent every time alongside the visibility
+            // toggle (idempotent, and simpler than only sending it once).
+            const sprite = ROW_ACTION_SPRITES[base];
+            services.dialog.queueWidgetEvent(playerId, {
+                action: "set_sprite", uid, archiveId: sprite.archiveId, frame: sprite.frame,
+            });
+            services.dialog.queueWidgetEvent(playerId, { action: "set_hidden", uid, hidden });
+        }
     }
 }
 

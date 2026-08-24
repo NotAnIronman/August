@@ -28,7 +28,7 @@
     "scrape-loc-examine": "tsx scripts/scrape-loc-examine.ts",
     "diagnose-loc-html": "tsx scripts/diagnose-loc-html.ts",
     "fill-blank-examine": "tsx scripts/fill-blank-examine.ts",
-    "test": "tsx tests/authentication.test.ts && tsx tests/friends-chat.test.ts && tsx tests/achievement-diary-persistence.test.ts"
+    "test": "tsx tests/authentication.test.ts && tsx tests/friends-chat.test.ts && tsx tests/achievement-diary-persistence.test.ts && tsx tests/dialogue-editor.test.ts"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.8",

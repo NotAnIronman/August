@@ -1,0 +1,182 @@
+diff --git a/client/common/uikit/contracts.ts b/client/common/uikit/contracts.ts
+index 6b595c2..085042b 100644
+--- a/client/common/uikit/contracts.ts
++++ b/client/common/uikit/contracts.ts
+@@ -36,6 +36,14 @@ export const ComponentIds = {
+      *  does for grid cells. Sized to MAX_ROWS so it can parallel every
+      *  possible text row 1:1. */
+     DIALOGUE_ROW_HITZONE_BASE: 4300,
++    /** Single invisible widget a panel's server side toggles hidden=false
++     *  to ask the client to focus/activate its search box - e.g. the
++     *  Dialogue Editor's toolbar "Add Line"/"Add Reply" buttons arm a
++     *  pending action server-side and need the box focused for it, but a
++     *  server-processed button click has no client-local hook of its own
++     *  (unlike a row click) to call searchController.setActive() from
++     *  directly. See devUIKitPanels.ts's onProcess poll for the client side. */
++    DIALOGUE_ACTIVATE_SIGNAL: 4400,
+ } as const;
+ 
+ export type UiRowKind = "text" | "icon" | "mixed" | "picker" | "sprite-gallery";
+diff --git a/client/widgets/custom/devUIKitPanels.ts b/client/widgets/custom/devUIKitPanels.ts
+index cfb8c4e..98a9bc5 100644
+--- a/client/widgets/custom/devUIKitPanels.ts
++++ b/client/widgets/custom/devUIKitPanels.ts
+@@ -510,6 +510,10 @@ registerUiPanel({
+ const DIALOGUE_COLOR_TAG_RE = /<\/?col[^>]*>/g;
+ const DIALOGUE_MAX_CLICKABLE_ROWS = ComponentIds.MAX_ROWS;
+ let dialogueLastWidgetManager: any;
++/** true/false = last observed DIALOGUE_ACTIVATE_SIGNAL hidden state,
++ *  undefined = not seen yet (panel hasn't rendered). Used for rising-edge
++ *  detection - see the onProcess hook below. */
++let dialogueLastActivateSignalHidden: boolean | undefined;
+ 
+ function dialogueRowText(index: number): string | undefined {
+     const manager = dialogueLastWidgetManager;
+@@ -527,7 +531,11 @@ function dialogueRowPath(index: number): string | undefined {
+     const raw = dialogueRowText(index);
+     if (!raw) return undefined;
+     const plain = raw.replace(DIALOGUE_COLOR_TAG_RE, "");
+-    return /^\s*(?:\u25b8\s*)?(\S+)\.\)/.exec(plain)?.[1];
++    // Leading "-- "/"---- " etc. is the nesting-depth indent (see
++    // devDialogueEditor.ts renderSteps) — real, non-whitespace characters,
++    // so they must be skipped explicitly or every indented (nested) row
++    // fails to parse here at all, making it unselectable/uneditable.
++    return /^(?:-+\s+)?\s*(?:\u25b8\s*)?(\S+)\.\)/.exec(plain)?.[1];
+ }
+ 
+ /** The row's own text with its "1A.) " path prefix and any [bracketed]
+@@ -539,7 +547,7 @@ function dialogueRowEditableText(index: number): string {
+     const raw = dialogueRowText(index);
+     if (!raw) return "";
+     const plain = raw.replace(DIALOGUE_COLOR_TAG_RE, "");
+-    const match = /^\s*(?:\u25b8\s*)?\S+\.\)\s*(?:\[[^\]]*\]\s*)?(.*)$/.exec(plain);
++    const match = /^(?:-+\s+)?\s*(?:\u25b8\s*)?\S+\.\)\s*(?:\[[^\]]*\]\s*)?(.*)$/.exec(plain);
+     return (match?.[1] ?? "").trim();
+ }
+ 
+@@ -595,6 +603,21 @@ registerUiPanel({
+     ),
+     onProcess: (widgetManager) => {
+         dialogueLastWidgetManager = widgetManager;
++        // Edge-detect DIALOGUE_ACTIVATE_SIGNAL going hidden(true) -> visible
++        // (false): the server toggles it whenever a toolbar button arms an
++        // add-line/add-reply pending action, since a server-processed
++        // button click has no client-local hook of its own to focus the
++        // search box from directly (unlike a row right-click, which does
++        // it itself). Comparing against the last-seen state, not just
++        // "is it currently false," is what keeps this a one-shot focus
++        // rather than fighting the player for focus on every later render
++        // while the same pending action is still armed.
++        const signalUid = ((DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID & 0xffff) << 16) | ComponentIds.DIALOGUE_ACTIVATE_SIGNAL;
++        const signalHidden = widgetManager.getWidgetByUid(signalUid)?.hidden as boolean | undefined;
++        if (signalHidden === false && dialogueLastActivateSignalHidden !== false) {
++            dialogueSearchController?.setActive(true);
++        }
++        dialogueLastActivateSignalHidden = signalHidden;
+     },
+ });
+ 
+diff --git a/client/widgets/uikit/PanelBuilder.ts b/client/widgets/uikit/PanelBuilder.ts
+index 3874c09..67fdbf7 100644
+--- a/client/widgets/uikit/PanelBuilder.ts
++++ b/client/widgets/uikit/PanelBuilder.ts
+@@ -401,6 +401,21 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
+                 widgets.set(hitZone.uid, hitZone);
+             }
+         }
++
++        if (layout.content.clickableRows) {
++            // Single hidden-state signal widget (not per-row) - see
++            // DIALOGUE_ACTIVATE_SIGNAL's doc comment in contracts.ts.
++            // Position/size don't matter since it's never actually shown;
++            // parented to rootUid (not contentViewUid) so it isn't affected
++            // by content scrolling.
++            const activateSignal = makeWidget(
++                groupId,
++                ComponentIds.DIALOGUE_ACTIVATE_SIGNAL,
++                rootUid,
++                { type: 3, rawX: 0, rawY: 0, rawWidth: 1, rawHeight: 1, filled: false, isHidden: true, hidden: true },
++            );
++            widgets.set(activateSignal.uid, activateSignal);
++        }
+     }
+ 
+     if (includesIconRows) {
+diff --git a/server/gamemodes/vanilla/uikit/panelData.ts b/server/gamemodes/vanilla/uikit/panelData.ts
+index b627774..f75939f 100644
+--- a/server/gamemodes/vanilla/uikit/panelData.ts
++++ b/server/gamemodes/vanilla/uikit/panelData.ts
+@@ -330,6 +330,25 @@ export function sendUiControls(
+     }
+ }
+ 
++/**
++ * Toggles DIALOGUE_ACTIVATE_SIGNAL - see its doc comment in contracts.ts.
++ * Call with `active` reflecting current truth (e.g. "a pending action is
++ * armed") every render; the client does its own edge-detection so it only
++ * reacts once per rising edge rather than every frame it stays true.
++ */
++export function sendUiActivateSignal(
++    services: ScriptServices,
++    playerId: number,
++    groupId: number,
++    active: boolean,
++): void {
++    services.dialog.queueWidgetEvent(playerId, {
++        action: "set_hidden",
++        uid: packUid(groupId, ComponentIds.DIALOGUE_ACTIVATE_SIGNAL),
++        hidden: !active,
++    });
++}
++
+ /**
+  * Unhides the first `count` row hit-zones (see content.clickableRows /
+  * DIALOGUE_ROW_HITZONE_BASE) and hides the rest, mirroring whatever
+diff --git a/server/gamemodes/vanilla/widgets/devDialogueEditor.ts b/server/gamemodes/vanilla/widgets/devDialogueEditor.ts
+index 4cfce4a..b16de31 100644
+--- a/server/gamemodes/vanilla/widgets/devDialogueEditor.ts
++++ b/server/gamemodes/vanilla/widgets/devDialogueEditor.ts
+@@ -14,7 +14,7 @@ import type {
+ import type { PlayerState } from "../../../src/game/player";
+ import type { CommandEvent, IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
+ import { registerUiPanelActions } from "../uikit/actions";
+-import { openUiPanel, sendUiControls, sendUiRowClickZones, sendUiTextRows } from "../uikit/panelData";
++import { openUiPanel, sendUiActivateSignal, sendUiControls, sendUiRowClickZones, sendUiTextRows } from "../uikit/panelData";
+ 
+ /**
+  * ::dev "Dialogue Editor" tab — a live outline view of a DialogueTree
+@@ -289,16 +289,6 @@ function renderPanel(player: PlayerState, services: ScriptServices, state: Dialo
+         { kind: "heading", text: `NPC: ${npcType?.name ?? "unknown"} (id: ${state.npcId})`, style: { color: "ffcf70", bold: true } },
+         { kind: "text", text: state.selectedPath ? `Selected: ${state.selectedPath}` : "Nothing selected" },
+         ...(hint ? [{ kind: "text" as const, text: `\u25b8 ${hint}`, style: { color: "9fd3ff" } }] : []),
+-        // Always visible (not toggle-gated behind a "show commands" click
+-        // that's easy to never find in the first place) - these two don't
+-        // have toolbar icons since their parameters don't reduce to one
+-        // click, but they need to be discoverable from the panel itself,
+-        // not just from memory. In your CHAT box (not this panel's search
+-        // field, which only ever sends ::dinput) - same as ::editdialogue.
+-        { kind: "text", text: "Chat: ::dcond quest|item|skill|equip ... — gate the selected option", style: { color: "9a8f7c" } },
+-        { kind: "text", text: "Chat: ::daction quest|item ... — advance a quest, or give an item, here", style: { color: "9a8f7c" } },
+-        { kind: "text", text: "Chat: ::dnest <text> — branch a NEW choice under the selected option", style: { color: "9a8f7c" } },
+-        { kind: "text", text: "Chat: ::ddeletebranch — remove a whole branch (all its options at once)", style: { color: "9a8f7c" } },
+         { kind: "divider" },
+     ];
+     const body: UiTextRow[] = [];
+@@ -310,6 +300,17 @@ function renderPanel(player: PlayerState, services: ScriptServices, state: Dialo
+     const rows = [...header, ...body];
+     sendUiTextRows(services, player.id, DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID, rows);
+     sendUiRowClickZones(services, player.id, DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID, rows.length);
++    // A toolbar-armed pending action (add line/reply) has no client-local
++    // hook of its own to focus the search box (unlike right-click-edit,
++    // which does it directly client-side) - this signal is how the server
++    // asks for it instead. editText is excluded: right-click already
++    // handled focus+prefill itself before this render even fires, so
++    // re-signalling here would just steal focus back a moment later if the
++    // player had already clicked elsewhere.
++    sendUiActivateSignal(
++        services, player.id, DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID,
++        state.pendingAction?.type === "addNpcLine" || state.pendingAction?.type === "addPlayerOption",
++    );
+ 
+     // Icon + short caption (not icon alone - a bare sprite turned out not to
+     // be self-explanatory, and this project has no confirmed native hover-

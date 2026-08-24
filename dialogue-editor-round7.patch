@@ -1,0 +1,244 @@
+diff --git a/server/gamemodes/vanilla/uikit/panelData.ts b/server/gamemodes/vanilla/uikit/panelData.ts
+index d1949a2..f182004 100644
+--- a/server/gamemodes/vanilla/uikit/panelData.ts
++++ b/server/gamemodes/vanilla/uikit/panelData.ts
+@@ -382,6 +382,12 @@ export function sendUiRowClickZones(
+  * position, so this takes an explicit per-row flag rather than a simple
+  * count the way sendUiRowClickZones does.
+  */
++const ROW_ACTION_SPRITES: Record<number, { archiveId: number; frame: number }> = {
++    [ComponentIds.ROW_MOVE_UP_BASE]: { archiveId: 801, frame: 0 },
++    [ComponentIds.ROW_MOVE_DOWN_BASE]: { archiveId: 802, frame: 0 },
++    [ComponentIds.ROW_DELETE_BASE]: { archiveId: 535, frame: 0 },
++};
++
+ export function sendUiRowActions(
+     services: ScriptServices,
+     playerId: number,
+@@ -392,11 +398,17 @@ export function sendUiRowActions(
+     for (let i = 0; i < capacity; i++) {
+         const hidden = !rowHasAction[i];
+         for (const base of [ComponentIds.ROW_MOVE_UP_BASE, ComponentIds.ROW_MOVE_DOWN_BASE, ComponentIds.ROW_DELETE_BASE]) {
++            const uid = packUid(groupId, base + i);
++            // The widget was built with itemId: -1 (no sprite) and never
++            // given one afterward - real bug last round, the buttons were
++            // fully clickable but rendered nothing. Fixed sprite per
++            // button type, sent every time alongside the visibility
++            // toggle (idempotent, and simpler than only sending it once).
++            const sprite = ROW_ACTION_SPRITES[base];
+             services.dialog.queueWidgetEvent(playerId, {
+-                action: "set_hidden",
+-                uid: packUid(groupId, base + i),
+-                hidden,
++                action: "set_sprite", uid, archiveId: sprite.archiveId, frame: sprite.frame,
+             });
++            services.dialog.queueWidgetEvent(playerId, { action: "set_hidden", uid, hidden });
+         }
+     }
+ }
+diff --git a/server/gamemodes/vanilla/widgets/devDialogueEditor.ts b/server/gamemodes/vanilla/widgets/devDialogueEditor.ts
+index 77784a9..a5f195d 100644
+--- a/server/gamemodes/vanilla/widgets/devDialogueEditor.ts
++++ b/server/gamemodes/vanilla/widgets/devDialogueEditor.ts
+@@ -275,7 +275,17 @@ function renderSteps(
+                     style: { color: "ff8080", bold: selected },
+                 });
+                 pathsOut.push(label);
+-                renderSteps(option.steps, label, selectedPath, out, pathsOut, depth + 1);
++                if (option.steps.length === 0) {
++                    // Deliberately empty (see DialogueTree.ts's allowEmpty)
++                    // - shown as a plain annotation, not an addressable
++                    // node, so it's clearly intentional rather than looking
++                    // like a line got lost.
++                    const endIndent = "  ".repeat(depth + 1);
++                    out.push({ kind: "text", text: `${endIndent}(ends conversation here)`, style: { color: "6b6355" } });
++                    pathsOut.push(undefined);
++                } else {
++                    renderSteps(option.steps, label, selectedPath, out, pathsOut, depth + 1);
++                }
+             }
+         }
+     }
+@@ -614,8 +624,15 @@ function applyDelete(state: DialogueEditorState): string | undefined {
+         }
+         resolved.options.splice(resolved.index, 1);
+     } else {
+-        if (resolved.list.length <= 1) {
+-            return "Can't delete the only step here — a branch/tree can't be left empty. Add a replacement line first.";
++        // Emptying an option's own steps is fine - it just means that
++        // response ends the conversation right there ("Nevermind" with no
++        // further reply), a real, deliberately-supported shape (see
++        // DialogueTree.ts validateSteps' allowEmpty param). Only the root
++        // tree (prefix === "") can never be left with nothing in it - that
++        // would mean talking to the NPC does literally nothing at all.
++        const isRoot = resolved.prefix === "";
++        if (isRoot && resolved.list.length <= 1) {
++            return "Can't delete the only step here — the tree can't be left completely empty. Add a replacement line first.";
+         }
+         resolved.list.splice(resolved.index, 1);
+     }
+@@ -636,8 +653,14 @@ function applyDeleteBranch(state: DialogueEditorState): string | undefined {
+     const resolved = resolvePath(state.tree.steps, state.selectedPath);
+     if (!resolved) return `Selection ${state.selectedPath} no longer exists.`;
+     if (resolved.type !== "option") return "Select an option (e.g. 1A), not a line, to delete its whole branch.";
+-    if (resolved.outerList.length <= 1) {
+-        return "Can't delete the only step here — a branch/tree can't be left empty. Add a replacement line first.";
++    // A root-level path's numberPrefix is pure digits (e.g. "1"); any
++    // nesting introduces a letter before the next digit run (e.g. "1A1"),
++    // so this is a reliable "is outerList the root tree.steps" check
++    // without needing a dedicated field - same reasoning as applyDelete's
++    // prefix === "" check for the step case.
++    const outerIsRoot = /^\d+$/.test(resolved.numberPrefix);
++    if (outerIsRoot && resolved.outerList.length <= 1) {
++        return "Can't delete the only step here — the tree can't be left completely empty. Add a replacement line first.";
+     }
+     resolved.outerList.splice(resolved.outerIndex, 1);
+     state.selectedPath = undefined;
+diff --git a/server/src/game/dialogue/DialogueTree.ts b/server/src/game/dialogue/DialogueTree.ts
+index bfb38cd..8a482b1 100644
+--- a/server/src/game/dialogue/DialogueTree.ts
++++ b/server/src/game/dialogue/DialogueTree.ts
+@@ -102,7 +102,7 @@ export function validateDialogueTreeJson(value: unknown): DialogueTreeValidation
+     if (!Array.isArray(steps)) {
+         return [{ path: "$.steps", message: "steps must be an array" }];
+     }
+-    validateSteps(steps, "$.steps", errors, 0);
++    validateSteps(steps, "$.steps", errors, 0, false);
+     return errors;
+ }
+ 
+@@ -113,12 +113,19 @@ function validateSteps(
+     path: string,
+     errors: DialogueTreeValidationError[],
+     depth: number,
++    /** An option's own steps may legitimately be empty - "Nevermind" ending
++     *  the conversation right there is a real, common shape, not a mistake
++     *  (DialogueTreeRunner already handles running off the end of a steps
++     *  array by just finishing). The root tree may not: an empty root
++     *  means talking to the NPC would do literally nothing. */
++    allowEmpty: boolean,
+ ): void {
+     if (depth > MAX_NESTING_DEPTH) {
+         errors.push({ path, message: `Nesting too deep (max ${MAX_NESTING_DEPTH} levels)` });
+         return;
+     }
+     if (steps.length === 0) {
++        if (allowEmpty) return;
+         errors.push({ path, message: "steps cannot be empty" });
+         return;
+     }
+@@ -164,7 +171,7 @@ function validateSteps(
+                 if (!Array.isArray(opt?.steps)) {
+                     errors.push({ path: `${optPath}.steps`, message: "must be an array" });
+                 } else {
+-                    validateSteps(opt.steps, `${optPath}.steps`, errors, depth + 1);
++                    validateSteps(opt.steps, `${optPath}.steps`, errors, depth + 1, true);
+                 }
+                 if (opt?.condition !== undefined) {
+                     validateCondition(opt.condition, `${optPath}.condition`, errors);
+diff --git a/server/tests/dialogue-editor.test.ts b/server/tests/dialogue-editor.test.ts
+index be2063c..c3510a3 100644
+--- a/server/tests/dialogue-editor.test.ts
++++ b/server/tests/dialogue-editor.test.ts
+@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
+ import { registerDevDialogueEditor, openDialogueEditorForNpc } from "../gamemodes/vanilla/widgets/devDialogueEditor";
+ import type { IScriptRegistry, ScriptServices, CommandHandler } from "../src/game/scripts/types";
+ import type { DialogueTreeJson } from "../src/game/dialogue/DialogueTree";
++import { validateDialogueTreeJson } from "../src/game/dialogue/DialogueTree";
+ import { ComponentIds } from "../../client/common/uikit/contracts";
+ 
+ const commands = new Map<string, CommandHandler>();
+@@ -223,28 +224,20 @@ dump(NPC_B);
+ expect("nested branch now has all 3 options (Shop/Church/bed)", optionB.steps[0].options.length, 3);
+ expect("nested reply line kept its capitalization/text intact", optionB.steps[0].options[0].steps[0].text[0], "Up the road and to the right.");
+ 
+-console.log("\n--- 13. Deleting a branch that would leave its parent option empty is correctly rejected ---");
++console.log("\n--- 13. Deleting a nested branch down to empty is ALLOWED (option 1B just ends the conversation there) ---");
+ // option 1B's own .steps contains ONLY the nested branch - removing it
+-// would leave .steps empty, which the schema forbids for options just like
+-// it forbids an empty root (validateSteps applies the same rule to both -
+-// see DialogueTree.ts). This should be refused with a clear message, not
+-// silently produce an invalid tree.
++// leaves .steps empty, which used to be refused but is now a deliberately
++// supported shape (see DialogueTree.ts's allowEmpty and applyDelete's
++// isRoot check) - 1B becomes a response with nothing further to say,
++// exactly the "Nevermind" scenario this was built for. Only the ROOT tree
++// still refuses to go empty (covered separately below in step 14).
+ console.log(run("dsel", ["1B1C"])); // "A bed?" — third option in the nested branch under 1B
+-const nestedDeleteError = run("ddeletebranch", []);
++const nestedDeleteResult = run("ddeletebranch", []);
+ dump(NPC_B);
+-expect("deleting the nested branch is correctly refused (would empty 1B)", nestedDeleteError.includes("Add a replacement line first"), true);
+-expect("the nested branch is still intact after the refused delete", optionB.steps.length, 1);
+-expect("outer branch (1A/1B) untouched", outer.options.length, 2);
+-// Add a line alongside the nested branch first, THEN the branch can be
+-// removed cleanly, since 1B.steps won't be empty afterward.
+-console.log(run("dsel", ["1B"])); // select the OPTION itself, so the new line lands in 1B.steps (a sibling of the branch), not deeper inside one of the branch's own options
+-console.log(run("dline", ["npc", "Actually,", "let", "me", "just", "tell", "you", "directly."]));
+-console.log(run("dsel", ["1B1A"])); // re-select something inside the branch to delete it via
+-console.log(run("ddeletebranch", []));
+-dump(NPC_B);
+-expect("nested branch under 1B is now gone (1B.steps had a sibling line to fall back on)", optionB.steps.length, 1);
+-expect("that sibling line is what remains", optionB.steps[0].kind, "line");
+-expect("outer branch (1A/1B) still untouched by the nested delete", outer.options.length, 2);
++expect("deleting the nested branch under 1B now succeeds", nestedDeleteResult, "(ok)");
++expect("1B.steps is now empty - it ends the conversation there", optionB.steps.length, 0);
++expect("outer branch (1A/1B) untouched by the nested delete", outer.options.length, 2);
++expect("the tree is still schema-valid with 1B now empty", validateDialogueTreeJson({ steps: branchRoot }).length, 0);
+ 
+ console.log("\n--- 14. Options can't still be deleted one at a time below the 2-option floor ---");
+ console.log(run("dsel", ["1A"]));
+@@ -299,4 +292,53 @@ dump(NPC_C);
+ const rootC = storesByNpc.get(NPC_C)!;
+ expect("give-item toolbar icon armed and applied correctly", (rootC[1] as any).action, { type: "giveItem", itemId: 1205, quantity: 1 });
+ 
++console.log("\n--- 17. A response option can now legitimately end the conversation with no reply (real feature request) ---");
++// Schema-level: an option's own steps may be empty; the root tree may not.
++expect("root steps cannot be empty", validateDialogueTreeJson({ steps: [] }).length > 0, true);
++expect(
++    "an option's steps CAN be empty (ends the conversation there)",
++    validateDialogueTreeJson({
++        steps: [
++            { kind: "line", speaker: "npc", text: ["How may I help you?"] },
++            { kind: "options", options: [
++                { label: "I need a quest", steps: [{ kind: "line", speaker: "npc", text: ["Sure!"] }] },
++                { label: "Nevermind", steps: [] },
++            ] },
++        ],
++    }).length,
++    0,
++);
++// Editor-level: deleting an option's only line down to empty must now be
++// ALLOWED (it used to be blocked - the literal thing being asked for here).
++const NPC_D = 7777;
++openDialogueEditorForNpc(player, fakeServices, NPC_D);
++console.log(run("dline", ["npc", "How", "may", "I", "help?"]));
++console.log(run("dsel", ["1"]));
++console.log(run("doption", ["I", "need", "a", "quest"]));
++console.log(run("dsel", ["1"]));
++console.log(run("doption", ["Nevermind"]));
++console.log(run("dsel", ["1B"]));
++console.log(run("dline", ["npc", "Placeholder", "reply."]));
++dump(NPC_D);
++console.log(run("dsel", ["1B1"]));
++const deleteDownToEmptyResult = run("ddelete", []);
++dump(NPC_D);
++expect("deleting the option's only line down to empty is now allowed", deleteDownToEmptyResult, "(ok)");
++const treeD = storesByNpc.get(NPC_D)!;
++const optionsD = treeD.find((s: any) => s.kind === "options") as any;
++expect("the 'Nevermind' option now has zero steps", optionsD.options[1].steps.length, 0);
++expect("the persisted tree is still schema-valid with that empty branch", validateDialogueTreeJson({ steps: treeD }).length, 0);
++// Root still can't be emptied - the one real guardrail that must remain.
++// (root currently has [line, optionsStep] = 2 items; deleting the line
++// alone would correctly leave 1, not 0, so that's not the right check -
++// need to remove the whole branch first to get root down to exactly 1.)
++console.log(run("dsel", ["1A"]));
++console.log(run("ddeletebranch", [])); // removes the whole 1A/1B options-step, leaving root = [line] only
++dump(NPC_D);
++expect("root is down to exactly the one line now", storesByNpc.get(NPC_D)!.length, 1);
++console.log(run("dsel", ["1"]));
++const rootDeleteResult = run("ddelete", []);
++expect("deleting the LAST remaining root step is still refused", rootDeleteResult.includes("tree can't be left completely empty"), true);
++expect("root still has its one line after the refused delete", storesByNpc.get(NPC_D)!.length, 1);
++
+ console.log("dialogue editor regression test passed");

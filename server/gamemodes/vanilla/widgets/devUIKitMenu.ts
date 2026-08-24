@@ -12,6 +12,7 @@ import type { PlayerState } from "../../../src/game/player";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
 import { setSpriteName } from "../../../src/world/SpriteNameCatalogFile";
 import { registerUiPanelActions } from "../uikit/actions";
+import { getLastEditedNpcId, openDialogueEditorForNpc } from "./devDialogueEditor";
 import {
     openUiPanel,
     packUid,
@@ -100,6 +101,7 @@ const COMPONENT_PICKER_BUTTONS = [
     { itemId: 554, label: "Browse sidebar assets" },
     { itemId: 995, label: "Browse modal assets" },
     { itemId: 1733, label: "Browse all cache sprites" },
+    { itemId: 8013, label: "Dialogue Editor" },
 ] as const;
 
 const NATIVE_INTERFACE_BUTTONS = [
@@ -318,7 +320,9 @@ export function registerDevUIKitMenu(
                 buttonIndex < COMPONENT_PICKER_BUTTONS.length
                     ? buttonIndex === 3
                         ? openSpriteGallery(player, services, 0)
-                        : openComponentPicker(player, services, [621, 116, 134][buttonIndex] ?? 621)
+                        : buttonIndex === 4
+                          ? openDialogueEditorForNpc(player, services, getLastEditedNpcId(player.id) ?? 0)
+                          : openComponentPicker(player, services, [621, 116, 134][buttonIndex] ?? 621)
                     : openNativeInterface(player, services, [621, 116, 134][buttonIndex - COMPONENT_PICKER_BUTTONS.length] ?? 621),
         })),
     ]);

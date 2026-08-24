@@ -149,6 +149,22 @@ export interface FollowerServiceFacade {
 // Banking (gamemode-contributed)
 // ============================================================================
 
+/**
+ * Gamemode-agnostic quest-stage access, contributed by whichever gamemode
+ * has its own quest key/varp registry (see vanilla/index.ts). Lives here
+ * rather than importing a specific gamemode's QuestService directly, since
+ * core engine code (dialogue running/validation) must never depend on
+ * gamemode-specific content.
+ */
+export interface QuestStageFacade {
+    /** Current stage for the given quest key, or undefined if the key is unknown. */
+    getStage(player: PlayerState, questKey: string): number | undefined;
+    /** Sets the stage for the given quest key. No-op if the key is unknown. */
+    setStage(player: PlayerState, questKey: string, value: number): void;
+    /** Whether a quest with this key is registered at all (for authoring-time validation). */
+    hasQuest(questKey: string): boolean;
+}
+
 export interface BankingServices {
     openBank?: (player: PlayerState, opts?: { mode?: "bank" | "collect" }) => void;
     depositInventoryToBank?: (player: PlayerState, tab?: number) => boolean;

@@ -44,7 +44,8 @@ import { registerSmithingBarModalHandler } from "./modals/smithingBarModalHandle
 import { registerWidgetCloseHandlers } from "./modals/widgetCloseHandlers";
 import { registerWidgetOpenHandlers } from "./modals/widgetOpenHandlers";
 import { registerNpcDialogueHandlers } from "./npcs";
-import { getRegisteredQuests, registerQuestHandlers } from "./quests";
+import { getRegisteredQuests, getQuestDefinitionByKey, normalizeQuestKey, registerQuestHandlers } from "./quests";
+import { getQuestStage, setQuestStage } from "./quests/QuestService";
 import { registerVanillaCommandHandlers } from "./scripts/commands";
 import { registerAlKharidBorderHandlers } from "./scripts/content/alKharidBorder";
 import { registerDraynorAreaHandlers } from "./scripts/content/areas/draynor";
@@ -83,6 +84,7 @@ import { registerCombatWidgetHandlers } from "./widgets/combatWidgets";
 import { registerDiaryJournalWidgetHandlers } from "./widgets/diaryJournalWidgets";
 import { achievementTaskTracker } from "./diaryTasks/AchievementTaskTracker";
 import { registerDevUIKitMenu } from "./widgets/devUIKitMenu";
+import { registerDevDialogueEditor } from "./widgets/devDialogueEditor";
 import { registerEmoteWidgetHandlers } from "./widgets/emoteWidgets";
 import { registerMinimapWidgetHandlers } from "./widgets/minimapWidgets";
 import { registerMusicWidgetHandlers } from "./widgets/musicWidgets";
@@ -229,6 +231,21 @@ export class VanillaGamemode extends BaseGamemode {
             services.shopping = this.shopService.createScriptServices();
         }
 
+        // Quest-stage access for engine-level consumers (the dialogue tree
+        // runner/editor) that can't import this gamemode's QuestService
+        // directly — see QuestStageFacade in serviceInterfaces.ts.
+        services.quests = {
+            getStage: (player, questKey) => {
+                const quest = getQuestDefinitionByKey(normalizeQuestKey(questKey));
+                return quest ? getQuestStage(player, quest) : undefined;
+            },
+            setStage: (player, questKey, value) => {
+                const quest = getQuestDefinitionByKey(normalizeQuestKey(questKey));
+                if (quest) setQuestStage(player, quest, services, value);
+            },
+            hasQuest: (questKey) => getQuestDefinitionByKey(normalizeQuestKey(questKey)) !== undefined,
+        };
+
         // Equipment target-specific bonuses
         services.equipment.computeTargetBonusPercentages = (player) =>
             computeTargetBonusPercentages(player, services.equipment.getEquipArray(player));
@@ -255,6 +272,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerZaffHandlers(registry, services);
         registerVanillaCommandHandlers(registry, services);
         registerDevUIKitMenu(registry, services);
+        registerDevDialogueEditor(registry, services);
 
         // Content
         registerClimbingHandlers(registry, services);

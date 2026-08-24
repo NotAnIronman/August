@@ -301,9 +301,12 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     const includesPickerRows = layout.content.rowKind === "picker";
     const includesSpriteGallery = layout.content.rowKind === "sprite-gallery";
 
+    const inlineRowActionsWidth = 54; // 3 icons (14px) + gaps + margin — see below
     if (includesTextRows) {
         for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
             const rawY = i * rowHeight;
+            const hasInlineActions = layout.content.inlineRowActions && i < ComponentIds.INLINE_ROW_ACTION_CAPACITY;
+            const lineWidth = hasInlineActions ? Math.max(1, contentWidth - inlineRowActionsWidth) : contentWidth;
             const line = makeWidget(
                 groupId,
                 ComponentIds.TEXT_ROW_LINE_BASE + i,
@@ -312,10 +315,15 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                     type: 4,
                     rawX: 0,
                     rawY,
-                    rawWidth: 0,
+                    // Absolute width (not the stretch-mode 0/widthMode:1
+                    // used otherwise) specifically when this row needs to
+                    // leave room for its own inline buttons - a fresh
+                    // custom widget, not an override of an existing native
+                    // one, so no separate mode-reset trick is needed here.
+                    rawWidth: hasInlineActions ? lineWidth : 0,
                     rawHeight: rowHeight,
-                    widthMode: 1,
-                    width: contentWidth,
+                    widthMode: hasInlineActions ? 0 : 1,
+                    width: lineWidth,
                     height: rowHeight,
                     text: "",
                     fontId: FONT_PLAIN_12,
@@ -374,6 +382,86 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 },
             );
             widgets.set(centered.uid, centered);
+
+            if (layout.content.clickableRows) {
+                // Invisible full-row click/right-click target, decoupled
+                // from the text widget's own tight bounds (a short line
+                // like "1.) hi" would otherwise leave most of the row
+                // unclickable) - same rationale as SPRITE_GALLERY_HITZONE.
+                // Shrunk to lineWidth when this row also has inline action
+                // buttons, so a click on one of those doesn't also overlap
+                // the row-select hit-zone underneath it.
+                const hitZone = makeWidget(
+                    groupId,
+                    ComponentIds.DIALOGUE_ROW_HITZONE_BASE + i,
+                    contentViewUid,
+                    {
+                        type: 3,
+                        rawX: 0,
+                        rawY,
+                        rawWidth: hasInlineActions ? lineWidth : 0,
+                        rawHeight: rowHeight,
+                        widthMode: hasInlineActions ? 0 : 1,
+                        width: lineWidth,
+                        height: rowHeight,
+                        filled: false,
+                        isHidden: true,
+                        hidden: true,
+                    },
+                );
+                widgets.set(hitZone.uid, hitZone);
+            }
+
+            if (hasInlineActions) {
+                // Real clickable icon widgets (own actions/FLAG_TRANSMIT_OP1,
+                // no separate background rect - same server-round-trip click
+                // mechanism CONTROL_BACKGROUND_BASE already uses, just one
+                // widget per button instead of a background+icon pair, to
+                // keep 3-per-row x 40 rows from doubling to 240 widgets for
+                // a purely cosmetic hover tint this scale doesn't need).
+                const iconSize = 14;
+                const gap = 2;
+                const startX = lineWidth + 4;
+                const iconY = rawY + Math.floor((rowHeight - iconSize) / 2);
+                const buttons: Array<[number, string]> = [
+                    [ComponentIds.ROW_MOVE_UP_BASE + i, "Move up"],
+                    [ComponentIds.ROW_MOVE_DOWN_BASE + i, "Move down"],
+                    [ComponentIds.ROW_DELETE_BASE + i, "Delete"],
+                ];
+                buttons.forEach(([componentId, actionLabel], slot) => {
+                    const icon = makeWidget(groupId, componentId, contentViewUid, {
+                        type: 5,
+                        rawX: startX + slot * (iconSize + gap),
+                        rawY: iconY,
+                        rawWidth: iconSize,
+                        rawHeight: iconSize,
+                        widthMode: 0,
+                        width: iconSize,
+                        height: iconSize,
+                        itemId: -1,
+                        actions: [actionLabel],
+                        flags: FLAG_TRANSMIT_OP1,
+                        isHidden: true,
+                        hidden: true,
+                    });
+                    widgets.set(icon.uid, icon);
+                });
+            }
+        }
+
+        if (layout.content.clickableRows) {
+            // Single hidden-state signal widget (not per-row) - see
+            // DIALOGUE_ACTIVATE_SIGNAL's doc comment in contracts.ts.
+            // Position/size don't matter since it's never actually shown;
+            // parented to rootUid (not contentViewUid) so it isn't affected
+            // by content scrolling.
+            const activateSignal = makeWidget(
+                groupId,
+                ComponentIds.DIALOGUE_ACTIVATE_SIGNAL,
+                rootUid,
+                { type: 3, rawX: 0, rawY: 0, rawWidth: 1, rawHeight: 1, filled: false, isHidden: true, hidden: true },
+            );
+            widgets.set(activateSignal.uid, activateSignal);
         }
     }
 
@@ -727,6 +815,12 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         const controlHeight = layout.controls.height ?? 20;
         const totalWidth = controlCount * controlWidth + (controlCount - 1) * controlGap;
         const firstX = Math.max(CONTENT_MARGIN_X, Math.floor((layout.width - totalWidth) / 2));
+        // Icon sits at the left of the button, caption fills the rest -
+        // side by side, not stacked, since the button is too short to
+        // stack them. sendUiControls hides whichever of the two a given
+        // control doesn't provide, so icon-only and label-only buttons
+        // both still work; this just also allows both at once.
+        const iconSize = Math.max(10, Math.min(controlHeight - 6, 18));
         for (let i = 0; i < controlCount; i++) {
             const x = firstX + i * (controlWidth + controlGap);
             const background = makeWidget(groupId, ComponentIds.CONTROL_BACKGROUND_BASE + i, rootUid, {
@@ -735,13 +829,30 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 104,
                 actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
             });
-            const label = makeWidget(groupId, ComponentIds.CONTROL_LABEL_BASE + i, rootUid, {
-                type: 4, rawX: x, rawY: 10, rawWidth: controlWidth, rawHeight: controlHeight,
-                yPositionMode: 2, width: controlWidth, height: controlHeight, text: "",
-                fontId: FONT_BOLD_12, textColor: 0xffd27f, textShadowed: true,
-                xTextAlignment: 1, yTextAlignment: 1, isHidden: true, hidden: true,
-            });
             widgets.set(background.uid, background);
+
+            const icon = makeWidget(groupId, ComponentIds.CONTROL_ICON_BASE + i, rootUid, {
+                type: 5,
+                rawX: x + 4,
+                rawY: 10 + Math.floor((controlHeight - iconSize) / 2),
+                rawWidth: iconSize, rawHeight: iconSize,
+                yPositionMode: 2, width: iconSize, height: iconSize,
+                itemId: -1, itemQuantity: 1, isHidden: true, hidden: true,
+            });
+            widgets.set(icon.uid, icon);
+
+            // Label starts after the icon slot regardless of whether this
+            // particular control actually has an icon, so a label-only
+            // control (icon hidden) still lines up the same as one with
+            // both - text position doesn't jump around per-control.
+            const labelX = x + iconSize + 8;
+            const labelWidth = Math.max(1, controlWidth - iconSize - 12);
+            const label = makeWidget(groupId, ComponentIds.CONTROL_LABEL_BASE + i, rootUid, {
+                type: 4, rawX: labelX, rawY: 10, rawWidth: labelWidth, rawHeight: controlHeight,
+                yPositionMode: 2, width: labelWidth, height: controlHeight, text: "",
+                fontId: FONT_PLAIN_11, textColor: 0xffd27f, textShadowed: true,
+                xTextAlignment: 0, yTextAlignment: 1, isHidden: true, hidden: true,
+            });
             widgets.set(label.uid, label);
         }
     }

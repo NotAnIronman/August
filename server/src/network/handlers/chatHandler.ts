@@ -290,11 +290,20 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
 
             // Handle :: commands
             if (text.startsWith("::")) {
-                const cmd = text.slice(2).toLowerCase().trim();
+                const rawAfterPrefix = text.slice(2).trim();
+                const cmd = rawAfterPrefix.toLowerCase();
                 const senderName = sender.name || "Player";
                 logger.info(`[cmd] Player ${sender.id} (${senderName}) used command: ::${cmd}`);
                 const parts = cmd.split(/\s+/).filter((part) => part.length > 0);
                 const root = parts[0] ?? "";
+                // Case preserved specifically for arguments passed to script-
+                // registered commands (below) — command *names* still match
+                // case-insensitively via the lowercased `parts`/`root` above,
+                // but forcing every argument to lowercase too meant no ::
+                // command could ever receive properly capitalized text (a
+                // real, reported problem for the Dialogue Editor: typed
+                // dialogue lines were silently getting lowercased).
+                const originalCaseParts = rawAfterPrefix.split(/\s+/).filter((part) => part.length > 0);
                 const requiredPermission = getBuiltinChatCommandPermission(root);
                 if (
                     requiredPermission &&
@@ -441,26 +450,10 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     return;
                 }
 
-                if (root === "editdialogue") {
-                    const npcId = Number(parts[1]);
-                    if (!Number.isFinite(npcId) || npcId <= 0) {
-                        services.queueChatMessage({
-                            messageType: "game",
-                            text: "Usage: ::editdialogue <npcId> — shows the current override, if any.",
-                            targetPlayerIds: [sender.id],
-                        });
-                        return;
-                    }
-                    const tree = services.dialogueOverrideStore?.get(npcId);
-                    services.queueChatMessage({
-                        messageType: "game",
-                        text: tree
-                            ? `NPC ${npcId}: ${tree.steps.length} step(s), last edited by ${tree.updatedBy} at ${tree.updatedAt}.`
-                            : `NPC ${npcId} has no dialogue override (using default script dialogue).`,
-                        targetPlayerIds: [sender.id],
-                    });
-                    return;
-                }
+                // ::editdialogue <npcId> now opens the visual Dialogue Editor
+                // (see devDialogueEditor.ts, registered as a script command
+                // so it has full ScriptServices — panel rendering and the
+                // quest-stage facade aren't available at this layer).
 
 
                 if (root === "clear") {
@@ -941,7 +934,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                         const result = scriptCmd({
                             player: sender,
                             command: root,
-                            args: parts.slice(1),
+                            args: originalCaseParts.slice(1),
                             tick: services.getCurrentTick(),
                             services: services as unknown as Record<string, unknown>,
                         });

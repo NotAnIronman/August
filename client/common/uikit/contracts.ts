@@ -7,7 +7,7 @@ export const ComponentIds = {
     ICON_ROW_LEVEL_BASE: 400, ICON_ROW_ICON_BASE: 500, ICON_ROW_NAME_BASE: 600,
     ICON_ROW_DESC_BASE: 700, MAX_ROWS: 100, FOOTER_BUTTON: 900, FOOTER_BUTTON_LABEL: 901,
     SEARCH_BACKGROUND: 910, SEARCH_TEXT: 911,
-    CONTROL_BACKGROUND_BASE: 920, CONTROL_LABEL_BASE: 930, MAX_CONTROLS: 8,
+    CONTROL_BACKGROUND_BASE: 920, CONTROL_LABEL_BASE: 930, CONTROL_ICON_BASE: 940, MAX_CONTROLS: 8,
     MENU_BUTTON_BACKGROUND_BASE: 1000, MENU_BUTTON_ICON_BASE: 1040,
     MENU_BUTTON_LABEL_BASE: 1080, MAX_MENU_BUTTONS: 24,
     /** Reserved for a future always-visible tab background sprite layer
@@ -29,6 +29,33 @@ export const ComponentIds = {
      *  Click and right-click hit-testing use this instead of the preview's
      *  own (visually correct but too-small-to-reliably-click) bounds. */
     SPRITE_GALLERY_HITZONE_BASE: 4200,
+    /** Invisible full-row click/right-click target for any "text" content
+     *  panel that opts in via content.clickableRows - lets a panel (e.g.
+     *  the Dialogue Editor) treat clicking a rendered row as selecting or
+     *  editing whatever it represents, the same way SPRITE_GALLERY_HITZONE
+     *  does for grid cells. Sized to MAX_ROWS so it can parallel every
+     *  possible text row 1:1. */
+    DIALOGUE_ROW_HITZONE_BASE: 4300,
+    /** Single invisible widget a panel's server side toggles hidden=false
+     *  to ask the client to focus/activate its search box - e.g. the
+     *  Dialogue Editor's toolbar "Add Line"/"Add Reply" buttons arm a
+     *  pending action server-side and need the box focused for it, but a
+     *  server-processed button click has no client-local hook of its own
+     *  (unlike a row click) to call searchController.setActive() from
+     *  directly. See devUIKitPanels.ts's onProcess poll for the client side. */
+    DIALOGUE_ACTIVATE_SIGNAL: 4400,
+    /** Per-row Up/Down/Delete icon buttons for a "text" content panel with
+     *  content.inlineRowActions - a real clickable widget per row per
+     *  action (not client-side hit-testing sub-regions of the row), same
+     *  proven click-registration mechanism as CONTROL_BACKGROUND_BASE.
+     *  Capped lower than MAX_ROWS/DIALOGUE_ROW_HITZONE_BASE's 100 (see
+     *  INLINE_ROW_ACTION_CAPACITY) since 3 widgets x 100 rows was judged
+     *  more risk than the benefit justified for rows a session realistically
+     *  uses - selection/edit via the row itself still covers all 100. */
+    ROW_MOVE_UP_BASE: 4410,
+    ROW_MOVE_DOWN_BASE: 4460,
+    ROW_DELETE_BASE: 4510,
+    INLINE_ROW_ACTION_CAPACITY: 40,
 } as const;
 
 export type UiRowKind = "text" | "icon" | "mixed" | "picker" | "sprite-gallery";
@@ -71,7 +98,18 @@ export type UiPanelLayout = {
          *  tab is currently active - wired now. */
         backgroundHoverAsset?: string;
     };
-    content: { rowKind: UiRowKind; rowHeight: number; scrollbarWidth: number; rowCapacity?: number };
+    content: { rowKind: UiRowKind; rowHeight: number; scrollbarWidth: number; rowCapacity?: number;
+        /** Builds an invisible full-row hit-zone (DIALOGUE_ROW_HITZONE_BASE)
+         *  behind every "text"/"mixed" row, up to MAX_ROWS, for panels that
+         *  want per-row click/right-click via GalleryClickController rather
+         *  than typed selection. */
+        clickableRows?: boolean;
+        /** Builds real clickable Up/Down/Delete icon widgets at the right
+         *  edge of the first INLINE_ROW_ACTION_CAPACITY rows (see
+         *  contracts.ts) - reduces those rows' own text width to leave
+         *  room. Independent of clickableRows (a panel can have one, both,
+         *  or neither). */
+        inlineRowActions?: boolean };
     /** Defaults to true. Blocks world input for every pixel inside the modal. */
     inputCapture?: boolean;
     /** Simple local background for developer tools that do not use steelborder. */
@@ -96,4 +134,7 @@ export type UiPanelLayout = {
 };
 
 export type UiTab = { label: string };
-export type UiControl = { label: string };
+/** label and sprite can both be set (icon + short caption side by side,
+ *  since a bare icon turned out not to be self-explanatory - see
+ *  devDialogueEditor.ts's toolbar); either alone still works as before. */
+export type UiControl = { label?: string; sprite?: { archiveId: number; frame: number } };

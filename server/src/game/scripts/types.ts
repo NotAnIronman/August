@@ -30,6 +30,7 @@ import type {
     ProductionServiceFacade,
     ProjectileFacade,
     ProviderRegistrationFacade,
+    QuestStageFacade,
     SchedulerFacade,
     SequenceFacade,
     SailingServiceFacade,
@@ -676,7 +677,12 @@ export interface ScriptServices extends GatheringServices {
     sailing?: SailingServiceFacade;
     banking?: BankingServices;
     shopping?: ShoppingServices;
+    quests?: QuestStageFacade;
     widgetCloseHandlers?: Map<number, WidgetCloseHandler>;
     widgetOpenHandlers?: Map<number, WidgetOpenHandler>;
     modalActionHandlers?: Map<number, ModalActionHandler>;
+    // Attached directly by the network layer (core, not gamemode-specific) —
+    // see wsServer.ts initServiceWiring. Powers ::editdialogue/::setdialogue
+    // and the ::dev Dialogue Editor tab.
+    dialogueOverrideStore?: import("../dialogue/DialogueOverrideStore").DialogueOverrideStore;
 }

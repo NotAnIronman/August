@@ -28,3 +28,4 @@ export const DEV_UIKIT_COMPONENTS_PANEL_GROUP_ID = 30027;
 export const DEV_UIKIT_COMPONENT_PICKER_GROUP_ID = 30028;
 /** Developer-only paginated visual browser for every sprite in the cache. */
 export const DEV_UIKIT_SPRITE_GALLERY_GROUP_ID = 30029;
+export const DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID = 30030;

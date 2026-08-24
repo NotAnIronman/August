@@ -389,29 +389,40 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                 // debug log, for the same reason: this is low-level render
                 // code that shouldn't depend on the UIKit panel layer above it.
                 if (getByUid) {
-                    const GALLERY_GROUP_ID = 30029;
-                    // 4200 = SPRITE_GALLERY_HITZONE_BASE - the invisible
-                    // full-cell widget, not the tightly aspect-fit preview
-                    // (4000) or label (4100), which leave real dead space
-                    // around small/narrow icons. Same reasoning as
+                    // Shared check: any panel's invisible click hit-zone
+                    // widgets (no declared cache actions of their own, so
+                    // the native right-click menu has nothing real to show
+                    // for them) suppress that menu outright rather than
+                    // have it flash open empty on every click.
+                    const isOverHitzone = (targetGroupId: number, hitzoneBase: number, count: number): boolean => {
+                        for (let i = 0; i < count; i++) {
+                            const w = getByUid(((targetGroupId & 0xffff) << 16) | (hitzoneBase + i)) as any;
+                            if (!w || w.hidden || w.isHidden) continue;
+                            const wx = w._absX;
+                            const wy = w._absY;
+                            const ww = w._absWidth;
+                            const wh = w._absHeight;
+                            if (typeof wx !== "number" || typeof wy !== "number") continue;
+                            if (x >= wx && x < wx + (ww | 0) && y >= wy && y < wy + (wh | 0)) return true;
+                        }
+                        return false;
+                    };
+                    // 30029/4200 = DEV_UIKIT_SPRITE_GALLERY_GROUP_ID /
+                    // SPRITE_GALLERY_HITZONE_BASE - the invisible full-cell
+                    // widget, not the tightly aspect-fit preview (4000) or
+                    // label (4100), which leave real dead space around
+                    // small/narrow icons. Same reasoning as
                     // GalleryClickController.ts using the same hit zone for
                     // the actual click.
-                    const HITZONE_BASE = 4200;
-                    let overGalleryCell = false;
-                    for (let i = 0; i < 48; i++) {
-                        const w = getByUid(((GALLERY_GROUP_ID & 0xffff) << 16) | (HITZONE_BASE + i)) as any;
-                        if (!w || w.hidden || w.isHidden) continue;
-                        const wx = w._absX;
-                        const wy = w._absY;
-                        const ww = w._absWidth;
-                        const wh = w._absHeight;
-                        if (typeof wx !== "number" || typeof wy !== "number") continue;
-                        if (x >= wx && x < wx + (ww | 0) && y >= wy && y < wy + (wh | 0)) {
-                            overGalleryCell = true;
-                            break;
-                        }
-                    }
-                    if (overGalleryCell) return;
+                    //
+                    // 30030/4300 = DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID /
+                    // DIALOGUE_ROW_HITZONE_BASE - the Dialogue Editor's
+                    // per-row click/right-click targets (see
+                    // devDialogueEditor.ts). Right-click here opens the edit
+                    // box (::dedit) instead of a text row's own text/label;
+                    // without this suppression the native menu would open
+                    // over the exact same click instead.
+                    if (isOverHitzone(30029, 4200, 48) || isOverHitzone(30030, 4300, 100)) return;
                 }
                 let worldMapSurface = !hid;
                 if (hid && hid.startsWith("widget:") && getByUid) {

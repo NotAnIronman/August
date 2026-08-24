@@ -1027,6 +1027,10 @@ export class WSServer {
             this.dialogueOverrideStore = new DialogueOverrideStore(
                 getSqliteDatabase({ dataDir: getGamemodeDataDir(this.gamemode.id) }),
             );
+            // Attach onto the already-built ScriptServices so gamemode script
+            // code (::dev Dialogue Editor) can reach it the same way it
+            // reaches every other service, without a second access path.
+            this.scriptRuntime.getServices().dialogueOverrideStore = this.dialogueOverrideStore;
             this.players?.setTalkToOverrideCheck((npc, ws) => {
                 const tree = this.dialogueOverrideStore!.get(npc.typeId);
                 if (!tree) return false;
@@ -1035,6 +1039,7 @@ export class WSServer {
                 const npcType = this.npcTypeLoader?.load(npc.typeId);
                 runDialogueTree(
                     this.widgetDialogHandler!,
+                    this.scriptRuntime.getServices(),
                     player,
                     { npcId: npc.typeId, npcName: npcType?.name ?? "" },
                     tree,
