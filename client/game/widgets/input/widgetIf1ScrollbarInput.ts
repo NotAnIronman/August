@@ -4,6 +4,9 @@ import type { WidgetInteractionController } from "../WidgetInteractionController
 import type { WidgetManager } from "../../../widgets/WidgetManager";
 import { reportRuntimeProbe } from "../../../debug/runtimeProbe";
 
+const QUEST_LIST_CONTENT_UID = (399 << 16) | 7;
+const questRailDiscoveryTraceSeen = new Set<number>();
+
 export function processWidgetIf1ScrollbarInput(
     deps: WidgetInputControllerDeps,
     state: WidgetInputState,
@@ -66,8 +69,39 @@ export function processWidgetIf1ScrollbarInput(
                     const targetScrollHeight = (dedicatedTarget.scrollHeight ?? 0) | 0;
                     const maxScrollY = Math.max(0, targetScrollHeight - targetHeight);
                     if (maxScrollY > 0) {
-                        const scrollbarX = absX + ((widget.uikitScrollbarOffsetX ?? 0) | 0);
-                        const scrollbarWidth = SCROLLBAR_WIDTH;
+                        // `_abs*` is the same resolved screen-space geometry
+                        // used by the UIKit renderer. The IF1 recursive
+                        // parent coordinates above are useful for old cache
+                        // widgets, but this rail is drawn with root scaling
+                        // and an explicit offset, so using them created the
+                        // visible-but-unhittable fake handle.
+                        const hostX = (widget._absX ?? absX) | 0;
+                        const hostY = (widget._absY ?? absY) | 0;
+                        const hostWidth = Math.max(1, (widget._absWidth ?? widgetWidth) | 0);
+                        const hostHeight = Math.max(1, (widget._absHeight ?? widgetHeight) | 0);
+                        const scaleX = hostWidth / Math.max(1, widgetWidth);
+                        const scaleY = hostHeight / Math.max(1, widgetHeight);
+                        const scrollbarX = hostX + Math.round((widget.uikitScrollbarOffsetX ?? 0) * scaleX);
+                        const scrollbarWidth = Math.max(1, Math.round(SCROLLBAR_WIDTH * scaleX));
+                        const arrowHeight = Math.max(1, Math.round(ARROW_HEIGHT * scaleY));
+                        if (
+                            dedicatedTarget.uid === QUEST_LIST_CONTENT_UID &&
+                            !questRailDiscoveryTraceSeen.has(widget.uid | 0)
+                        ) {
+                            questRailDiscoveryTraceSeen.add(widget.uid | 0);
+                            reportRuntimeProbe("quest_scrollbar_rail_discovered", {
+                                hostUid: widget.uid,
+                                targetUid: dedicatedTarget.uid,
+                                hostX,
+                                hostY,
+                                hostWidth,
+                                hostHeight,
+                                scrollbarX,
+                                scrollbarWidth,
+                                scaleX,
+                                scaleY,
+                            });
+                        }
                         const setScrollY = (value: number): void => {
                             dedicatedTarget.scrollY = Math.min(Math.max(0, value | 0), maxScrollY);
                             widgetManager.invalidateScroll(dedicatedTarget);
@@ -76,8 +110,8 @@ export function processWidgetIf1ScrollbarInput(
                         const isOverRail =
                             mx >= scrollbarX &&
                             mx < scrollbarX + scrollbarWidth &&
-                            my >= absY &&
-                            my < absY + widgetHeight;
+                            my >= hostY &&
+                            my < hostY + hostHeight;
                         if (isLeftHeld && isOverRail) {
                             if (input.leftClickX !== -1 && input.leftClickY !== -1) {
                                 reportRuntimeProbe("quest_scrollbar_capture", {
@@ -86,8 +120,8 @@ export function processWidgetIf1ScrollbarInput(
                                     mouseX: mx,
                                     mouseY: my,
                                     scrollbarX,
-                                    scrollbarY: absY,
-                                    scrollbarHeight: widgetHeight,
+                                    scrollbarY: hostY,
+                                    scrollbarHeight: hostHeight,
                                     scrollY: dedicatedTarget.scrollY ?? 0,
                                     scrollHeight: targetScrollHeight,
                                     viewportHeight: targetHeight,
@@ -98,17 +132,18 @@ export function processWidgetIf1ScrollbarInput(
                             // has claimed the actual rendered rail.
                             input.leftClickX = -1;
                             input.leftClickY = -1;
-                            if (my < absY + ARROW_HEIGHT) {
+                            if (my < hostY + arrowHeight) {
                                 setScrollY((dedicatedTarget.scrollY ?? 0) - 4);
-                            } else if (my >= absY + widgetHeight - ARROW_HEIGHT) {
+                            } else if (my >= hostY + hostHeight - arrowHeight) {
                                 setScrollY((dedicatedTarget.scrollY ?? 0) + 4);
                             } else {
+                                const physicalScrollHeight = Math.max(1, Math.round(targetScrollHeight * scaleY));
                                 let thumbHeight = Math.floor(
-                                    (widgetHeight * (widgetHeight - 32)) / targetScrollHeight,
+                                    (hostHeight * (hostHeight - arrowHeight * 2)) / physicalScrollHeight,
                                 );
-                                if (thumbHeight < 8) thumbHeight = 8;
-                                const trackHeight = widgetHeight - 32 - thumbHeight;
-                                const clickPosY = my - absY - ARROW_HEIGHT - (thumbHeight >> 1);
+                                thumbHeight = Math.max(Math.max(1, Math.round(8 * scaleY)), thumbHeight);
+                                const trackHeight = hostHeight - arrowHeight * 2 - thumbHeight;
+                                const clickPosY = my - hostY - arrowHeight - (thumbHeight >> 1);
                                 setScrollY(
                                     trackHeight > 0
                                         ? Math.floor((clickPosY * maxScrollY) / trackHeight)
@@ -121,10 +156,10 @@ export function processWidgetIf1ScrollbarInput(
                         if (
                             !handledWheel &&
                             if1WheelDelta !== 0 &&
-                            mx >= absX &&
+                            mx >= hostX &&
                             mx < scrollbarX + scrollbarWidth &&
-                            my >= absY &&
-                            my < absY + widgetHeight
+                            my >= hostY &&
+                            my < hostY + hostHeight
                         ) {
                             setScrollY((dedicatedTarget.scrollY ?? 0) + if1WheelDelta * 45);
                             handledWheel = true;

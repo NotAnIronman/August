@@ -52,7 +52,11 @@ references/deobfuscator/deob-report.json
 references/deobfuscator/cache
 public/map-images
 .idea
-references
+# Keep the generated Wiki drop snapshot in source control: it is production
+# runtime data, not a local reference artifact. Other reference exports stay
+# ignored.
+references/*
+!references/npc-drops-wiki.json
 mcp
 AGENTS.md
 toolkit

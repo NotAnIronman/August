@@ -251,12 +251,23 @@ export class ItemIconRenderer {
         if (!model) return undefined;
         if (CAPE_ICON_IDS.has(itemId | 0) && !capeIconRenderTraceSeen.has(itemId | 0)) {
             capeIconRenderTraceSeen.add(itemId | 0);
+            const textureIds = [...new Set(Array.from(model.faceTextures ?? []).filter((id) => id >= 0))].slice(0, 16);
             reportRuntimeProbe("cape_icon_model_render", {
                 itemId,
                 resolvedItemId: obj.id,
                 faces: model.indices1?.length ?? 0,
                 texturedFaces: model.faceTextures?.length ?? 0,
                 animated: animationTimeSeconds !== undefined,
+                materials: textureIds.map((id) => {
+                    const material = this.textureLoader.getMaterial(id);
+                    return {
+                        id,
+                        frames: this.textureLoader.getFrameCount(id),
+                        animSpeed: material.animSpeed,
+                        animU: material.animU,
+                        animV: material.animV,
+                    };
+                }),
             });
         }
 
