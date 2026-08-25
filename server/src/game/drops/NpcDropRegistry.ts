@@ -17,7 +17,11 @@ function makeCombatKey(name: string, combatLevel: number | undefined): string {
 
 function buildImportedLookup(): ImportedLookup {
     const exact = new Map<string, NpcDropTable>();
-    const byName = new Map<string, NpcDropTable[]>();
+    // A number of OSRSBox records are literal duplicate rows for the same
+    // name/combat pair (for example General Graardor and Commander Zilyana).
+    // Collapse those before the name-only fallback; otherwise a cache combat
+    // level variant would make a perfectly valid table look ambiguous.
+    const byNameAndCombat = new Map<string, Map<string, NpcDropTable>>();
     for (const entry of loadMonstersCompleteDefinitions()) {
         // The bootstrap reference marks many otherwise-usable rows as incomplete.
         // Keep them available until a manual override replaces them.
@@ -28,9 +32,13 @@ function buildImportedLookup(): ImportedLookup {
         if (!nameKey) continue;
         const combatKey = makeCombatKey(entry.name, entry.combatLevel);
         if (!exact.has(combatKey)) exact.set(combatKey, table);
-        const bucket = byName.get(nameKey) ?? [];
-        bucket.push(table);
-        byName.set(nameKey, bucket);
+        const bucket = byNameAndCombat.get(nameKey) ?? new Map<string, NpcDropTable>();
+        if (!bucket.has(combatKey)) bucket.set(combatKey, table);
+        byNameAndCombat.set(nameKey, bucket);
+    }
+    const byName = new Map<string, NpcDropTable[]>();
+    for (const [name, entries] of byNameAndCombat) {
+        byName.set(name, [...entries.values()]);
     }
     return { exact, byName };
 }

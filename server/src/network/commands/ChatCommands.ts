@@ -60,6 +60,25 @@ const BUILTIN_COMMAND_PERMISSIONS: Readonly<Record<string, PlayerPermission>> = 
     whip: "developer",
 };
 
+// The dialogue editor and similar interface plumbing are intentionally
+// callable for development and automation, but listing them in ::commands
+// makes the player-facing command reference unreadable.
+const HIDDEN_FROM_COMMAND_LIST = new Set([
+    "setdialogue",
+    "cleardialogue",
+    "editdialogue",
+    "dsel",
+    "dline",
+    "doption",
+    "dcond",
+    "daction",
+    "ddelete",
+    "ddeletebranch",
+    "dnest",
+    "dtext",
+    "dspeaker",
+]);
+
 export function getBuiltinChatCommandPermission(command: string): PlayerPermission | undefined {
     return BUILTIN_COMMAND_PERMISSIONS[command];
 }
@@ -74,7 +93,10 @@ export function listBuiltinChatCommandsForPermission(
     playerPermission: PlayerPermission,
 ): Array<{ name: string; permission: PlayerPermission }> {
     return Object.entries(BUILTIN_COMMAND_PERMISSIONS)
-        .filter(([, required]) => hasPermission(playerPermission, required))
+        .filter(
+            ([name, required]) =>
+                hasPermission(playerPermission, required) && !HIDDEN_FROM_COMMAND_LIST.has(name),
+        )
         .map(([name, permission]) => ({ name, permission }))
         .sort((a, b) => a.name.localeCompare(b.name));
 }

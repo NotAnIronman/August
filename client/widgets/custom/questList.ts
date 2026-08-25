@@ -213,6 +213,14 @@ export function applyQuestListWidgetGroups(
         // the old stretch put the rail outside the parent's clip rectangle.
         // Reserve the standard 16px column inside the real quest viewport.
         const listWidth = Math.max(1, (textContainer.width | 0) - 16);
+        // The cache host has an inherited horizontal inset in some revisions.
+        // Native rails render immediately after the list width, so that inset
+        // clipped the right half of the 16px rail even though its thumb input
+        // rectangle was correct. The dynamic quest rows are the full viewport
+        // content and deliberately start at the parent origin.
+        list.rawX = 0;
+        list.x = 0;
+        list.xPositionMode = 0;
         list.rawWidth = listWidth;
         list.width = listWidth;
         list.widthMode = 0;

@@ -384,7 +384,12 @@ export class TextureCache {
 
             if (frameIndex != null) {
                 const sprites = SpriteLoader.loadIntoIndexedSprites(this.spriteIndex, archiveId);
-                const sprite = sprites?.[frameIndex] ?? sprites?.[0];
+                // A missing numbered frame is not permission to use frame 0.
+                // Item icons request tokens such as obj_icons,6570; falling
+                // back to frame 0 permanently cached an unrelated cache sprite
+                // (notably the wrong Fire/Infernal cape icon) before the 3D
+                // item-icon renderer had finished initializing.
+                const sprite = sprites?.[frameIndex];
                 if (!sprite) return undefined;
                 return this.glr.createTextureFromCanvas(key, spriteToCanvas(sprite));
             }
