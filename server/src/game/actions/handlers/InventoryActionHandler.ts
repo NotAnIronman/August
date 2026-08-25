@@ -386,6 +386,12 @@ export class InventoryActionHandler {
                     text: "You don't have enough inventory space.",
                     targetPlayerIds: [player.id],
                 });
+            } else if (equipResult.reason?.startsWith("equip_requirement:")) {
+                this.svc.messagingService.queueChatMessage({
+                    messageType: "game",
+                    text: equipResult.reason.slice("equip_requirement:".length),
+                    targetPlayerIds: [player.id],
+                });
             }
             return { ok: false, reason: equipResult.reason ?? "equip_failed" };
         }

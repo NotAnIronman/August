@@ -265,6 +265,26 @@ export interface MessageHandlerServices {
     getWeaponSpecialCostPercent: (weaponId: number) => number | undefined;
     queueCombatState: (player: PlayerState) => void;
     ensureEquipArray: (player: PlayerState) => number[];
+    /** Cache item definition, exposed for developer-facing item diagnostics. */
+    getObjType: (itemId: number) =>
+        | {
+              name?: string;
+              model?: number;
+              maleModel?: number;
+              maleModel1?: number;
+              maleModel2?: number;
+              femaleModel?: number;
+              femaleModel1?: number;
+              femaleModel2?: number;
+              maleHeadModel?: number;
+              maleHeadModel2?: number;
+              femaleHeadModel?: number;
+              femaleHeadModel2?: number;
+              wearPos?: number;
+              wearPos2?: number;
+              wearPos3?: number;
+          }
+        | undefined;
     gamemodeServices: Record<string, unknown>;
     getGamemodeServices: () => Record<string, unknown>;
 

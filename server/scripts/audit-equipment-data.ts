@@ -9,7 +9,7 @@
  *
  * Usage:
  *   yarn --cwd server audit-equipment-data
- *   yarn --cwd server audit-equipment-data --source ../references/osrs-equipment.json
+ *   yarn --cwd server audit-equipment-data --source path/to/osrs-equipment.json
  */
 import fs from "fs";
 import path from "path";
@@ -18,7 +18,8 @@ import { fileURLToPath } from "url";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ITEMS_PATH = path.resolve(SCRIPT_DIR, "../data/items.json");
 const WEAPONS_PATH = path.resolve(SCRIPT_DIR, "../gamemodes/vanilla/data/weapons.ts");
-const DEFAULT_REFERENCE_PATH = path.resolve(SCRIPT_DIR, "../../references/osrs-equipment.json");
+const REFERENCE_URL =
+    "https://raw.githubusercontent.com/MisterTriangle/osrs-item-reference-data/main/osrs-equipment.json";
 
 const EQUIPPABLE_TYPES = new Set([
     "AMULET",
@@ -49,9 +50,9 @@ type LocalItem = {
 type ReferenceRecord = { exact_osrs_item_id?: number };
 type ReferenceFile = { records?: ReferenceRecord[] } | ReferenceRecord[];
 
-function readSourceArgument(args: readonly string[]): string {
+function readSourceArgument(args: readonly string[]): string | undefined {
     const index = args.indexOf("--source");
-    if (index < 0) return DEFAULT_REFERENCE_PATH;
+    if (index < 0) return undefined;
     const value = args[index + 1]?.trim();
     if (!value) throw new Error("--source requires a JSON file path");
     return path.resolve(value);
@@ -65,9 +66,23 @@ function hasCompleteBonuses(item: LocalItem): boolean {
     );
 }
 
-function readReferenceIds(sourcePath: string): Set<number> {
-    if (!fs.existsSync(sourcePath)) return new Set();
-    const parsed = JSON.parse(fs.readFileSync(sourcePath, "utf8")) as ReferenceFile;
+async function readReferenceIds(sourcePath: string | undefined): Promise<Set<number>> {
+    if (sourcePath && !fs.existsSync(sourcePath)) {
+        throw new Error(
+            `Equipment reference file was not found: ${sourcePath}. ` +
+                "Omit --source to download the maintained reference automatically.",
+        );
+    }
+    const text = sourcePath
+        ? fs.readFileSync(sourcePath, "utf8")
+        : await (async () => {
+              const response = await fetch(REFERENCE_URL);
+              if (!response.ok) {
+                  throw new Error(`Equipment reference download failed: HTTP ${response.status}`);
+              }
+              return response.text();
+          })();
+    const parsed = JSON.parse(text) as ReferenceFile;
     const records = Array.isArray(parsed) ? parsed : parsed.records;
     if (!Array.isArray(records)) throw new Error("Equipment reference must contain a records array");
     return new Set(
@@ -87,13 +102,13 @@ function weaponConfigIds(): number[] {
     return [...ids].sort((left, right) => left - right);
 }
 
-function main(): void {
+async function main(): Promise<void> {
     const sourcePath = readSourceArgument(process.argv.slice(2));
     const items = JSON.parse(fs.readFileSync(ITEMS_PATH, "utf8")) as LocalItem[];
     if (!Array.isArray(items)) throw new Error("server/data/items.json must be an array");
 
     const knownIds = new Set(items.map((item) => item.id));
-    const referenceIds = readReferenceIds(sourcePath);
+    const referenceIds = await readReferenceIds(sourcePath);
     const equipable = items.filter(
         (item) =>
             EQUIPPABLE_TYPES.has(item.equipmentType ?? "") &&
@@ -108,12 +123,6 @@ function main(): void {
             `missing 14-value bonuses=${missingBonuses.length}; ` +
             `reference-backed gaps=${sourceBackedGaps.length}.`,
     );
-    if (!fs.existsSync(sourcePath)) {
-        console.log(
-            `[equipment-audit] Reference not found at ${sourcePath}; run ` +
-                "import-equipment-reference first or pass --source path/to/osrs-equipment.json.",
-        );
-    }
     if (sourceBackedGaps.length > 0) {
         console.log("[equipment-audit] Items ready for import (first 100):");
         for (const item of sourceBackedGaps.slice(0, 100)) {
@@ -130,9 +139,7 @@ function main(): void {
     }
 }
 
-try {
-    main();
-} catch (error) {
+main().catch((error) => {
     console.error("[equipment-audit] Failed:", error);
     process.exitCode = 1;
-}
+});

@@ -30,16 +30,6 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield iron weapons"
                 },
                 {
-                    itemId: 667,
-                    level: 1,
-                    name: "Wield blurite swords (with Quest The Knight's Sword completed)"
-                },
-                {
-                    itemId: 2402,
-                    level: 1,
-                    name: "Wield Silverlight (with Quest Demon Slayer completed)"
-                },
-                {
                     itemId: 1281,
                     level: 5,
                     name: "Wield steel melee weapons"
@@ -160,11 +150,6 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield iron spears"
                 },
                 {
-                    itemId: 10491,
-                    level: 1,
-                    name: "Wield blessed axes (with Quest Animal Magnetism completed)"
-                },
-                {
                     itemId: 5018,
                     level: 1,
                     name: "Wield bone clubs"
@@ -180,34 +165,9 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield bone spears"
                 },
                 {
-                    itemId: 746,
-                    level: 1,
-                    name: "Wield dark daggers (with partial completion of Quest Legends' Quest)"
-                },
-                {
-                    itemId: 6746,
-                    level: 1,
-                    name: "Wield Darklight (with Quest Shadow of the Storm completed)"
-                },
-                {
-                    itemId: 7668,
-                    level: 1,
-                    name: "Wield Gadderhammers (with Quest In Aid of the Myreque completed)"
-                },
-                {
                     itemId: 6762,
                     level: 1,
                     name: "Wield Saradomin mjolnirs"
-                },
-                {
-                    itemId: 10858,
-                    level: 1,
-                    name: "Wield shadow swords (with Quest The General's Shadow completed)"
-                },
-                {
-                    itemId: 2952,
-                    level: 1,
-                    name: "Wield Wolfbane (with Quest Priest in Peril completed)"
                 },
                 {
                     itemId: 8844,
@@ -275,24 +235,9 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield black spears"
                 },
                 {
-                    itemId: 6605,
-                    level: 10,
-                    name: "Wield White sword (with Quest Wanted! completed)"
-                },
-                {
                     itemId: 8847,
                     level: 10,
                     name: "Wield black defenders (with Defence 10)"
-                },
-                {
-                    itemId: 11061,
-                    level: 15,
-                    name: "Wield ancient maces (with Quest Another Slice of H.A.M. completed and Prayer 25)"
-                },
-                {
-                    itemId: 35,
-                    level: 20,
-                    name: "Wield Excalibur (with Quest Merlin's Crystal completed)"
                 },
                 {
                     itemId: 3099,
@@ -323,11 +268,6 @@ export const attackSkillGuide: SkillGuideData = {
                     itemId: 8848,
                     level: 20,
                     name: "Wield mithril defenders (with Defence 20)"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Holy Grail"
                 },
                 {
                     itemId: 12377,
@@ -435,11 +375,6 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield gilded spears"
                 },
                 {
-                    itemId: 22398,
-                    level: 40,
-                    name: "Wield the Ivandis flail (with partial completion of Quest A Taste of Hope)"
-                },
-                {
                     itemId: 12357,
                     level: 40,
                     name: "Wield katanas"
@@ -455,19 +390,9 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield rune defenders (with Defence 40)"
                 },
                 {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest A Taste of Hope"
-                },
-                {
                     itemId: 8839,
                     level: 42,
                     name: "Wear Void knight top (with Strength 42, Magic, Defence, Ranged, Hitpoints, and Prayer 22)"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
                 },
                 {
                     itemId: 21742,
@@ -485,31 +410,6 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield granite mauls (with Strength 50)"
                 },
                 {
-                    itemId: 24697,
-                    level: 50,
-                    name: "Wield blisterwood sickles (with partial completion of Quest Sins of the Father)"
-                },
-                {
-                    itemId: 24699,
-                    level: 50,
-                    name: "Wield the blisterwood flail (with partial completion of Quest Sins of the Father)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Wield the hallowed flail (with partial completion of Quest The Blood Moon Rises)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Wield the Sunspear (with completion of Quest The Blood Moon Rises)"
-                },
-                {
-                    itemId: 10581,
-                    level: 50,
-                    name: "Wield keris (with Quest Contact! completed)"
-                },
-                {
                     itemId: 4158,
                     level: 50,
                     name: "Wield leaf-bladed spears (with Slayer 55)"
@@ -520,24 +420,9 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield leaf-bladed swords (with Slayer 55)"
                 },
                 {
-                    itemId: 4675,
-                    level: 50,
-                    name: "Wield ancient staves (with Magic 50 and Quest Desert Treasure I completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Wield Ancient sceptres (with Strength 60, Magic 70, and Quest Secrets of the North completed)"
-                },
-                {
                     itemId: -1,
                     level: 50,
                     name: "Wield bone maces"
-                },
-                {
-                    itemId: 1409,
-                    level: 50,
-                    name: "Wield Iban's staves (with Magic 50 and Quest Underground Pass completed)"
                 },
                 {
                     itemId: 10146,
@@ -548,31 +433,6 @@ export const attackSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 50,
                     name: "Wield eclipse atlatls (with Ranged 75 and Strength 50)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Wield purging staves (with Magic 77 and Quest While Guthix Sleeps completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Medium Ardougne Diary"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Desert Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Quest Sins of the Father"
                 },
                 {
                     itemId: -1,
@@ -595,49 +455,9 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield dragon melee weapons including the following with additional requirements:"
                 },
                 {
-                    itemId: 1377,
-                    level: 60,
-                    name: "Wield dragon battleaxes (with Quest Heroes' Quest completed)"
-                },
-                {
-                    itemId: 1215,
-                    level: 60,
-                    name: "Wield dragon daggers (with Quest Lost City completed)"
-                },
-                {
-                    itemId: 3204,
-                    level: 60,
-                    name: "Wield dragon halberds (with Strength 30 and Quest Regicide completed)"
-                },
-                {
-                    itemId: 1305,
-                    level: 60,
-                    name: "Wield dragon longswords (with Quest Lost City completed)"
-                },
-                {
-                    itemId: 1434,
-                    level: 60,
-                    name: "Wield dragon maces (with Quest Heroes' Quest completed)"
-                },
-                {
-                    itemId: 4587,
-                    level: 60,
-                    name: "Wield dragon scimitars (with Quest Monkey Madness I completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Wield the Arkan blade (with Quest The Final Dawn completed)"
-                },
-                {
                     itemId: -1,
                     level: 60,
                     name: "Wield burning claws"
-                },
-                {
-                    itemId: 10887,
-                    level: 60,
-                    name: "Wield barrelchest anchors (with Strength 40 and Quest The Great Brain Robbery completed)"
                 },
                 {
                     itemId: 6523,
@@ -695,11 +515,6 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield Sarachnis cudgels"
                 },
                 {
-                    itemId: 25979,
-                    level: 65,
-                    name: "Wield keris partisans (with Quest Beneath Cursed Sands completed)"
-                },
-                {
                     itemId: -1,
                     level: 65,
                     name: "Wield zombie axes"
@@ -725,22 +540,6 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield abyssal whips"
                 },
                 {
-                    itemId: 23673,
-                    level: 70,
-                    name: "Wield crystal axes (with Agility 50 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Wield crystal felling axes (with Agility 50 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23895,
-                    level: 70,
-                    name: "Wield crystal halberds (with Agility 50, Strength 35 and Diary Hard Western Provinces Diary comp",
-                    description: "leted)"
-                },
-                {
                     itemId: 11838,
                     level: 70,
                     name: "Wield Saradomin swords"
@@ -749,7 +548,12 @@ export const attackSkillGuide: SkillGuideData = {
                     itemId: 11824,
                     level: 70,
                     name: "Wield Zamorakian spears"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: 11889,
                     level: 70,
@@ -811,11 +615,6 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield abyssal tentacles"
                 },
                 {
-                    itemId: 19675,
-                    level: 75,
-                    name: "Wield Arclight (with Quest Shadow of the Storm completed)"
-                },
-                {
                     itemId: 21015,
                     level: 75,
                     name: "Wield Dinh's bulwarks (with Defence 75)"
@@ -866,11 +665,6 @@ export const attackSkillGuide: SkillGuideData = {
                     name: "Wield Voidwaker"
                 },
                 {
-                    itemId: -1,
-                    level: 77,
-                    name: "Wield Emberlight (with Smithing 74 and Quest While Guthix Sleeps completed)"
-                },
-                {
                     itemId: 22978,
                     level: 78,
                     name: "Wield dragon hunter lances (with Barbarian Training completed)"
@@ -899,31 +693,6 @@ export const attackSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 80,
                     name: "Wield soulreaper axes (with Strength 80)"
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Wield the keris partisan of amascut (with Quest Beneath Cursed Sands completed)"
-                },
-                {
-                    itemId: 25981,
-                    level: 80,
-                    name: "Wield the keris partisan of breaching (with Quest Beneath Cursed Sands completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Wield the keris partisan of corruption (with Quest Beneath Cursed Sands completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Wield the keris partisan of the sun (with Quest Beneath Cursed Sands completed)"
-                },
-                {
-                    itemId: 22981,
-                    level: 80,
-                    name: "Wear ferocious gloves (with Defence 80 and Quest Dragon Slayer II completed)"
                 },
                 {
                     itemId: -1,

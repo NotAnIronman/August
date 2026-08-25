@@ -4,7 +4,6 @@ import type { WidgetInteractionController } from "../WidgetInteractionController
 import type { WidgetInputFrame } from "./widgetInputTypes";
 
 const QUEST_LIST_GROUP_ID = 399;
-const QUEST_LIST_SCROLLBAR_UID = (QUEST_LIST_GROUP_ID << 16) | 5;
 const QUEST_LIST_CONTENT_UID = (QUEST_LIST_GROUP_ID << 16) | 7;
 
 const SCROLLBAR_WIDTH = 16;
@@ -15,46 +14,10 @@ function clampScrollY(value: number, maximum: number): number {
     return Math.min(Math.max(0, value | 0), maximum);
 }
 
-function syncScrollbarThumb(
-    widgetManager: WidgetManager,
-    scrollbar: {
-        children?: Array<{
-            rawY?: number;
-            y?: number;
-            rawHeight?: number;
-            height?: number;
-            isLayoutValid?: boolean;
-        } | null> | null;
-    },
-    viewportHeight: number,
-    contentHeight: number,
-    scrollY: number,
-    scrollbarHeight: number,
-): void {
-    // Standard scrollbar setup creates the track at child 0 and the draggable
-    // thumb at child 1. Our server-owned quest rows bypass the CS2 routine that
-    // normally refreshes child 1 after changing scrollY.
-    const thumb = scrollbar.children?.[1];
-    if (!thumb) return;
-
-    const trackHeight = Math.max(0, scrollbarHeight - ARROW_HEIGHT * 2);
-    const thumbHeight = Math.max(8, Math.floor((viewportHeight * trackHeight) / contentHeight));
-    const maxScrollY = Math.max(0, contentHeight - viewportHeight);
-    const thumbOffset =
-        maxScrollY > 0 ? Math.floor(((trackHeight - thumbHeight) * scrollY) / maxScrollY) : 0;
-
-    thumb.rawY = ARROW_HEIGHT + thumbOffset;
-    thumb.y = thumb.rawY;
-    thumb.rawHeight = thumbHeight;
-    thumb.height = thumbHeight;
-    thumb.isLayoutValid = true;
-    widgetManager.invalidateWidget(thumb as never, "quest-list-scrollbar-thumb");
-}
-
 export function isQuestListScrollbarWidget(widget: unknown, widgetManager: WidgetManager): boolean {
     let current = widget as { uid?: number; parentUid?: number } | undefined;
     for (let depth = 0; current && depth < 16; depth++) {
-        if ((current.uid ?? -1) === QUEST_LIST_SCROLLBAR_UID) return true;
+        if ((current.uid ?? -1) === QUEST_LIST_CONTENT_UID) return true;
         const parentUid = current.parentUid;
         if (typeof parentUid !== "number" || parentUid < 0) return false;
         current = widgetManager.getWidgetByUid(parentUid);
@@ -89,11 +52,9 @@ export function processQuestListScrollbarInput(
         return;
     }
 
-    const scrollbar = widgetManager.getWidgetByUid(QUEST_LIST_SCROLLBAR_UID);
     const content = widgetManager.getWidgetByUid(QUEST_LIST_CONTENT_UID);
-    if (!scrollbar || !content || scrollbar.hidden || scrollbar.isHidden) return;
+    if (!content) return;
 
-    widgetManager.ensureLayout(scrollbar);
     widgetManager.ensureLayout(content);
 
     const viewportHeight = Math.max(0, content.height | 0);
@@ -101,9 +62,9 @@ export function processQuestListScrollbarInput(
     const maxScrollY = Math.max(0, contentHeight - viewportHeight);
     if (maxScrollY <= 0) return;
 
-    const scrollbarX = (scrollbar._absX ?? scrollbar.x ?? 0) | 0;
-    const scrollbarY = (scrollbar._absY ?? scrollbar.y ?? 0) | 0;
-    const scrollbarHeight = Math.max(0, scrollbar.height | 0);
+    const scrollbarX = ((content._absX ?? content.x ?? 0) + (content._absWidth ?? content.width ?? 0)) | 0;
+    const scrollbarY = (content._absY ?? content.y ?? 0) | 0;
+    const scrollbarHeight = viewportHeight;
     if (scrollbarHeight <= ARROW_HEIGHT * 2) return;
 
     const { input, mx, my } = frame;
@@ -114,7 +75,7 @@ export function processQuestListScrollbarInput(
         my < ((content._absY ?? content.y ?? 0) | 0) + viewportHeight;
     const isOverScrollbar =
         mx >= scrollbarX &&
-        mx < scrollbarX + Math.max(SCROLLBAR_WIDTH, scrollbar.width | 0) &&
+        mx < scrollbarX + SCROLLBAR_WIDTH &&
         my >= scrollbarY &&
         my < scrollbarY + scrollbarHeight;
 
@@ -123,15 +84,7 @@ export function processQuestListScrollbarInput(
         if ((content.scrollY | 0) === next) return;
         content.scrollY = next;
         widgetManager.invalidateScroll(content);
-        syncScrollbarThumb(
-            widgetManager,
-            scrollbar,
-            viewportHeight,
-            contentHeight,
-            next,
-            scrollbarHeight,
-        );
-        widgetManager.invalidateWidget(scrollbar, "quest-list-scroll");
+        widgetManager.invalidateWidgetRender(content, "quest-list-scroll");
     };
 
     if (input.wheelDeltaY !== 0 && (isOverContent || isOverScrollbar)) {

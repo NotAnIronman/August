@@ -7,7 +7,7 @@ export const thievingSkillGuide: SkillGuideData = {
     skillId: SkillId.Thieving,
     tabs: [
         {
-            label: "Members 1",
+            label: "Members",
             entries: [
                 {
                     itemId: -1,
@@ -40,34 +40,9 @@ export const thievingSkillGuide: SkillGuideData = {
                     name: "Steal from Chisels"
                 },
                 {
-                    itemId: 1963,
-                    level: 5,
-                    name: "Steal from Bananas (with Quest Monkey Madness I)"
-                },
-                {
-                    itemId: 1931,
-                    level: 5,
-                    name: "Steal from Pots (with Quest Monkey Madness I)"
-                },
-                {
                     itemId: 712,
                     level: 5,
                     name: "Steal from Cup of teas"
-                },
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required to complete Diary Easy Ardougne Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required to complete Diary Easy Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required to complete Diary Easy Varrock Diary"
                 },
                 {
                     itemId: -1,
@@ -81,48 +56,13 @@ export const thievingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 13,
-                    name: "Required for Quest The Lost Tribe"
-                },
-                {
-                    itemId: -1,
-                    level: 14,
-                    name: "Required for Quest The Giant Dwarf"
-                },
-                {
-                    itemId: -1,
                     level: 15,
                     name: "Pickpocket H.A.M. members"
-                },
-                {
-                    itemId: 10593,
-                    level: 15,
-                    name: "Steal cowbells (with partial completion of Quest Cold War)"
-                },
-                {
-                    itemId: 2379,
-                    level: 15,
-                    name: "Steal from Gu'Tanoth counters (with partial completion of Quest Watchtower)"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required for Quest Cold War"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required for Quest Watchtower"
                 },
                 {
                     itemId: -1,
                     level: 16,
                     name: "Unlock the nature rune chest door"
-                },
-                {
-                    itemId: -1,
-                    level: 17,
-                    name: "Required for Quest The Hand in the Sand"
                 },
                 {
                     itemId: 950,
@@ -140,40 +80,14 @@ export const thievingSkillGuide: SkillGuideData = {
                     name: "Pick locks on Ogre Coffins"
                 },
                 {
-                    itemId: -1,
-                    level: 21,
-                    name: "Access to the first room of Pyramid Plunder (with partial completion of Quest Icthlarin's Little",
-                    description: " Helper)"
-                },
-                {
-                    itemId: -1,
-                    level: 21,
-                    name: "Required for Quest Tribal Totem"
-                },
-                {
-                    itemId: -1,
-                    level: 21,
-                    name: "Required to complete Diary Easy Desert Diary"
-                },
-                {
                     itemId: 7919,
                     level: 22,
                     name: "Steal from Bottle of wines"
                 },
                 {
                     itemId: -1,
-                    level: 22,
-                    name: "Required for Quest Darkness of Hallowvale"
-                },
-                {
-                    itemId: -1,
                     level: 23,
                     name: "Unlock the axe hut door"
-                },
-                {
-                    itemId: -1,
-                    level: 23,
-                    name: "Required for Quest Death to the Dorgeshuun"
                 },
                 {
                     itemId: -1,
@@ -194,36 +108,6 @@ export const thievingSkillGuide: SkillGuideData = {
                     itemId: 10844,
                     level: 25,
                     name: "Steal spring sq'irk from the Minigame Sorceress's Garden minigame"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest Creature of Fenkenstrain"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest The Dig Site"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest The Golem"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest Ethically Acquired Antiquities"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required to complete Diary Easy Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required to complete Diary Medium Desert Diary"
                 },
                 {
                     itemId: -1,
@@ -252,22 +136,6 @@ export const thievingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 30,
-                    name: "Required for Quest The Feud"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest The Slug Menace"
-                },
-                {
-                    itemId: -1,
-                    level: 31,
-                    name: "Access to the second room of Pyramid Plunder (with partial completion of Quest Icthlarin's Littl",
-                    description: "e Helper)"
-                },
-                {
-                    itemId: -1,
                     level: 31,
                     name: "Unlock the ardougne sewer gate"
                 },
@@ -282,44 +150,14 @@ export const thievingSkillGuide: SkillGuideData = {
                     name: "Loot the Bronze cannonball"
                 },
                 {
-                    itemId: -1,
-                    level: 34,
-                    name: "Required for Quest Death on the Isle"
-                },
-                {
                     itemId: 6814,
                     level: 35,
                     name: "Steal from Furs"
                 },
                 {
                     itemId: -1,
-                    level: 36,
-                    name: "Pickpocket Thief Cave goblins (with Quest Death to the Dorgeshuun completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 36,
-                    name: "Steal from Aldarin Villa chests (with Quest Children of the Sun completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 37,
-                    name: "Required for Quest Spirits of the Elid"
-                },
-                {
-                    itemId: -1,
                     level: 38,
                     name: "Pickpocket Thief Master farmers"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Required to complete Diary Medium Ardougne Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Required to complete Diary Medium Lumbridge & Draynor Diary"
                 },
                 {
                     itemId: -1,
@@ -332,50 +170,9 @@ export const thievingSkillGuide: SkillGuideData = {
                     name: "Pickpocket Thief Guards"
                 },
                 {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Fairytale II - Cure a Queen"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Medium Falador Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 41,
-                    name: "Access to the third room of Pyramid Plunder (with partial completion of Quest Icthlarin's Little",
-                    description: " Helper)"
-                },
-                {
-                    itemId: 331,
-                    level: 42,
-                    name: "Steal from Raw salmons (with Quest The Fremennik Trials completed to steal from Rellekka)"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required for Quest Temple of Ikov"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Medium Fremennik Diary"
-                },
-                {
                     itemId: 617,
                     level: 43,
                     name: "Loot the 50 coin chests"
-                },
-                {
-                    itemId: 10981,
-                    level: 44,
-                    name: "Steal cave goblin wires (with Quest Death to the Dorgeshuun completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 45,
-                    name: "Pickpocket pollnivneach bandits (with partial completion of Quest The Feud to use a blackjack)"
                 },
                 {
                     itemId: -1,
@@ -389,11 +186,6 @@ export const thievingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 45,
-                    name: "Required for Quest Land of the Goblins"
-                },
-                {
-                    itemId: -1,
                     level: 46,
                     name: "Unlock the chaos druid tower door"
                 },
@@ -401,16 +193,6 @@ export const thievingSkillGuide: SkillGuideData = {
                     itemId: 41,
                     level: 47,
                     name: "Loot the arrowtips chests"
-                },
-                {
-                    itemId: -1,
-                    level: 47,
-                    name: "Required to complete Diary Medium Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 48,
-                    name: "Required for Quest The Heart of Darkness"
                 },
                 {
                     itemId: 9174,
@@ -421,11 +203,6 @@ export const thievingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 49,
                     name: "Required for stealing artefacts in Port Piscarilius"
-                },
-                {
-                    itemId: -1,
-                    level: 49,
-                    name: "Required to complete Diary Hard Kourend & Kebos Diary"
                 },
                 {
                     itemId: -1,
@@ -459,49 +236,8 @@ export const thievingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Legends' Quest"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Mourning's End Part I"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Karamja Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 51,
-                    name: "Access to the fourth room of Pyramid Plunder (with partial completion of Quest Icthlarin's Littl",
-                    description: "e Helper)"
-                },
-                {
-                    itemId: 4522,
-                    level: 52,
-                    name: "Loot the dorgesh-kaan average chests (with Quest Death to the Dorgeshuun completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required for Quest A Kingdom Divided"
-                },
-                {
-                    itemId: -1,
                     level: 53,
                     name: "Pickpocket Thief Desert bandits"
-                },
-                {
-                    itemId: -1,
-                    level: 53,
-                    name: "Required for Quest Desert Treasure I"
                 },
                 {
                     itemId: 2,
@@ -515,34 +251,8 @@ export const thievingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 55,
-                    name: "Pickpocket Thief Pollnivnian bandits (with partial completion of Quest The Feud to use a blackja",
-                    description: "ck)"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required for Quest Monkey Madness II"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Required for Quest The Path of Glouphrie"
-                },
-                {
-                    itemId: -1,
                     level: 57,
                     name: "Unlock the grubby chest gate"
-                },
-                {
-                    itemId: -1,
-                    level: 58,
-                    name: "Required for Quest Grim Tales"
-                },
-                {
-                    itemId: -1,
-                    level: 58,
-                    name: "Required to complete Diary Hard Falador Diary"
                 },
                 {
                     itemId: 565,
@@ -556,24 +266,8 @@ export const thievingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 60,
-                    name: "Required for Quest Dragon Slayer II"
-                },
-                {
-                    itemId: -1,
-                    level: 61,
-                    name: "Access to the fifth room of Pyramid Plunder (with partial completion of Quest Icthlarin's Little",
-                    description: " Helper)"
-                },
-                {
-                    itemId: -1,
                     level: 61,
                     name: "Unlock the Ardougne Castle door"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required for Quest The Curse of Arrav"
                 },
                 {
                     itemId: 13383,
@@ -582,23 +276,8 @@ export const thievingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 64,
-                    name: "Required for Quest Secrets of the North"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Pickpocket Thief Menaphite thugs (with partial completion of Quest The Feud to use a blackjack)"
-                },
-                {
-                    itemId: -1,
                     level: 65,
                     name: "Pickpocket watchmen"
-                },
-                {
-                    itemId: 556,
-                    level: 65,
-                    name: "Steal from Air runes (with partial completion of Quest Monkey Madness I)"
                 },
                 {
                     itemId: 1323,
@@ -617,49 +296,13 @@ export const thievingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 65,
-                    name: "Required to complete Diary Hard Desert Diary"
-                },
-                {
-                    itemId: 24711,
-                    level: 66,
-                    name: "Steal from coffins found in the Hallowed Sepulchre (with Quest Sins of the Father completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required for Quest The Final Dawn"
-                },
-                {
-                    itemId: -1,
                     level: 70,
                     name: "Pickpocket Thief Paladins"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Desert Treasure II - The Fallen Empire"
-                },
-                {
-                    itemId: -1,
-                    level: 71,
-                    name: "Access to the sixth room of Pyramid Plunder (with partial completion of Quest Icthlarin's Little",
-                    description: " Helper)"
                 },
                 {
                     itemId: 383,
                     level: 72,
                     name: "Loot the king lathas' chests"
-                },
-                {
-                    itemId: -1,
-                    level: 72,
-                    name: "Required to complete Diary Hard Ardougne Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 72,
-                    name: "Required for Quest While Guthix Sleeps"
                 },
                 {
                     itemId: -1,
@@ -673,16 +316,6 @@ export const thievingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 75,
-                    name: "Required to complete Diary Hard Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
                     level: 76,
                     name: "Loot the Adamant cannonball"
                 },
@@ -693,11 +326,6 @@ export const thievingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 78,
-                    name: "Required to complete Diary Elite Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
                     level: 80,
                     name: "Pickpocket Thief Heroes"
                 },
@@ -705,12 +333,6 @@ export const thievingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 80,
                     name: "Shortcut in the Rogues' Den maze"
-                },
-                {
-                    itemId: -1,
-                    level: 81,
-                    name: "Access to the seventh room of Pyramid Plunder (with partial completion of Quest Icthlarin's Litt",
-                    description: "le Helper)"
                 },
                 {
                     itemId: -1,
@@ -728,40 +350,14 @@ export const thievingSkillGuide: SkillGuideData = {
                     name: "Unlock the yanille dungeon door"
                 },
                 {
-                    itemId: -1,
-                    level: 82,
-                    name: "Required to complete Diary Elite Ardougne Diary"
-                },
-                {
-                    itemId: 24711,
-                    level: 84,
-                    name: "Steal from the Hallowed mark found in the Hallowed Sepulchre (with Quest Sins of the Father comp",
-                    description: "leted)"
-                },
-                {
                     itemId: 1615,
                     level: 84,
                     name: "Loot the rogues' castle chests"
                 },
                 {
                     itemId: -1,
-                    level: 84,
-                    name: "Required to complete Diary Elite Wilderness Diary"
-                },
-                {
-                    itemId: -1,
                     level: 85,
                     name: "Pickpocket elves"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Players with the Hard Ardougne Diary completed can no longer fail pickpocketing Men and Women"
                 },
                 {
                     itemId: 2,
@@ -772,40 +368,6 @@ export const thievingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 90,
                     name: "Pickpocket Thief TzHaar-Hurs"
-                },
-                {
-                    itemId: -1,
-                    level: 90,
-                    name: "Players with the Hard Ardougne Diary completed can no longer fail pickpocketing Farmers"
-                },
-                {
-                    itemId: -1,
-                    level: 91,
-                    name: "Access to the eighth room of Pyramid Plunder (with partial completion of Quest Icthlarin's Littl",
-                    description: "e Helper)"
-                },
-                {
-                    itemId: -1,
-                    level: 91,
-                    name: "Required to complete Diary Elite Desert Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 93,
-                    name: "Players with the Hard Ardougne Diary completed can no longer fail pickpocketing (Al Kharid) Warr",
-                    description: "iors and H.A.M. Members"
-                },
-                {
-                    itemId: -1,
-                    level: 94,
-                    name: "Players with the Hard Ardougne Diary completed can no longer fail pickpocketing Rogues and Maste",
-                    description: "r Farmers"
-                },
-                {
-                    itemId: -1,
-                    level: 95,
-                    name: "Players with the Hard Ardougne Diary completed can no longer fail pickpocketing Guards, Knights ",
-                    description: "of Ardougne and Desert Bandits"
                 },
                 {
                     itemId: 9777,

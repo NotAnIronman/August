@@ -383,6 +383,53 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     return;
                 }
 
+                if (root === "itemmodel") {
+                    const itemId = Number(parts[1]);
+                    if (!Number.isInteger(itemId) || itemId < 0) {
+                        services.queueChatMessage({
+                            messageType: "game",
+                            text: "Usage: ::itemmodel <itemId>",
+                            targetPlayerIds: [sender.id],
+                        });
+                        return;
+                    }
+                    const obj = services.getObjType(itemId);
+                    if (!obj || obj.name === "null") {
+                        services.queueChatMessage({
+                            messageType: "game",
+                            text: `No cache object found for item ${itemId}.`,
+                            targetPlayerIds: [sender.id],
+                        });
+                        return;
+                    }
+                    const modelFields: Array<[string, number | undefined]> = [
+                        ["inventory", obj.model],
+                        ["male", obj.maleModel],
+                        ["male1", obj.maleModel1],
+                        ["male2", obj.maleModel2],
+                        ["female", obj.femaleModel],
+                        ["female1", obj.femaleModel1],
+                        ["female2", obj.femaleModel2],
+                        ["maleHead", obj.maleHeadModel],
+                        ["maleHead2", obj.maleHeadModel2],
+                        ["femaleHead", obj.femaleHeadModel],
+                        ["femaleHead2", obj.femaleHeadModel2],
+                    ];
+                    const models = modelFields
+                        .filter(([, id]) => typeof id === "number" && id >= 0)
+                        .map(([label, id]) => `${label}=${id}`)
+                        .join(", ");
+                    services.queueChatMessage({
+                        messageType: "game",
+                        text:
+                            `Item ${itemId} (${obj.name ?? "unnamed"}): ` +
+                            `${models || "no models"}; wear slots ${obj.wearPos ?? -1}/` +
+                            `${obj.wearPos2 ?? -1}/${obj.wearPos3 ?? -1}.`,
+                        targetPlayerIds: [sender.id],
+                    });
+                    return;
+                }
+
                 if (root === "promote" || root === "demote") {
                     const targetName = parts[1];
                     const rank = parts[2]?.toLowerCase() as PlayerPermission | undefined;

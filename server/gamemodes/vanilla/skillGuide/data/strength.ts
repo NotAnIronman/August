@@ -71,16 +71,6 @@ export const strengthSkillGuide: SkillGuideData = {
                     name: "Wield black halberds (with Attack 10)"
                 },
                 {
-                    itemId: 6599,
-                    level: 5,
-                    name: "Wield white halberds (with Attack 10 and Quest Wanted! completed)"
-                },
-                {
-                    itemId: 6613,
-                    level: 10,
-                    name: "Wield white warhammers (with Attack 10 and Quest Wanted! completed)"
-                },
-                {
                     itemId: 3198,
                     level: 10,
                     name: "Wield mithril halberds (with Attack 20)"
@@ -96,19 +86,9 @@ export const strengthSkillGuide: SkillGuideData = {
                     name: "Wield adamant halberds (with Attack 30)"
                 },
                 {
-                    itemId: -1,
-                    level: 16,
-                    name: "Required for Quest Tale of the Righteous"
-                },
-                {
                     itemId: 9418,
                     level: 19,
                     name: "Access Broken raft (South of Lumbridge) shortcut (Requires grappling, Agility 8, and Ranged 37)"
-                },
-                {
-                    itemId: -1,
-                    level: 19,
-                    name: "Required to complete Diary Medium Lumbridge & Draynor Diary"
                 },
                 {
                     itemId: 8901,
@@ -132,24 +112,9 @@ export const strengthSkillGuide: SkillGuideData = {
                     name: "Access Rock (Taverley Dungeon) shortcut (Requires grappling, Agility 36, and Ranged 39)"
                 },
                 {
-                    itemId: -1,
-                    level: 22,
-                    name: "Required to complete Diary Medium Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 28,
-                    name: "Scale Observatory cliff (with Agility 23, Ranged 24, and Quest Observatory Quest completed)"
-                },
-                {
                     itemId: 11330,
                     level: 30,
                     name: "Catch leaping salmon (with Fishing 58, Agility 30, and Barbarian Training completed)"
-                },
-                {
-                    itemId: 3204,
-                    level: 30,
-                    name: "Wield dragon halberds (with Attack 60 and Quest Regicide completed)"
                 },
                 {
                     itemId: -1,
@@ -172,20 +137,9 @@ export const strengthSkillGuide: SkillGuideData = {
                     name: "Catch harpoonfish barehanded (with Fishing 55 and Barbarian Training completed)"
                 },
                 {
-                    itemId: 23895,
-                    level: 35,
-                    name: "Wield crystal halberds (with Attack 70, Agility 50 and Diary Hard Western Provinces Diary comple",
-                    description: "ted)"
-                },
-                {
                     itemId: 9418,
                     level: 37,
                     name: "Access Wall (North wall of Falador) shortcut (Requires grappling, Agility 11, and Ranged 19)"
-                },
-                {
-                    itemId: -1,
-                    level: 37,
-                    name: "Required to complete Diary Medium Falador Diary"
                 },
                 {
                     itemId: 9418,
@@ -194,29 +148,9 @@ export const strengthSkillGuide: SkillGuideData = {
                     description: ")"
                 },
                 {
-                    itemId: -1,
-                    level: 38,
-                    name: "Required to complete Diary Medium Ardougne Diary"
-                },
-                {
-                    itemId: 10887,
-                    level: 40,
-                    name: "Wield the barrelchest anchor (with Attack 60 and Quest The Great Brain Robbery completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Darkness of Hallowvale"
-                },
-                {
                     itemId: 8839,
                     level: 42,
                     name: "Wear Void knight top (with Attack 42, Magic, Defence, Ranged, Hitpoints, and Prayer 22)"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
                 },
                 {
                     itemId: 11332,
@@ -250,33 +184,8 @@ export const strengthSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Legends' Quest"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Karamja Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 58,
-                    name: "Required for Quest The Curse of Arrav"
-                },
-                {
-                    itemId: -1,
                     level: 60,
                     name: "Enter the God Wars Dungeon via the strength route"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Wield ancient sceptres (with Attack 50, Magic 70, and Quest Secrets of the North completed)"
                 },
                 {
                     itemId: 13576,
@@ -287,27 +196,6 @@ export const strengthSkillGuide: SkillGuideData = {
                     itemId: 6528,
                     level: 60,
                     name: "Wield tzhaar-ket-oms"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required for Quest The Path of Glouphrie"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Optional to complete Diary Medium Wilderness Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Optional to complete Diary Elite Wilderness Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Cross the cave south of Dorgesh-Kaan (with Agility 70, Ranged 70, and Quest Death to the Dorgesh",
-                    description: "uun completed)"
                 },
                 {
                     itemId: -1,
@@ -333,16 +221,6 @@ export const strengthSkillGuide: SkillGuideData = {
                     itemId: 4747,
                     level: 70,
                     name: "Wield Torag's hammers (with Attack 70)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Elite Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Elite Lumbridge & Draynor Diary"
                 },
                 {
                     itemId: -1,
@@ -373,11 +251,6 @@ export const strengthSkillGuide: SkillGuideData = {
                     itemId: 383,
                     level: 76,
                     name: "Catch sharks barehanded (with Fishing 96 and Barbarian Training completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 76,
-                    name: "Required to complete Diary Elite Morytania Diary"
                 },
                 {
                     itemId: -1,

@@ -25,11 +25,6 @@ export const fishingSkillGuide: SkillGuideData = {
                     name: "Catch sardines"
                 },
                 {
-                    itemId: 25652,
-                    level: 7,
-                    name: "Catch guppies (with Quest Below Ice Mountain completed)"
-                },
-                {
                     itemId: 345,
                     level: 10,
                     name: "Catch herring"
@@ -45,11 +40,6 @@ export const fishingSkillGuide: SkillGuideData = {
                     name: "Catch trout"
                 },
                 {
-                    itemId: 25658,
-                    level: 20,
-                    name: "Catch cavefish (with Quest Below Ice Mountain completed)"
-                },
-                {
                     itemId: 349,
                     level: 25,
                     name: "Catch pike"
@@ -63,11 +53,6 @@ export const fishingSkillGuide: SkillGuideData = {
                     itemId: 331,
                     level: 30,
                     name: "Catch salmon"
-                },
-                {
-                    itemId: 25664,
-                    level: 33,
-                    name: "Catch tetra (with Quest Below Ice Mountain completed)"
                 },
                 {
                     itemId: 359,
@@ -111,26 +96,6 @@ export const fishingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 5,
-                    name: "Required for Quest Tai Bwo Wannai Trio"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Between a Rock..."
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Current Affairs"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Fishing Contest"
-                },
-                {
-                    itemId: -1,
                     level: 15,
                     name: "Catch fish on the Fishing Trawler boat"
                 },
@@ -138,11 +103,6 @@ export const fishingSkillGuide: SkillGuideData = {
                     itemId: 20857,
                     level: 15,
                     name: "Catch suphi fish"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Lumbridge & Draynor Diary"
                 },
                 {
                     itemId: 353,
@@ -160,26 +120,6 @@ export const fishingSkillGuide: SkillGuideData = {
                     name: "Catch caskets"
                 },
                 {
-                    itemId: -1,
-                    level: 16,
-                    name: "Required to complete Diary Easy Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Perilous Moons"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required to complete Diary Easy Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required to complete Diary Easy Varrock Diary"
-                },
-                {
                     itemId: 341,
                     level: 23,
                     name: "Catch cod"
@@ -193,11 +133,6 @@ export const fishingSkillGuide: SkillGuideData = {
                     itemId: 20859,
                     level: 30,
                     name: "Catch leckish fish"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Medium Lumbridge & Draynor Diary"
                 },
                 {
                     itemId: 5004,
@@ -225,19 +160,9 @@ export const fishingSkillGuide: SkillGuideData = {
                     name: "Catch rainbow fish"
                 },
                 {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Land of the Goblins"
-                },
-                {
                     itemId: 22826,
                     level: 43,
                     name: "Catch bluegills (with Hunter 35)"
-                },
-                {
-                    itemId: -1,
-                    level: 43,
-                    name: "Required to complete Diary Medium Kourend & Kebos Diary"
                 },
                 {
                     itemId: 20861,
@@ -245,45 +170,9 @@ export const fishingSkillGuide: SkillGuideData = {
                     name: "Catch brawk fish"
                 },
                 {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest Shadows of Custodia"
-                },
-                {
                     itemId: 363,
                     level: 46,
                     name: "Catch bass"
-                },
-                {
-                    itemId: 25670,
-                    level: 46,
-                    name: "Catch catfish (with Quest Below Ice Mountain completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 46,
-                    name: "Required to complete Diary Medium Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 46,
-                    name: "Required to complete Diary Medium Western Provinces Diary"
-                },
-                {
-                    itemId: 21655,
-                    level: 47,
-                    name: "Catch Pufferfishs (with Hunter 44 and Quest Bone Voyage completed)"
-                },
-                {
-                    itemId: 11328,
-                    level: 48,
-                    name: "Catch leaping trout (with Strength 15, Agility 15, and partial completion of the Barbarian Train",
-                    description: "ing miniquest)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Rum Deal"
                 },
                 {
                     itemId: -1,
@@ -291,42 +180,9 @@ export const fishingSkillGuide: SkillGuideData = {
                     name: "Catch swordtip squid"
                 },
                 {
-                    itemId: 2148,
-                    level: 53,
-                    name: "Catch lava eels (with partial completion of Quest Heroes' Quest)"
-                },
-                {
-                    itemId: -1,
-                    level: 53,
-                    name: "Required for Quest Heroes' Quest"
-                },
-                {
-                    itemId: -1,
-                    level: 53,
-                    name: "Required to complete Diary Hard Wilderness Diary"
-                },
-                {
-                    itemId: 359,
-                    level: 55,
-                    name: "Catch tuna barehanded (with Strength 35 and partial completion of the Barbarian Training minique",
-                    description: "st)"
-                },
-                {
-                    itemId: 25564,
-                    level: 55,
-                    name: "Catch harpoonfish barehanded (with Strength 35 and partial completion of the Barbarian Training ",
-                    description: "miniquest)"
-                },
-                {
                     itemId: 22829,
                     level: 56,
                     name: "Catch common tenches (with Hunter 51)"
-                },
-                {
-                    itemId: 11330,
-                    level: 58,
-                    name: "Catch leaping salmon (with Strength 30, Agility 30, and partial completion of the Barbarian Trai",
-                    description: "ning miniquest)"
                 },
                 {
                     itemId: 20863,
@@ -334,39 +190,9 @@ export const fishingSkillGuide: SkillGuideData = {
                     name: "Catch mycil fish"
                 },
                 {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required for Quest The Fremennik Exiles"
-                },
-                {
                     itemId: 21028,
                     level: 61,
                     name: "Use dragon harpoons"
-                },
-                {
-                    itemId: 7944,
-                    level: 62,
-                    name: "Catch monkfish (with partial completion of Quest Swan Song)"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required for Quest Swan Song"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
-                },
-                {
-                    itemId: 3142,
-                    level: 65,
-                    name: "Catch karambwan (with Quest Tai Bwo Wannai Trio completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Required to complete Diary Medium Karamja Diary"
                 },
                 {
                     itemId: -1,
@@ -387,28 +213,6 @@ export const fishingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 69,
                     name: "Catch from a shimmering shoal"
-                },
-                {
-                    itemId: 11332,
-                    level: 70,
-                    name: "Catch leaping sturgeon (with Strength 45, Agility 45, and partial completion of the Barbarian Tr",
-                    description: "aining miniquest)"
-                },
-                {
-                    itemId: 371,
-                    level: 70,
-                    name: "Catch swordfish barehanded (with Strength 50 and partial completion of the Barbarian Training mi",
-                    description: "niquest)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Kandarin Diary"
-                },
-                {
-                    itemId: 23762,
-                    level: 71,
-                    name: "Use crystal harpoons (with Quest Song of the Elves completed)"
                 },
                 {
                     itemId: 22832,
@@ -441,16 +245,6 @@ export const fishingSkillGuide: SkillGuideData = {
                     name: "Catch from a glistening shoal"
                 },
                 {
-                    itemId: -1,
-                    level: 76,
-                    name: "Required to complete Diary Elite Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 78,
-                    name: "Catch leechfin (with Quest The Blood Moon Rises completed)"
-                },
-                {
                     itemId: 395,
                     level: 79,
                     name: "Catch sea turtle"
@@ -471,25 +265,9 @@ export const fishingSkillGuide: SkillGuideData = {
                     name: "Catch manta rays"
                 },
                 {
-                    itemId: -1,
-                    level: 81,
-                    name: "Required to complete Diary Elite Ardougne Diary"
-                },
-                {
                     itemId: 13439,
                     level: 82,
                     name: "Catch anglerfish"
-                },
-                {
-                    itemId: -1,
-                    level: 82,
-                    name: "Catch Minnow 5s (with Quest Fishing Contest completed and showing Kylie Minnow a full set of the",
-                    description: " Angler's outfit in the Fishing Guild)"
-                },
-                {
-                    itemId: -1,
-                    level: 82,
-                    name: "Required to complete Diary Elite Kourend & Kebos Diary"
                 },
                 {
                     itemId: -1,
@@ -503,18 +281,8 @@ export const fishingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Wilderness Diary"
-                },
-                {
-                    itemId: -1,
                     level: 86,
                     name: "Catch from a vibrant shoal"
-                },
-                {
-                    itemId: 13339,
-                    level: 87,
-                    name: "Catch sacred eels (with partial completion of Quest Regicide)"
                 },
                 {
                     itemId: -1,
@@ -535,17 +303,6 @@ export const fishingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 91,
                     name: "Catch marlin"
-                },
-                {
-                    itemId: 383,
-                    level: 96,
-                    name: "Catch sharks barehanded (with Strength 76 and partial completion of the Barbarian Training miniq",
-                    description: "uest)"
-                },
-                {
-                    itemId: -1,
-                    level: 96,
-                    name: "Required to complete Diary Elite Morytania Diary"
                 },
                 {
                     itemId: 9798,

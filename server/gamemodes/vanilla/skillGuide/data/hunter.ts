@@ -65,16 +65,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Catch Golden warbler icons"
                 },
                 {
-                    itemId: 21512,
-                    level: 5,
-                    name: "Use bird houses (with Crafting 5 and Quest Bone Voyage completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required to complete Diary Easy Desert Diary"
-                },
-                {
                     itemId: -1,
                     level: 7,
                     name: "Track Feldip Weasel icons"
@@ -85,19 +75,9 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Catch Copper longtail icons"
                 },
                 {
-                    itemId: -1,
-                    level: 9,
-                    name: "Required to complete Diary Easy Western Provinces Diary"
-                },
-                {
                     itemId: 10061,
                     level: 10,
                     name: "Wear Desert camo top"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Cold War"
                 },
                 {
                     itemId: -1,
@@ -106,23 +86,8 @@ export const hunterSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 11,
-                    name: "Required to complete Diary Easy Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 12,
-                    name: "Required for Quest The Ascent of Arceuus"
-                },
-                {
-                    itemId: -1,
                     level: 13,
                     name: "Track Desert devil icons"
-                },
-                {
-                    itemId: 21515,
-                    level: 14,
-                    name: "Use oak bird houses (with Crafting 15 and Quest Bone Voyage completed)"
                 },
                 {
                     itemId: 20873,
@@ -150,11 +115,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Use butterfly nets"
                 },
                 {
-                    itemId: -1,
-                    level: 17,
-                    name: "Access to Puro-Puro without completing Quest Lost City via temporary crop circles"
-                },
-                {
                     itemId: 11238,
                     level: 17,
                     name: "Catch Baby impling jars (with butterfly net/magic butterfly net)"
@@ -163,11 +123,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 19,
                     name: "Catch Tropical wagtail icons"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Perilous Moons"
                 },
                 {
                     itemId: -1,
@@ -183,11 +138,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 23,
                     name: "Catch Wild kebbit icons"
-                },
-                {
-                    itemId: 21518,
-                    level: 24,
-                    name: "Use willow bird houses (with Crafting 25 and Quest Bone Voyage completed)"
                 },
                 {
                     itemId: 10132,
@@ -215,16 +165,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Catch baby impling jars (barehanded)"
                 },
                 {
-                    itemId: 10092,
-                    level: 27,
-                    name: "Catch ferrets (with Quest Eagles' Peak completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 27,
-                    name: "Catch White rabbit icons (with Quest Eagles' Peak completed)"
-                },
-                {
                     itemId: 10008,
                     level: 27,
                     name: "Use box traps"
@@ -233,11 +173,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     itemId: 10031,
                     level: 27,
                     name: "Use rabbit snares"
-                },
-                {
-                    itemId: -1,
-                    level: 27,
-                    name: "Required for Quest Eagles' Peak"
                 },
                 {
                     itemId: 11242,
@@ -255,11 +190,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Catch swamp lizards"
                 },
                 {
-                    itemId: -1,
-                    level: 29,
-                    name: "Required to complete Diary Medium Morytania Diary"
-                },
-                {
                     itemId: 20875,
                     level: 30,
                     name: "Catch giral bats"
@@ -275,11 +205,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Use teasing sticks"
                 },
                 {
-                    itemId: -1,
-                    level: 31,
-                    name: "Required to complete Diary Medium Western Provinces Diary"
-                },
-                {
                     itemId: 11240,
                     level: 32,
                     name: "Catch Young impling jars (barehanded)"
@@ -288,11 +213,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 33,
                     name: "Catch Barb-tailed kebbit icons"
-                },
-                {
-                    itemId: 21521,
-                    level: 34,
-                    name: "Use teak bird houses (with Crafting 35 and Quest Bone Voyage completed)"
                 },
                 {
                     itemId: 22826,
@@ -307,22 +227,12 @@ export const hunterSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 35,
-                    name: "Required to complete Diary Medium Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
                     name: "Catch Sapphire glacialis icon (barehanded)"
                 },
                 {
                     itemId: 11244,
                     level: 36,
                     name: "Catch Earth impling jars (with butterfly net/magic butterfly net)"
-                },
-                {
-                    itemId: -1,
-                    level: 36,
-                    name: "Required for Quest Shadows of Custodia"
                 },
                 {
                     itemId: -1,
@@ -365,34 +275,14 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Catch Horned graahk icons"
                 },
                 {
-                    itemId: -1,
-                    level: 41,
-                    name: "Required to complete Diary Medium Karamja Diary"
-                },
-                {
                     itemId: 11246,
                     level: 42,
                     name: "Catch Essence impling jars (with butterfly net/magic butterfly net)"
                 },
                 {
                     itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Medium Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
                     level: 43,
                     name: "Catch Spotted kebbit icons"
-                },
-                {
-                    itemId: 21655,
-                    level: 44,
-                    name: "Catch Pufferfishs (with Fishing 47 and Quest Bone Voyage completed)"
-                },
-                {
-                    itemId: 22192,
-                    level: 44,
-                    name: "Use maple bird houses (with Crafting 45 and Quest Bone Voyage completed)"
                 },
                 {
                     itemId: -1,
@@ -410,11 +300,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Catch phluxia bats"
                 },
                 {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest Troubled Tortugans"
-                },
-                {
                     itemId: 11244,
                     level: 46,
                     name: "Catch Earth impling jars (barehanded)"
@@ -425,19 +310,9 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Access to the Hunter Guild & Basic Hunters' Rumours"
                 },
                 {
-                    itemId: -1,
-                    level: 46,
-                    name: "Required for Quest At First Light"
-                },
-                {
                     itemId: 10146,
                     level: 47,
                     name: "Catch orange salamanders"
-                },
-                {
-                    itemId: -1,
-                    level: 47,
-                    name: "Required to complete Diary Medium Desert Diary"
                 },
                 {
                     itemId: -1,
@@ -450,20 +325,10 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Track Razor-backed kebbit icons"
                 },
                 {
-                    itemId: 22195,
-                    level: 49,
-                    name: "Use mahogany bird houses (with Crafting 50 and Quest Bone Voyage completed)"
-                },
-                {
                     itemId: 11248,
                     level: 50,
                     name: "Catch Eclectic impling jars (with butterfly net/magic butterfly net)"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 50,
@@ -495,21 +360,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Wear Kyatt top"
                 },
                 {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required for Quest Defender of Varrock"
-                },
-                {
-                    itemId: 9976,
-                    level: 53,
-                    name: "Catch chinchompas (with Quest Eagles' Peak completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 53,
-                    name: "Required to complete Diary Medium Kourend & Kebos Diary"
-                },
-                {
                     itemId: 10075,
                     level: 54,
                     name: "Wear gloves of silence"
@@ -522,17 +372,7 @@ export const hunterSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 55,
-                    name: "Required to complete Diary Hard Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
                     name: "Catch Black warlock icons (barehanded)"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Required for Quest Secrets of the North"
                 },
                 {
                     itemId: -1,
@@ -560,16 +400,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Catch red salamanders"
                 },
                 {
-                    itemId: 22198,
-                    level: 59,
-                    name: "Use yew bird houses (with Crafting 60 and Quest Bone Voyage completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 59,
-                    name: "Required to complete Diary Hard Ardougne Diary"
-                },
-                {
                     itemId: 11248,
                     level: 60,
                     name: "Catch Eclectic impling jars (barehanded)"
@@ -587,27 +417,7 @@ export const hunterSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 60,
-                    name: "Catch maniacal monkeys (with Quest Monkey Madness II completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
                     name: "Lay 4 traps at a time"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required for Quest Monkey Madness II"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required for Quest While Guthix Sleeps"
-                },
-                {
-                    itemId: 9977,
-                    level: 63,
-                    name: "Catch Red chinchompas (with Quest Eagles' Peak completed)"
                 },
                 {
                     itemId: 11252,
@@ -620,29 +430,14 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Catch Sunlight Moth icons"
                 },
                 {
-                    itemId: -1,
-                    level: 65,
-                    name: "Required for Quest The Blood Moon Rises"
-                },
-                {
                     itemId: 10071,
                     level: 66,
                     name: "Wear spottier capes"
                 },
                 {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required to complete Diary Hard Varrock Diary"
-                },
-                {
                     itemId: 10148,
                     level: 67,
                     name: "Catch black salamanders"
-                },
-                {
-                    itemId: -1,
-                    level: 67,
-                    name: "Required to complete Diary Hard Wilderness Diary"
                 },
                 {
                     itemId: 22832,
@@ -661,19 +456,14 @@ export const hunterSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 69,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Song of the Elves"
-                },
-                {
-                    itemId: -1,
                     level: 71,
                     name: "Catch Imp icons"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: 10025,
                     level: 71,
@@ -690,19 +480,9 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Expert Hunters' Rumours"
                 },
                 {
-                    itemId: 11959,
-                    level: 73,
-                    name: "Catch black chinchompas (with Quest Eagles' Peak completed)"
-                },
-                {
                     itemId: 11254,
                     level: 74,
                     name: "Catch Ninja impling jars (with butterfly net/magic butterfly net)"
-                },
-                {
-                    itemId: 22201,
-                    level: 74,
-                    name: "Use magic bird houses (with Crafting 75 and Quest Bone Voyage completed)"
                 },
                 {
                     itemId: 11252,
@@ -726,11 +506,6 @@ export const hunterSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 76,
-                    name: "Catch letvek icon (with Quest The Blood Moon Rises completed)"
-                },
-                {
-                    itemId: -1,
                     level: 77,
                     name: "Catch Rainbow crab (1)s (with Construction 10)"
                 },
@@ -740,25 +515,9 @@ export const hunterSkillGuide: SkillGuideData = {
                     name: "Catch Tecu salamanders"
                 },
                 {
-                    itemId: 23768,
-                    level: 80,
-                    name: "Catch Crystal impling jars (with butterfly net/magic butterfly net and Quest Song of the Elves c",
-                    description: "ompleted)"
-                },
-                {
                     itemId: -1,
                     level: 80,
                     name: "Lay 5 traps at a time"
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Track Herbiboar icons (with Herblore 31 and Quest Bone Voyage completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 82,
-                    name: "Catch stymphike icons (with Quest The Blood Moon Rises completed)"
                 },
                 {
                     itemId: 11256,
@@ -784,16 +543,6 @@ export const hunterSkillGuide: SkillGuideData = {
                     itemId: 19732,
                     level: 89,
                     name: "Catch Lucky impling jars (with butterfly net/magic butterfly net)"
-                },
-                {
-                    itemId: 22204,
-                    level: 89,
-                    name: "Use redwood bird houses (with Crafting 90 and Quest Bone Voyage completed)"
-                },
-                {
-                    itemId: 23768,
-                    level: 90,
-                    name: "Catch Crystal impling jars (barehanded with Quest Song of the Elves completed)"
                 },
                 {
                     itemId: 20883,

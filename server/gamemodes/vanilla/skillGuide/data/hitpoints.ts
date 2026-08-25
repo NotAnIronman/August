@@ -86,11 +86,6 @@ export const hitpointsSkillGuide: SkillGuideData = {
                     description: "2)"
                 },
                 {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
-                },
-                {
                     itemId: 6685,
                     level: 47,
                     name: "Heal +9 Hitpoints with Saradomin brew(4)"
@@ -121,11 +116,6 @@ export const hitpointsSkillGuide: SkillGuideData = {
                     name: "Heal +11 Hitpoints with Anglerfish"
                 },
                 {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Dragon Slayer II"
-                },
-                {
                     itemId: 6685,
                     level: 54,
                     name: "Heal +10 Hitpoints with Saradomin brew(4)"
@@ -154,11 +144,6 @@ export const hitpointsSkillGuide: SkillGuideData = {
                     itemId: 13441,
                     level: 70,
                     name: "Heal +13 Hitpoints with Anglerfish"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Elite Fremennik Diary"
                 },
                 {
                     itemId: 6685,

@@ -20,11 +20,6 @@ export const miningSkillGuide: SkillGuideData = {
                     name: "Mine copper ore"
                 },
                 {
-                    itemId: 1436,
-                    level: 1,
-                    name: "Mine rune essence (with Quest Rune Mysteries completed)"
-                },
-                {
                     itemId: 438,
                     level: 1,
                     name: "Mine tin ore"
@@ -55,19 +50,9 @@ export const miningSkillGuide: SkillGuideData = {
                     name: "Mine stardust from size-1 crashed stars"
                 },
                 {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest The Knight's Sword"
-                },
-                {
                     itemId: 12297,
                     level: 11,
                     name: "Use black pickaxes"
-                },
-                {
-                    itemId: 25676,
-                    level: 14,
-                    name: "Mine barronite shards and barronite deposits (with Quest Below Ice Mountain completed)"
                 },
                 {
                     itemId: 440,
@@ -187,97 +172,12 @@ export const miningSkillGuide: SkillGuideData = {
             ]
         },
         {
-            label: "Members 1",
+            label: "Members",
             entries: [
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required to complete Diary Easy Desert Diary"
-                },
                 {
                     itemId: 3211,
                     level: 10,
                     name: "Mine limestone"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Tale of the Righteous"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required to complete Diary Easy Falador Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required for Quest In Aid of the Myreque"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Varrock Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Wilderness Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 17,
-                    name: "Required for Quest The Lost Tribe"
-                },
-                {
-                    itemId: 9632,
-                    level: 20,
-                    name: "Mine daeyalt ore (with partial completion of Quest Darkness of Hallowvale)"
-                },
-                {
-                    itemId: 2892,
-                    level: 20,
-                    name: "Mine elemental ore (with partial completion of Quest Elemental Workshop I)"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Darkness of Hallowvale"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Elemental Workshop I"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Tears of Guthix"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required to complete Diary Easy Fremennik Diary"
-                },
-                {
-                    itemId: 21622,
-                    level: 22,
-                    name: "Mine 1 volcanic ash per action (with Quest Bone Voyage completed)"
                 },
                 {
                     itemId: -1,
@@ -295,84 +195,14 @@ export const miningSkillGuide: SkillGuideData = {
                     name: "Mine pay-dirt"
                 },
                 {
-                    itemId: 7936,
-                    level: 30,
-                    name: "Mine pure essence (with Quest Rune Mysteries completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Medium Kandarin Diary"
-                },
-                {
                     itemId: 6971,
                     level: 35,
                     name: "Mine Sandstone (10kg)"
                 },
                 {
-                    itemId: 21622,
-                    level: 37,
-                    name: "Mine 2 volcanic ashes per action (with Quest Bone Voyage completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 37,
-                    name: "Required for Quest Spirits of the Elid"
-                },
-                {
                     itemId: 13445,
                     level: 38,
                     name: "Mine dense essence blocks (with Crafting 38)"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Required to complete Diary Elite Kourend & Kebos Diary"
-                },
-                {
-                    itemId: 1623,
-                    level: 40,
-                    name: "Mine Uncut sapphire (with Quest Shilo Village completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Between a Rock..."
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Family Crest"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Watchtower"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Easy Karamja Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Medium Falador Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Medium Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Medium Karamja Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Medium Western Provinces Diary"
                 },
                 {
                     itemId: -1,
@@ -383,16 +213,6 @@ export const miningSkillGuide: SkillGuideData = {
                     itemId: 13571,
                     level: 42,
                     name: "Mine volcanic sulphur"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required for Quest A Kingdom Divided"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Medium Kourend & Kebos Diary"
                 },
                 {
                     itemId: 13575,
@@ -411,70 +231,13 @@ export const miningSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 45,
-                    name: "Required to complete Diary Hard Desert Diary"
-                },
-                {
-                    itemId: -1,
                     level: 48,
                     name: "Mine rubium splinters"
-                },
-                {
-                    itemId: 21532,
-                    level: 50,
-                    name: "Access to the Volcanic Mine and mine iron ore fragments, silver ore fragments, coal fragments, a",
-                    description: "nd gold ore fragments from the boulder inside (with Quest Bone Voyage completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Heroes' Quest"
-                },
-                {
-                    itemId: 21622,
-                    level: 52,
-                    name: "Mine 3 volcanic ashes per action (with Quest Bone Voyage completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required for Quest Legends' Quest"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required to complete Diary Hard Karamja Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 53,
-                    name: "Required for Quest Fallen From Grace"
                 },
                 {
                     itemId: 447,
                     level: 55,
                     name: "Possibility of obtaining mithril ore from pay-dirt"
-                },
-                {
-                    itemId: 21536,
-                    level: 55,
-                    name: "Mine mithril ore fragments from the boulder in the Volcanic Mine (with Quest Bone Voyage complet",
-                    description: "ed)"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required for Quest The Heart of Darkness"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required to complete Diary Hard Morytania Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required to complete Diary Medium Wilderness Diary"
                 },
                 {
                     itemId: 12012,
@@ -488,29 +251,9 @@ export const miningSkillGuide: SkillGuideData = {
                     name: "Access to the member section of the Mining Guild"
                 },
                 {
-                    itemId: 9076,
-                    level: 60,
-                    name: "Mine lunar ore (with partial completion of Quest Lunar Diplomacy)"
-                },
-                {
-                    itemId: 24706,
-                    level: 60,
-                    name: "Mine Daeyalt shards (with completion of Quest Sins of the Father)"
-                },
-                {
                     itemId: 449,
                     level: 60,
                     name: "Possibility of obtaining adamantite ore from blasted ore"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required for Quest Lunar Diplomacy"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Hard Falador Diary"
                 },
                 {
                     itemId: 20014,
@@ -528,39 +271,9 @@ export const miningSkillGuide: SkillGuideData = {
                     name: "Use infernal pickaxes (with Smithing 85)"
                 },
                 {
-                    itemId: -1,
-                    level: 64,
-                    name: "Mine Tainted essence chunk, with partial completion of Quest Desert Treasure II"
-                },
-                {
-                    itemId: -1,
-                    level: 64,
-                    name: "Required for Quest The Curse of Arrav"
-                },
-                {
                     itemId: 13356,
                     level: 65,
                     name: "Mine lovakite ore"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Required to complete Diary Hard Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required for Quest The Blood Moon Rises"
-                },
-                {
-                    itemId: 21622,
-                    level: 67,
-                    name: "Mine 4 volcanic ashes per action (with Quest Bone Voyage completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 68,
-                    name: "Required for Quest Dragon Slayer II"
                 },
                 {
                     itemId: 21392,
@@ -571,62 +284,6 @@ export const miningSkillGuide: SkillGuideData = {
                     itemId: 449,
                     level: 70,
                     name: "Possibility of obtaining adamantite ore from pay-dirt"
-                },
-                {
-                    itemId: 21537,
-                    level: 70,
-                    name: "Mine adamantite ore fragments from the boulder in the Volcanic Mine (with Quest Bone Voyage comp",
-                    description: "leted)"
-                },
-                {
-                    itemId: 1761,
-                    level: 70,
-                    name: "Mine soft clay from soft clay rocks (with Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Song of the Elves"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
-                },
-                {
-                    itemId: 23680,
-                    level: 71,
-                    name: "Use crystal pickaxes (with Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 22603,
-                    level: 72,
-                    name: "Mine basalt (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: 22595,
-                    level: 72,
-                    name: "Mine 2-4 efh salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: 22593,
-                    level: 72,
-                    name: "Mine 2-4 te salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: 22597,
-                    level: 72,
-                    name: "Mine 2-4 urt salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 72,
-                    name: "Required for Quest Making Friends with My Arm"
                 },
                 {
                     itemId: -1,
@@ -642,42 +299,6 @@ export const miningSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 75,
                     name: "Mine ancient essence"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
-                {
-                    itemId: -1,
-                    level: 78,
-                    name: "Access to the advanced cave shortcut (tunnel to Meiyerditch Laboratories) (with Quest Darkness o",
-                    description: "f Hallowvale completed and Agility 93)"
-                },
-                {
-                    itemId: -1,
-                    level: 78,
-                    name: "Mine infernal shale (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: 22595,
-                    level: 81,
-                    name: "Mine 3-5 efh salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: 22593,
-                    level: 81,
-                    name: "Mine 3-5 te salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: 22597,
-                    level: 81,
-                    name: "Mine 3-5 urt salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: 21622,
-                    level: 82,
-                    name: "Mine 5 volcanic ashes per action (with Quest Bone Voyage completed)"
                 },
                 {
                     itemId: 451,
@@ -685,73 +306,15 @@ export const miningSkillGuide: SkillGuideData = {
                     name: "Possibility of obtaining runite ore from pay-dirt"
                 },
                 {
-                    itemId: 21538,
-                    level: 85,
-                    name: "Mine runite ore fragments from the boulder in the Volcanic Mine (with Quest Bone Voyage complete",
-                    description: "d)"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Wilderness Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Deal 7 extra damage per hit to Het's Seal in the Tombs of Amascut (with Quest Beneath Cursed San",
-                    description: "ds completed)"
-                },
-                {
-                    itemId: 22595,
-                    level: 90,
-                    name: "Mine 4-6 efh salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: 22593,
-                    level: 90,
-                    name: "Mine 4-6 te salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: 22597,
-                    level: 90,
-                    name: "Mine 4-6 urt salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
                     itemId: 21347,
                     level: 92,
                     name: "Mine amethyst"
-                },
-                {
-                    itemId: 21622,
-                    level: 97,
-                    name: "Mine 6 volcanic ashes per action (with Quest Bone Voyage completed)"
                 },
                 {
                     itemId: 9792,
                     level: 99,
                     name: "Buy the mining cape and hood from Gadrin near the Mining Guild entrance south of the east bank i",
                     description: "n Falador, and wear them"
-                },
-                {
-                    itemId: 22595,
-                    level: 99,
-                    name: "Mine 5-7 efh salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: 22593,
-                    level: 99,
-                    name: "Mine 5-7 te salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: 22597,
-                    level: 99,
-                    name: "Mine 5-7 urt salt per action (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 99,
-                    name: "Deal 9 extra damage per hit to Het's Seal in the Tombs of Amascut (with Quest Beneath Cursed San",
-                    description: "ds completed)"
                 }
             ]
         }

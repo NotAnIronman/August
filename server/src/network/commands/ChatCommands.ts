@@ -33,6 +33,7 @@ const BUILTIN_COMMAND_PERMISSIONS: Readonly<Record<string, PlayerPermission>> = 
     bank: "developer",
     devbank: "developer",
     item: "developer",
+    itemmodel: "developer",
     itemspawner: "developer",
     kill: "developer",
     levelup: "developer",

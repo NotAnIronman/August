@@ -76,11 +76,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     name: "Grow jute fibres"
                 },
                 {
-                    itemId: -1,
-                    level: 13,
-                    name: "Required to complete Diary Easy Kandarin Diary"
-                },
-                {
                     itemId: 201,
                     level: 14,
                     name: "Grow grimy marrentills"
@@ -97,11 +92,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     name: "Grow yanillian hops"
                 },
                 {
-                    itemId: -1,
-                    level: 17,
-                    name: "Required for Quest Forgettable Tale..."
-                },
-                {
                     itemId: 1779,
                     level: 18,
                     name: "Grow flax"
@@ -115,11 +105,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     itemId: 5986,
                     level: 20,
                     name: "Grow sweetcorn"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest The Garden of Death"
                 },
                 {
                     itemId: 6000,
@@ -157,16 +142,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     name: "Grow woad leaves"
                 },
                 {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest Garden of Tranquillity"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required to complete Diary Medium Varrock Diary"
-                },
-                {
                     itemId: 205,
                     level: 26,
                     name: "Grow grimy harralanders"
@@ -177,23 +152,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     name: "Grow limpwurt roots"
                 },
                 {
-                    itemId: -1,
-                    level: 26,
-                    name: "Required to complete Diary Medium Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 26,
-                    name: "Completion of the Medium Kandarin Diary grants a 5% higher yield of herbs from the Catherby herb",
-                    description: " patch"
-                },
-                {
-                    itemId: -1,
-                    level: 26,
-                    name: "Completion of the Diary Hard Kandarin Diary grants a 10% higher yield of herbs from the Catherby",
-                    description: " herb patch"
-                },
-                {
                     itemId: 1955,
                     level: 27,
                     name: "Grow Cooking apples (produces cooking apples when fully grown)"
@@ -202,11 +160,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     itemId: 20905,
                     level: 27,
                     name: "Grow golpars"
-                },
-                {
-                    itemId: -1,
-                    level: 27,
-                    name: "Required to complete Diary Medium Karamja Diary"
                 },
                 {
                     itemId: 6002,
@@ -224,20 +177,10 @@ export const farmingSkillGuide: SkillGuideData = {
                     name: "Grow goutweed"
                 },
                 {
-                    itemId: -1,
-                    level: 29,
-                    name: "Required for Quest My Arm's Big Adventure"
-                },
-                {
                     itemId: 1519,
                     level: 30,
                     name: "Grow Willow trees (produces willow logs when chopped, willow roots when dug up, and willow leave",
                     description: "s when pruned if diseased)"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Enlightened Journey"
                 },
                 {
                     itemId: 5504,
@@ -248,11 +191,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     itemId: 6043,
                     level: 31,
                     name: "Obtain three oak roots when digging up a fully grown oak tree"
-                },
-                {
-                    itemId: -1,
-                    level: 31,
-                    name: "Required to complete Diary Medium Ardougne Diary"
                 },
                 {
                     itemId: 207,
@@ -315,11 +253,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     name: "Obtain four oak roots when digging up a fully grown oak tree"
                 },
                 {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Rum Deal"
-                },
-                {
                     itemId: 5970,
                     level: 42,
                     name: "Grow Curry leafs (produces curry leaves when fully grown)"
@@ -346,16 +279,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     name: "Complete easy farming contracts"
                 },
                 {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest Grim Tales"
-                },
-                {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required to complete Diary Medium Kourend & Kebos Diary"
-                },
-                {
                     itemId: 6045,
                     level: 46,
                     name: "Obtain three willow roots when digging up a fully grown willow"
@@ -374,11 +297,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 49,
                     name: "Pick Star flower ()"
-                },
-                {
-                    itemId: -1,
-                    level: 49,
-                    name: "Required for Quest Fairytale II - Cure a Queen"
                 },
                 {
                     itemId: 211,
@@ -409,11 +327,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     itemId: 6047,
                     level: 53,
                     name: "Obtain two maple roots when digging up a fully grown maple tree"
-                },
-                {
-                    itemId: -1,
-                    level: 53,
-                    name: "Required to complete Diary Hard Morytania Diary"
                 },
                 {
                     itemId: 13427,
@@ -465,12 +378,7 @@ export const farmingSkillGuide: SkillGuideData = {
                     level: 60,
                     name: "Grow yew trees (produces yew logs when chopped, yew roots when dug up, and yew leaves when prune",
                     description: "d if diseased)"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: 231,
                     level: 61,
@@ -490,11 +398,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 63,
                     name: "Grow nightshades"
-                },
-                {
-                    itemId: -1,
-                    level: 63,
-                    name: "Required to complete Diary Hard Lumbridge & Draynor Diary"
                 },
                 {
                     itemId: 3138,
@@ -523,11 +426,6 @@ export const farmingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 65,
-                    name: "Required for Quest While Guthix Sleeps"
-                },
-                {
-                    itemId: -1,
                     level: 66,
                     name: "Grow camphor trees (produces camphor logs when chopped)"
                 },
@@ -547,16 +445,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     name: "Obtain two yew roots when digging up a fully grown yew tree"
                 },
                 {
-                    itemId: -1,
-                    level: 68,
-                    name: "Required to complete Diary Hard Varrock Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 68,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
-                },
-                {
                     itemId: 6047,
                     level: 69,
                     name: "Obtain four maple roots when digging up a fully grown maple tree"
@@ -568,16 +456,6 @@ export const farmingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Song of the Elves"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Ardougne Diary"
-                },
-                {
-                    itemId: -1,
                     level: 71,
                     name: "Grow Cotton bolls"
                 },
@@ -585,21 +463,16 @@ export const farmingSkillGuide: SkillGuideData = {
                     itemId: 5980,
                     level: 72,
                     name: "Grow Calquat fruits (produces calquat fruits when fully grown)"
-                },
-                {
-                    itemId: -1,
-                    level: 72,
-                    name: "Required to complete Diary Elite Karamja Diary"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: 2485,
                     level: 73,
                     name: "Grow grimy lantadymes"
-                },
-                {
-                    itemId: 23962,
-                    level: 74,
-                    name: "Grow Crystal shards (with Quest Song of the Elves completed)"
                 },
                 {
                     itemId: 13428,
@@ -607,26 +480,10 @@ export const farmingSkillGuide: SkillGuideData = {
                     name: "Grow logavano fruit (at the Tithe Farm)"
                 },
                 {
-                    itemId: -1,
-                    level: 74,
-                    name: "Required to complete Diary Hard Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 74,
-                    name: "Completion of the Hard Kourend & Kebos Diary grants a 5% higher yield of herbs from the Hosidius",
-                    description: " and Farming Guild herb patches"
-                },
-                {
                     itemId: 1513,
                     level: 75,
                     name: "Grow magic trees (produces magic logs when chopped, magic roots when dug up, and magic leaves wh",
                     description: "en pruned if diseased)"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
                 },
                 {
                     itemId: -1,
@@ -657,17 +514,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     itemId: 217,
                     level: 79,
                     name: "Grow grimy dwarf weeds"
-                },
-                {
-                    itemId: -1,
-                    level: 79,
-                    name: "Required to complete Diary Elite Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 79,
-                    name: "Completion of the Elite Kandarin Diary grants a 15% higher yield of herbs from the Catherby herb",
-                    description: " patch"
                 },
                 {
                     itemId: -1,
@@ -736,16 +582,6 @@ export const farmingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Ardougne Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
                     level: 88,
                     name: "Can have two spirit trees grown"
                 },
@@ -758,11 +594,6 @@ export const farmingSkillGuide: SkillGuideData = {
                     itemId: 6051,
                     level: 91,
                     name: "Obtain three magic roots when digging up a fully grown magic tree"
-                },
-                {
-                    itemId: -1,
-                    level: 91,
-                    name: "Required to complete Diary Elite Falador Diary"
                 },
                 {
                     itemId: -1,

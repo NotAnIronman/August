@@ -85,16 +85,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     name: "Wear Decorative armour (gold platebody)"
                 },
                 {
-                    itemId: 1127,
-                    level: 40,
-                    name: "Wear Rune platebody (with Quest Dragon Slayer I completed for platebody)"
-                },
-                {
-                    itemId: 1135,
-                    level: 40,
-                    name: "Wear green d'hide bodies (with Ranged 40 and Quest Dragon Slayer I completed)"
-                },
-                {
                     itemId: -1,
                     level: 99,
                     name: "Skill mastery"
@@ -130,11 +120,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     name: "Wear Slayer helmets (with Crafting 55 and 400 Slayer reward points spent)"
                 },
                 {
-                    itemId: 6617,
-                    level: 10,
-                    name: "Wear White platebody (with Quest Wanted! completed)"
-                },
-                {
                     itemId: 13387,
                     level: 10,
                     name: "Wear Xerician top (with Magic 20)"
@@ -153,16 +138,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     itemId: 22269,
                     level: 10,
                     name: "Wield hard leather shields (with Ranged 20)"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required to complete Diary hard Desert Diary"
-                },
-                {
-                    itemId: 5575,
-                    level: 20,
-                    name: "Wear Initiate hauberk (with Prayer 10 and Quest Recruitment Drive completed)"
                 },
                 {
                     itemId: 4091,
@@ -198,16 +173,6 @@ export const defenceSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 20,
-                    name: "Required for Quest Rag and Bone Man II"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required to complete Diary medium Falador Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
                     name: "Wear corrupted Ancient Warriors' equipment (only usable in Bounty Hunter)"
                 },
                 {
@@ -224,21 +189,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 25,
                     name: "Wield Neitiznot shield"
-                },
-                {
-                    itemId: 3748,
-                    level: 30,
-                    name: "Wear Fremennik helms (with Quest The Fremennik Trials completed)"
-                },
-                {
-                    itemId: 7917,
-                    level: 30,
-                    name: "Wear Ram skull helms (with Quest Rag and Bone Man II completed)"
-                },
-                {
-                    itemId: 9674,
-                    level: 30,
-                    name: "Wear Proselyte hauberk (with Prayer 20 and Quest Slug Menace completed)"
                 },
                 {
                     itemId: 24420,
@@ -261,11 +211,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     name: "Wield adamant defenders (with Attack 30)"
                 },
                 {
-                    itemId: 3758,
-                    level: 30,
-                    name: "Wield Fremennik shields (with Quest The Fremennik Trials completed)"
-                },
-                {
                     itemId: 22254,
                     level: 30,
                     name: "Wield willow shields"
@@ -281,24 +226,9 @@ export const defenceSkillGuide: SkillGuideData = {
                     name: "Wear Masori body (with Ranged 80)"
                 },
                 {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Between a Rock..."
-                },
-                {
                     itemId: 20038,
                     level: 35,
                     name: "Wear Samurai shirt"
-                },
-                {
-                    itemId: 6129,
-                    level: 40,
-                    name: "Wear Rock-shell plate (with Quest The Fremennik Trials completed)"
-                },
-                {
-                    itemId: 6133,
-                    level: 40,
-                    name: "Wear Spined body (with Ranged 40 and Quest The Fremennik Trials completed)"
                 },
                 {
                     itemId: 2499,
@@ -346,19 +276,9 @@ export const defenceSkillGuide: SkillGuideData = {
                     name: "Wear Hueycoatl hide coifs (with Ranged 70)"
                 },
                 {
-                    itemId: 6139,
-                    level: 40,
-                    name: "Wear Skeletal top (with Magic 40 and Quest The Fremennik Trials completed)"
-                },
-                {
                     itemId: 3387,
                     level: 40,
                     name: "Wear Splitbark body (with Magic 40)"
-                },
-                {
-                    itemId: 9097,
-                    level: 40,
-                    name: "Wear Lunar torso (with Magic 65 and Quest Lunar Diplomacy completed)"
                 },
                 {
                     itemId: 24291,
@@ -439,44 +359,9 @@ export const defenceSkillGuide: SkillGuideData = {
                     name: "Wield black d'hide shields (with Ranged 70)"
                 },
                 {
-                    itemId: 24265,
-                    level: 40,
-                    name: "Wield V's shield (with Slayer 60 and partial completion of Quest The Fremennik Exiles)"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Lunar Diplomacy"
-                },
-                {
                     itemId: 8839,
                     level: 42,
                     name: "Wear Void knight top (with Attack 42, Strength, Magic, Ranged, Hitpoints, and Prayer 22)"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary elite Western Provinces Diary"
-                },
-                {
-                    itemId: 3751,
-                    level: 45,
-                    name: "Wear berserker helms (with Quest The Fremennik Trials completed)"
-                },
-                {
-                    itemId: 3753,
-                    level: 45,
-                    name: "Wear warrior helms (with Quest The Fremennik Trials completed)"
-                },
-                {
-                    itemId: 3749,
-                    level: 45,
-                    name: "Wear archer helms (with Quest The Fremennik Trials completed)"
-                },
-                {
-                    itemId: 3755,
-                    level: 45,
-                    name: "Wear farseer helms (with Quest The Fremennik Trials completed)"
                 },
                 {
                     itemId: 10548,
@@ -518,11 +403,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     name: "Wield spirit shields (with Prayer 55)"
                 },
                 {
-                    itemId: 11200,
-                    level: 50,
-                    name: "Wear dwarven helmets (with Quest Grim Tales completed)"
-                },
-                {
                     itemId: 10564,
                     level: 50,
                     name: "Wear Granite body (with Strength 50)"
@@ -556,27 +436,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 50,
                     name: "Wear Eclipse moon chestplate (with Ranged 75)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary hard Falador Diary"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
-                {
-                    itemId: 10828,
-                    level: 55,
-                    name: "Wear the Helm of Neitiznot (with Quest The Fremennik Isles completed)"
-                },
-                {
-                    itemId: 21892,
-                    level: 60,
-                    name: "Wear Dragon platebody (with Quest Legends' Quest completed for square shield and Quest Dragon Sl",
-                    description: "ayer I completed for platebody)"
                 },
                 {
                     itemId: 21301,
@@ -630,11 +489,6 @@ export const defenceSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 65,
-                    name: "Required for Quest King's Ransom"
-                },
-                {
-                    itemId: -1,
                     level: 70,
                     name: "Use Piety (with Prayer 70 and completing the Knight Waves Training Grounds)"
                 },
@@ -647,11 +501,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 70,
                     name: "Use Augury (with Prayer 77 and unlocked using an arcane prayer scroll)"
-                },
-                {
-                    itemId: 24271,
-                    level: 70,
-                    name: "Wear Neitiznot faceguard (with Quest The Fremennik Exiles completed)"
                 },
                 {
                     itemId: 4720,
@@ -674,11 +523,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     name: "Wear Boots of Brimstone (with Magic 70 and Ranged)"
                 },
                 {
-                    itemId: 23991,
-                    level: 70,
-                    name: "Wield crystal shields (with Agility 50 and Quest Roving Elves completed)"
-                },
-                {
                     itemId: 22322,
                     level: 70,
                     name: "Wield Avernic defenders (with Attack 70)"
@@ -687,21 +531,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     itemId: 12831,
                     level: 70,
                     name: "Wield blessed spirit shields (with Prayer 60)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary hard Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary hard Morytania Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary elite Kandarin Diary"
                 },
                 {
                     itemId: 12929,
@@ -722,7 +551,12 @@ export const defenceSkillGuide: SkillGuideData = {
                     itemId: 21733,
                     level: 75,
                     name: "Wear guardian boots"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: -1,
                     level: 75,
@@ -742,21 +576,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     itemId: 13237,
                     level: 75,
                     name: "Wear pegasian boots (with Ranged 75)"
-                },
-                {
-                    itemId: 11283,
-                    level: 75,
-                    name: "Wield dragonfire shields (with partial completion of Quest Dragon Slayer I)"
-                },
-                {
-                    itemId: 21633,
-                    level: 75,
-                    name: "Wield ancient wyvern shields (with Magic 70 and partial completion of Quest Dragon Slayer I)"
-                },
-                {
-                    itemId: 22002,
-                    level: 75,
-                    name: "Wield dragonfire wards (with Ranged 70 and partial completion of Quest Dragon Slayer I)"
                 },
                 {
                     itemId: 21015,
@@ -797,11 +616,6 @@ export const defenceSkillGuide: SkillGuideData = {
                     itemId: 26378,
                     level: 80,
                     name: "Wear Torva platebody"
-                },
-                {
-                    itemId: 22981,
-                    level: 80,
-                    name: "Wear ferocious gloves (with Attack 80 and Quest Dragon Slayer II completed)"
                 },
                 {
                     itemId: -1,

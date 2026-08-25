@@ -145,34 +145,9 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                     name: "Chop with steel felling axes"
                 },
                 {
-                    itemId: 6281,
-                    level: 10,
-                    name: "Chop Thatch spar light (with quest Jungle Potion completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest My Arm's Big Adventure"
-                },
-                {
                     itemId: -1,
                     level: 11,
                     name: "Chop with black felling axes"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Fremennik Diary"
-                },
-                {
-                    itemId: 6283,
-                    level: 20,
-                    name: "Chop Thatch spar med (with quest Jungle Potion completed)"
                 },
                 {
                     itemId: -1,
@@ -186,23 +161,8 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Lumbridge & Draynor Medium Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Falador Medium Diary"
-                },
-                {
-                    itemId: -1,
                     level: 31,
                     name: "Chop with adamant felling axes"
-                },
-                {
-                    itemId: 6285,
-                    level: 35,
-                    name: "Chop Thatch spar dense (with quest Jungle Potion completed)"
                 },
                 {
                     itemId: 6333,
@@ -220,26 +180,6 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                     name: "Make secateurs attachments (with Smithing 35)"
                 },
                 {
-                    itemId: -1,
-                    level: 35,
-                    name: "Required for Quest Animal Magnetism"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Required to complete Diary Medium Desert Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Required to complete Diary Medium Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 36,
-                    name: "Required for Quest Lost City"
-                },
-                {
                     itemId: 9094,
                     level: 36,
                     name: "Receive a maximum of 3 Kindling from trees at Ice demon"
@@ -248,16 +188,6 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 40,
                     name: "Chop jatoba logs"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest The Fremennik Trials"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Troubled Tortugans"
                 },
                 {
                     itemId: -1,
@@ -285,11 +215,6 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                     name: "Chop bark"
                 },
                 {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required to complete Diary Medium Morytania Diary"
-                },
-                {
                     itemId: 9094,
                     level: 48,
                     name: "Receive a maximum of 4 Kindling from trees at Ice demon"
@@ -305,44 +230,9 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                     name: "Make clothes pouches (with Crafting 50)"
                 },
                 {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Legends' Quest"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Olaf's Quest"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Medium Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Medium Karamja Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Morytania Diary"
-                },
-                {
                     itemId: 10810,
                     level: 54,
                     name: "Chop arctic pine logs"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required for Quest Lunar Diplomacy"
                 },
                 {
                     itemId: 10812,
@@ -356,38 +246,8 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 56,
-                    name: "Required for Quest The Fremennik Isles"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Required to complete Diary Hard Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 57,
-                    name: "Required to complete Diary Hard Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
                     level: 60,
                     name: "Access the Woodcutting Guild"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Hard Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Hard Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Hard Varrock Diary"
                 },
                 {
                     itemId: 9094,
@@ -410,21 +270,6 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                     name: "Chop with 3rd Age felling axes"
                 },
                 {
-                    itemId: -1,
-                    level: 61,
-                    name: "Required to complete Diary Medium Wilderness Diary"
-                },
-                {
-                    itemId: 24691,
-                    level: 62,
-                    name: "Chop blisterwood logs (with partial completion of Quest Sins of the Father)"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required for Quest Sins of the Father"
-                },
-                {
                     itemId: 6004,
                     level: 65,
                     name: "Chop mushrooms, mort myre fungus, and sulliuscep caps from Sulliuscep"
@@ -440,34 +285,9 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                     name: "Make nature offerings (with Farming 50)"
                 },
                 {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Song of the Elves"
-                },
-                {
-                    itemId: 23673,
-                    level: 71,
-                    name: "Use crystal axes (with Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 71,
-                    name: "Use crystal felling axes (with Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 71,
-                    name: "Required for Quest Grim Tales"
-                },
-                {
                     itemId: 9094,
                     level: 72,
                     name: "Receive a maximum of 6 Kindling from trees at Ice demon"
-                },
-                {
-                    itemId: -1,
-                    level: 74,
-                    name: "Required for Quest The Blood Moon Rises"
                 },
                 {
                     itemId: 1513,
@@ -478,26 +298,6 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 75,
                     name: "Make sturdy harnesses (with Smithing 75)"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Required to complete Diary Elite Falador Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Required to complete Diary Elite Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Required to complete Diary Elite Wilderness Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 77,
-                    name: "Chop Bucket of bloodwood saps (with Quest The Blood Moon Rises completed)"
                 },
                 {
                     itemId: -1,
@@ -518,11 +318,6 @@ export const woodcuttingSkillGuide: SkillGuideData = {
                     itemId: 19669,
                     level: 90,
                     name: "Chop redwood logs"
-                },
-                {
-                    itemId: -1,
-                    level: 90,
-                    name: "Required to complete Diary Elite Kourend & Kebos Diary"
                 },
                 {
                     itemId: -1,

@@ -7,7 +7,7 @@ export const slayerSkillGuide: SkillGuideData = {
     skillId: SkillId.Slayer,
     tabs: [
         {
-            label: "Members 1",
+            label: "Members",
             entries: [
                 {
                     itemId: 4155,
@@ -32,12 +32,6 @@ export const slayerSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 1,
-                    name: "Receive Slayer assignments from Spria in Draynor Village (with Quest A Porcine of Interest compl",
-                    description: "eted)"
-                },
-                {
-                    itemId: -1,
-                    level: 1,
                     name: "Receive Slayer assignments from Mazchna in Canifis (with Combat 20)"
                 },
                 {
@@ -48,34 +42,12 @@ export const slayerSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 1,
-                    name: "Receive Slayer assignments from Chaeldar in Zanaris (with Combat 70 and Quest Lost City complete",
-                    description: "d)"
-                },
-                {
-                    itemId: -1,
-                    level: 1,
                     name: "Receive Slayer assignments from Konar quo Maten in Mount Karuulm (with Combat 75)"
-                },
-                {
-                    itemId: -1,
-                    level: 1,
-                    name: "Receive Slayer assignments from Nieve (or Steve with Quest Monkey Madness II completed) in Tree ",
-                    description: "Gnome Stronghold (with Combat 85)"
-                },
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Slay Crawling Hand icons (with Quest Priest in Peril completed)"
                 },
                 {
                     itemId: -1,
                     level: 7,
                     name: "Slay Cave bug icons"
-                },
-                {
-                    itemId: -1,
-                    level: 7,
-                    name: "Required to complete Diary Easy Lumbridge & Draynor Diary"
                 },
                 {
                     itemId: 4164,
@@ -88,39 +60,14 @@ export const slayerSkillGuide: SkillGuideData = {
                     name: "Slay Cave crawler icons"
                 },
                 {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Desert Treasure I"
-                },
-                {
                     itemId: 4166,
                     level: 15,
                     name: "Wear earmuffs"
                 },
                 {
                     itemId: -1,
-                    level: 15,
-                    name: "Slay Banshee icons (with Quest Priest in Peril completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required for Quest The Curse of Arrav"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Morytania Diary"
-                },
-                {
-                    itemId: -1,
                     level: 17,
                     name: "Slay Cave slime icons"
-                },
-                {
-                    itemId: -1,
-                    level: 18,
-                    name: "Required for Quest Animal Magnetism"
                 },
                 {
                     itemId: -1,
@@ -131,11 +78,6 @@ export const slayerSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 22,
                     name: "Slay desert lizards"
-                },
-                {
-                    itemId: -1,
-                    level: 22,
-                    name: "Required to complete Diary Medium Desert Diary"
                 },
                 {
                     itemId: 4156,
@@ -151,21 +93,6 @@ export const slayerSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 30,
                     name: "Slay Pyrefiend icons"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest The Slug Menace"
-                },
-                {
-                    itemId: -1,
-                    level: 32,
-                    name: "Slay Mogre icons (with Quest Skippy and the Mogres completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 32,
-                    name: "Required to complete Diary Medium Falador Diary"
                 },
                 {
                     itemId: 7053,
@@ -204,11 +131,6 @@ export const slayerSkillGuide: SkillGuideData = {
                     name: "Slay Killerwatt icons"
                 },
                 {
-                    itemId: -1,
-                    level: 38,
-                    name: "Required for Quest A Taste of Hope"
-                },
-                {
                     itemId: 10952,
                     level: 39,
                     name: "Use Slayer bells"
@@ -224,26 +146,6 @@ export const slayerSkillGuide: SkillGuideData = {
                     name: "Slay Basilisk icons"
                 },
                 {
-                    itemId: -1,
-                    level: 40,
-                    name: "Slay Sea snake icons (with partial completion of Quest Royal Trouble)"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Slay Terror dog icons (with Quest The Lair of Tarn Razorlor completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Rag and Bone Man II"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Royal Trouble"
-                },
-                {
                     itemId: 6708,
                     level: 42,
                     name: "Wear Slayer gloves"
@@ -252,16 +154,6 @@ export const slayerSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 42,
                     name: "Slay Fever spider icons"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required for Quest Rum Deal"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Medium Morytania Diary"
                 },
                 {
                     itemId: 23037,
@@ -285,16 +177,6 @@ export const slayerSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 47,
-                    name: "Slay Brine rat icons (with partial completion of Quest Olaf's Quest)"
-                },
-                {
-                    itemId: -1,
-                    level: 47,
-                    name: "Required to complete Diary Medium Fremennik Diary"
-                },
-                {
-                    itemId: -1,
                     level: 48,
                     name: "Slay Lesser nagua icon"
                 },
@@ -307,53 +189,11 @@ export const slayerSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 48,
                     name: "Slay Lesser nagua icon"
-                },
-                {
-                    itemId: -1,
-                    level: 48,
-                    name: "Required for Quest Perilous Moons"
-                },
-                {
-                    itemId: -1,
-                    level: 48,
-                    name: "Required for Quest The Heart of Darkness"
                 },
                 {
                     itemId: -1,
                     level: 50,
                     name: "Slay Bloodveld icon"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Sins of the Father"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Medium Wilderness Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Karamja Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Receive Slayer assignments from Duradel in Shilo Village (with Combat 100 and Quest Shilo Villag",
-                    description: "e completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 51,
-                    name: "Slay Gryphon icons and the Shellbane gryphon boss (with Sailing 45 and Quest Troubled Tortugans ",
-                    description: "completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 51,
-                    name: "Required for Quest Troubled Tortugans"
                 },
                 {
                     itemId: -1,
@@ -364,11 +204,6 @@ export const slayerSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 54,
                     name: "Slay s"
-                },
-                {
-                    itemId: -1,
-                    level: 54,
-                    name: "Required for Quest Shadows of Custodia"
                 },
                 {
                     itemId: 4158,
@@ -397,17 +232,6 @@ export const slayerSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 56,
-                    name: "Slay Warped Terrorbird icons and Warped Tortoise icons (with Quest The Path of Glouphrie complet",
-                    description: "ed)"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Required for Quest The Path of Glouphrie"
-                },
-                {
-                    itemId: -1,
                     level: 57,
                     name: "Slay Mutated zygomite icons"
                 },
@@ -417,19 +241,9 @@ export const slayerSkillGuide: SkillGuideData = {
                     name: "Slay Cave horror icons (with a witchwood icon equipped)"
                 },
                 {
-                    itemId: -1,
-                    level: 58,
-                    name: "Required to complete Diary Hard Morytania Diary"
-                },
-                {
                     itemId: 4168,
                     level: 60,
                     name: "Wear nose pegs"
-                },
-                {
-                    itemId: 24265,
-                    level: 60,
-                    name: "Wield V's shield (with Defence 40 and partial completion of Quest The Fremennik Exiles)"
                 },
                 {
                     itemId: -1,
@@ -443,11 +257,6 @@ export const slayerSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 60,
-                    name: "Required for Quest The Fremennik Exiles"
-                },
-                {
-                    itemId: -1,
                     level: 62,
                     name: "Slay Wyrm icons"
                 },
@@ -458,19 +267,9 @@ export const slayerSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 62,
-                    name: "Required to complete Diary Hard Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
                     level: 63,
                     name: "Slay Spiritual ranger icons"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 65,
@@ -480,11 +279,6 @@ export const slayerSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 65,
                     name: "Slay Dust devil icons"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Required to complete Diary Hard Desert Diary"
                 },
                 {
                     itemId: -1,
@@ -503,24 +297,8 @@ export const slayerSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 68,
-                    name: "Required to complete Diary Hard Wilderness Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 69,
-                    name: "Required for Quest Monkey Madness II"
-                },
-                {
-                    itemId: -1,
                     level: 70,
                     name: "Slay Kurask icons"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Receive Slayer assignments from Mortimer in Wyrmscraig (with Combat 100 and Quest Fallen From Gr",
-                    description: "ace partial completed by accessing caverns)"
                 },
                 {
                     itemId: -1,
@@ -529,18 +307,8 @@ export const slayerSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 72,
-                    name: "Required to complete Diary Hard Falador Diary"
-                },
-                {
-                    itemId: -1,
                     level: 74,
                     name: "Slay Venator slayer icons"
-                },
-                {
-                    itemId: -1,
-                    level: 74,
-                    name: "Required for Quest The Blood Moon Rises"
                 },
                 {
                     itemId: -1,
@@ -579,16 +347,6 @@ export const slayerSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 83,
-                    name: "Required to complete Diary Elite Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 83,
-                    name: "Required to complete Diary Elite Wilderness Diary"
-                },
-                {
-                    itemId: -1,
                     level: 84,
                     name: "Slay Drake icons"
                 },
@@ -596,11 +354,6 @@ export const slayerSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 85,
                     name: "Slay Abyssal demon icons and the Abyssal Sire boss"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Morytania Diary"
                 },
                 {
                     itemId: -1,
@@ -629,18 +382,8 @@ export const slayerSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 93,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
                     level: 95,
                     name: "Slay Hydra icons and the Alchemical Hydra boss"
-                },
-                {
-                    itemId: -1,
-                    level: 95,
-                    name: "Required to complete Diary Elite Kourend & Kebos Diary"
                 },
                 {
                     itemId: -1,

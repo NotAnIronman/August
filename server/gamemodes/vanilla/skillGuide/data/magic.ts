@@ -282,18 +282,8 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 7,
-                    name: "Required for Quest In Aid of the Myreque"
-                },
-                {
-                    itemId: -1,
                     level: 14,
                     name: "Cast Enchant Crossbow Bolt on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required for Quest Watchtower"
                 },
                 {
                     itemId: -1,
@@ -311,16 +301,6 @@ export const magicSkillGuide: SkillGuideData = {
                     name: "Wear Xerician top (with Defence 10)"
                 },
                 {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Elemental Workshop II"
-                },
-                {
-                    itemId: -1,
-                    level: 21,
-                    name: "Required to complete Diary Easy Wilderness Diary"
-                },
-                {
                     itemId: 22949,
                     level: 23,
                     name: "Cast Battlefront Teleport on the Arceuus spellbook"
@@ -329,11 +309,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 24,
                     name: "Cast Enchant Crossbow Bolt on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required to complete Diary Medium Varrock Diary"
                 },
                 {
                     itemId: -1,
@@ -362,26 +337,6 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 31,
-                    name: "Required to complete Diary Medium Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 33,
-                    name: "Required for Quest Darkness of Hallowvale"
-                },
-                {
-                    itemId: -1,
-                    level: 33,
-                    name: "Required for Quest The Giant Dwarf"
-                },
-                {
-                    itemId: -1,
-                    level: 33,
-                    name: "Required for Quest Spirits of the Elid"
-                },
-                {
-                    itemId: -1,
                     level: 34,
                     name: "Cast Respawn Teleport on the Arceuus spellbook"
                 },
@@ -389,31 +344,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 35,
                     name: "Cast Ghostly Grasp on the Arceuus spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 37,
-                    name: "Required to complete Diary Medium Falador Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Cast Resurrect Lesser Ghost on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Cast Resurrect Lesser Skeleton on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Cast Resurrect Lesser Zombie on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 39,
-                    name: "Required for Quest Enakhra's Lament"
                 },
                 {
                     itemId: 19619,
@@ -446,11 +376,6 @@ export const magicSkillGuide: SkillGuideData = {
                     name: "Wear Robe top of darkness (with Defence 20)"
                 },
                 {
-                    itemId: 6139,
-                    level: 40,
-                    name: "Wear Skeletal top (with Defence 40 and Quest The Fremennik Trials completed)"
-                },
-                {
                     itemId: 3387,
                     level: 40,
                     name: "Wear Splitbark body (with Defence 40)"
@@ -472,11 +397,6 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
                     level: 44,
                     name: "Cast Inferior Demonbane on the Arceuus spellbook"
                 },
@@ -491,31 +411,6 @@ export const magicSkillGuide: SkillGuideData = {
                     name: "Wield beginner wands"
                 },
                 {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest King's Ransom"
-                },
-                {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required to complete Diary Medium Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 46,
-                    name: "Required for Quest The Eyes of Glouphrie"
-                },
-                {
-                    itemId: -1,
-                    level: 47,
-                    name: "Cast Shadow Veil on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 48,
-                    name: "Cast Kourend Castle Teleport on the standard spellbook (with Quest Client of Kourend completed)"
-                },
-                {
                     itemId: 19621,
                     level: 48,
                     name: "Cast Fenkenstrain's Castle Teleport on the Arceuus spellbook"
@@ -527,23 +422,8 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 49,
-                    name: "Required to complete Quest Sins of the Father"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Cast Iban Blast on the standard spellbook (with Quest Underground Pass completed)"
-                },
-                {
-                    itemId: -1,
                     level: 50,
                     name: "Cast Magic Dart on the standard spellbook (with Slayer 55)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Cast Dark Lure on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
                 },
                 {
                     itemId: -1,
@@ -566,19 +446,9 @@ export const magicSkillGuide: SkillGuideData = {
                     name: "Wield apprentice wands"
                 },
                 {
-                    itemId: 1409,
-                    level: 50,
-                    name: "Wield Iban's staves (with Attack 50 and Quest Underground Pass completed)"
-                },
-                {
                     itemId: 4170,
                     level: 50,
                     name: "Wield slayer's staves (with Slayer 55)"
-                },
-                {
-                    itemId: 4675,
-                    level: 50,
-                    name: "Wield ancient staves (with Attack 50 and Quest Desert Treasure I completed)"
                 },
                 {
                     itemId: -1,
@@ -607,39 +477,13 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Desert Treasure I"
-                },
-                {
-                    itemId: 8011,
-                    level: 51,
-                    name: "Cast Ardougne Teleport on the standard spellbook (with Quest Plague City completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 51,
-                    name: "Required to complete Diary Medium Ardougne Diary"
-                },
-                {
-                    itemId: -1,
                     level: 52,
                     name: "Cast Shadow Rush whilst on Ancient Magicks"
-                },
-                {
-                    itemId: -1,
-                    level: 54,
-                    name: "Cast Civitas illa Fortis Teleport on the standard spellbook (with Quest Twilight's Promise compl",
-                    description: "eted)"
                 },
                 {
                     itemId: 12781,
                     level: 54,
                     name: "Cast Paddewwa Teleport whilst on Ancient Magicks"
-                },
-                {
-                    itemId: -1,
-                    level: 54,
-                    name: "Required to complete Diary Hard Varrock Diary"
                 },
                 {
                     itemId: 6912,
@@ -654,27 +498,7 @@ export const magicSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 56,
-                    name: "Cast Summon Boat on the standard spellbook (with Quest The Pandemonium completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Cast Skeletal Grasp on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
                     name: "Cast Blood Rush whilst on Ancient Magicks"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Required for Quest Legends' Quest"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Required to complete Diary Hard Kandarin Diary"
                 },
                 {
                     itemId: -1,
@@ -683,49 +507,8 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 57,
-                    name: "Cast Resurrect Superior Ghost on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 57,
-                    name: "Cast Resurrect Superior Skeleton on the Arceuus spellbook (with Quest A Kingdom Divided complete",
-                    description: "d)"
-                },
-                {
-                    itemId: -1,
-                    level: 57,
-                    name: "Cast Resurrect Superior Zombie on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 57,
-                    name: "Required for Quest The Blood Moon Rises"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
-                {
-                    itemId: -1,
                     level: 58,
                     name: "Cast Ice Rush whilst on Ancient Magicks"
-                },
-                {
-                    itemId: 8012,
-                    level: 58,
-                    name: "Cast Watchtower Teleport on the standard spellbook (with Quest Watchtower completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 59,
-                    name: "Cast Mark of Darkness on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 59,
-                    name: "Required for Quest Family Crest"
                 },
                 {
                     itemId: 6926,
@@ -810,33 +593,8 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Hard Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Medium Wilderness Diary"
-                },
-                {
-                    itemId: 11747,
-                    level: 61,
-                    name: "Cast Trollheim Teleport on the standard spellbook (with Quest Eadgar's Ruse completed)"
-                },
-                {
-                    itemId: 19623,
-                    level: 61,
-                    name: "Cast West Ardougne Teleport on the Arceuus spellbook (with Quest Biohazard completed)"
-                },
-                {
-                    itemId: -1,
                     level: 62,
                     name: "Cast Wind Wave on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Cast Superior Demonbane on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
                 },
                 {
                     itemId: -1,
@@ -854,25 +612,9 @@ export const magicSkillGuide: SkillGuideData = {
                     name: "Cast Charge Fire Orb on the standard spellbook"
                 },
                 {
-                    itemId: 19631,
-                    level: 64,
-                    name: "Cast Ape Atoll Teleport on the standard spellbook (with Quest Recipe for Disaster: Freeing King ",
-                    description: "Awowogei completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 64,
-                    name: "Cast Lesser Corruption on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
                     itemId: -1,
                     level: 64,
                     name: "Cast Shadow Burst whilst on Ancient Magicks"
-                },
-                {
-                    itemId: -1,
-                    level: 64,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
                 },
                 {
                     itemId: -1,
@@ -883,12 +625,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 65,
                     name: "Cast Geomancy on the Lunar spellbook"
-                },
-                {
-                    itemId: 19625,
-                    level: 65,
-                    name: "Cast Harmony Island Teleport on the Arceuus spellbook (with Quest The Great Brain Robbery comple",
-                    description: "ted)"
                 },
                 {
                     itemId: -1,
@@ -927,11 +663,6 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 65,
-                    name: "Required for Quest Lunar Diplomacy"
-                },
-                {
-                    itemId: -1,
                     level: 66,
                     name: "Access to the Wizards' Guild"
                 },
@@ -939,11 +670,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 66,
                     name: "Cast Vulnerability on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Cast Vile Vigour on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
                 },
                 {
                     itemId: 12779,
@@ -961,39 +687,9 @@ export const magicSkillGuide: SkillGuideData = {
                     name: "Cast Cure Plant on the Lunar spellbook"
                 },
                 {
-                    itemId: -1,
-                    level: 66,
-                    name: "Cast Monster Examine on the Lunar spellbook (with Quest Dream Mentor completed)"
-                },
-                {
                     itemId: 21633,
                     level: 66,
                     name: "Forge ancient wyvern shields (with Smithing 66)"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required for Quest Swan Song"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required to complete Diary Hard Ardougne Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required to complete Diary Hard Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required to complete Diary Hard Morytania Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required to complete Diary Hard Wilderness Diary"
                 },
                 {
                     itemId: -1,
@@ -1002,19 +698,14 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 67,
-                    name: "Cast Teleport to Boat on the standard spellbook (with Quest The Pandemonium completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 67,
-                    name: "Required for Quest While Guthix Sleeps"
-                },
-                {
-                    itemId: -1,
                     level: 68,
                     name: "Cast Blood Burst whilst on Ancient Magicks"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: -1,
                     level: 68,
@@ -1028,17 +719,7 @@ export const magicSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 68,
-                    name: "Cast Humidify on the Lunar spellbook (with Quest Dream Mentor completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 68,
                     name: "Cast lvl-5 enchant on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 68,
-                    name: "Required to complete Diary Hard Desert Diary"
                 },
                 {
                     itemId: 24949,
@@ -1049,11 +730,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 70,
                     name: "Cast Earth Wave on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Cast Degrime on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
                 },
                 {
                     itemId: -1,
@@ -1091,11 +767,6 @@ export const magicSkillGuide: SkillGuideData = {
                     name: "Wield accursed sceptres"
                 },
                 {
-                    itemId: -1,
-                    level: 70,
-                    name: "Wield ancient sceptres (with Attack 50, Strength 60), and Quest Secrets of the North completed)"
-                },
-                {
                     itemId: 4710,
                     level: 70,
                     name: "Wield Ahrim's staff (with Attack 70)"
@@ -1104,11 +775,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: 10148,
                     level: 70,
                     name: "Wield black salamanders (with Attack 70 and Ranged)"
-                },
-                {
-                    itemId: 21633,
-                    level: 70,
-                    name: "Wield ancient wyvern shields (with Defence 75 and partial completion of Quest Dragon Slayer I)"
                 },
                 {
                     itemId: -1,
@@ -1124,11 +790,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 71,
                     name: "Cast Cure Me on the Lunar spellbook"
-                },
-                {
-                    itemId: 11159,
-                    level: 71,
-                    name: "Cast Hunter Kit (with Lunar spells unlocked and Quest Dream Mentor completed)"
                 },
                 {
                     itemId: 24951,
@@ -1157,23 +818,8 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 72,
-                    name: "Required to complete Diary Hard Fremennik Diary"
-                }
-            ]
-        },
-        {
-            label: "Members 3",
-            entries: [
-                {
-                    itemId: -1,
                     level: 73,
                     name: "Cast Enfeeble on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 73,
-                    name: "Cast Ward of Arceuus on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
                 },
                 {
                     itemId: -1,
@@ -1204,11 +850,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 75,
                     name: "Cast Fire Wave on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Cast Stat Spy on the Lunar spellbook (with Quest Dream Mentor completed)"
                 },
                 {
                     itemId: 21791,
@@ -1272,32 +913,6 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 75,
-                    name: "Required for Quest Dragon Slayer II"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Required for Quest Desert Treasure II - The Fallen Empire"
-                },
-                {
-                    itemId: -1,
-                    level: 76,
-                    name: "Cast Resurrect Greater Ghost on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 76,
-                    name: "Cast Resurrect Greater Skeleton on the Arceuus spellbook (with Quest A Kingdom Divided completed",
-                    description: ")"
-                },
-                {
-                    itemId: -1,
-                    level: 76,
-                    name: "Cast Resurrect Greater Zombie on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
                     level: 76,
                     name: "Cast Shadow Blitz whilst on Ancient Magicks"
                 },
@@ -1310,11 +925,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 76,
                     name: "Cast Tele Group Barbarian on the Lunar spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 77,
-                    name: "Wield purging staves (with Attack 50 and Quest While Guthix Sleeps completed)"
                 },
                 {
                     itemId: -1,
@@ -1348,28 +958,13 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 78,
-                    name: "Cast Tan Leather on the Lunar spellbook (with Diary Hard Fremennik Diary completed)"
-                },
-                {
-                    itemId: -1,
                     level: 79,
                     name: "Cast Entangle on the standard spellbook"
                 },
                 {
                     itemId: -1,
                     level: 79,
-                    name: "Cast Undead Grasp on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 79,
                     name: "Cast Tele Group Khazard on the Lunar spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 79,
-                    name: "Cast Dream on the Lunar spellbook (with Quest Dream Mentor completed)"
                 },
                 {
                     itemId: 21006,
@@ -1410,11 +1005,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 80,
                     name: "Cast Stun on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Cast Death Charge on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
                 },
                 {
                     itemId: -1,
@@ -1464,11 +1054,6 @@ export const magicSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 82,
-                    name: "Cast Dark Demonbane on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 82,
                     name: "Cast Ice Blitz whilst on Ancient Magicks"
                 },
                 {
@@ -1482,24 +1067,9 @@ export const magicSkillGuide: SkillGuideData = {
                     name: "Wield the Eye of Ayak"
                 },
                 {
-                    itemId: 19629,
-                    level: 83,
-                    name: "Cast Barrows Teleport on the Arceuus spellbook (with Quest Priest in Peril completed)"
-                },
-                {
                     itemId: -1,
                     level: 83,
                     name: "Cast Fertile Soil on the Lunar spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 83,
-                    name: "Required to complete Diary Elite Morytania Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 84,
-                    name: "Cast Demonic Offering on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
                 },
                 {
                     itemId: -1,
@@ -1515,11 +1085,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 85,
                     name: "Cast Water Surge on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Cast Greater Corruption on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
                 },
                 {
                     itemId: 24959,
@@ -1544,22 +1109,12 @@ export const magicSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 86,
-                    name: "Cast Plank Make on the Lunar spellbook (with Quest Dream Mentor completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 86,
                     name: "Cast Smoke Barrage whilst on Ancient Magicks"
                 },
                 {
                     itemId: -1,
                     level: 86,
                     name: "Cast Tele Group Fishing Guild on the Lunar spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 86,
-                    name: "Required to complete Diary Elite Varrock Diary"
                 },
                 {
                     itemId: 24961,
@@ -1578,11 +1133,6 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 87,
-                    name: "Required to complete Diary Elite Kandarin Diary"
-                },
-                {
-                    itemId: -1,
                     level: 88,
                     name: "Cast Shadow Barrage whilst on Ancient Magicks"
                 },
@@ -1598,11 +1148,6 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 89,
-                    name: "Cast Recharge Dragonstone on the Lunar spellbook (with Diary Hard Fremennik Diary completed)"
-                },
-                {
-                    itemId: -1,
                     level: 90,
                     name: "Cast Earth Surge on the standard spellbook"
                 },
@@ -1610,22 +1155,16 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 90,
                     name: "Cast Teleother Camelot on the standard spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 90,
-                    name: "Cast Master Reanimation on the Arceuus spellbook"
                 }
             ]
         },
         {
-            label: "Members 4",
+            label: "Members 3",
             entries: [
                 {
-                    itemId: 19631,
+                    itemId: -1,
                     level: 90,
-                    name: "Cast Ape Atoll Teleport on the Arceuus spellbook (with Quest Monkey Madness I and Daero's traini",
-                    description: "ng completed)"
+                    name: "Cast Master Reanimation on the Arceuus spellbook"
                 },
                 {
                     itemId: 12775,
@@ -1649,18 +1188,8 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 90,
-                    name: "Required to complete Diary Elite Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
                     level: 91,
                     name: "Cast Energy Transfer on the Lunar spellbook"
-                },
-                {
-                    itemId: -1,
-                    level: 92,
-                    name: "Cast Sinister Offering on the Arceuus spellbook (with Quest A Kingdom Divided completed)"
                 },
                 {
                     itemId: -1,
@@ -1694,16 +1223,6 @@ export const magicSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 94,
-                    name: "Required to complete Diary Elite Ardougne Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 94,
-                    name: "Required to complete Diary Elite Desert Diary"
-                },
-                {
-                    itemId: -1,
                     level: 95,
                     name: "Cast Fire Surge on the standard spellbook"
                 },
@@ -1721,16 +1240,6 @@ export const magicSkillGuide: SkillGuideData = {
                     itemId: 12778,
                     level: 96,
                     name: "Cast Ghorrock Teleport whilst on Ancient Magicks"
-                },
-                {
-                    itemId: -1,
-                    level: 96,
-                    name: "Cast Spellbook Swap on the Lunar spellbook (with Quest Dream Mentor completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 96,
-                    name: "Required to complete Diary Elite Wilderness Diary"
                 },
                 {
                     itemId: 9762,

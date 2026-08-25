@@ -85,11 +85,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith bronze 2h swords"
                 },
                 {
-                    itemId: 25684,
-                    level: 14,
-                    name: "Crush barronite deposits (with Quest Below Ice Mountain completed)"
-                },
-                {
                     itemId: 2351,
                     level: 15,
                     name: "Smelt iron bars (50% success rate unless wearing a ring of forging)"
@@ -458,17 +453,17 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 1371,
                     level: 80,
                     name: "Smith adamant battleaxes"
+                },
+                {
+                    itemId: 1111,
+                    level: 81,
+                    name: "Smith adamant chainbodies"
                 }
             ]
         },
         {
             label: "Free-to-play 2",
             entries: [
-                {
-                    itemId: 1111,
-                    level: 81,
-                    name: "Smith adamant chainbodies"
-                },
                 {
                     itemId: 1199,
                     level: 82,
@@ -610,11 +605,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith bronze bolts (unf)"
                 },
                 {
-                    itemId: 819,
-                    level: 4,
-                    name: "Smith bronze dart tips (with Quest The Tourist Trap completed)"
-                },
-                {
                     itemId: 4819,
                     level: 4,
                     name: "Smith bronze nails"
@@ -623,11 +613,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 1794,
                     level: 4,
                     name: "Smith bronze wires"
-                },
-                {
-                    itemId: -1,
-                    level: 4,
-                    name: "Required for Quest Zogre Flesh Eaters"
                 },
                 {
                     itemId: 39,
@@ -670,11 +655,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith bronze knives"
                 },
                 {
-                    itemId: 9139,
-                    level: 8,
-                    name: "Smith blurite bolts (unf) (with Quest The Knight's Sword completed)"
-                },
-                {
                     itemId: -1,
                     level: 10,
                     name: "Smith bronze keel parts"
@@ -688,31 +668,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 11,
                     name: "Convert black felling axes"
-                },
-                {
-                    itemId: 9467,
-                    level: 13,
-                    name: "Smelt blurite bars (with Quest The Knight's Sword completed)"
-                },
-                {
-                    itemId: 9422,
-                    level: 13,
-                    name: "Smith blurite limbs (with Quest The Knight's Sword completed)"
-                },
-                {
-                    itemId: 3095,
-                    level: 13,
-                    name: "Smith bronze claws (with Quest Death Plateau completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 13,
-                    name: "Required to complete Diary Easy Falador Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required for Quest Sleeping Giants"
                 },
                 {
                     itemId: 2349,
@@ -735,19 +690,9 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith iron bolts (unf)"
                 },
                 {
-                    itemId: 820,
-                    level: 19,
-                    name: "Smith iron dart tips (with Quest The Tourist Trap completed)"
-                },
-                {
                     itemId: 4820,
                     level: 19,
                     name: "Smith iron nails"
-                },
-                {
-                    itemId: 2893,
-                    level: 20,
-                    name: "Smelt elemental bars (with partial completion of Quest Elemental Workshop I)"
                 },
                 {
                     itemId: 40,
@@ -768,21 +713,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 1239,
                     level: 20,
                     name: "Smith iron spears (with Barbarian Training completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Elemental Workshop I"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest The Tourist Trap"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required to complete Diary Easy Fremennik Diary"
                 },
                 {
                     itemId: -1,
@@ -825,29 +755,9 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith oil lantern frames"
                 },
                 {
-                    itemId: 3096,
-                    level: 28,
-                    name: "Smith iron claws (with Quest Death Plateau completed)"
-                },
-                {
                     itemId: 2353,
                     level: 30,
                     name: "Smelt steel bars in the crucible of the Giants' Foundry"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Elemental Workshop II"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest One Small Favour"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Prying Times"
                 },
                 {
                     itemId: -1,
@@ -860,19 +770,9 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith steel bolts (unf)"
                 },
                 {
-                    itemId: 821,
-                    level: 34,
-                    name: "Smith steel dart tips (with Quest The Tourist Trap completed)"
-                },
-                {
                     itemId: 41,
                     level: 35,
                     name: "Smith steel arrowtips"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Smith steel cannonballs (with Quest Dwarf Cannon completed)"
                 },
                 {
                     itemId: 11371,
@@ -888,16 +788,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 35,
                     name: "Smith secateurs attachments (with Woodcutting 35)"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Required for Quest Scrambled!"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Required to complete Diary Medium Morytania Diary"
                 },
                 {
                     itemId: -1,
@@ -931,18 +821,8 @@ export const smithingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Family Crest"
-                },
-                {
-                    itemId: -1,
                     level: 41,
                     name: "Convert rune felling axes"
-                },
-                {
-                    itemId: 3097,
-                    level: 43,
-                    name: "Smith steel claws (with Quest Death Plateau completed)"
                 },
                 {
                     itemId: 13354,
@@ -955,19 +835,9 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith tier 1 Shayzien gloves"
                 },
                 {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest Swan Song"
-                },
-                {
                     itemId: 13358,
                     level: 47,
                     name: "Smith tier 1 Shayzien boots"
-                },
-                {
-                    itemId: -1,
-                    level: 48,
-                    name: "Required for Quest The Red Reef"
                 },
                 {
                     itemId: 4544,
@@ -985,36 +855,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smelt mithril bars in the crucible of the Giants' Foundry"
                 },
                 {
-                    itemId: 721,
-                    level: 50,
-                    name: "Smith gold bowl (with Quest Legends' Quest completed)"
-                },
-                {
-                    itemId: 4567,
-                    level: 50,
-                    name: "Smith gold helmet (with Quest Between a Rock... completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Between a Rock..."
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Cabin Fever"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Legends' Quest"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Medium Wilderness Diary"
-                },
-                {
                     itemId: 13360,
                     level: 51,
                     name: "Smith tier 1 Shayzien greaves"
@@ -1030,11 +870,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith tier 1 Shayzien platebodies"
                 },
                 {
-                    itemId: 822,
-                    level: 54,
-                    name: "Smith mithril dart tips (with Quest The Tourist Trap completed)"
-                },
-                {
                     itemId: 4822,
                     level: 54,
                     name: "Smith mithril nails"
@@ -1043,12 +878,7 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 42,
                     level: 55,
                     name: "Smith mithril arrowtips"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 55,
@@ -1065,19 +895,9 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith mithril spears (with Barbarian Training completed)"
                 },
                 {
-                    itemId: -1,
-                    level: 55,
-                    name: "Smith purging staves (with Quest While Guthix Sleeps completed)"
-                },
-                {
                     itemId: 13357,
                     level: 55,
                     name: "Smith tier 2 Shayzien gloves"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required for Quest Defender of Varrock"
                 },
                 {
                     itemId: -1,
@@ -1120,24 +940,9 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith tier 2 Shayzien helms"
                 },
                 {
-                    itemId: 1187,
-                    level: 60,
-                    name: "Smith dragon sq shields (with Quest Legends' Quest completed)"
-                },
-                {
                     itemId: -1,
                     level: 60,
                     name: "Entrance fee of no longer charged at the Blast Furnace"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Hard Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required for Quest The Fremennik Exiles"
                 },
                 {
                     itemId: 13360,
@@ -1155,11 +960,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Convert 3rd Age felling axes"
                 },
                 {
-                    itemId: 3099,
-                    level: 63,
-                    name: "Smith mithril claws (with Quest Death Plateau completed)"
-                },
-                {
                     itemId: 13361,
                     level: 63,
                     name: "Smith tier 2 Shayzien platebodies"
@@ -1168,11 +968,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 13357,
                     level: 65,
                     name: "Smith tier 3 Shayzien gloves"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Required for Quest Devious Minds"
                 },
                 {
                     itemId: 21633,
@@ -1190,16 +985,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Build (with Construction 28)"
                 },
                 {
-                    itemId: -1,
-                    level: 68,
-                    name: "Required to complete Diary Hard Desert Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 68,
-                    name: "Required to complete Diary Hard Ardougne Diary"
-                },
-                {
                     itemId: 13359,
                     level: 69,
                     name: "Smith tier 3 Shayzien helms"
@@ -1212,37 +997,7 @@ export const smithingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 70,
-                    name: "Required for Quest Dragon Slayer II"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Song of the Elves"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Kourend Diary"
-                },
-                {
-                    itemId: 25543,
-                    level: 70,
-                    name: "Create celestial signets (with Crafting 70 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23886,
-                    level: 70,
-                    name: "Smith crystal helms (with Crafting 70 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
                     name: "Repair broken zombie axes and zombie helmets"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Repair the tarnished Belle's folly (with Quest Sleeping Giants completed)"
                 },
                 {
                     itemId: 13360,
@@ -1251,23 +1006,8 @@ export const smithingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 71,
-                    name: "Convert crystal felling axes (with Crafting 71 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23892,
-                    level: 72,
-                    name: "Smith crystal legs (with Crafting 72 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: -1,
                     level: 72,
                     name: "Smith noxious halberd (with Crafting 72)"
-                },
-                {
-                    itemId: -1,
-                    level: 72,
-                    name: "Required for Quest The Blood Moon Rises"
                 },
                 {
                     itemId: 9143,
@@ -1278,11 +1018,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 13361,
                     level: 73,
                     name: "Smith tier 3 Shayzien platebodies"
-                },
-                {
-                    itemId: 823,
-                    level: 74,
-                    name: "Smith adamant dart tips (with Quest The Tourist Trap completed)"
                 },
                 {
                     itemId: 4823,
@@ -1300,20 +1035,15 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith large adamant keel parts"
                 },
                 {
-                    itemId: 23889,
-                    level: 74,
-                    name: "Smith crystal bodies (with Crafting 74 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 74,
-                    name: "Smith Emberlight (with Quest While Guthix Sleeps completed)"
-                },
-                {
                     itemId: -1,
                     level: 74,
                     name: "Smelt cupronickel bars"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: 43,
                     level: 75,
@@ -1328,11 +1058,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 1245,
                     level: 75,
                     name: "Smith adamant spears (with Barbarian Training completed)"
-                },
-                {
-                    itemId: 21895,
-                    level: 75,
-                    name: "Smith dragon kiteshields (with Quest Dragon Slayer II completed)"
                 },
                 {
                     itemId: 13357,
@@ -1351,16 +1076,6 @@ export const smithingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 75,
-                    name: "Required to complete Diary Hard Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Required to complete Diary Hard Wilderness Diary"
-                },
-                {
-                    itemId: -1,
                     level: 76,
                     name: "Smith adamant javelin tips"
                 },
@@ -1368,21 +1083,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 9429,
                     level: 76,
                     name: "Smith adamantite limbs"
-                },
-                {
-                    itemId: 23673,
-                    level: 76,
-                    name: "Smith crystal axes (with Crafting 76 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23762,
-                    level: 76,
-                    name: "Smith crystal harpoons (with Crafting 76 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23680,
-                    level: 76,
-                    name: "Smith crystal pickaxes (with Crafting 76 and Quest Song of the Elves completed)"
                 },
                 {
                     itemId: 867,
@@ -1395,21 +1095,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith tier 4 Shayzien boots"
                 },
                 {
-                    itemId: 23901,
-                    level: 78,
-                    name: "Smith crystal bows (with Crafting 78 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23895,
-                    level: 78,
-                    name: "Smith crystal halberds (with Crafting 78 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23991,
-                    level: 78,
-                    name: "Smith crystal shields (with Crafting 78 and Quest Song of the Elves completed)"
-                },
-                {
                     itemId: 13359,
                     level: 79,
                     name: "Smith tier 4 Shayzien helms"
@@ -1418,16 +1103,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 11798,
                     level: 80,
                     name: "Smith godsword blades"
-                },
-                {
-                    itemId: 23951,
-                    level: 80,
-                    name: "Smith enhanced crystal keys (with Crafting 80 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23946,
-                    level: 80,
-                    name: "Smith eternal teleport crystals (with Crafting 80 and Quest Song of the Elves completed)"
                 },
                 {
                     itemId: -1,
@@ -1440,39 +1115,9 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith tier 4 Shayzien greaves"
                 },
                 {
-                    itemId: 23995,
-                    level: 82,
-                    name: "Smith and imbue the Blade of Saeldor (with Crafting 82 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 25862,
-                    level: 82,
-                    name: "Smith and imbue the Bow of Faerdhinen (with Crafting 82 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 3100,
-                    level: 83,
-                    name: "Smith adamant claws (with Quest Death Plateau completed)"
-                },
-                {
                     itemId: 13361,
                     level: 83,
                     name: "Smith tier 4 Shayzien platebodies"
-                },
-                {
-                    itemId: -1,
-                    level: 83,
-                    name: "Create infernal nuggets (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 83,
-                    name: "Create infernal plates (with Quest A Kingdom Divided completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 83,
-                    name: "Smith oathplate helm (with Quest A Kingdom Divided completed)"
                 },
                 {
                     itemId: 2363,
@@ -1498,16 +1143,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 13357,
                     level: 85,
                     name: "Smith tier 5 Shayzien gloves"
-                }
-            ]
-        },
-        {
-            label: "Members 3",
-            entries: [
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Create Chromium ingot (with partial completion of Quest Desert Treasure II - The Fallen Empire)"
                 },
                 {
                     itemId: -1,
@@ -1535,16 +1170,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Build (with Construction 28)"
                 },
                 {
-                    itemId: -1,
-                    level: 88,
-                    name: "Required to complete Diary Elite Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: 824,
-                    level: 89,
-                    name: "Smith rune dart tips (with Quest The Tourist Trap completed)"
-                },
-                {
                     itemId: 4824,
                     level: 89,
                     name: "Smith rune nails"
@@ -1555,19 +1180,9 @@ export const smithingSkillGuide: SkillGuideData = {
                     name: "Smith tier 5 Shayzien helms"
                 },
                 {
-                    itemId: -1,
-                    level: 89,
-                    name: "Required to complete Diary Elite Varrock Diary"
-                },
-                {
                     itemId: 12827,
                     level: 90,
                     name: "Attach an arcane sigil to Elidinis' ward (with Prayer 90)"
-                },
-                {
-                    itemId: 21892,
-                    level: 90,
-                    name: "Smith dragon platebodies (with Quest Dragon Slayer II completed)"
                 },
                 {
                     itemId: 11283,
@@ -1606,16 +1221,6 @@ export const smithingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 90,
-                    name: "Required to complete Diary Elite Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 90,
-                    name: "Required to complete Diary Elite Wilderness Diary"
-                },
-                {
-                    itemId: -1,
                     level: 91,
                     name: "Smith rune javelin tips"
                 },
@@ -1628,11 +1233,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: 13360,
                     level: 91,
                     name: "Smith tier 5 Shayzien greaves"
-                },
-                {
-                    itemId: -1,
-                    level: 91,
-                    name: "Required to complete Diary Elite Ardougne Diary"
                 },
                 {
                     itemId: 868,
@@ -1658,11 +1258,6 @@ export const smithingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 94,
                     name: "Smith large dragon keel parts"
-                },
-                {
-                    itemId: 3101,
-                    level: 98,
-                    name: "Smith rune claws (with Quest Death Plateau completed)"
                 },
                 {
                     itemId: -1,

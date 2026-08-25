@@ -40,11 +40,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     name: "Fletch flighted ogre arrows"
                 },
                 {
-                    itemId: 2864,
-                    level: 5,
-                    name: "Fletch ogre arrow shafts (with Quest Big Chompy Bird Hunting completed)"
-                },
-                {
                     itemId: 2866,
                     level: 5,
                     name: "Fletch ogre arrows"
@@ -58,36 +53,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 50,
                     level: 5,
                     name: "Fletch shortbow (u)s"
-                },
-                {
-                    itemId: 2861,
-                    level: 5,
-                    name: "Fletch wolfbone arrowtips (with Quest Big Chompy Bird Hunting completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required for Quest Big Chompy Bird Hunting"
-                },
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required to complete Diary Easy Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required to complete Diary Medium Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
-                },
-                {
-                    itemId: 4773,
-                    level: 7,
-                    name: "Fletch bronze brutals (with partial completion of Quest Zogre Flesh Eaters)"
                 },
                 {
                     itemId: 877,
@@ -125,11 +90,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     name: "Fletch longbows"
                 },
                 {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Tourist Trap"
-                },
-                {
                     itemId: 45,
                     level: 11,
                     name: "Fletch opal bolt tips"
@@ -155,11 +115,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     name: "Fletch iron javelins"
                 },
                 {
-                    itemId: 4778,
-                    level: 18,
-                    name: "Fletch iron brutals (with partial completion of Quest Zogre Flesh Eaters)"
-                },
-                {
                     itemId: 54,
                     level: 20,
                     name: "Fletch oak shortbow (u)s"
@@ -173,11 +128,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 20,
                     name: "Make Oak totems"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Vale Totems (miniquest)"
                 },
                 {
                     itemId: 807,
@@ -195,16 +145,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     name: "Fletch blurite crossbow (u)s"
                 },
                 {
-                    itemId: 9139,
-                    level: 24,
-                    name: "Fletch blurite bolts (with Quest The Knight's Sword completed)"
-                },
-                {
-                    itemId: 9176,
-                    level: 24,
-                    name: "Fletch blurite crossbows (with Quest The Knight's Sword completed)"
-                },
-                {
                     itemId: 56,
                     level: 25,
                     name: "Fletch oak longbow (u)s"
@@ -213,11 +153,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 56,
                     level: 25,
                     name: "Fletch oak longbows"
-                },
-                {
-                    itemId: 3689,
-                    level: 25,
-                    name: "A possible requirement to make a lyre for Quest The Fremennik Trials"
                 },
                 {
                     itemId: 9187,
@@ -240,24 +175,9 @@ export const fletchingSkillGuide: SkillGuideData = {
                     name: "Fletch arrow shafts (45) (with willow logs)"
                 },
                 {
-                    itemId: 4825,
-                    level: 30,
-                    name: "Fletch unstrung comp bow (with partial completion of Quest Zogre Flesh Eaters)"
-                },
-                {
-                    itemId: 4827,
-                    level: 30,
-                    name: "Fletch comp ogre bow (with partial completion of Quest Zogre Flesh Eaters)"
-                },
-                {
                     itemId: 886,
                     level: 30,
                     name: "Fletch steel arrows"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Zogre Flesh Eaters"
                 },
                 {
                     itemId: 827,
@@ -268,11 +188,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 10158,
                     level: 32,
                     name: "Fletch kebbit bolts"
-                },
-                {
-                    itemId: 4783,
-                    level: 33,
-                    name: "Fletch steel brutals (with partial completion of Quest Zogre Flesh Eaters)"
                 },
                 {
                     itemId: 60,
@@ -293,11 +208,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 808,
                     level: 37,
                     name: "Fletch steel darts"
-                },
-                {
-                    itemId: 4788,
-                    level: 38,
-                    name: "Fletch black brutals (with partial completion of Quest Zogre Flesh Eaters)"
                 },
                 {
                     itemId: 9140,
@@ -333,11 +243,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 58,
                     level: 40,
                     name: "Fletch willow longbows"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Elite Kourend & Kebos Diary"
                 },
                 {
                     itemId: 46,
@@ -425,11 +330,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     name: "Fletch topaz bolts"
                 },
                 {
-                    itemId: 4793,
-                    level: 49,
-                    name: "Fletch mithril brutals (with partial completion of Quest Zogre Flesh Eaters)"
-                },
-                {
                     itemId: 64,
                     level: 50,
                     name: "Fletch maple shortbow (u)s"
@@ -445,25 +345,10 @@ export const fletchingSkillGuide: SkillGuideData = {
                     name: "Make Maple totems"
                 },
                 {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Devious Minds to make a bow-sword"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Medium Kandarin Diary"
-                },
-                {
                     itemId: 881,
                     level: 51,
                     name: "Fletch barbed bolts"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: 4150,
                     level: 52,
@@ -473,11 +358,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 809,
                     level: 52,
                     name: "Fletch mithril darts"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required for Quest The Final Dawn"
                 },
                 {
                     itemId: -1,
@@ -575,15 +455,15 @@ export const fletchingSkillGuide: SkillGuideData = {
                     name: "Fletch arrow shafts (75) (with yew logs)"
                 },
                 {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Quest Sins of the Father"
-                },
-                {
                     itemId: 9143,
                     level: 61,
                     name: "Fletch adamant bolts"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: 9450,
                     level: 61,
@@ -598,11 +478,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 9183,
                     level: 61,
                     name: "Fletch adamant crossbows"
-                },
-                {
-                    itemId: 4798,
-                    level: 62,
-                    name: "Fletch adamant brutals (with partial completion of Quest Zogre Flesh Eaters)"
                 },
                 {
                     itemId: 829,
@@ -675,11 +550,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     name: "Fletch runite bolts"
                 },
                 {
-                    itemId: -1,
-                    level: 69,
-                    name: "Required to complete Diary Elite Ardougne Diary"
-                },
-                {
                     itemId: 66,
                     level: 70,
                     name: "Fletch yew longbow (u)s"
@@ -688,21 +558,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 66,
                     level: 70,
                     name: "Fletch yew longbows"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Fletch blisterwood stakes (with partial completion of Quest The Blood Moon Rises)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required for Quest The Blood Moon Rises"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Kandarin Diary"
                 },
                 {
                     itemId: -1,
@@ -765,11 +620,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     name: "Fletch Hunters' sunlight crossbows"
                 },
                 {
-                    itemId: -1,
-                    level: 74,
-                    name: "Fletch scorching bows (with Quest While Guthix Sleeps completed)"
-                },
-                {
                     itemId: 52,
                     level: 75,
                     name: "Fletch arrow shafts (90) (with magic logs)"
@@ -783,11 +633,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 21316,
                     level: 76,
                     name: "Fletch amethyst broad bolts (after purchasing the ability with 300 Slayer reward points)"
-                },
-                {
-                    itemId: 4803,
-                    level: 77,
-                    name: "Fletch rune brutals (with partial completion of Quest Zogre Flesh Eaters)"
                 },
                 {
                     itemId: 830,
@@ -838,11 +683,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 811,
                     level: 81,
                     name: "Fletch rune darts"
-                },
-                {
-                    itemId: -1,
-                    level: 81,
-                    name: "Required to complete Diary Elite Varrock Diary"
                 },
                 {
                     itemId: 21326,
@@ -913,12 +753,7 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 84,
                     name: "Fletch Rosewood blowpipes"
-                }
-            ]
-        },
-        {
-            label: "Members 3",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 85,
@@ -933,11 +768,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 70,
                     level: 85,
                     name: "Fletch magic longbows"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
                 },
                 {
                     itemId: 22263,
@@ -983,11 +813,6 @@ export const fletchingSkillGuide: SkillGuideData = {
                     itemId: 11230,
                     level: 95,
                     name: "Fletch dragon darts"
-                },
-                {
-                    itemId: -1,
-                    level: 95,
-                    name: "Required to complete Diary Elite Desert Diary"
                 },
                 {
                     itemId: 9783,

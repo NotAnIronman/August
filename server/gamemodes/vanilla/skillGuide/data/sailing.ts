@@ -137,11 +137,6 @@ export const sailingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 12,
-                    name: "Required for Quest Prying Times"
-                },
-                {
-                    itemId: -1,
-                    level: 12,
                     name: "Access to drink crate charting"
                 },
                 {
@@ -223,11 +218,6 @@ export const sailingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 21,
                     name: "Build an (with Construction 9)"
-                },
-                {
-                    itemId: -1,
-                    level: 22,
-                    name: "Required for Quest Current Affairs"
                 },
                 {
                     itemId: -1,
@@ -362,11 +352,6 @@ export const sailingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 38,
-                    name: "Dock at Civitas illa Fortis (with Quest Children of the Sun completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
                     name: "Take port tasks to/from Civitas illa Fortis"
                 },
                 {
@@ -383,11 +368,6 @@ export const sailingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 39,
                     name: "Build a (with Construction 32)"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Dock at Corsair Cove (with Quest The Corsair Curse completed)"
                 },
                 {
                     itemId: -1,
@@ -437,33 +417,8 @@ export const sailingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 44,
-                    name: "Dock at Sunset Coast (with Quest Children of the Sun completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 44,
                     name: "Build a (with Construction 30)"
                 },
-                {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest Troubled Tortugans"
-                },
-                {
-                    itemId: -1,
-                    level: 45,
-                    name: "Dock at The Summer Shore (with Quest Troubled Tortugans completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 45,
-                    name: "Dock at The Little Pearl (with Quest Troubled Tortugans completed)"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
                 {
                     itemId: -1,
                     level: 45,
@@ -473,11 +428,6 @@ export const sailingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 46,
                     name: "Dock at Vatrachos Island"
-                },
-                {
-                    itemId: -1,
-                    level: 46,
-                    name: "Dock at Aldarin (with Quest Children of the Sun completed)"
                 },
                 {
                     itemId: -1,
@@ -508,7 +458,12 @@ export const sailingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 48,
                     name: "Take port tasks to/from the Ruins of Unkah"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: -1,
                     level: 48,
@@ -552,27 +507,12 @@ export const sailingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 50,
-                    name: "Build a (with Construction 44 and Quest Animal Magnetism completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Ability to recruit Captain Siad (with Quest The Tourist Trap completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
                     name: "Encounter Lost teak crates"
                 },
                 {
                     itemId: -1,
                     level: 51,
                     name: "Dock at Anglers' Retreat"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required for Quest The Red Reef"
                 },
                 {
                     itemId: -1,
@@ -681,11 +621,6 @@ export const sailingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 60,
-                    name: "Ability to recruit Cabin Boy Jenkins (with Quest Dragon Slayer I completed)"
-                },
-                {
-                    itemId: -1,
                     level: 61,
                     name: "Dock at Tear of the Soul"
                 },
@@ -693,16 +628,6 @@ export const sailingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 61,
                     name: "Ability to change the name of your boat through Sleve McDichael"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required for Quest Fallen From Grace"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Dock at Rellekka (with Quest The Fremennik Trials completed)"
                 },
                 {
                     itemId: -1,
@@ -721,11 +646,6 @@ export const sailingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 63,
-                    name: "Build a (with Construction 54 and Quest The Red Reef completed)"
-                },
-                {
-                    itemId: -1,
                     level: 64,
                     name: "Dock at The Crown Jewel"
                 },
@@ -737,27 +657,12 @@ export const sailingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 65,
-                    name: "Dock at Etceteria (with Quest Royal Trouble completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
                     name: "Take port tasks to/from Etceteria"
                 },
                 {
                     itemId: -1,
                     level: 65,
                     name: "Build a (with Construction 61)"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Ability to recruit Oarswoman Olga (with Quest In Aid of the Myreque completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Dock at Port Tyras (with Quest Regicide completed)"
                 },
                 {
                     itemId: -1,
@@ -792,11 +697,6 @@ export const sailingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 68,
-                    name: "Dock at Jatizso and Neitiznot (with Quest The Fremennik Trials completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 68,
                     name: "Build a (with Construction 60)"
                 },
                 {
@@ -813,11 +713,6 @@ export const sailingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 69,
                     name: "Build an (with Construction 61)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Dock at Prifddinas (with Quest Song of the Elves completed)"
                 },
                 {
                     itemId: -1,
@@ -852,11 +747,6 @@ export const sailingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 72,
-                    name: "Complete Barracuda Trials at The Gwenith Glide (with Quest Regicide completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 72,
                     name: "Build an (with Construction 59)"
                 },
                 {
@@ -877,27 +767,12 @@ export const sailingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 74,
-                    name: "Dock at Waterbirth Island (with Quest The Fremennik Trials completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 74,
                     name: "Build a (with Construction 66)"
                 },
                 {
                     itemId: -1,
                     level: 75,
-                    name: "Dock at Piscatoris (with Quest Swan Song completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
                     name: "Build a (with Construction 69)"
-                },
-                {
-                    itemId: -1,
-                    level: 76,
-                    name: "Dock at Lunar Isle (with Quest Lunar Diplomacy completed)"
                 },
                 {
                     itemId: -1,
@@ -913,12 +788,7 @@ export const sailingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 76,
                     name: "Build a (with Construction 65)"
-                }
-            ]
-        },
-        {
-            label: "Members 3",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 78,
@@ -942,11 +812,6 @@ export const sailingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 80,
-                    name: "Dock at Weiss (with Quest Making Friends with My Arm completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 80,
                     name: "Salvage fremennik shipwrecks"
                 },
                 {
@@ -958,12 +823,6 @@ export const sailingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 80,
                     name: "Build a (with Construction 76)"
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Ability to recruit Bosun Zarah (with Quest Royal Trouble and the Diary Hard Fremennik Diary comp",
-                    description: "leted)"
                 },
                 {
                     itemId: -1,
@@ -1054,7 +913,12 @@ export const sailingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 91,
                     name: "Build a (with Construction 83)"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 3",
+            entries: [
                 {
                     itemId: -1,
                     level: 92,

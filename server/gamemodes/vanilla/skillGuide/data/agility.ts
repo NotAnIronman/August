@@ -75,11 +75,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Climbing rocks (Yanille) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required to complete Diary Easy Falador Diary"
-                },
-                {
                     itemId: 6515,
                     level: 8,
                     name: "Access Agility balance (interface item, 1) shortcut (with crossbow, Mith grapple, Strength 19, a",
@@ -94,11 +89,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6514,
                     level: 10,
                     name: "Access Agility jump (interface item, 2) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest The Dig Site"
                 },
                 {
                     itemId: 11854,
@@ -122,21 +112,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility jump (interface item, 1) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 13,
-                    name: "Required for Quest The Lost Tribe"
-                },
-                {
-                    itemId: 6515,
-                    level: 14,
-                    name: "Access Agility balance (interface item, 1) shortcut (with Diary Easy Falador Diary completed)"
-                },
-                {
-                    itemId: 6514,
-                    level: 15,
-                    name: "Access Agility jump (interface item, 1) shortcut (with Quest Dragon Slayer I completed)"
-                },
-                {
                     itemId: 6514,
                     level: 15,
                     name: "Access Agility jump (interface item, 2) shortcut"
@@ -145,26 +120,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 11328,
                     level: 15,
                     name: "Catch leaping trout (with Fishing 48, Strength 15, and Barbarian Training completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required for Quest Haunted Mine"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required for Quest Troll Stronghold"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Karamja Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Wilderness Diary"
                 },
                 {
                     itemId: 6516,
@@ -182,11 +137,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility jump (interface item, 1) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 18,
-                    name: "Required for Quest The Depths of Despair"
-                },
-                {
                     itemId: 11849,
                     level: 20,
                     name: "Access the Mark of Grace"
@@ -200,21 +150,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6515,
                     level: 20,
                     name: "Access Agility balance (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Mountain Daughter"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required to complete Diary Easy Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required to complete Diary Medium Lumbridge & Draynor Diary"
                 },
                 {
                     itemId: 11854,
@@ -232,25 +167,9 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility contortion (interface item, 2) shortcut"
                 },
                 {
-                    itemId: 6517,
-                    level: 23,
-                    name: "Access Agility climb (interface item, 1) shortcut (with crossbow, Mith grapple, Strength 28, and",
-                    description: " Ranged 24 once; and Quest Observatory Quest completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 23,
-                    name: "Required for Quest Death to the Dorgeshuun"
-                },
-                {
                     itemId: 6516,
                     level: 24,
                     name: "Access Agility contortion (interface item, 1) shortcut"
-                },
-                {
-                    itemId: 1061,
-                    level: 25,
-                    name: "Play Leather boots (with Quest Creature of Fenkenstrain completed)"
                 },
                 {
                     itemId: 6517,
@@ -263,44 +182,14 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility jump (interface item, 2) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest Ghosts Ahoy"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest In Search of the Myreque"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest The Grand Tree"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest Watchtower"
-                },
-                {
                     itemId: 6516,
                     level: 26,
                     name: "Access Agility contortion (interface item, 1) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 26,
-                    name: "Required for Quest Darkness of Hallowvale"
-                },
-                {
                     itemId: 6515,
                     level: 28,
                     name: "Access Agility balance (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 28,
-                    name: "Required for Quest Troll Romance"
                 },
                 {
                     itemId: 6517,
@@ -313,19 +202,9 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access the Pyramid top"
                 },
                 {
-                    itemId: 10595,
-                    level: 30,
-                    name: "Access the Clockwork suit (with Quest Cold War completed)"
-                },
-                {
                     itemId: 11849,
                     level: 30,
                     name: "Access the Mark of Grace"
-                },
-                {
-                    itemId: 6517,
-                    level: 30,
-                    name: "Access Agility climb (interface item, 1) shortcut (with Quest Dragon Slayer I completed)"
                 },
                 {
                     itemId: 6515,
@@ -341,26 +220,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 11330,
                     level: 30,
                     name: "Catch leaping salmon (with Fishing 58, Strength 30, and Barbarian Training completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Cold War"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Medium Desert Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Medium Karamja Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Medium Varrock Diary"
                 },
                 {
                     itemId: 11854,
@@ -389,16 +248,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility jump (interface item, 1) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 32,
-                    name: "Required for Quest Shilo Village"
-                },
-                {
-                    itemId: -1,
-                    level: 32,
-                    name: "Required for Quest Death on the Isle"
-                },
-                {
                     itemId: 6515,
                     level: 33,
                     name: "Access Agility balance (interface item, 1) shortcut"
@@ -419,19 +268,9 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Pipe (Brimhaven Dungeon to the demons) shortcut"
                 },
                 {
-                    itemId: 1365,
-                    level: 35,
-                    name: "Access the Steel battleaxe (with Quest Alfred Grimhand's Barcrawl completed)"
-                },
-                {
                     itemId: 6517,
                     level: 35,
                     name: "Access the Agility climb (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Required for Quest Horror from the Deep"
                 },
                 {
                     itemId: 6517,
@@ -445,50 +284,15 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility jump (interface item, 1) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 36,
-                    name: "Required for Quest One Small Favour"
-                },
-                {
-                    itemId: -1,
-                    level: 36,
-                    name: "Required to complete Diary Medium Kandarin Diary"
-                },
-                {
-                    itemId: 6517,
-                    level: 37,
-                    name: "Access Agility climb (interface item, 1) shortcut (with Quest The Grand Tree completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 37,
-                    name: "Required to complete Diary Medium Western Provinces Diary"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
-                {
                     itemId: 6517,
                     level: 38,
                     name: "Access Agility climb (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Required for Quest Land of the Goblins"
                 },
                 {
                     itemId: 6517,
                     level: 39,
                     name: "Access Agility climb (interface item, 1) shortcut (with crossbow, Mith grapple, Strength 38, and",
                     description: " Ranged 21)"
-                },
-                {
-                    itemId: -1,
-                    level: 39,
-                    name: "Required to complete Diary Medium Ardougne Diary"
                 },
                 {
                     itemId: 2996,
@@ -516,21 +320,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility balance (interface item, 1) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Royal Trouble"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest The Fremennik Isles"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Medium Morytania Diary"
-                },
-                {
                     itemId: 11854,
                     level: 40,
                     name: "Regenerate run energy at 19%/min (24%/min with a full graceful set)"
@@ -554,16 +343,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6516,
                     level: 42,
                     name: "Access Agility contortion (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required for Quest Cabin Fever"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Medium Falador Diary"
                 },
                 {
                     itemId: 6517,
@@ -616,27 +395,11 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Catch leaping sturgeon (with Fishing 70, Strength 45, and Barbarian Training completed)"
                 },
                 {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest The Path of Glouphrie"
-                },
-                {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest A Taste of Hope"
-                },
-                {
                     itemId: 6516,
                     level: 46,
                     name: "Access Agility contortion (interface item, 1) shortcut"
                 },
                 {
-                    itemId: 6516,
-                    level: 46,
-                    name: "Access Agility contortion (interface item, 1) shortcut (with Diary Medium Wilderness Diary compl",
-                    description: "eted)"
-                },
-                {
                     itemId: 6515,
                     level: 46,
                     name: "Access Agility balance (interface item, 1) shortcut"
@@ -647,16 +410,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility balance (interface item, 1) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 46,
-                    name: "Required for Quest The Heart of Darkness"
-                },
-                {
-                    itemId: -1,
-                    level: 46,
-                    name: "Required to complete Diary Hard Lumbridge & Draynor Diary"
-                },
-                {
                     itemId: 6517,
                     level: 47,
                     name: "Access Agility climb (interface item, 1) shortcut"
@@ -665,12 +418,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6517,
                     level: 47,
                     name: "Access Agility climb (interface item, 1) shortcut"
-                },
-                {
-                    itemId: 4024,
-                    level: 48,
-                    name: "Access the Ninja monkey greegree (small) (with Quest Monkey Madness I completed and while using ",
-                    description: "a ninja monkey greegree or Kruk monkey greegree)"
                 },
                 {
                     itemId: 6515,
@@ -681,11 +428,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6515,
                     level: 48,
                     name: "Access Agility balance (interface item, 1) shortcut barehanded"
-                },
-                {
-                    itemId: -1,
-                    level: 48,
-                    name: "Required for Quest Recipe for Disaster/Freeing King Awowogei"
                 },
                 {
                     itemId: 6516,
@@ -701,11 +443,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6514,
                     level: 49,
                     name: "Access Agility jump (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 49,
-                    name: "Required to complete Diary Medium Kourend & Kebos Diary"
                 },
                 {
                     itemId: 11849,
@@ -726,21 +463,16 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6514,
                     level: 50,
                     name: "Access Agility jump (interface item, 1) shortcut"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: 6517,
                     level: 50,
                     name: "Access Agility climb (interface item, 1) (level 50) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Legends' Quest"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Falador Diary"
                 },
                 {
                     itemId: 23895,
@@ -756,16 +488,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6516,
                     level: 51,
                     name: "Access Agility contortion (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 51,
-                    name: "Required to complete Diary Hard Varrock Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "Access the first floor of the Hallowed Sepulchre icon (with Quest Sins of the Father completed)"
                 },
                 {
                     itemId: 964,
@@ -798,30 +520,10 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility climb (interface item, 1) shortcut barehanded"
                 },
                 {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required to complete Quest Sins of the Father"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "A chosen requirement to complete Diary Medium Wilderness Diary (God Wars Dungeon)"
-                },
-                {
                     itemId: 6517,
                     level: 53,
                     name: "Access Agility climb (interface item, 1) shortcut (with crossbow, Mith grapple, Strength 21, and",
                     description: " Ranged 42)"
-                },
-                {
-                    itemId: -1,
-                    level: 53,
-                    name: "Required to complete Diary Hard Karamja Diary"
-                },
-                {
-                    itemId: 6516,
-                    level: 54,
-                    name: "Access Dark tunnel (Motherlode Mine, east) shortcut (with Diary Medium Falador Diary completed)"
                 },
                 {
                     itemId: 6516,
@@ -834,11 +536,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility climb (interface item, 1) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 54,
-                    name: "Required for Quest A Kingdom Divided"
-                },
-                {
                     itemId: 6514,
                     level: 55,
                     name: "Access Agility jump (interface item, 1) shortcut"
@@ -849,29 +546,9 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility climb (interface item, 1) (level 55) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required for Quest Monkey Madness II"
-                },
-                {
-                    itemId: 6517,
-                    level: 56,
-                    name: "Access Agility climb (interface item, 1) shortcut (with Quest Temple of the Eye completed)"
-                },
-                {
                     itemId: 6514,
                     level: 56,
                     name: "Access Agility jump (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Required for Quest Regicide"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
                 },
                 {
                     itemId: 6514,
@@ -899,36 +576,10 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility climb (interface item, 1) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 59,
-                    name: "Required for Quest Grim Tales"
-                },
-                {
-                    itemId: 6516,
-                    level: 59,
-                    name: "Access Agility contortion (interface item, 1) (with Quest Shadows of Custodia completed)"
-                },
-                {
-                    itemId: 4179,
-                    level: 60,
-                    name: "Access the Stick (item) (with Quest Creature of Fenkenstrain completed)"
-                },
-                {
                     itemId: 11849,
                     level: 60,
                     name: "Access the Mark of Grace"
                 },
-                {
-                    itemId: 6517,
-                    level: 60,
-                    name: "Access Agility climb (interface item, 1) shortcut (with Quest Troll Stronghold partially complet",
-                    description: "ed)"
-                }
-            ]
-        },
-        {
-            label: "Members 3",
-            entries: [
                 {
                     itemId: 6516,
                     level: 60,
@@ -955,31 +606,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility contortion (interface item, 1) shortcut"
                 },
                 {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required for Quest Dragon Slayer II"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Hard Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Elite Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "A chosen requirement to complete Diary Medium Wilderness Diary (God Wars Dungeon)"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "A chosen requirement to complete Diary Elite Wilderness Diary (God Wars Dungeon)"
-                },
-                {
                     itemId: 11854,
                     level: 60,
                     name: "Regenerate run energy at 21%/min (27%/min with a full graceful set)"
@@ -996,18 +622,8 @@ export const agilitySkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 61,
-                    name: "Required for Quest The Curse of Arrav"
-                },
-                {
-                    itemId: -1,
                     level: 62,
                     name: "Access the Colossal Wyrm Advanced Course"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Access the second floor of the Hallowed Sepulchre icon (with Quest Sins of the Father completed)"
                 },
                 {
                     itemId: 6517,
@@ -1025,31 +641,14 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility swing (interface item, 1) shortcut on the top floor"
                 },
                 {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required for Quest Beneath Cursed Sands"
-                },
-                {
                     itemId: 6517,
                     level: 63,
                     name: "Access Agility climb (interface item, 1) shortcut"
                 },
                 {
-                    itemId: 6517,
-                    level: 63,
-                    name: "Access Agility climb (interface item, 1) shortcut (with 2 long ropes and Quest Sins of the Fathe",
-                    description: "r completed)"
-                },
-                {
                     itemId: 6514,
                     level: 63,
                     name: "Access Agility jump (interface item, 1) shortcut"
-                },
-                {
-                    itemId: 6517,
-                    level: 64,
-                    name: "Access Agility climb (interface item, 1) shortcut (with Quest Troll Stronghold partially complet",
-                    description: "ed)"
                 },
                 {
                     itemId: 6517,
@@ -1060,16 +659,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6514,
                     level: 64,
                     name: "Access Agility jump (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 64,
-                    name: "Required to complete Diary Hard Wilderness Diary"
-                },
-                {
-                    itemId: 6517,
-                    level: 65,
-                    name: "Access Agility climb (interface item, 1) shortcut (with Quest Priest in Peril completed)"
                 },
                 {
                     itemId: 6514,
@@ -1090,16 +679,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6516,
                     level: 66,
                     name: "Access Agility contortion (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required for Quest While Guthix Sleeps"
-                },
-                {
-                    itemId: 6516,
-                    level: 67,
-                    name: "Access Agility contortion (interface item, 1) shortcut (with Diary Hard Falador Diary completed)"
                 },
                 {
                     itemId: 6517,
@@ -1122,11 +701,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility climb (interface item, 1) shortcut barehanded"
                 },
                 {
-                    itemId: -1,
-                    level: 68,
-                    name: "Required for Quest Making Friends with My Arm"
-                },
-                {
                     itemId: 6517,
                     level: 69,
                     name: "Access Agility climb (interface item, 1) shortcut"
@@ -1135,17 +709,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6517,
                     level: 69,
                     name: "Access Agility climb (interface item, 1) shortcut barehanded"
-                },
-                {
-                    itemId: -1,
-                    level: 69,
-                    name: "Required for Quest Secrets of the North"
-                },
-                {
-                    itemId: 4544,
-                    level: 70,
-                    name: "Access the Bullseye lantern (lit) (with Quest Death to the Dorgeshuun completed and a light sour",
-                    description: "ce)"
                 },
                 {
                     itemId: 11849,
@@ -1193,21 +756,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Required to equip the Bow of Faerdhinen (with Ranged 80)"
                 },
                 {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Song of the Elves"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Desert Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Elite Lumbridge & Draynor Diary"
-                },
-                {
                     itemId: 11854,
                     level: 70,
                     name: "Regenerate run energy at 22%/min (28%/min with a full graceful set)"
@@ -1218,11 +766,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility climb (interface item, 1) shortcut"
                 },
                 {
-                    itemId: 6514,
-                    level: 71,
-                    name: "Access Agility jump (interface item, 1) shortcut (with Quest Watchtower completed)"
-                },
-                {
                     itemId: 6517,
                     level: 71,
                     name: "Access Agility climb (interface item, 1) shortcut"
@@ -1231,16 +774,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6517,
                     level: 71,
                     name: "Access Agility climb (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 71,
-                    name: "Required to complete Diary Hard Morytania Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 72,
-                    name: "Access the third floor of the Hallowed Sepulchre icon (with Quest Sins of the Father completed)"
                 },
                 {
                     itemId: 6516,
@@ -1266,12 +799,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6517,
                     level: 72,
                     name: "Access Agility climb (interface item, 1) shortcut barehanded"
-                },
-                {
-                    itemId: 6517,
-                    level: 73,
-                    name: "Access Agility climb (interface item, 1) shortcut (with Quest My Arm's Big Adventure partially c",
-                    description: "ompleted)"
                 },
                 {
                     itemId: 6517,
@@ -1294,12 +821,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility swing (interface item, 1) shortcut"
                 },
                 {
-                    itemId: 6516,
-                    level: 74,
-                    name: "Access Agility contortion (interface item, 1) shortcut (with Quest Sins of the Father partially ",
-                    description: "completed)"
-                },
-                {
                     itemId: 6514,
                     level: 75,
                     name: "Access Agility jump (interface item, 1) shortcut"
@@ -1308,26 +829,11 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6514,
                     level: 75,
                     name: "Access Agility jump (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Access Prifddinas Agility Course (with Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 6514,
-                    level: 76,
-                    name: "Access Agility jump (interface item, 1) shortcut (with Quest Regicide completed)"
                 },
                 {
                     itemId: 6517,
                     level: 76,
                     name: "Access Agility climb (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 77,
-                    name: "Access the fourth floor of the Hallowed Sepulchre icon (with Quest Sins of the Father completed)"
                 },
                 {
                     itemId: 6514,
@@ -1350,16 +856,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access Agility climb (interface item, 1) shortcut barehanded"
                 },
                 {
-                    itemId: 6517,
-                    level: 79,
-                    name: "Access Agility climb (interface item, 1) shortcut (with Quest Legends' Guild completed)"
-                },
-                {
-                    itemId: 6517,
-                    level: 79,
-                    name: "Access Agility climb (interface item, 1) shortcut (with Quest Shilo Village completed)"
-                },
-                {
                     itemId: 6514,
                     level: 79,
                     name: "Access Agility jump (interface item, 1) shortcut"
@@ -1374,21 +870,6 @@ export const agilitySkillGuide: SkillGuideData = {
                     level: 80,
                     name: "Access Agility jump (interface item, 1) shortcut"
                 },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Required to complete Diary Elite Falador Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Required to complete Diary Elite Fremennik Diary"
-                }
-            ]
-        },
-        {
-            label: "Members 4",
-            entries: [
                 {
                     itemId: 11854,
                     level: 80,
@@ -1438,7 +919,12 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6516,
                     level: 84,
                     name: "Access Agility contortion (interface item, 1) shortcut"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 3",
+            entries: [
                 {
                     itemId: 6516,
                     level: 84,
@@ -1458,26 +944,11 @@ export const agilitySkillGuide: SkillGuideData = {
                     itemId: 6517,
                     level: 85,
                     name: "Access Agility climb (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
-                },
-                {
-                    itemId: 6516,
-                    level: 86,
-                    name: "Access Agility contortion (interface item, 1) shortcut (with Diary Elite Desert Diary completed)"
                 },
                 {
                     itemId: 6514,
                     level: 86,
                     name: "Access Agility jump (interface item, 1) shortcut"
-                },
-                {
-                    itemId: -1,
-                    level: 87,
-                    name: "Access the fifth floor of the Hallowed Sepulchre icon (with Quest Sins of the Father completed)"
                 },
                 {
                     itemId: 6517,
@@ -1500,42 +971,14 @@ export const agilitySkillGuide: SkillGuideData = {
                     name: "Access the Mark of Grace"
                 },
                 {
-                    itemId: -1,
-                    level: 90,
-                    name: "Required to complete Diary Elite Ardougne Diary"
-                },
-                {
                     itemId: 11854,
                     level: 90,
                     name: "Regenerate run energy at 24%/min (31%/min with a full graceful set)"
                 },
                 {
-                    itemId: 6517,
-                    level: 91,
-                    name: "Access Agility climb (interface item, 1) shortcut (with Quest Legends' Quest and Quest Sins of t",
-                    description: "he Father completed)"
-                },
-                {
-                    itemId: 24711,
-                    level: 92,
-                    name: "Steal from the Hallowed mark found in the Hallowed Sepulchre (with Quest Sins of the Father comp",
-                    description: "leted)"
-                },
-                {
                     itemId: -1,
                     level: 92,
                     name: "Immunity to the effect of jade bolts (e)"
-                },
-                {
-                    itemId: 6516,
-                    level: 93,
-                    name: "Access Agility contortion (interface item, 1) shortcut (with Mining 78 and Quest Sins of the Fat",
-                    description: "her partially completed)"
-                },
-                {
-                    itemId: 6516,
-                    level: 96,
-                    name: "Access Agility contortion (interface item, 1) shortcut (with Quest Legends' Quest completed)"
                 },
                 {
                     itemId: 9771,

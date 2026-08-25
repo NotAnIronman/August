@@ -47,7 +47,7 @@ export const firemakingSkillGuide: SkillGuideData = {
             ]
         },
         {
-            label: "Members 1",
+            label: "Members",
             entries: [
                 {
                     itemId: 2862,
@@ -80,11 +80,6 @@ export const firemakingSkillGuide: SkillGuideData = {
                     name: "Light a Candle lantern (white)"
                 },
                 {
-                    itemId: 3438,
-                    level: 5,
-                    name: "Burn pyre logs (with Quest Shades of Mort'ton completed)"
-                },
-                {
                     itemId: -1,
                     level: 11,
                     name: "Burn a pyre ship (with Crafting 11 and Barbarian Training completed)"
@@ -100,49 +95,9 @@ export const firemakingSkillGuide: SkillGuideData = {
                     name: "Light an abyssal lantern with oak logs"
                 },
                 {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 16,
-                    name: "Required for Quest The Giant Dwarf"
-                },
-                {
-                    itemId: 3440,
-                    level: 20,
-                    name: "Burn oak pyre logs (with Quest Shades of Mort'ton completed)"
-                },
-                {
                     itemId: 7225,
                     level: 20,
                     name: "Cook food using an iron spit"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Enlightened Journey"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Freeing Skrach Uglogwee"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Unlock the Entrana balloon transport location (with Quest Enlightened Journey completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Unlock the Taverley balloon transport location (with Quest Enlightened Journey completed)"
                 },
                 {
                     itemId: 1511,
@@ -166,16 +121,6 @@ export const firemakingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Sea Slug"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Unlock the Crafting Guild balloon transport location (with Quest Enlightened Journey completed)"
-                },
-                {
-                    itemId: -1,
                     level: 33,
                     name: "Light a Harpie Bug lantern (with Slayer 33)"
                 },
@@ -190,24 +135,9 @@ export const firemakingSkillGuide: SkillGuideData = {
                     name: "Burn teak logs"
                 },
                 {
-                    itemId: 3442,
-                    level: 35,
-                    name: "Burn willow pyre logs (with Quest Shades of Mort'ton completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Required to complete Diary Medium Western Provinces Diary"
-                },
-                {
                     itemId: -1,
                     level: 40,
                     name: "Burn jatoba logs"
-                },
-                {
-                    itemId: 6211,
-                    level: 40,
-                    name: "Burn teak pyre logs (with Quest Shades of Mort'ton completed)"
                 },
                 {
                     itemId: -1,
@@ -215,29 +145,9 @@ export const firemakingSkillGuide: SkillGuideData = {
                     name: "Burn a willow pyre ship (with Crafting 40 and Barbarian Training completed)"
                 },
                 {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Olaf's Quest"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Medium Varrock Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Unlock the Varrock balloon transport location (with Quest Enlightened Journey completed)"
-                },
-                {
                     itemId: 10810,
                     level: 42,
                     name: "Burn arctic pine logs"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required for Quest Swan Song"
                 },
                 {
                     itemId: -1,
@@ -248,16 +158,6 @@ export const firemakingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 45,
                     name: "Burn a teak pyre ship (with Crafting 45 and Barbarian Training completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest Enakhra's Lament"
-                },
-                {
-                    itemId: 10808,
-                    level: 47,
-                    name: "Burn arctic pyre logs (with Quest Shades of Mort'ton completed)"
                 },
                 {
                     itemId: 4544,
@@ -275,29 +175,9 @@ export const firemakingSkillGuide: SkillGuideData = {
                     name: "Light a Sapphire lantern (empty)"
                 },
                 {
-                    itemId: -1,
-                    level: 49,
-                    name: "Required for Quest Lunar Diplomacy"
-                },
-                {
-                    itemId: -1,
-                    level: 49,
-                    name: "Required for Quest Tears of Guthix"
-                },
-                {
-                    itemId: -1,
-                    level: 49,
-                    name: "Required to complete Diary Medium Falador Diary"
-                },
-                {
                     itemId: 6332,
                     level: 50,
                     name: "Burn mahogany logs"
-                },
-                {
-                    itemId: 3444,
-                    level: 50,
-                    name: "Burn maple pyre logs (with Quest Shades of Mort'ton completed)"
                 },
                 {
                     itemId: 1519,
@@ -308,36 +188,6 @@ export const firemakingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 50,
                     name: "Subdue the Wintertodt"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Desert Treasure I"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Medium Ardougne Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Medium Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Morytania Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Unlock the Castle Wars balloon transport location (with Quest Enlightened Journey completed)"
                 },
                 {
                     itemId: 13573,
@@ -360,19 +210,9 @@ export const firemakingSkillGuide: SkillGuideData = {
                     name: "Burn a maple pyre ship (with Crafting 55 and Barbarian Training completed)"
                 },
                 {
-                    itemId: -1,
-                    level: 55,
-                    name: "Burn mahogany pyre logs (with Quest Shades of Mort'ton completed)"
-                },
-                {
                     itemId: 6333,
                     level: 55,
                     name: "Burn teak logs with a bow (with Barbarian Training completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required for Quest Beneath Cursed Sands"
                 },
                 {
                     itemId: -1,
@@ -387,37 +227,12 @@ export const firemakingSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 60,
-                    name: "Required for Quest Monkey Madness II"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Hard Desert Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required to complete Diary Hard Varrock Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Unlock the Grand Tree balloon transport location (with Quest Enlightened Journey completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
                     name: "Burn jatoba logs with a bow (with Barbarian Training completed)"
                 },
                 {
                     itemId: 10810,
                     level: 62,
                     name: "Burn arctic pine logs with a bow (with Barbarian Training completed)"
-                },
-                {
-                    itemId: 24691,
-                    level: 62,
-                    name: "Burn blisterwood logs (with Quest Sins of the Father completed)"
                 },
                 {
                     itemId: -1,
@@ -430,58 +245,14 @@ export const firemakingSkillGuide: SkillGuideData = {
                     name: "Burn maple logs with a bow (with Barbarian Training completed)"
                 },
                 {
-                    itemId: 3446,
-                    level: 65,
-                    name: "Burn yew pyre logs (with Quest Shades of Mort'ton completed)"
-                },
-                {
                     itemId: 5013,
                     level: 65,
                     name: "Light a mining helmet"
                 },
                 {
                     itemId: -1,
-                    level: 65,
-                    name: "Required to complete Diary Hard Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Required to complete Diary Hard Kandarin Diary"
-                },
-                {
-                    itemId: -1,
                     level: 66,
                     name: "Burn camphor logs"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Build the Fire of Eternal Light icon (with Construction 35 and Quest Making Friends with My Arm ",
-                    description: "completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Build the Fire of Nourishment icon (with Construction 35 and Quest Making Friends with My Arm co",
-                    description: "mpleted)"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Build the Fire of Dehumidification icon (with Construction 50 and Quest Making Friends with My A",
-                    description: "rm completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Build the Fire of Unseasonal Warmth icon (with Construction 60 and Quest Making Friends with My ",
-                    description: "Arm completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required for Quest Making Friends with My Arm"
                 },
                 {
                     itemId: 6332,
@@ -494,34 +265,14 @@ export const firemakingSkillGuide: SkillGuideData = {
                     name: "Burn a yew pyre ship (with Crafting 70 and Barbarian Training completed)"
                 },
                 {
-                    itemId: -1,
-                    level: 71,
-                    name: "Burn camphor pyre logs (with Quest Shades of Mort'ton completed)"
-                },
-                {
                     itemId: 1513,
                     level: 75,
                     name: "Burn magic logs"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 75,
                     name: "Light an abyssal lantern with magic logs"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Required for Quest Desert Treasure II - The Fallen Empire"
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Required to complete Diary Elite Wilderness Diary"
                 },
                 {
                     itemId: -1,
@@ -534,24 +285,9 @@ export const firemakingSkillGuide: SkillGuideData = {
                     name: "Burn ironwood logs"
                 },
                 {
-                    itemId: 3448,
-                    level: 80,
-                    name: "Burn magic pyre logs (with Quest Shades of Mort'ton completed)"
-                },
-                {
                     itemId: 1515,
                     level: 80,
                     name: "Burn yew logs with a bow (with Barbarian Training completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Required to complete Diary Elite Morytania Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Burn ironwood pyre logs (with Quest Shades of Mort'ton completed)"
                 },
                 {
                     itemId: -1,
@@ -562,11 +298,6 @@ export const firemakingSkillGuide: SkillGuideData = {
                     itemId: 13241,
                     level: 85,
                     name: "Create an infernal axe (with Woodcutting 61)"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Kandarin Diary"
                 },
                 {
                     itemId: -1,
@@ -599,19 +330,9 @@ export const firemakingSkillGuide: SkillGuideData = {
                     name: "Burn magic logs with a bow (with Barbarian Training completed)"
                 },
                 {
-                    itemId: 19672,
-                    level: 95,
-                    name: "Burn redwood pyre logs (with Quest Shades of Mort'ton completed)"
-                },
-                {
                     itemId: -1,
                     level: 95,
                     name: "Burn a redwood pyre ship (with Crafting 95 and Barbarian Training completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 97,
-                    name: "Burn rosewood pyre logs (with Quest Shades of Mort'ton completed)"
                 },
                 {
                     itemId: -1,

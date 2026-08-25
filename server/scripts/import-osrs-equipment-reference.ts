@@ -178,6 +178,12 @@ function updateItemsJson(text: string, reference: readonly ReferenceRecord[]): I
 }
 
 async function readReference(sourcePath: string | undefined): Promise<ReferenceRecord[]> {
+    if (sourcePath && !fs.existsSync(sourcePath)) {
+        throw new Error(
+            `Equipment reference file was not found: ${sourcePath}. ` +
+                "Omit --source to download the maintained reference automatically.",
+        );
+    }
     const text = sourcePath
         ? fs.readFileSync(sourcePath, "utf8")
         : await (async () => {

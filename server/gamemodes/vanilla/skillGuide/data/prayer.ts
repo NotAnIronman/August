@@ -156,16 +156,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     name: "Restore 9 prayer points from Prayer potion doses and 10 from Super restore doses"
                 },
                 {
-                    itemId: 5575,
-                    level: 10,
-                    name: "Wear Initiate hauberk (with Defence 20 and Quest Recruitment Drive completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required to complete Diary Medium Falador Diary"
-                },
-                {
                     itemId: 189,
                     level: 10,
                     name: "Restore 1 prayer point from Zamorak brew doses and 3 from Ancient brew or Forgotten brew doses"
@@ -194,11 +184,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: 10925,
                     level: 17,
                     name: "Restore 9 prayer points from Sanfew serum doses"
-                },
-                {
-                    itemId: 9674,
-                    level: 20,
-                    name: "Wear Proselyte hauberk (with Defence 30 and Quest The Slug Menace completed)"
                 },
                 {
                     itemId: 10458,
@@ -231,11 +216,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     name: "Wear Void knight top (with Attack 42, Strength, Magic, Ranged, Hitpoints, and Defence)"
                 },
                 {
-                    itemId: -1,
-                    level: 22,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
-                },
-                {
                     itemId: 139,
                     level: 24,
                     name: "Restore 13 prayer points from Prayer potion doses and 14 from Super restore doses"
@@ -244,16 +224,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: 10925,
                     level: 24,
                     name: "Restore 11 prayer points from Sanfew serum doses"
-                },
-                {
-                    itemId: 11061,
-                    level: 25,
-                    name: "Wield ancient maces (with Attack 15 and partial completion of Quest Another Slice of H.A.M.)"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest Another Slice of H.A.M."
                 },
                 {
                     itemId: 10925,
@@ -289,11 +259,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: 12598,
                     level: 31,
                     name: "Wear holy sandals"
-                },
-                {
-                    itemId: -1,
-                    level: 31,
-                    name: "Required for Quest Scorpion Catcher"
                 },
                 {
                     itemId: 139,
@@ -346,16 +311,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     name: "Restore 16 prayer points from Sanfew serum doses"
                 },
                 {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required for Quest Legends' Quest"
-                },
-                {
-                    itemId: -1,
-                    level: 43,
-                    name: "Required for Quest Enakhra's Lament"
-                },
-                {
                     itemId: 139,
                     level: 44,
                     name: "Restore 18 prayer points from Prayer potion doses and 19 from Super restore doses"
@@ -369,11 +324,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 46,
                     name: "Activate Retribution"
-                },
-                {
-                    itemId: -1,
-                    level: 47,
-                    name: "Required for Quest Rum Deal"
                 },
                 {
                     itemId: 10925,
@@ -396,11 +346,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     name: "Bless holy symbols"
                 },
                 {
-                    itemId: 1724,
-                    level: 50,
-                    name: "Bless unholy symbols (with Quest Observatory Quest completed)"
-                },
-                {
                     itemId: 20747,
                     level: 50,
                     name: "Use bologa's blessings"
@@ -409,16 +354,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 50,
                     name: "Wield antler guards"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest The Great Brain Robbery"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Hopespear's Will"
                 },
                 {
                     itemId: 189,
@@ -434,16 +369,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 52,
                     name: "Activate Smite"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required to complete Diary Hard Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required to complete Diary Hard Varrock Diary"
                 },
                 {
                     itemId: 139,
@@ -479,12 +404,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: 10925,
                     level: 57,
                     name: "Restore 21 prayer points from Sanfew serum doses"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Activate Chivalry (with Quest King's Ransom/Knights Waves Training Grounds completed and Defence",
-                    description: " 65)"
                 },
                 {
                     itemId: 22954,
@@ -562,12 +481,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     name: "Restore 24 prayer points from Prayer potion doses and 25 from Super restore doses"
                 },
                 {
-                    itemId: -1,
-                    level: 70,
-                    name: "Activate Piety (with Quest King's Ransom/Knights Waves Training Grounds completed and Defence 70",
-                    description: ")"
-                },
-                {
                     itemId: 22124,
                     level: 70,
                     name: "Use superior dragon bones"
@@ -586,12 +499,7 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: 22986,
                     level: 70,
                     name: "Wear bonecrusher necklaces"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: 12825,
                     level: 70,
@@ -601,21 +509,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: 12821,
                     level: 70,
                     name: "Wield spectral spirit shields (with Defence 75 and Magic 65)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Falador Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Morytania Diary"
                 },
                 {
                     itemId: 189,
@@ -691,7 +584,12 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: 139,
                     level: 84,
                     name: "Restore 28 prayer points from Prayer potion doses and 29 from Super restore doses"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: 10925,
                     level: 84,
@@ -701,11 +599,6 @@ export const prayerSkillGuide: SkillGuideData = {
                     itemId: 12829,
                     level: 85,
                     name: "Bless spirit shields"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Desert Diary"
                 },
                 {
                     itemId: 10925,

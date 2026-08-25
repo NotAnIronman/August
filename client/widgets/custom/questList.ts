@@ -201,11 +201,22 @@ export function applyQuestListWidgetGroups(
     // The enclosing text pane is the actual viewport. The row list can retain
     // an old content height across a tab refresh, so using list.height here can
     // incorrectly hide the scrollbar after an overflowed list is rebuilt.
+    if (textContainer) widgetManager.ensureLayout(textContainer);
     const enclosingHeight = textContainer?.height ?? 0;
     const viewportHeight = Math.max(0, (enclosingHeight > 0 ? enclosingHeight : list.height) | 0);
     const contentHeight = Math.max(viewportHeight, y + ROW_EXTRA_BOTTOM);
     list.rawHeight = viewportHeight;
     list.height = viewportHeight;
+    if (textContainer) {
+        // The cache row host normally stretches to its parent edge. The
+        // UIKit/native renderer places its rail directly after that width, so
+        // the old stretch put the rail outside the parent's clip rectangle.
+        // Reserve the standard 16px column inside the real quest viewport.
+        const listWidth = Math.max(1, (textContainer.width | 0) - 16);
+        list.rawWidth = listWidth;
+        list.width = listWidth;
+        list.widthMode = 0;
+    }
     list.scrollHeight = contentHeight;
     list.scrollY = Math.min(list.scrollY | 0, Math.max(0, contentHeight - viewportHeight));
     // The cache's 399:5 scrollbar host has no drawable children in several
@@ -215,11 +226,11 @@ export function applyQuestListWidgetGroups(
     list.uikitScrollbar = true;
 
     if (textContainer) {
-        textContainer.scrollHeight = list.scrollHeight;
-        textContainer.scrollY = Math.min(
-            textContainer.scrollY | 0,
-            Math.max(0, textContainer.scrollHeight - (textContainer.height | 0)),
-        );
+        // The list is the only scroll owner. Keeping its cache parent at the
+        // viewport height prevents a second invisible cache rail and stops
+        // nested scroll offsets from fighting the native rail.
+        textContainer.scrollHeight = Math.max(0, textContainer.height | 0);
+        textContainer.scrollY = 0;
         widgetManager.invalidateWidget(textContainer, "quest-list");
     }
 
@@ -234,8 +245,11 @@ export function applyQuestListWidgetGroups(
         (
             scrollbar as WidgetNode & { scrollBarTargetUid?: number; scrollBarAxis?: "y" }
         ).scrollBarAxis = "y";
-        scrollbar.isHidden = contentHeight <= viewportHeight;
-        scrollbar.hidden = scrollbar.isHidden;
+        // Several cache revisions expose this host without drawable children.
+        // It remains linked for cache compatibility, but all rendering and
+        // input use the visible native rail on component 399:7 instead.
+        scrollbar.isHidden = true;
+        scrollbar.hidden = true;
         widgetManager.invalidateWidget(scrollbar, "quest-list");
     }
 

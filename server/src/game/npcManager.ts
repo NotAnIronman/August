@@ -989,7 +989,11 @@ export class NpcManager {
                 // idle roaming, then consumes paths queued by the combat phase.
                 const combatTargetId = npc.getCombatTargetPlayerId();
                 const movementFrozen = interceptFrozenCombatMovement(npc, currentTick);
-                if (!movementFrozen && shouldRecoverToSpawn) {
+                if (!movementFrozen && this.queueOverlapEscape(npc, getNearbyPlayers)) {
+                    // A player can briefly stack on an NPC because their paths
+                    // are synchronized independently. Normal 1x1 NPCs recover
+                    // on the next game tick instead of waiting for idle roam.
+                } else if (!movementFrozen && shouldRecoverToSpawn) {
                     if (combatTargetId !== undefined) {
                         npc.disengageCombat();
                         npc.scheduleNextAggressionCheck(currentTick);
@@ -1254,6 +1258,68 @@ export class NpcManager {
     private processRecoveryNpcMovement(npc: NpcState): void {
         npc.beginSpawnRecovery();
         this.maybeRecoverToSpawn(npc);
+    }
+
+    /**
+     * A server-side escape step for a 1x1 NPC beneath a player. This preserves
+     * its combat target; CombatTickEngine can resume ordinary pursuit on the
+     * following tick. Larger NPCs and player followers deliberately keep their
+     * footprint, matching their different overlap rules.
+     */
+    private queueOverlapEscape(
+        npc: NpcState,
+        getNearbyPlayers:
+            | ((
+                  tileX: number,
+                  tileY: number,
+                  level: number,
+                  radius: number,
+              ) => NearbyAggressionPlayer[])
+            | undefined,
+    ): boolean {
+        if (
+            !getNearbyPlayers ||
+            npc.size !== 1 ||
+            npc.isPlayerFollower() ||
+            npc.hasPath() ||
+            npc.isDead(this.currentTick)
+        ) {
+            return false;
+        }
+
+        const overlappingPlayer = getNearbyPlayers(npc.tileX, npc.tileY, npc.level, 0).find(
+            (player) =>
+                player.level === npc.level &&
+                player.x === npc.tileX &&
+                player.y === npc.tileY,
+        );
+        if (!overlappingPlayer) return false;
+
+        // Use a fixed priority so the result is deterministic rather than
+        // visibly jittering as two actors try to resolve the same tile.
+        const candidates = [
+            { x: npc.tileX + 1, y: npc.tileY },
+            { x: npc.tileX, y: npc.tileY + 1 },
+            { x: npc.tileX - 1, y: npc.tileY },
+            { x: npc.tileX, y: npc.tileY - 1 },
+            { x: npc.tileX + 1, y: npc.tileY + 1 },
+            { x: npc.tileX - 1, y: npc.tileY + 1 },
+            { x: npc.tileX - 1, y: npc.tileY - 1 },
+            { x: npc.tileX + 1, y: npc.tileY - 1 },
+        ];
+        for (const candidate of candidates) {
+            if (
+                this.pathService.canNpcStep(
+                    { x: npc.tileX, y: npc.tileY, plane: npc.level },
+                    candidate,
+                    npc.size,
+                )
+            ) {
+                npc.setPath([candidate], false);
+                return true;
+            }
+        }
+        return false;
     }
 
     private maybeRecoverToSpawn(npc: NpcState): void {

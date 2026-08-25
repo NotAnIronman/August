@@ -255,11 +255,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Dye black wizard hats"
                 },
                 {
-                    itemId: 6959,
-                    level: 1,
-                    name: "Dye pink capes (with Quest Hand in the Sand completed)"
-                },
-                {
                     itemId: -1,
                     level: 1,
                     name: "String amulets"
@@ -290,11 +285,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft gold bracelets"
                 },
                 {
-                    itemId: -1,
-                    level: 8,
-                    name: "Required to complete Diary Easy Varrock Diary"
-                },
-                {
                     itemId: 1777,
                     level: 10,
                     name: "Craft bow strings"
@@ -313,11 +303,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: 9436,
                     level: 10,
                     name: "Extract sinew from damaged monkey tails"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required to complete Diary Elite Ardougne Diary"
                 },
                 {
                     itemId: 2862,
@@ -355,11 +340,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft gem pouches"
                 },
                 {
-                    itemId: -1,
-                    level: 12,
-                    name: "Required for Quest The Giant Dwarf"
-                },
-                {
                     itemId: 1611,
                     level: 13,
                     name: "Cut jade"
@@ -375,11 +355,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft xerician hats"
                 },
                 {
-                    itemId: 7539,
-                    level: 15,
-                    name: "Craft crab armour (with partial completion of Quest Recipe for Disaster/Freeing Pirate Pete)"
-                },
-                {
                     itemId: 3327,
                     level: 15,
                     name: "Craft snelms"
@@ -388,11 +363,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: 21515,
                     level: 15,
                     name: "Craft oak bird houses"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required to complete Diary Easy Morytania Diary"
                 },
                 {
                     itemId: 21090,
@@ -408,11 +378,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: 1613,
                     level: 16,
                     name: "Cut red topazes"
-                },
-                {
-                    itemId: -1,
-                    level: 16,
-                    name: "Required for Quest The Great Brain Robbery"
                 },
                 {
                     itemId: 1720,
@@ -440,41 +405,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft magic strings"
                 },
                 {
-                    itemId: -1,
-                    level: 19,
-                    name: "Required for Quest Animal Magnetism"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Creature of Fenkenstrain"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Elemental Workshop I"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest The Golem"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Shades of Mort'ton"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Shilo Village"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Tears of Guthix"
-                },
-                {
                     itemId: 5418,
                     level: 21,
                     name: "Craft empty sacks"
@@ -500,11 +430,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft sapphire bracelets"
                 },
                 {
-                    itemId: -1,
-                    level: 23,
-                    name: "Required to complete Diary Easy Fremennik Diary"
-                },
-                {
                     itemId: 21093,
                     level: 25,
                     name: "Craft jade necklaces"
@@ -515,24 +440,9 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft oak pyre ships (with Barbarian Training completed)"
                 },
                 {
-                    itemId: 4440,
-                    level: 25,
-                    name: "Craft pot lids (with partial completion of Quest One Small Favour)"
-                },
-                {
                     itemId: 21518,
                     level: 25,
                     name: "Craft willow bird houses"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest In Aid of the Myreque"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest One Small Favour"
                 },
                 {
                     itemId: 4537,
@@ -570,36 +480,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Repair File:Hammer.png Piscarilius fishing cranes"
                 },
                 {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Cold War"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Shadow of the Storm"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Slug Menace"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Getting Ahead"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Medium Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 31,
-                    name: "Required for Quest Lost City"
-                },
-                {
                     itemId: 10077,
                     level: 32,
                     name: "Craft spiky vambraces"
@@ -610,11 +490,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft topaz necklaces"
                 },
                 {
-                    itemId: -1,
-                    level: 32,
-                    name: "Required for Quest Darkness of Hallowvale"
-                },
-                {
                     itemId: 229,
                     level: 33,
                     name: "Craft vials"
@@ -623,11 +498,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: 21102,
                     level: 34,
                     name: "Craft jade amulet (u)"
-                },
-                {
-                    itemId: -1,
-                    level: 34,
-                    name: "Required for Quest Troubled Tortugans"
                 },
                 {
                     itemId: 6215,
@@ -650,24 +520,9 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft small fur pouches"
                 },
                 {
-                    itemId: -1,
-                    level: 35,
-                    name: "Required for Quest Haunted Mine"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
-                {
                     itemId: 5376,
                     level: 36,
                     name: "Craft baskets"
-                },
-                {
-                    itemId: -1,
-                    level: 36,
-                    name: "Required for Quest Enlightened Journey"
                 },
                 {
                     itemId: 10132,
@@ -701,16 +556,6 @@ export const craftingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 38,
-                    name: "Required to complete Diary Elite Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Required to complete Diary Medium Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
                     level: 39,
                     name: "Spin hemp into hemp yarn"
                 },
@@ -728,26 +573,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: 1519,
                     level: 40,
                     name: "Craft willow pyre ships (with Barbarian Training completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Family Crest"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest The Fremennik Trials"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Swan Song"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Medium Falador Diary"
                 },
                 {
                     itemId: 22269,
@@ -773,16 +598,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 42,
                     name: "Craft gold tiaras"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required for Quest Rum Deal"
-                },
-                {
-                    itemId: 10822,
-                    level: 43,
-                    name: "Craft yak-hide leg armour (with partial completion of Quest The Fremennik Isles)"
                 },
                 {
                     itemId: -1,
@@ -815,24 +630,9 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft topaz amulet (u)"
                 },
                 {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest Cabin Fever"
-                },
-                {
                     itemId: 567,
                     level: 46,
                     name: "Craft unpowered orbs"
-                },
-                {
-                    itemId: 10822,
-                    level: 46,
-                    name: "Craft yak-hide top armour (with partial completion of Quest The Fremennik Isles)"
-                },
-                {
-                    itemId: -1,
-                    level: 46,
-                    name: "Required for Quest The Fremennik Isles"
                 },
                 {
                     itemId: 6330,
@@ -845,30 +645,20 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft snakeskin bandanas"
                 },
                 {
-                    itemId: -1,
-                    level: 48,
-                    name: "Required for Quest A Taste of Hope"
-                },
-                {
                     itemId: 4542,
                     level: 49,
                     name: "Craft lantern lenses"
                 },
                 {
-                    itemId: -1,
-                    level: 49,
-                    name: "Required for Quest The Hand in the Sand"
-                },
-                {
-                    itemId: -1,
-                    level: 49,
-                    name: "Required to complete Diary Medium Ardougne Diary"
-                },
-                {
                     itemId: 22195,
                     level: 50,
                     name: "Craft mahogany bird houses"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: -1,
                     level: 50,
@@ -878,16 +668,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 50,
                     name: "Craft medium fur pouches"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Enakhra's Lament"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Legends' Quest"
                 },
                 {
                     itemId: 6324,
@@ -935,16 +715,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Cut dragonstones"
                 },
                 {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required to complete Diary Hard Desert Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required for Quest Beneath Cursed Sands"
-                },
-                {
                     itemId: 22272,
                     level: 56,
                     name: "Craft snakeskin shields"
@@ -953,11 +723,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 56,
                     name: "Craft the colossal pouch"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Required to complete Quest Sins of the Father"
                 },
                 {
                     itemId: -1,
@@ -1015,19 +780,9 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft Sunstone golem (with Fallen From Grace completed)"
                 },
                 {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required for Quest Fallen From Grace"
-                },
-                {
                     itemId: 3385,
                     level: 61,
                     name: "Craft splitbark helms"
-                },
-                {
-                    itemId: -1,
-                    level: 61,
-                    name: "Required for Quest Lunar Diplomacy"
                 },
                 {
                     itemId: 1393,
@@ -1055,11 +810,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft bryophyta's staff"
                 },
                 {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required for Quest Dragon Slayer II"
-                },
-                {
                     itemId: 1135,
                     level: 63,
                     name: "Craft green d'hide bodies"
@@ -1071,11 +821,6 @@ export const craftingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 64,
-                    name: "Required for Quest The Blood Moon Rises"
-                },
-                {
-                    itemId: -1,
                     level: 65,
                     name: "Craft large meat pouches"
                 },
@@ -1083,11 +828,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 65,
                     name: "Craft large fur pouches"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Required for Quest The Fremennik Exiles"
                 },
                 {
                     itemId: 1397,
@@ -1108,12 +848,7 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: 6573,
                     level: 67,
                     name: "Cut onyxes"
-                }
-            ]
-        },
-        {
-            label: "Members 3",
-            entries: [
+                },
                 {
                     itemId: 2493,
                     level: 68,
@@ -1140,26 +875,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft yew pyre ships (with Barbarian Training completed)"
                 },
                 {
-                    itemId: 25543,
-                    level: 70,
-                    name: "Create celestial signets (with Smithing 70 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23886,
-                    level: 70,
-                    name: "Craft crystal helms (with Smithing 70 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Monkey Madness II"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Lumbridge & Draynor Diary"
-                },
-                {
                     itemId: 2499,
                     level: 71,
                     name: "Craft blue d'hide bodies"
@@ -1168,11 +883,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 71,
                     name: "Craft Mixed hide legs"
-                },
-                {
-                    itemId: 23892,
-                    level: 72,
-                    name: "Craft crystal legs (with Smithing 72 and Quest Song of the Elves completed)"
                 },
                 {
                     itemId: 1664,
@@ -1205,19 +915,9 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft bolts of cotton"
                 },
                 {
-                    itemId: 23889,
-                    level: 74,
-                    name: "Craft crystal bodies (with Smithing 74 and Quest Song of the Elves completed)"
-                },
-                {
                     itemId: 11115,
                     level: 74,
                     name: "Craft dragonstone bracelets"
-                },
-                {
-                    itemId: -1,
-                    level: 74,
-                    name: "Craft purging staves (with Quest While Guthix Sleeps completed)"
                 },
                 {
                     itemId: 22201,
@@ -1243,21 +943,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: 11866,
                     level: 75,
                     name: "Craft slayer rings (eternal) (after purchasing \"Ring Bling\" for 150 Slayer reward points)"
-                },
-                {
-                    itemId: 23673,
-                    level: 76,
-                    name: "Craft crystal axes (with Smithing 76 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23762,
-                    level: 76,
-                    name: "Craft crystal harpoons (with Smithing 76 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23680,
-                    level: 76,
-                    name: "Craft crystal pickaxes (with Smithing 76 and Quest Song of the Elves completed)"
                 },
                 {
                     itemId: -1,
@@ -1290,21 +975,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft red d'hide bodies"
                 },
                 {
-                    itemId: 23901,
-                    level: 78,
-                    name: "Craft crystal bows (with Smithing 78 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23895,
-                    level: 78,
-                    name: "Craft crystal halberds (with Smithing 78 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23991,
-                    level: 78,
-                    name: "Craft crystal shields (with Smithing 78 and Quest Song of the Elves completed)"
-                },
-                {
                     itemId: -1,
                     level: 78,
                     name: "Craft Hueycoatl hide body"
@@ -1325,21 +995,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft dragonstone amulet (u)"
                 },
                 {
-                    itemId: 23951,
-                    level: 80,
-                    name: "Craft enhanced crystal keys (with Smithing 80 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23946,
-                    level: 80,
-                    name: "Craft eternal teleport crystals (with Smithing 80 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Required to complete Diary Elite Fremennik Diary"
-                },
-                {
                     itemId: -1,
                     level: 81,
                     name: "Craft gem totes"
@@ -1358,16 +1013,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: 6565,
                     level: 82,
                     name: "Craft onyx necklaces"
-                },
-                {
-                    itemId: 23995,
-                    level: 82,
-                    name: "Craft and imbue the Blade of Saeldor (with Smithing 82 and Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 25862,
-                    level: 82,
-                    name: "Craft and imbue the Bow of Faerdhinen (with Smithing 82 and Quest Song of the Elves completed)"
                 },
                 {
                     itemId: 21338,
@@ -1400,11 +1045,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     name: "Craft necklace of rupture"
                 },
                 {
-                    itemId: -1,
-                    level: 84,
-                    name: "Required to complete Diary Elite Morytania Diary"
-                },
-                {
                     itemId: 21350,
                     level: 85,
                     name: "Craft amethyst arrowtips"
@@ -1418,11 +1058,6 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 85,
                     name: "Create accursed sceptres"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Kandarin Diary"
                 },
                 {
                     itemId: -1,
@@ -1473,7 +1108,12 @@ export const craftingSkillGuide: SkillGuideData = {
                     itemId: 22204,
                     level: 90,
                     name: "Craft redwood bird houses"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 3",
+            entries: [
                 {
                     itemId: -1,
                     level: 90,

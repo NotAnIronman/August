@@ -35,19 +35,9 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Attack potion(4)s"
                 },
                 {
-                    itemId: -1,
-                    level: 3,
-                    name: "Required for Quest Jungle Potion"
-                },
-                {
                     itemId: 11429,
                     level: 4,
                     name: "Mix Attack mix(2)es (with Barbarian Herblore completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 4,
-                    name: "Required for Quest Barbarian Herblore"
                 },
                 {
                     itemId: 201,
@@ -65,35 +55,9 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Antipoison(4)s"
                 },
                 {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required for Quest Lunar Diplomacy"
-                },
-                {
                     itemId: 11433,
                     level: 6,
                     name: "Mix Antipoison mix(2)es (with Barbarian Herblore completed)"
-                },
-                {
-                    itemId: 4842,
-                    level: 8,
-                    name: "Mix Relicym's balm(4)s (with partial completion of Quest Zogre Flesh Eaters)"
-                },
-                {
-                    itemId: -1,
-                    level: 8,
-                    name: "Required for Quest Zogre Flesh Eaters"
-                },
-                {
-                    itemId: 11437,
-                    level: 9,
-                    name: "Mix Relicym's mix(2)es (with Barbarian Herblore completed and partial completion of Quest Zogre ",
-                    description: "Flesh Eaters)"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest The Dig Site"
                 },
                 {
                     itemId: 203,
@@ -111,39 +75,9 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Strength potion(4)s"
                 },
                 {
-                    itemId: -1,
-                    level: 12,
-                    name: "Required to complete Diary Easy Kourend & Kebos Diary"
-                },
-                {
                     itemId: 11441,
                     level: 14,
                     name: "Mix Strength mix(2)es (with Barbarian Herblore completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 14,
-                    name: "Required for Quest Watchtower"
-                },
-                {
-                    itemId: 3408,
-                    level: 15,
-                    name: "Mix Serum 207 (4)s (with partial completion of Quest Shades of Mort'ton)"
-                },
-                {
-                    itemId: -1,
-                    level: 15,
-                    name: "Required for Quest Shades of Mort'ton"
-                },
-                {
-                    itemId: 4417,
-                    level: 18,
-                    name: "Mix Guthix rest(4)s (with partial completion of Quest One Small Favour)"
-                },
-                {
-                    itemId: -1,
-                    level: 18,
-                    name: "Required for Quest One Small Favour"
                 },
                 {
                     itemId: 10142,
@@ -176,11 +110,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Restore potion(4)s"
                 },
                 {
-                    itemId: -1,
-                    level: 22,
-                    name: "Required to complete Diary Medium Morytania Diary"
-                },
-                {
                     itemId: 11449,
                     level: 24,
                     name: "Mix Restore mix(2)es (with Barbarian Herblore completed)"
@@ -194,11 +123,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 1582,
                     level: 25,
                     name: "Mix blamish oils"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest Heroes' Quest"
                 },
                 {
                     itemId: 3008,
@@ -226,19 +150,9 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Defence potion(4)s"
                 },
                 {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest At First Light"
-                },
-                {
                     itemId: 10143,
                     level: 31,
                     name: "Mix marrentill tars"
-                },
-                {
-                    itemId: -1,
-                    level: 31,
-                    name: "Required for Quest Eadgar's Ruse"
                 },
                 {
                     itemId: -1,
@@ -266,11 +180,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Combat potion(4)s"
                 },
                 {
-                    itemId: -1,
-                    level: 36,
-                    name: "Required to complete Diary Medium Desert Diary"
-                },
-                {
                     itemId: 11461,
                     level: 37,
                     name: "Mix Agility mix(2)es (with Barbarian Herblore completed)"
@@ -279,11 +188,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 139,
                     level: 38,
                     name: "Mix Prayer potion(4)s"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Mix Moonlight potion(4)s (with partial completion of Quest Perilous Moons)"
                 },
                 {
                     itemId: 10144,
@@ -299,11 +203,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 11445,
                     level: 40,
                     name: "Mix combat mix(2)es (with Barbarian Herblore completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest A Taste of Hope"
                 },
                 {
                     itemId: 11465,
@@ -324,11 +223,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 145,
                     level: 45,
                     name: "Mix Super attack(4)s"
-                },
-                {
-                    itemId: -1,
-                    level: 45,
-                    name: "Required for Quest Legends' Quest"
                 },
                 {
                     itemId: 11469,
@@ -362,16 +256,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 48,
-                    name: "Required to complete Diary Medium Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 48,
-                    name: "Required for Quest Land of the Goblins"
-                },
-                {
-                    itemId: -1,
                     level: 49,
                     name: "Create anti-odour salt"
                 },
@@ -386,19 +270,9 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Fishing potion(4)s"
                 },
                 {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest A Kingdom Divided"
-                },
-                {
                     itemId: 11473,
                     level: 51,
                     name: "Mix Anti-poison supermix(2)es (with Barbarian Herblore completed)"
-                },
-                {
-                    itemId: 11204,
-                    level: 52,
-                    name: "Mix shrink-me-quicks (with partial completion of Quest Grim Tales)"
                 },
                 {
                     itemId: 3016,
@@ -419,11 +293,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 20973,
                     level: 52,
                     name: "Mix Xeric's aid (-) potions"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required for Quest Grim Tales"
                 },
                 {
                     itemId: 9998,
@@ -459,12 +328,7 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 55,
                     name: "Mix irit tars"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 56,
@@ -484,16 +348,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 11481,
                     level: 56,
                     name: "Mix Super energy mix(2)es (with Barbarian Herblore completed)"
-                },
-                {
-                    itemId: 9019,
-                    level: 57,
-                    name: "Mix Magic essence(4)s (with partial completion of Quest Fairytale II - Cure a Queen)"
-                },
-                {
-                    itemId: -1,
-                    level: 57,
-                    name: "Required for Quest Fairytale II - Cure a Queen"
                 },
                 {
                     itemId: -1,
@@ -576,12 +430,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Participate in Mastering Mixology"
                 },
                 {
-                    itemId: 11489,
-                    level: 61,
-                    name: "Mix Magic essence mix(2)es (with Barbarian Herblore completed and partial completion of Quest Fa",
-                    description: "irytale II - Cure a Queen)"
-                },
-                {
                     itemId: -1,
                     level: 62,
                     name: "Mix Pillar potion (unf)"
@@ -590,11 +438,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 62,
                     name: "Mix Super fishing potion(4)s"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required for Quest Desert Treasure II - The Fallen Empire"
                 },
                 {
                     itemId: 3004,
@@ -612,20 +455,15 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Mystic mana amalgam in Mastering Mixology"
                 },
                 {
-                    itemId: -1,
-                    level: 64,
-                    name: "Required for Quest The Blood Moon Rises"
-                },
-                {
                     itemId: 215,
                     level: 65,
                     name: "Clean grimy cadantines"
-                },
-                {
-                    itemId: 10925,
-                    level: 65,
-                    name: "Mix Sanfew serum(4)s (with Quest Zogre Flesh Eaters completed)"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: 20953,
                     level: 65,
@@ -640,11 +478,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 20973,
                     level: 65,
                     name: "Mix Xeric's aid potions"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Required for Quest While Guthix Sleeps"
                 },
                 {
                     itemId: 107,
@@ -665,11 +498,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 66,
                     name: "Mix Marley's moonlight in Mastering Mixology"
-                },
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Required to complete Diary Hard Fremennik Diary"
                 },
                 {
                     itemId: 2485,
@@ -712,21 +540,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Clean grimy dwarf weeds"
                 },
                 {
-                    itemId: 23697,
-                    level: 70,
-                    name: "Mix Divine super attack potion(4)s (with Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23721,
-                    level: 70,
-                    name: "Mix Divine super defence potion(4)s (with Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 23709,
-                    level: 70,
-                    name: "Mix Divine super strength potion(4)s (with Quest Song of the Elves completed)"
-                },
-                {
                     itemId: 20913,
                     level: 70,
                     name: "Mix Elder (+) potions"
@@ -740,11 +553,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 20937,
                     level: 70,
                     name: "Mix Kodai (+) potions"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Song of the Elves"
                 },
                 {
                     itemId: 11497,
@@ -770,11 +578,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 187,
                     level: 73,
                     name: "Mix weapon poison+"
-                },
-                {
-                    itemId: 23733,
-                    level: 74,
-                    name: "Mix Divine ranging potion(4)s (with Quest Song of the Elves completed)"
                 },
                 {
                     itemId: 11501,
@@ -820,11 +623,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 189,
                     level: 78,
                     name: "Mix Zamorak brew(4)s"
-                },
-                {
-                    itemId: 23745,
-                    level: 78,
-                    name: "Mix Divine magic potion(4)s (with Quest Song of the Elves completed)"
                 },
                 {
                     itemId: 20949,
@@ -887,11 +685,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Mixalot in Mastering Mixology"
                 },
                 {
-                    itemId: -1,
-                    level: 81,
-                    name: "Required to complete Diary Elite Falador Diary"
-                },
-                {
                     itemId: 187,
                     level: 82,
                     name: "Mix weapon poison++"
@@ -915,26 +708,11 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 85,
                     name: "Mix Extended stamina potion(4)s"
-                }
-            ]
-        },
-        {
-            label: "Members 3",
-            entries: [
+                },
                 {
                     itemId: 11521,
                     level: 85,
                     name: "Mix Zamorak mix(2)es (with Barbarian Herblore completed)"
-                },
-                {
-                    itemId: 24635,
-                    level: 86,
-                    name: "Mix divine bastion potions (with Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 24623,
-                    level: 86,
-                    name: "Mix divine battlemage potions (with Quest Song of the Elves completed)"
                 },
                 {
                     itemId: 12633,
@@ -942,19 +720,9 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Stamina mix(2)es (with Barbarian Herblore completed)"
                 },
                 {
-                    itemId: -1,
-                    level: 86,
-                    name: "Required to complete Diary Elite Kandarin Diary"
-                },
-                {
                     itemId: 12905,
                     level: 87,
                     name: "Mix Anti-venom(4)s"
-                },
-                {
-                    itemId: -1,
-                    level: 87,
-                    name: "Required to complete Diary Elite Karamja Diary"
                 },
                 {
                     itemId: -1,
@@ -983,11 +751,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 90,
-                    name: "Required to complete Diary Elite Varrock Diary"
-                },
-                {
-                    itemId: -1,
                     level: 91,
                     name: "Mix Forgotten brew(4)s"
                 },
@@ -995,11 +758,6 @@ export const herbloreSkillGuide: SkillGuideData = {
                     itemId: 11960,
                     level: 91,
                     name: "Mix Extended antifire mix(2)es (with Barbarian Herblore completed)"
-                },
-                {
-                    itemId: 21978,
-                    level: 92,
-                    name: "Mix Super antifire potion(4)s (with Quest Dragon Slayer II completed)"
                 },
                 {
                     itemId: 26350,
@@ -1017,30 +775,9 @@ export const herbloreSkillGuide: SkillGuideData = {
                     name: "Mix Extended anti-venom+(4)"
                 },
                 {
-                    itemId: 23685,
-                    level: 97,
-                    name: "Mix Divine super combat potion(4)s (with Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: 22209,
-                    level: 98,
-                    name: "Mix Extended super antifire(4)s (with Quest Dragon Slayer II completed)"
-                },
-                {
-                    itemId: 21994,
-                    level: 98,
-                    name: "Mix Super antifire mix(2)es (with Barbarian Herblore and Quest Dragon Slayer II completed)"
-                },
-                {
                     itemId: 9774,
                     level: 99,
                     name: "Buy the herblore cape and hood from Kaqemeex at the druid circle in Taverley, and wear them"
-                },
-                {
-                    itemId: 22221,
-                    level: 99,
-                    name: "Mix Extended super antifire mix(2)es (with Barbarian Herblore and Quest Dragon Slayer II complet",
-                    description: "ed)"
                 },
                 {
                     itemId: -1,

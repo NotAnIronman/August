@@ -230,11 +230,6 @@ export const runecraftSkillGuide: SkillGuideData = {
                     name: "Create catalytic tiaras at catalytic altars"
                 },
                 {
-                    itemId: 5539,
-                    level: 1,
-                    name: "Create cosmic tiaras at the Cosmic Altar (with Quest Lost City completed)"
-                },
-                {
                     itemId: 5543,
                     level: 1,
                     name: "Create chaos tiaras at the Chaos Altar"
@@ -243,26 +238,6 @@ export const runecraftSkillGuide: SkillGuideData = {
                     itemId: 5541,
                     level: 1,
                     name: "Create nature tiaras at the Nature Altar"
-                },
-                {
-                    itemId: 5545,
-                    level: 1,
-                    name: "Create law tiaras at the Law Altar (with Quest Troll Stronghold completed)"
-                },
-                {
-                    itemId: 5547,
-                    level: 1,
-                    name: "Create death tiaras at the Death Altar (with Quest Mourning's End Part II completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 1,
-                    name: "Create blood tiaras at the Blood Altar (with Quest Sins of the Father completed)"
-                },
-                {
-                    itemId: 22121,
-                    level: 1,
-                    name: "Create wrath tiaras at the Wrath Altar (with Quest Dragon Slayer II completed)"
                 },
                 {
                     itemId: 13446,
@@ -275,29 +250,14 @@ export const runecraftSkillGuide: SkillGuideData = {
                     name: "Store essence in small pouches"
                 },
                 {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required to complete Diary Easy Lumbridge & Draynor Diary"
-                },
-                {
                     itemId: 4695,
                     level: 6,
                     name: "Craft mist runes at the Air or Water Altar"
                 },
                 {
-                    itemId: -1,
-                    level: 9,
-                    name: "Required to complete Diary Easy Varrock Diary"
-                },
-                {
                     itemId: 4696,
                     level: 10,
                     name: "Craft dust runes at the Air or Earth Altar"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Temple of the Eye"
                 },
                 {
                     itemId: 4698,
@@ -320,19 +280,9 @@ export const runecraftSkillGuide: SkillGuideData = {
                     name: "Craft steam runes at the Fire or Water Altar"
                 },
                 {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Perilous Moons"
-                },
-                {
                     itemId: 4699,
                     level: 23,
                     name: "Craft lava runes at the Fire or Earth Altar"
-                },
-                {
-                    itemId: -1,
-                    level: 23,
-                    name: "Required to complete Diary Medium Lumbridge & Draynor Diary"
                 },
                 {
                     itemId: 5510,
@@ -345,21 +295,6 @@ export const runecraftSkillGuide: SkillGuideData = {
                     name: "Craft and store 8 essence in the colossal pouch (with Crafting 56)"
                 },
                 {
-                    itemId: 564,
-                    level: 27,
-                    name: "Craft cosmic runes at the Cosmic Altar (with Quest Lost City completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 27,
-                    name: "Aid the Guardians of the Rift (with Quest Temple of the Eye completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest The Slug Menace"
-                },
-                {
                     itemId: -1,
                     level: 33,
                     name: "Craft sunfire runes at a Shrine of Ralos"
@@ -368,16 +303,6 @@ export const runecraftSkillGuide: SkillGuideData = {
                     itemId: 562,
                     level: 35,
                     name: "Craft chaos runes at the Chaos Altar"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Required for Quest What Lies Below"
-                },
-                {
-                    itemId: 9075,
-                    level: 40,
-                    name: "Craft astral runes at the Astral Altar (with Quest Lunar Diplomacy completed)"
                 },
                 {
                     itemId: 3391,
@@ -402,20 +327,10 @@ export const runecraftSkillGuide: SkillGuideData = {
                     name: "Build a (with Construction 41)"
                 },
                 {
-                    itemId: -1,
-                    level: 44,
-                    name: "Required to complete Diary Hard Karamja Diary"
-                },
-                {
                     itemId: 3385,
                     level: 46,
                     name: "Infuse splitbark helms into swampbark helms at the Nature Altar (after reading a runescroll of s",
                     description: "wampbark)"
-                },
-                {
-                    itemId: -1,
-                    level: 47,
-                    name: "Required for Quest Fallen From Grace"
                 },
                 {
                     itemId: 3387,
@@ -460,39 +375,9 @@ export const runecraftSkillGuide: SkillGuideData = {
                     name: "Reinvigorate desiccated pages into soiled pages at the Book of Earthen Might"
                 },
                 {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Devious Minds"
-                },
-                {
-                    itemId: -1,
-                    level: 52,
-                    name: "Required for Quest The Final Dawn"
-                },
-                {
-                    itemId: 563,
-                    level: 54,
-                    name: "Craft law runes at the Law Altar (with Quest Troll Stronghold completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
-                    name: "Required for Quest The Fremennik Exiles"
-                },
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Required to complete Diary Hard Falador Diary"
-                },
-                {
                     itemId: 564,
                     level: 59,
                     name: "Craft 2 cosmic runes per essence"
-                },
-                {
-                    itemId: -1,
-                    level: 59,
-                    name: "Required to complete Diary Hard Lumbridge & Draynor Diary"
                 },
                 {
                     itemId: 11840,
@@ -510,21 +395,6 @@ export const runecraftSkillGuide: SkillGuideData = {
                     name: "Infuse ranger boots into pegasian boots (with Magic 60)"
                 },
                 {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required for Quest Desert Treasure II - The Fallen Empire"
-                },
-                {
-                    itemId: 560,
-                    level: 65,
-                    name: "Craft death runes at the Death Altar (with Quest Mourning's End Part II completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Required to complete Diary Hard Ardougne Diary"
-                },
-                {
                     itemId: 562,
                     level: 74,
                     name: "Craft 2 chaos runes per essence"
@@ -540,17 +410,6 @@ export const runecraftSkillGuide: SkillGuideData = {
                     name: "Store 27 essence in the colossal pouch"
                 },
                 {
-                    itemId: -1,
-                    level: 76,
-                    name: "Required to complete Diary Elite Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: 565,
-                    level: 77,
-                    name: "Craft blood runes at the Blood Altar (with Quest Sins of the Father completed and a blood talism",
-                    description: "an or tiara) or Kourend's Blood Altar"
-                },
-                {
                     itemId: 3391,
                     level: 77,
                     name: "Infuse splitbark gauntlets into bloodbark gauntlets at the Blood Altar or Kourend's Blood Altar ",
@@ -561,16 +420,6 @@ export const runecraftSkillGuide: SkillGuideData = {
                     level: 77,
                     name: "Infuse splitbark boots into bloodbark boots at the Blood Altar or Kourend's Blood Altar (after r",
                     description: "eading a runescroll of bloodbark)"
-                },
-                {
-                    itemId: -1,
-                    level: 77,
-                    name: "Required to complete Diary Elite Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 78,
-                    name: "Required to complete Diary Elite Varrock Diary"
                 },
                 {
                     itemId: 3385,
@@ -597,18 +446,8 @@ export const runecraftSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 82,
-                    name: "Required to complete Diary Elite Fremennik Diary"
-                },
-                {
-                    itemId: -1,
                     level: 85,
                     name: "Store 40 essence in the colossal pouch"
-                },
-                {
-                    itemId: -1,
-                    level: 88,
-                    name: "Required to complete Diary Elite Falador Diary"
                 },
                 {
                     itemId: 566,
@@ -629,16 +468,6 @@ export const runecraftSkillGuide: SkillGuideData = {
                     itemId: 561,
                     level: 91,
                     name: "Craft 2 nature runes per essence"
-                },
-                {
-                    itemId: -1,
-                    level: 91,
-                    name: "Required to complete Diary Elite Karamja Diary"
-                },
-                {
-                    itemId: 21880,
-                    level: 95,
-                    name: "Craft wrath runes at the Wrath Altar (with Quest Dragon Slayer II completed)"
                 },
                 {
                     itemId: 563,

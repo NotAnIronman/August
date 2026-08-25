@@ -265,7 +265,7 @@ export function shouldRenderPlayerIndex(host: WebGLOsrsRendererHost, pid: number
         const renderSelf = host.osrsClient.renderSelf !== false;
         const controlledServerId = host.osrsClient.controlledPlayerServerId | 0;
         const controlledPid =
-            controlledServerId > 0
+            controlledServerId >= 0
                 ? host.osrsClient.playerEcs.getIndexForServerId(controlledServerId)
                 : undefined;
         if (!renderSelf && controlledPid !== undefined && (pid | 0) === (controlledPid | 0)) {
@@ -353,7 +353,7 @@ export function shouldRenderNpcFromMap(host: WebGLOsrsRendererHost, map: WebGLMa
         const npcEcs = host.osrsClient.npcEcs;
         const controlledServerId = host.osrsClient.controlledPlayerServerId | 0;
         const controlledPid =
-            controlledServerId > 0
+            controlledServerId >= 0
                 ? host.osrsClient.playerEcs.getIndexForServerId(controlledServerId)
                 : undefined;
         if (controlledPid === undefined || !host.isPlayerSceneTileMarkerCandidate(controlledPid)) {

@@ -171,16 +171,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 5,
-                    name: "Required for Quest Darkness of Hallowvale"
-                },
-                {
-                    itemId: -1,
-                    level: 5,
-                    name: "Required for Quest The Eyes of Glouphrie"
-                },
-                {
-                    itemId: -1,
                     level: 6,
                     name: "Build a"
                 },
@@ -278,16 +268,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 10,
                     name: "Move house to Taverley"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Tower of Life"
-                },
-                {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Perilous Moons"
                 },
                 {
                     itemId: -1,
@@ -411,11 +391,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 16,
-                    name: "Required to complete Diary Easy Falador Diary"
-                },
-                {
-                    itemId: -1,
                     level: 17,
                     name: "Build a"
                 },
@@ -458,12 +433,7 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 19,
                     name: "Build an"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 19,
@@ -488,7 +458,12 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 20,
                     name: "Build a"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: -1,
                     level: 20,
@@ -503,16 +478,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 20,
                     name: "Move house to Pollnivneach"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest The Fremennik Isles"
-                },
-                {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required to complete Diary Medium Desert Diary"
                 },
                 {
                     itemId: -1,
@@ -627,11 +592,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 25,
-                    name: "Required to complete Diary Easy Kourend & Kebos Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
                     name: "Build a (with Sailing 33)"
                 },
                 {
@@ -648,11 +608,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 26,
                     name: "Build a"
-                },
-                {
-                    itemId: -1,
-                    level: 26,
-                    name: "Required for Quest Getting Ahead"
                 },
                 {
                     itemId: -1,
@@ -693,11 +648,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 27,
                     name: "Set up easy STASH units"
-                },
-                {
-                    itemId: -1,
-                    level: 27,
-                    name: "Required for Quest At First Light"
                 },
                 {
                     itemId: -1,
@@ -822,11 +772,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 30,
-                    name: "Required for Quest The Great Brain Robbery"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
                     name: "Build a (with Sailing 38)"
                 },
                 {
@@ -913,12 +858,7 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 34,
                     name: "Build a"
-                }
-            ]
-        },
-        {
-            label: "Members 3",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 34,
@@ -952,41 +892,11 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 34,
-                    name: "Required for Quest Cold War"
-                },
-                {
-                    itemId: -1,
-                    level: 34,
                     name: "Build a (with Sailing 42)"
                 },
                 {
                     itemId: -1,
                     level: 35,
-                    name: "Build an (with Quest Plague City completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Build a ((with Firemaking 66 and Quest Making Friends With My Arm completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Build a (with Firemaking 66 and Quest Making Friends With My Arm completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Build a (with Quest The Giant Dwarf completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Build a (with Quest Holy Grail completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
                     name: "Build a"
                 },
                 {
@@ -1003,21 +913,16 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 35,
                     name: "Build a"
-                },
-                {
-                    itemId: -1,
-                    level: 35,
-                    name: "Required for Quest Making Friends With My Arm"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 3",
+            entries: [
                 {
                     itemId: -1,
                     level: 36,
                     name: "Build a (with Cooking 39)"
-                },
-                {
-                    itemId: -1,
-                    level: 36,
-                    name: "Build a Mounted bass (with Quest Priest in Peril completed to stuff the big bass)"
                 },
                 {
                     itemId: -1,
@@ -1072,27 +977,7 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 37,
-                    name: "Required to complete Diary Medium Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 37,
                     name: "Build an (with Sailing 40)"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Build a (with Quest Priest in Peril completed to stuff the basilisk head)"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Build a (with Quest Priest in Peril completed to stuff the cockatrice head)"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Build a (with Quest Priest in Peril completed to stuff the crawling hand)"
                 },
                 {
                     itemId: -1,
@@ -1118,11 +1003,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 38,
                     name: "Maximum house size of 27 rooms (5x5)"
-                },
-                {
-                    itemId: -1,
-                    level: 38,
-                    name: "Required for Quest Scrambled!"
                 },
                 {
                     itemId: -1,
@@ -1232,11 +1112,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 41,
-                    name: "Required for Quest Shadows of Custodia"
-                },
-                {
-                    itemId: -1,
-                    level: 41,
                     name: "Build (with Sailing 48)"
                 },
                 {
@@ -1262,27 +1137,12 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 42,
-                    name: "Build (with Quest Shadow of the Storm completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Build (with Quest Merlin's Crystal completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
                     name: "Build a"
                 },
                 {
                     itemId: -1,
                     level: 42,
                     name: "Build an"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Build (with Quest Demon Slayer completed)"
                 },
                 {
                     itemId: -1,
@@ -1312,29 +1172,12 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 44,
-                    name: "Build (with Quest Cook's Assistant, Quest Rune Mysteries, and Quest The Restless Ghost completed",
-                    description: ")"
-                },
-                {
-                    itemId: -1,
-                    level: 44,
-                    name: "Build (with Quest Creature of Fenkenstrain, Quest Ghosts Ahoy, Quest Haunted Mine, and Quest Sha",
-                    description: "des of Mort'ton completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 44,
                     name: "Build an"
                 },
                 {
                     itemId: -1,
                     level: 44,
                     name: "Build a"
-                },
-                {
-                    itemId: -1,
-                    level: 44,
-                    name: "Build (with Quest Prince Ali Rescue, Quest The Feud, and Quest The Tourist Trap completed)"
                 },
                 {
                     itemId: -1,
@@ -1370,12 +1213,7 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 45,
                     name: "Build a"
-                }
-            ]
-        },
-        {
-            label: "Members 4",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 45,
@@ -1449,11 +1287,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 47,
-                    name: "Build a (with Quest Legends' Quest completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 47,
                     name: "Build a"
                 },
                 {
@@ -1465,11 +1298,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 47,
                     name: "Build a"
-                },
-                {
-                    itemId: -1,
-                    level: 47,
-                    name: "Build a (with Quest Dragon Slayer II completed)"
                 },
                 {
                     itemId: -1,
@@ -1540,16 +1368,16 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 48,
                     name: "Build a"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 4",
+            entries: [
                 {
                     itemId: -1,
                     level: 48,
                     name: "Build a"
-                },
-                {
-                    itemId: -1,
-                    level: 48,
-                    name: "Required for Quest Troubled Tortugans"
                 },
                 {
                     itemId: -1,
@@ -1590,11 +1418,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 50,
                     name: "Ability to have house listed in a House Advertisement"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Build a (with Firemaking 66 and Quest Making Friends With My Arm completed)"
                 },
                 {
                     itemId: -1,
@@ -1655,31 +1478,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 50,
                     name: "Move house to Yanille"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required for Quest Dragon Slayer II"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Ardougne Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Kandarin Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Morytania Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Hard Varrock Diary"
                 },
                 {
                     itemId: -1,
@@ -1794,11 +1592,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 55,
-                    name: "Build a (with Quest Throne of Miscellania completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 55,
                     name: "Build a"
                 },
                 {
@@ -1825,16 +1618,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 56,
                     name: "Build a"
-                }
-            ]
-        },
-        {
-            label: "Members 5",
-            entries: [
-                {
-                    itemId: -1,
-                    level: 56,
-                    name: "Build a Mounted swordfish (with Quest Priest in Peril completed to stuff the big swordfish)"
                 },
                 {
                     itemId: -1,
@@ -1858,11 +1641,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 56,
-                    name: "Repair broken bridges in the Hallowed Sepulchre (with Quest Sins of the Father completed)"
-                },
-                {
-                    itemId: -1,
                     level: 57,
                     name: "Build a"
                 },
@@ -1889,17 +1667,7 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 58,
-                    name: "Build an (with Quest Priest in Peril completed to stuff the abyssal head)"
-                },
-                {
-                    itemId: -1,
-                    level: 58,
                     name: "Build"
-                },
-                {
-                    itemId: -1,
-                    level: 58,
-                    name: "Build a (with Quest Priest in Peril completed to stuff the kurask head)"
                 },
                 {
                     itemId: -1,
@@ -1984,11 +1752,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 60,
-                    name: "Build a (with Firemaking 66 and Quest Making Friends With My Arm completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
                     name: "Build a"
                 },
                 {
@@ -2044,11 +1807,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 60,
-                    name: "Required for Quest Desert Treasure II - The Fallen Empire"
-                },
-                {
-                    itemId: -1,
-                    level: 60,
                     name: "Build a (with Sailing 68)"
                 },
                 {
@@ -2065,7 +1823,12 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 61,
                     name: "Build"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 5",
+            entries: [
                 {
                     itemId: -1,
                     level: 61,
@@ -2179,17 +1942,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 65,
-                    name: "Build (with Quest Roving Elves completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
-                    name: "Build (with Quest Pirate's Treasure, Quest Shilo Village, and Quest Tai Bwo Wannai Trio complete",
-                    description: "d)"
-                },
-                {
-                    itemId: -1,
-                    level: 65,
                     name: "Build"
                 },
                 {
@@ -2239,11 +1991,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 65,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
                     level: 66,
                     name: "Build a"
                 },
@@ -2281,16 +2028,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 66,
                     name: "Build a"
-                }
-            ]
-        },
-        {
-            label: "Members 6",
-            entries: [
-                {
-                    itemId: -1,
-                    level: 66,
-                    name: "Build a Mounted harpoonfish (with Quest Priest in Peril completed to stuff the big harpoonfish)"
                 },
                 {
                     itemId: -1,
@@ -2460,16 +2197,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 70,
-                    name: "Move house to Prifddinas (with Quest Song of the Elves completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Song of the Elves"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
                     name: "Build a (with Sailing 79)"
                 },
                 {
@@ -2551,7 +2278,12 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 72,
                     name: "Build a"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 6",
+            entries: [
                 {
                     itemId: -1,
                     level: 72,
@@ -2695,11 +2427,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 76,
-                    name: "Build a (with Quest Priest in Peril completed to stuff the big shark)"
-                },
-                {
-                    itemId: -1,
-                    level: 76,
                     name: "Build"
                 },
                 {
@@ -2736,12 +2463,7 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 77,
                     name: "Build a"
-                }
-            ]
-        },
-        {
-            label: "Members 7",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 77,
@@ -2780,16 +2502,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 {
                     itemId: -1,
                     level: 78,
-                    name: "Build a (with Quest Priest in Peril completed to stuff the kbd heads)"
-                },
-                {
-                    itemId: -1,
-                    level: 78,
-                    name: "Build a (with Quest Priest in Peril completed to stuff the kq head)"
-                },
-                {
-                    itemId: -1,
-                    level: 78,
                     name: "Build a"
                 },
                 {
@@ -2816,11 +2528,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 78,
                     name: "Build a"
-                },
-                {
-                    itemId: -1,
-                    level: 78,
-                    name: "Required to complete Diary Elite Desert Diary"
                 },
                 {
                     itemId: -1,
@@ -3014,16 +2721,6 @@ export const constructionSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 82,
-                    name: "Build (with Quest Dragon Slayer II and Quest Priest in Peril completed to stuff Vorkath's head)"
-                },
-                {
-                    itemId: -1,
-                    level: 82,
-                    name: "Build (with Quest Priest in Peril completed to stuff the hydra heads)"
-                },
-                {
-                    itemId: -1,
                     level: 83,
                     name: "Build a"
                 },
@@ -3036,7 +2733,12 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 83,
                     name: "Build an"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 7",
+            entries: [
                 {
                     itemId: -1,
                     level: 83,
@@ -3191,12 +2893,7 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 87,
                     name: "Build a"
-                }
-            ]
-        },
-        {
-            label: "Members 8",
-            entries: [
+                },
                 {
                     itemId: -1,
                     level: 87,
@@ -3391,11 +3088,6 @@ export const constructionSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 99,
                     name: "Build a"
-                },
-                {
-                    itemId: -1,
-                    level: 99,
-                    name: "Build a (with Quest Dragon Slayer II completed)"
                 },
                 {
                     itemId: -1,

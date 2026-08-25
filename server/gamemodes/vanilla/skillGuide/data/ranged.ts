@@ -91,18 +91,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     name: "Wield maple longbows"
                 },
                 {
-                    itemId: 1135,
-                    level: 40,
-                    name: "Wear Green d'hide body (with Defence 40 and Quest Dragon Slayer I completed for the green d'hide",
-                    description: " body)"
-                },
-                {
-                    itemId: 23264,
-                    level: 40,
-                    name: "Wear Gilded d'hide body (with Defence 40 and Quest Dragon Slayer I completed for the gilded d'hi",
-                    description: "de body)"
-                },
-                {
                     itemId: -1,
                     level: 99,
                     name: "Skill mastery"
@@ -188,19 +176,9 @@ export const rangedSkillGuide: SkillGuideData = {
                     name: "Wield black knives"
                 },
                 {
-                    itemId: 9176,
-                    level: 16,
-                    name: "Wield blurite crossbows (with Quest The Knight's Sword completed)"
-                },
-                {
                     itemId: 9418,
                     level: 19,
                     name: "Access wall (north wall of Falador) shortcut (requires grappling, Strength 37, and Agility 11)"
-                },
-                {
-                    itemId: -1,
-                    level: 19,
-                    name: "Required to complete Diary Medium Falador Diary"
                 },
                 {
                     itemId: -1,
@@ -234,19 +212,9 @@ export const rangedSkillGuide: SkillGuideData = {
                     description: "39)"
                 },
                 {
-                    itemId: -1,
-                    level: 21,
-                    name: "Required to complete Diary Medium Ardougne Diary"
-                },
-                {
                     itemId: 10954,
                     level: 25,
                     name: "Wear Frog-leather body (with Defence 25)"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest Underground Pass"
                 },
                 {
                     itemId: 9177,
@@ -264,24 +232,9 @@ export const rangedSkillGuide: SkillGuideData = {
                     name: "Use Adamant cannon icons (with Sailing 69)"
                 },
                 {
-                    itemId: 10498,
-                    level: 30,
-                    name: "Wear Ava's attractors (with Quest Animal Magnetism completed)"
-                },
-                {
                     itemId: 6322,
                     level: 30,
                     name: "Wear Snakeskin body (with Defence 30)"
-                },
-                {
-                    itemId: 2883,
-                    level: 30,
-                    name: "Wield ogre bows (with partial completion of Quest Big Chompy Bird Hunting)"
-                },
-                {
-                    itemId: 4827,
-                    level: 30,
-                    name: "Wield comp ogre bows (with partial completion of Quest Zogre Flesh Eaters)"
                 },
                 {
                     itemId: 810,
@@ -309,31 +262,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     name: "Wield snakeskin shields (with Defence 30)"
                 },
                 {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Animal Magnetism"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Big Chompy Bird Hunting"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Zogre Flesh Eaters"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Easy Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Medium Western Provinces Diary"
-                },
-                {
                     itemId: 9179,
                     level: 31,
                     name: "Wield steel crossbows"
@@ -353,11 +281,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     level: 37,
                     name: "Access broken raft (south of Lumbridge) shortcut (requires grappling, Strength 19, and Agility 8",
                     description: ")"
-                },
-                {
-                    itemId: -1,
-                    level: 37,
-                    name: "Required for Quest Spirits of the Elid"
                 },
                 {
                     itemId: 9418,
@@ -440,21 +363,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     name: "Wield green d'hide shields (with Defence 40)"
                 },
                 {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Cabin Fever"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Temple of Ikov"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Medium Kandarin Diary"
-                },
-                {
                     itemId: 9418,
                     level: 42,
                     name: "Access rock (south of volcano area on Karamja) shortcut (requires grappling, Strength 21, and Ag",
@@ -464,16 +372,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     itemId: 8839,
                     level: 42,
                     name: "Wear Void knight top (with Attack 42, Strength, Magic, Defence, Hitpoints, and Prayer 22)"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Elite Western Provinces Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Hard Karamja Diary"
                 },
                 {
                     itemId: -1,
@@ -489,16 +387,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     itemId: 9183,
                     level: 46,
                     name: "Wield adamant crossbows"
-                },
-                {
-                    itemId: -1,
-                    level: 47,
-                    name: "Required for Quest The Path of Glouphrie"
-                },
-                {
-                    itemId: 10499,
-                    level: 50,
-                    name: "Wear Ava's accumulators (with Quest Animal Magnetism completed)"
                 },
                 {
                     itemId: 2499,
@@ -557,19 +445,9 @@ export const rangedSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 50,
-                    name: "Required to complete Diary Medium Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
                     level: 55,
                     name: "Wield ironwood blowpipes"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: 9977,
                     level: 55,
@@ -642,11 +520,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     name: "Wield aquanite hoppers"
                 },
                 {
-                    itemId: -1,
-                    level: 60,
-                    name: "Required for Quest Mourning's End Part I"
-                },
-                {
                     itemId: 9185,
                     level: 61,
                     name: "Wield rune crossbow"
@@ -667,11 +540,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     name: "Attempt pillar grapples in Hallowed Sepulchre"
                 },
                 {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required for Quest The Curse of Arrav"
-                },
-                {
                     itemId: 21902,
                     level: 64,
                     name: "Wield dragon crossbows"
@@ -685,7 +553,12 @@ export const rangedSkillGuide: SkillGuideData = {
                     itemId: 12424,
                     level: 65,
                     name: "Wield 3rd Age bows"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: 11959,
                     level: 65,
@@ -705,11 +578,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 66,
                     name: "Wield hunters' sunlight crossbows (with Hunter 50)"
-                },
-                {
-                    itemId: 21914,
-                    level: 70,
-                    name: "Wear Ava's assembler (with Quest Dragon Slayer II completed)"
                 },
                 {
                     itemId: 2503,
@@ -742,11 +610,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     name: "Wear Boots of Brimstone (with Magic 70 and Defence 70)"
                 },
                 {
-                    itemId: 23901,
-                    level: 70,
-                    name: "Wield crystal bows (with Agility 50 and Quest Roving Elves completed)"
-                },
-                {
                     itemId: -1,
                     level: 70,
                     name: "Wield webweaver bows"
@@ -777,29 +640,9 @@ export const rangedSkillGuide: SkillGuideData = {
                     name: "Wield black d'hide shields (with Defence 40)"
                 },
                 {
-                    itemId: 22002,
-                    level: 70,
-                    name: "Wield dragonfire wards (with Defence 75 and partial completion of Quest Dragon Slayer I)"
-                },
-                {
                     itemId: -1,
                     level: 70,
                     name: "Access Armadyl's Eyrie in the God Wars Dungeon"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Elite Fremennik Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Elite Lumbridge & Draynor Diary"
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
                 },
                 {
                     itemId: 13237,
@@ -835,11 +678,6 @@ export const rangedSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 75,
                     name: "Wear Dizana's quiver"
-                },
-                {
-                    itemId: -1,
-                    level: 77,
-                    name: "Wield scorching bows (with Quest While Guthix Sleeps completed)"
                 },
                 {
                     itemId: -1,

@@ -1,4 +1,6 @@
 import { EquipmentSlot } from "../../../../client/rs/config/player/Equipment";
+import { SKILL_NAME, type SkillId } from "../../../../client/rs/skill/skills";
+import { getItemDefinition } from "../../data/items";
 import type { ServerServices } from "../ServerServices";
 import {
     ensureEquipArrayOn,
@@ -36,6 +38,19 @@ export class EquipmentHandler {
         equipSlot: number,
         opts?: { playSound?: boolean },
     ): EquipResult {
+        const unmetRequirement = this.getUnmetRequirementMessage(player, itemId);
+        if (unmetRequirement) {
+            return {
+                ok: false,
+                // The queued-action handler dispatches this player-facing
+                // message, so every route through EquipmentService obeys the
+                // same server-authoritative validation.
+                reason: `equip_requirement:${unmetRequirement}`,
+                categoryChanged: false,
+                weaponItemChanged: false,
+            };
+        }
+
         // Equipping closes interruptible interfaces
         this.svc.interfaceManager.closeInterruptibleInterfaces(player);
 
@@ -195,5 +210,22 @@ export class EquipmentHandler {
 
     private ensureAppearance(player: PlayerState): PlayerAppearance {
         return player.appearance;
+    }
+
+    /** Item requirements are exported in SkillId order with the item data. */
+    private getUnmetRequirementMessage(player: PlayerState, itemId: number): string | undefined {
+        const requirements = getItemDefinition(itemId)?.requirements;
+        if (!requirements) return undefined;
+
+        for (let skill = 0; skill < requirements.length; skill++) {
+            const required = Math.max(0, Math.trunc(requirements[skill] ?? 0));
+            if (required <= 0) continue;
+            const skillId = skill as SkillId;
+            const current = player.skillSystem.getSkill(skillId).baseLevel;
+            if (current < required) {
+                return `You need a level of ${required} in ${SKILL_NAME[skillId]} to equip this item.`;
+            }
+        }
+        return undefined;
     }
 }

@@ -6,6 +6,7 @@
  * Usage:
  *   yarn --cwd server sync-npc-drops
  *   yarn --cwd server sync-npc-drops -- --source <local-monsters-complete.json>
+ *   yarn --cwd server ensure-npc-drops
  *
  * The dataset comes from osrsbox-db, whose monster data is derived from the
  * OSRS Wiki dump.  It is a bootstrap source rather than cache data: the
@@ -20,6 +21,10 @@ const ROOT = path.resolve(SCRIPT_DIR, "../..");
 const DESTINATION = path.join(ROOT, "references", "monsters-complete.json");
 const SOURCE_URL =
     "https://raw.githubusercontent.com/osrsbox/osrsbox-db/master/docs/monsters-complete.json";
+
+function hasFlag(name: string): boolean {
+    return process.argv.includes(name);
+}
 
 function getArg(name: string): string | undefined {
     const index = process.argv.indexOf(name);
@@ -53,6 +58,10 @@ function validate(text: string): number {
 }
 
 async function main(): Promise<void> {
+    if (hasFlag("--if-missing") && fs.existsSync(DESTINATION)) {
+        console.log(`NPC drop reference already present: ${DESTINATION}`);
+        return;
+    }
     const { text, source } = await getSourceText();
     const count = validate(text);
     fs.mkdirSync(path.dirname(DESTINATION), { recursive: true });
@@ -63,5 +72,12 @@ async function main(): Promise<void> {
 
 void main().catch((error) => {
     console.error(`[sync-npc-drops] ${error instanceof Error ? error.message : String(error)}`);
+    if (hasFlag("--if-missing")) {
+        // Full drop data improves the game but must never prevent a local
+        // world from starting when a developer is offline. The next normal
+        // start will retry the bootstrap automatically.
+        console.warn("[sync-npc-drops] Continuing without the optional full drop reference.");
+        return;
+    }
     process.exitCode = 1;
 });

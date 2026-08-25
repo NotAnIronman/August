@@ -51,11 +51,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Cook herring"
                 },
                 {
-                    itemId: 25654,
-                    level: 7,
-                    name: "Prepare guppies (with Quest Below Ice Mountain completed)"
-                },
-                {
                     itemId: 2325,
                     level: 10,
                     name: "Bake redberry pies"
@@ -81,11 +76,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Cook pike"
                 },
                 {
-                    itemId: 25660,
-                    level: 20,
-                    name: "Prepare cavefish (with Quest Below Ice Mountain completed)"
-                },
-                {
                     itemId: 329,
                     level: 25,
                     name: "Cook salmon"
@@ -109,11 +99,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 32,
                     name: "Access the Cooks' Guild"
-                },
-                {
-                    itemId: 25666,
-                    level: 33,
-                    name: "Prepare tetra (with Quest Below Ice Mountain completed)"
                 },
                 {
                     itemId: 2289,
@@ -236,11 +221,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Cook mackerel"
                 },
                 {
-                    itemId: -1,
-                    level: 10,
-                    name: "Required for Quest Recipe for Disaster/Another Cook's Quest"
-                },
-                {
                     itemId: 7062,
                     level: 11,
                     name: "Cook chilli con carne (topping ingredient)"
@@ -259,11 +239,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: 3363,
                     level: 12,
                     name: "Cook thin snail"
-                },
-                {
-                    itemId: -1,
-                    level: 12,
-                    name: "Required to complete Diary Easy Morytania Diary"
                 },
                 {
                     itemId: 7078,
@@ -311,11 +286,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Cook spiders on stick"
                 },
                 {
-                    itemId: -1,
-                    level: 16,
-                    name: "Required to complete Diary Easy Karamja Diary"
-                },
-                {
                     itemId: 3365,
                     level: 17,
                     name: "Cook lean snails"
@@ -346,11 +316,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Brew nettle tea"
                 },
                 {
-                    itemId: -1,
-                    level: 20,
-                    name: "Required for Quest Ghosts Ahoy"
-                },
-                {
                     itemId: 2130,
                     level: 21,
                     name: "Churn pots of cream"
@@ -376,11 +341,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Cook fat snails"
                 },
                 {
-                    itemId: -1,
-                    level: 22,
-                    name: "Required for Quest Forgettable Tale..."
-                },
-                {
                     itemId: 7064,
                     level: 23,
                     name: "Cook egg and tomatoes (topping ingredient)"
@@ -404,11 +364,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: 2277,
                     level: 25,
                     name: "Bake fruit batta"
-                },
-                {
-                    itemId: -1,
-                    level: 25,
-                    name: "Required for Quest Recipe for Disaster/Freeing Evil Dave"
                 },
                 {
                     itemId: 2255,
@@ -461,45 +416,14 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Bake worm holes"
                 },
                 {
-                    itemId: 2878,
-                    level: 30,
-                    name: "Cook chompies (with Quest Big Chompy Bird Hunting completed)"
-                },
-                {
                     itemId: 20875,
                     level: 30,
                     name: "Cook giral bats"
                 },
                 {
-                    itemId: 3144,
-                    level: 30,
-                    name: "Cook karambwans thoroughly (with Quest Tai Bwo Wannai Trio completed and talked to Tinsay afterw",
-                    description: "ards)"
-                },
-                {
                     itemId: 20860,
                     level: 30,
                     name: "Cook leckish fish"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Cook mossy lizards (with partial completion of Quest Perilous Moons)"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Big Chompy Bird Hunting"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required for Quest Tai Bwo Wannai Trio"
-                },
-                {
-                    itemId: -1,
-                    level: 30,
-                    name: "Required to complete Diary Hard Karamja Diary"
                 },
                 {
                     itemId: -1,
@@ -510,11 +434,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: 7530,
                     level: 31,
                     name: "Cook fishcakes"
-                },
-                {
-                    itemId: -1,
-                    level: 31,
-                    name: "Required for Quest Recipe for Disaster/Freeing Pirate Pete"
                 },
                 {
                     itemId: 2092,
@@ -562,11 +481,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Brew damiana tea"
                 },
                 {
-                    itemId: -1,
-                    level: 36,
-                    name: "Required for Quest Scrambled!"
-                },
-                {
                     itemId: 2064,
                     level: 37,
                     name: "Mix blurberry specials"
@@ -602,25 +516,10 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Bake tangled toad's legs"
                 },
                 {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required for Quest Recipe for Disaster/Freeing the Lumbridge Guide"
-                },
-                {
-                    itemId: -1,
-                    level: 40,
-                    name: "Required to complete Diary Medium Morytania Diary"
-                },
-                {
                     itemId: 7054,
                     level: 41,
                     name: "Bake chilli potatoes"
-                }
-            ]
-        },
-        {
-            label: "Members 2",
-            entries: [
+                },
                 {
                     itemId: 7568,
                     level: 41,
@@ -630,11 +529,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: -1,
                     level: 41,
                     name: "Cook graahks (with 25 Hunters' Rumours completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 41,
-                    name: "Required for Quest Recipe for Disaster/Freeing Skrach Uglogwee"
                 },
                 {
                     itemId: 7084,
@@ -647,19 +541,9 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Bake chocolate bombs"
                 },
                 {
-                    itemId: -1,
-                    level: 42,
-                    name: "Required to complete Diary Medium Western Provinces Diary"
-                },
-                {
                     itemId: 365,
                     level: 43,
                     name: "Cook bass"
-                },
-                {
-                    itemId: -1,
-                    level: 43,
-                    name: "Required to complete Diary Medium Kandarin Diary"
                 },
                 {
                     itemId: 2955,
@@ -685,11 +569,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: 7082,
                     level: 46,
                     name: "Cook fried mushrooms (topping ingredient)"
-                },
-                {
-                    itemId: 25672,
-                    level: 46,
-                    name: "Prepare catfish (with Quest Below Ice Mountain completed)"
                 },
                 {
                     itemId: 6705,
@@ -720,7 +599,12 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: 7056,
                     level: 51,
                     name: "Bake egg potatoes"
-                },
+                }
+            ]
+        },
+        {
+            label: "Members 2",
+            entries: [
                 {
                     itemId: -1,
                     level: 51,
@@ -730,16 +614,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: 19662,
                     level: 52,
                     name: "Bake botanical pie"
-                },
-                {
-                    itemId: 2149,
-                    level: 53,
-                    name: "Cook lava eels (with Quest Heroes' Quest completed)"
-                },
-                {
-                    itemId: -1,
-                    level: 53,
-                    name: "Required for Quest Heroes' Quest"
                 },
                 {
                     itemId: 5755,
@@ -792,21 +666,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Cook mycil fish"
                 },
                 {
-                    itemId: 7946,
-                    level: 62,
-                    name: "Cook monkfish (with partial completion of Quest Swan Song)"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required for Quest Swan Song"
-                },
-                {
-                    itemId: -1,
-                    level: 62,
-                    name: "Required to complete Diary Hard Western Provinces Diary"
-                },
-                {
                     itemId: 7058,
                     level: 64,
                     name: "Bake mushroom potatoes"
@@ -848,11 +707,6 @@ export const cookingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 70,
-                    name: "Required for Quest Recipe for Disaster/Freeing King Awowogei"
-                },
-                {
-                    itemId: -1,
                     level: 71,
                     name: "Cook jumbo squids"
                 },
@@ -860,11 +714,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: 12934,
                     level: 72,
                     name: "Dissect 3-5 Zulrah's scales per sacred eel"
-                },
-                {
-                    itemId: -1,
-                    level: 72,
-                    name: "Required for Quest The Blood Moon Rises"
                 },
                 {
                     itemId: 22795,
@@ -907,11 +756,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Dissect 4-6 Zulrah's scales per sacred eel"
                 },
                 {
-                    itemId: -1,
-                    level: 80,
-                    name: "Required to complete Diary Elite Kandarin Diary"
-                },
-                {
                     itemId: 397,
                     level: 82,
                     name: "Cook sea turtles"
@@ -932,11 +776,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Cook anglerfish"
                 },
                 {
-                    itemId: -1,
-                    level: 84,
-                    name: "Required to complete Diary Elite Kourend & Kebos Diary"
-                },
-                {
                     itemId: 7208,
                     level: 85,
                     name: "Bake wild pies"
@@ -945,11 +784,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: 21031,
                     level: 85,
                     name: "Make an Infernal harpoon"
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Required to complete Diary Elite Desert Diary"
                 },
                 {
                     itemId: -1,
@@ -977,11 +811,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     name: "Cook psykk bats"
                 },
                 {
-                    itemId: -1,
-                    level: 90,
-                    name: "Required to complete Diary Elite Wilderness Diary"
-                },
-                {
                     itemId: 391,
                     level: 91,
                     name: "Cook manta rays"
@@ -993,11 +822,6 @@ export const cookingSkillGuide: SkillGuideData = {
                 },
                 {
                     itemId: -1,
-                    level: 91,
-                    name: "Required to complete Diary Elite Ardougne Diary"
-                },
-                {
-                    itemId: -1,
                     level: 92,
                     name: "Cook moonlight antelopes (with 50 Hunters' Rumours completed)"
                 },
@@ -1005,11 +829,6 @@ export const cookingSkillGuide: SkillGuideData = {
                     itemId: 7218,
                     level: 95,
                     name: "Bake summer pies"
-                },
-                {
-                    itemId: -1,
-                    level: 95,
-                    name: "Required to complete Diary Elite Varrock Diary"
                 },
                 {
                     itemId: 12934,

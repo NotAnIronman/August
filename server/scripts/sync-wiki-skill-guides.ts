@@ -12,6 +12,7 @@
  * Usage:
  *   yarn --cwd server sync-wiki-skill-guides
  *   yarn --cwd server sync-wiki-skill-guides --dry-run
+ *   yarn --cwd server sync-wiki-skill-guides -- --skill fishing
  *   yarn --cwd server sync-wiki-skill-guides --source-dir ../references/skill-guide
  */
 import fs from "fs";
@@ -76,13 +77,22 @@ function buildItemIdsByName(): Map<string, number> {
     return out;
 }
 
-function parseArguments(args: readonly string[]): { dryRun: boolean; sourceDir?: string } {
+function parseArguments(args: readonly string[]): {
+    dryRun: boolean;
+    sourceDir?: string;
+    skill?: string;
+} {
     const dryRun = args.includes("--dry-run");
     const sourceIndex = args.indexOf("--source-dir");
-    if (sourceIndex < 0) return { dryRun };
-    const sourceDir = args[sourceIndex + 1]?.trim();
-    if (!sourceDir) throw new Error("--source-dir requires a directory path");
-    return { dryRun, sourceDir: path.resolve(sourceDir) };
+    const skillIndex = args.indexOf("--skill");
+    const sourceDir = sourceIndex < 0 ? undefined : args[sourceIndex + 1]?.trim();
+    const skill = skillIndex < 0 ? undefined : args[skillIndex + 1]?.trim().toLowerCase();
+    if (sourceIndex >= 0 && !sourceDir) throw new Error("--source-dir requires a directory path");
+    if (skillIndex >= 0 && !skill) throw new Error("--skill requires a skill file key");
+    if (skill && !SKILLS.some(([fileKey]) => fileKey === skill)) {
+        throw new Error(`Unknown skill '${skill}'. Use one of: ${SKILLS.map(([fileKey]) => fileKey).join(", ")}`);
+    }
+    return { dryRun, sourceDir: sourceDir ? path.resolve(sourceDir) : undefined, skill };
 }
 
 function cleanWikitext(value: string): string {
@@ -134,6 +144,10 @@ function collectRows(
             const raw = rawLine.replace(/^\*+\s+/, "").trim();
             const text = cleanWikitext(raw);
             if (!text) continue;
+            // The skill guide is a training-unlock reference. Quest and
+            // achievement-diary requirements belong in their own journals,
+            // not as rows in this panel (matching the live interface).
+            if (/\b(?:mini)?quests?\b|\bdiar(?:y|ies)\b/i.test(text)) continue;
             rows.push(JSON.stringify({ raw, text }));
         }
         sections.set(level, rows);
@@ -207,11 +221,12 @@ async function loadWikitext(
 }
 
 async function main(): Promise<void> {
-    const { dryRun, sourceDir } = parseArguments(process.argv.slice(2));
+    const { dryRun, sourceDir, skill } = parseArguments(process.argv.slice(2));
     const itemIds = buildItemIdsByName();
     let generated = 0;
     let entries = 0;
-    for (const [fileKey, skillId, wikiPage] of SKILLS) {
+    const requestedSkills = skill ? SKILLS.filter(([fileKey]) => fileKey === skill) : SKILLS;
+    for (const [fileKey, skillId, wikiPage] of requestedSkills) {
         try {
             const wikitext = await loadWikitext(fileKey, wikiPage, sourceDir);
             const tabs = [
