@@ -37,7 +37,11 @@ type WikiDropSnapshot = {
 
 function resolveWikiDropSnapshotPath(): string {
     const candidates = [
+        path.resolve("data/npc-drops-wiki.json"),
+        path.resolve("server/data/npc-drops-wiki.json"),
+        path.resolve(__dirname, "../../../data/npc-drops-wiki.json"),
         path.resolve("references/npc-drops-wiki.json"),
+        path.resolve("../references/npc-drops-wiki.json"),
         path.resolve(__dirname, "../../../../references/npc-drops-wiki.json"),
     ];
     return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
@@ -50,6 +54,7 @@ function resolveMonstersCompletePath(): string {
     // game depend on how it was launched.
     const candidates = [
         path.resolve("references/monsters-complete.json"),
+        path.resolve("../references/monsters-complete.json"),
         path.resolve(__dirname, "../../../../references/monsters-complete.json"),
     ];
     return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];

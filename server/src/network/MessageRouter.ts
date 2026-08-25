@@ -30,6 +30,7 @@ type ExtraRoutedMessage =
           type: "debug";
           payload:
               | { kind: "set_var"; value?: number; varbit?: number; varp?: number }
+              | { kind: "runtime_probe"; event?: unknown; details?: unknown }
               | { kind: "raw"; raw: string };
       };
 

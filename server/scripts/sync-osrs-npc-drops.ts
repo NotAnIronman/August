@@ -16,12 +16,21 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import type { CacheInfo } from "../../client/rs/cache/CacheInfo";
+import { CacheSystem } from "../../client/rs/cache/CacheSystem";
+import { getCacheLoaderFactory } from "../../client/rs/cache/loader/CacheLoaderFactory";
+import { loadCache, loadCacheInfos } from "../../client/scripts/cache/load-util";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(SCRIPT_DIR, "../..");
 const ITEMS_PATH = path.join(ROOT, "server", "data", "items.json");
 const SPAWNS_PATH = path.join(ROOT, "server", "data", "npc-spawns.json");
-const DESTINATION = path.join(ROOT, "references", "npc-drops-wiki.json");
+// Runtime data must live under server/data. `references/` is deliberately
+// ignored, so a server launched from a different working directory can have
+// a perfectly good import beside it but no tables at runtime.
+const DESTINATION = path.join(ROOT, "server", "data", "npc-drops-wiki.json");
+const LEGACY_DESTINATION = path.join(ROOT, "references", "npc-drops-wiki.json");
+const TARGET_PATH = path.join(ROOT, "server", "target.txt");
 const WIKI_API = "https://oldschool.runescape.wiki/api.php";
 const CONCURRENCY = 5;
 // Names that changed on the Wiki while their cache object name remains the
@@ -36,6 +45,7 @@ const ITEM_NAME_ID_OVERRIDES = new Map<string, number>([
 ]);
 
 type Spawn = { id?: number; name?: string };
+type NpcTarget = { id: number; name: string };
 type LocalItem = { id: number; name?: string; noted?: boolean };
 type DropEntry = { itemId: number; quantity: string; rarity: string };
 type DropPool = {
@@ -119,6 +129,72 @@ function loadSpawnTargets(): Map<number, string> {
         if (!targets.has(id)) targets.set(id, name);
     }
     return targets;
+}
+
+function normalizeCacheName(value: string): string {
+    return value
+        .trim()
+        .replace(/\\/g, "/")
+        .replace(/^\.\/?/, "")
+        .replace(/^caches\//, "")
+        .replace(/\/$/, "");
+}
+
+function resolveTargetCacheInfo(): CacheInfo {
+    if (!fs.existsSync(TARGET_PATH)) {
+        throw new Error(`Target cache file was not found: ${TARGET_PATH}`);
+    }
+    const target = normalizeCacheName(fs.readFileSync(TARGET_PATH, "utf8"));
+    if (!target) throw new Error(`Target cache file is empty: ${TARGET_PATH}`);
+    const cacheInfo = loadCacheInfos().find((candidate) => candidate.name === target);
+    if (!cacheInfo) {
+        throw new Error(
+            `Target cache '${target}' is not listed in server/caches/caches.json. ` +
+                "Run yarn --cwd server ensure-cache first.",
+        );
+    }
+    return cacheInfo;
+}
+
+/**
+ * The active cache is the only authoritative mapping from an NPC ID to its
+ * Wiki page name. Spawn JSON is a world-placement list, not an NPC-definition
+ * catalogue; using it for --npc made valid live IDs impossible to import.
+ */
+function loadCacheNpcTargets(): Map<number, string> {
+    const cacheInfo = resolveTargetCacheInfo();
+    const loaded = loadCache(cacheInfo);
+    const cacheSystem = CacheSystem.fromFiles(loaded.type, loaded.files);
+    const npcTypeLoader = getCacheLoaderFactory(cacheInfo, cacheSystem).getNpcTypeLoader();
+    const targets = new Map<number, string>();
+    for (let id = 0; id < npcTypeLoader.getCount(); id++) {
+        try {
+            const npc = npcTypeLoader.load(id);
+            const name = String(npc.name ?? "").trim();
+            if (!name || name.toLowerCase() === "null") continue;
+            const actions = npc.actions ?? [];
+            const hasAttackAction = actions.some(
+                (action) => typeof action === "string" && action.toLowerCase() === "attack",
+            );
+            // Include ordinary combat definitions and attackable level-0
+            // special cases, but do not issue Wiki requests for every banker,
+            // door helper, or cutscene NPC in the cache.
+            if ((npc.combatLevel ?? -1) <= 0 && !hasAttackAction) continue;
+            targets.set(id, name);
+        } catch {
+            // Some cache indices expose trailing unreadable definitions.
+        }
+    }
+    return targets;
+}
+
+function installLegacySnapshotIfNeeded(): boolean {
+    if (fs.existsSync(DESTINATION)) return true;
+    if (!fs.existsSync(LEGACY_DESTINATION)) return false;
+    fs.mkdirSync(path.dirname(DESTINATION), { recursive: true });
+    fs.copyFileSync(LEGACY_DESTINATION, DESTINATION);
+    console.log(`[sync-npc-drops] Installed runtime snapshot at ${DESTINATION}.`);
+    return true;
 }
 
 function loadItemIdsByName(): Map<string, number> {
@@ -314,11 +390,11 @@ async function fetchNpcTable(
 
 async function main(): Promise<void> {
     const { ids, all, ifMissing, retryImportable } = parseArguments(process.argv.slice(2));
-    if (ifMissing && fs.existsSync(DESTINATION)) {
+    if (ifMissing && installLegacySnapshotIfNeeded()) {
         console.log(`NPC Wiki drop snapshot already present: ${DESTINATION}`);
         return;
     }
-    if (ifMissing && !fs.existsSync(DESTINATION)) {
+    if (ifMissing) {
         console.warn(
             `[sync-npc-drops] No Wiki snapshot is present. Keeping the legacy bootstrap source; run ` +
                 "yarn --cwd server sync-npc-drops -- --all to build the current, checkpointed snapshot.",
@@ -327,7 +403,8 @@ async function main(): Promise<void> {
     }
 
     const prior = readSnapshot();
-    const targetsById = loadSpawnTargets();
+    const cacheTargetsById = loadCacheNpcTargets();
+    const spawnedTargetsById = loadSpawnTargets();
     const targetIds =
         ids.length > 0
             ? ids
@@ -339,16 +416,24 @@ async function main(): Promise<void> {
                               failure.message.includes("unmapped item 'Nothing'"),
                       )
                       .map((failure) => failure.npcTypeId)
-                : [...targetsById.keys()];
+                : all
+                    ? [...cacheTargetsById.keys()]
+                    : [...spawnedTargetsById.keys()];
     if (ids.length === 0 && !all && !retryImportable) {
-        // Invoking the explicit sync command is intentionally the all-NPC
-        // refresh. --all remains available for readable automation scripts.
+        // The normal refresh remains scoped to live world spawns, but their
+        // names come from the active cache. --all explicitly covers every
+        // attackable/combat NPC definition in that cache.
         console.log(`[sync-npc-drops] Refreshing ${targetIds.length} spawned cache NPC IDs.`);
     }
-    const targets = targetIds.map((id) => ({ id, name: targetsById.get(id) })).filter(
-        (target): target is { id: number; name: string } => Boolean(target.name),
+    const targets = targetIds.map((id) => ({
+        id,
+        name: cacheTargetsById.get(id) ?? spawnedTargetsById.get(id),
+    })).filter(
+        (target): target is NpcTarget => Boolean(target.name),
     );
-    if (targets.length === 0) throw new Error("No requested NPC IDs are present in server/data/npc-spawns.json");
+    if (targets.length === 0) {
+        throw new Error("No requested NPC IDs resolved from the active cache or server/data/npc-spawns.json");
+    }
 
     const records = new Map(prior.records.map((record) => [record.npcTypeId, record]));
     const failures = new Map(prior.failures.map((failure) => [failure.npcTypeId, failure]));

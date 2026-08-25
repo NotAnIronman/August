@@ -2,6 +2,7 @@ import { NPC_DROP_TABLE_PANEL_GROUP_ID } from "../../../../client/common/ui/widg
 import { ComponentIds, type UiIconRow } from "../../../../client/common/uikit/contracts";
 import type { NpcTypeLoader } from "../../../../client/rs/config/npctype/NpcTypeLoader";
 import { NpcDropRegistry } from "../../../src/game/drops/NpcDropRegistry";
+import { appendRuntimeProbe } from "../../../src/debug/runtimeProbeLog";
 import type { NpcDropEntry, NpcDropPool, NpcDropTable } from "../../../src/game/drops/types";
 import type { PlayerState } from "../../../src/game/player";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
@@ -186,6 +187,16 @@ export function registerNpcDropTableWidgetHandlers(
         if (!Number.isInteger(npcTypeId) || npcTypeId < 0) {
             return "Usage: ::drops <NpcID>";
         }
+        const source = getDropRegistry();
+        const details = source?.registry.describe(npcTypeId);
+        appendRuntimeProbe("drops_lookup", {
+            npcTypeId,
+            source: details?.source ?? "registry-unavailable",
+            sourceEntries: details?.sourceEntries ?? 0,
+            sourcePath: details?.sourcePath ?? "",
+            sourceError: details?.sourceError ?? "",
+            entries: details?.entryCount ?? 0,
+        }, player.id);
         return open(player, npcTypeId)
             ? undefined
             : `No imported drop table is available for NPC ${npcTypeId}.`;
@@ -194,7 +205,7 @@ export function registerNpcDropTableWidgetHandlers(
     // A compact, in-game proof of the data path. This avoids guessing whether
     // a running server actually loaded the ignored source file or fell back to
     // a small hand-written table.
-    registry.registerCommand("dropsdebug", ({ args }) => {
+    registry.registerCommand("dropsdebug", ({ player, args }) => {
         const npcTypeId = Number.parseInt(args[0] ?? "", 10);
         if (!Number.isInteger(npcTypeId) || npcTypeId < 0) {
             return "Usage: ::dropsdebug <NpcID>";
@@ -202,12 +213,21 @@ export function registerNpcDropTableWidgetHandlers(
         const source = getDropRegistry();
         if (!source) return "Drop registry is not available.";
         const details = source.registry.describe(npcTypeId);
+        appendRuntimeProbe("drops_debug", {
+            npcTypeId,
+            source: details.source,
+            sourceEntries: details.sourceEntries,
+            sourcePath: details.sourcePath,
+            sourceError: details.sourceError ?? "",
+            entries: details.entryCount,
+        }, player.id);
         const sourceState = details.sourceError
             ? `source ERROR: ${details.sourceError.slice(0, 120)}`
             : `source tables=${details.sourceEntries}`;
         return (
             `Drops ${npcTypeId}: ${details.source}; always=${details.alwaysCount}, ` +
-            `pools=${details.poolCount}, entries=${details.entryCount}; ${sourceState}`
+            `pools=${details.poolCount}, entries=${details.entryCount}; ${sourceState}; ` +
+            `path=${details.sourcePath}`
         );
     });
 

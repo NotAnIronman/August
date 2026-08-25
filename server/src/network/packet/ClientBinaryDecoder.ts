@@ -174,6 +174,8 @@ type DebugPayloadJson = {
     value?: number;
     varbit?: number;
     varp?: number;
+    event?: unknown;
+    details?: unknown;
 };
 
 /**
@@ -682,6 +684,13 @@ function parseDebugPayload(jsonStr: string): Extract<RoutedMessage, { type: "deb
                 value: parsed.value,
                 varbit: parsed.varbit,
                 varp: parsed.varp,
+            };
+        }
+        if (kind === "runtime_probe") {
+            return {
+                kind,
+                event: parsed.event,
+                details: parsed.details,
             };
         }
     } catch (err) {

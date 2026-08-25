@@ -1,4 +1,5 @@
 import { logger } from "../../utils/logger";
+import { appendRuntimeProbe } from "../../debug/runtimeProbeLog";
 import type { MessageHandlerServices } from "../MessageHandlers";
 import type { MessageRouter } from "../MessageRouter";
 
@@ -10,7 +11,15 @@ export function registerDebugHandler(
         const payload = ctx.payload;
         const kind = payload.kind;
 
-        if (kind === "projectiles_request") {
+        if (kind === "runtime_probe") {
+            appendRuntimeProbe(
+                typeof payload.event === "string" ? payload.event : "unnamed_probe",
+                typeof payload.details === "object" && payload.details !== null
+                    ? (payload.details as Record<string, unknown>)
+                    : {},
+                ctx.player?.id,
+            );
+        } else if (kind === "projectiles_request") {
             const requestId = payload.requestId ?? Math.floor(Math.random() * 1e9);
             services.setPendingDebugRequest(requestId, ctx.ws);
             const message = services.encodeMessage({

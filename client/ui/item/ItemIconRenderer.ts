@@ -14,8 +14,11 @@ import type { TextureLoader } from "../../rs/texture/TextureLoader";
 import { HSL_RGB_MAP } from "../../rs/util/ColorUtil";
 import { FONT_PLAIN_11 } from "../fonts";
 import { hasAnimatedItemIcon } from "./animatedItemIcons";
+import { reportRuntimeProbe } from "../../debug/runtimeProbe";
 
 type FaceVisibilityPredicate = (model: Model, faceIndex: number) => boolean;
+const CAPE_ICON_IDS = new Set([6570, 21295]);
+const capeIconRenderTraceSeen = new Set<number>();
 
 export type ItemIconRenderOptions = {
     outline?: number;
@@ -246,6 +249,16 @@ export class ItemIconRenderer {
 
         const model = this.objModel.getModel(obj.id, 1);
         if (!model) return undefined;
+        if (CAPE_ICON_IDS.has(itemId | 0) && !capeIconRenderTraceSeen.has(itemId | 0)) {
+            capeIconRenderTraceSeen.add(itemId | 0);
+            reportRuntimeProbe("cape_icon_model_render", {
+                itemId,
+                resolvedItemId: obj.id,
+                faces: model.indices1?.length ?? 0,
+                texturedFaces: model.faceTextures?.length ?? 0,
+                animated: animationTimeSeconds !== undefined,
+            });
+        }
 
         const isStackable = obj.stackability === ObjStackability.ALWAYS;
 

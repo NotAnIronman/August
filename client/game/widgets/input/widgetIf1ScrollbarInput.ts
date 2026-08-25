@@ -2,6 +2,7 @@ import { ClickMode } from "../../InputManager";
 import type { WidgetInputControllerDeps, WidgetInputFrame, WidgetInputState } from "./widgetInputTypes";
 import type { WidgetInteractionController } from "../WidgetInteractionController";
 import type { WidgetManager } from "../../../widgets/WidgetManager";
+import { reportRuntimeProbe } from "../../../debug/runtimeProbe";
 
 export function processWidgetIf1ScrollbarInput(
     deps: WidgetInputControllerDeps,
@@ -51,6 +52,85 @@ export function processWidgetIf1ScrollbarInput(
                     widgetType === 0 &&
                     widget.isIf3 === false &&
                     scrollHeight > widgetHeight;
+
+                // A UIKit rail can be rendered by a cache widget but own the
+                // scroll position of another widget. Make this the same input
+                // path as a native IF1 rail instead of maintaining a second,
+                // quest-specific approximation of the rendered thumb.
+                const dedicatedTarget = hasDedicatedScrollbarTarget
+                    ? widgetManager.getWidgetByUid(widget.uikitScrollbarTargetUid)
+                    : undefined;
+                if (dedicatedTarget) {
+                    widgetManager.ensureLayout(dedicatedTarget);
+                    const targetHeight = (dedicatedTarget.height ?? 0) | 0;
+                    const targetScrollHeight = (dedicatedTarget.scrollHeight ?? 0) | 0;
+                    const maxScrollY = Math.max(0, targetScrollHeight - targetHeight);
+                    if (maxScrollY > 0) {
+                        const scrollbarX = absX + ((widget.uikitScrollbarOffsetX ?? 0) | 0);
+                        const scrollbarWidth = SCROLLBAR_WIDTH;
+                        const setScrollY = (value: number): void => {
+                            dedicatedTarget.scrollY = Math.min(Math.max(0, value | 0), maxScrollY);
+                            widgetManager.invalidateScroll(dedicatedTarget);
+                            widgetManager.invalidateWidgetRender(dedicatedTarget, "uikit-scrollbar");
+                        };
+                        const isOverRail =
+                            mx >= scrollbarX &&
+                            mx < scrollbarX + scrollbarWidth &&
+                            my >= absY &&
+                            my < absY + widgetHeight;
+                        if (isLeftHeld && isOverRail) {
+                            if (input.leftClickX !== -1 && input.leftClickY !== -1) {
+                                reportRuntimeProbe("quest_scrollbar_capture", {
+                                    hostUid: widget.uid,
+                                    targetUid: dedicatedTarget.uid,
+                                    mouseX: mx,
+                                    mouseY: my,
+                                    scrollbarX,
+                                    scrollbarY: absY,
+                                    scrollbarHeight: widgetHeight,
+                                    scrollY: dedicatedTarget.scrollY ?? 0,
+                                    scrollHeight: targetScrollHeight,
+                                    viewportHeight: targetHeight,
+                                });
+                            }
+                            // Prevent the generic click/drag owner from
+                            // claiming the decorative host after this handler
+                            // has claimed the actual rendered rail.
+                            input.leftClickX = -1;
+                            input.leftClickY = -1;
+                            if (my < absY + ARROW_HEIGHT) {
+                                setScrollY((dedicatedTarget.scrollY ?? 0) - 4);
+                            } else if (my >= absY + widgetHeight - ARROW_HEIGHT) {
+                                setScrollY((dedicatedTarget.scrollY ?? 0) + 4);
+                            } else {
+                                let thumbHeight = Math.floor(
+                                    (widgetHeight * (widgetHeight - 32)) / targetScrollHeight,
+                                );
+                                if (thumbHeight < 8) thumbHeight = 8;
+                                const trackHeight = widgetHeight - 32 - thumbHeight;
+                                const clickPosY = my - absY - ARROW_HEIGHT - (thumbHeight >> 1);
+                                setScrollY(
+                                    trackHeight > 0
+                                        ? Math.floor((clickPosY * maxScrollY) / trackHeight)
+                                        : 0,
+                                );
+                                state.if1ScrollbarDragging = true;
+                            }
+                            return true;
+                        }
+                        if (
+                            !handledWheel &&
+                            if1WheelDelta !== 0 &&
+                            mx >= absX &&
+                            mx < scrollbarX + scrollbarWidth &&
+                            my >= absY &&
+                            my < absY + widgetHeight
+                        ) {
+                            setScrollY((dedicatedTarget.scrollY ?? 0) + if1WheelDelta * 45);
+                            handledWheel = true;
+                        }
+                    }
+                }
 
                 if (isIf1Scrollable) {
                     const scrollbarX = absX + widgetWidth;

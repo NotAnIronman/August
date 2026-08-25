@@ -10,9 +10,14 @@ import {
 import type { NpcDropTable } from "./types";
 
 type ImportedLookup = {
-    byNpcTypeId: Map<number, NpcDropTable>;
+    byNpcTypeId: Map<number, ImportedTable>;
     exact: Map<string, NpcDropTable>;
     byName: Map<string, NpcDropTable[]>;
+};
+
+type ImportedTable = {
+    name: string;
+    table: NpcDropTable;
 };
 
 // These two live boss spawns have a deliberately small manual safety-net
@@ -23,6 +28,7 @@ const PREFER_IMPORTED_OVER_MANUAL = new Set([2205, 2215]);
 export type NpcDropLookupDescription = {
     source: "imported-id" | "imported-name" | "manual" | "none";
     sourceEntries: number;
+    sourcePath: string;
     sourceError?: string;
     alwaysCount: number;
     poolCount: number;
@@ -34,7 +40,7 @@ function makeCombatKey(name: string, combatLevel: number | undefined): string {
 }
 
 function buildImportedLookup(): ImportedLookup {
-    const byNpcTypeId = new Map<number, NpcDropTable>();
+    const byNpcTypeId = new Map<number, ImportedTable>();
     const exact = new Map<string, NpcDropTable>();
     // A number of OSRSBox records are literal duplicate rows for the same
     // name/combat pair (for example General Graardor and Commander Zilyana).
@@ -55,7 +61,7 @@ function buildImportedLookup(): ImportedLookup {
         if (!nameKey) continue;
         const combatKey = makeCombatKey(entry.name, entry.combatLevel);
         if (entry.npcTypeId !== undefined && !byNpcTypeId.has(entry.npcTypeId)) {
-            byNpcTypeId.set(entry.npcTypeId, table);
+            byNpcTypeId.set(entry.npcTypeId, { name: entry.name, table });
         }
         if (!exact.has(combatKey)) exact.set(combatKey, table);
         const bucket = byNameAndCombat.get(nameKey) ?? new Map<string, NpcDropTable>();
@@ -89,12 +95,29 @@ export class NpcDropRegistry {
         const cached = this.resolvedByNpcTypeId.get(normalized);
         if (cached !== undefined) return cached ?? undefined;
 
-        // OSRSBox's top-level ID is the exact cache NPC type ID and must win
-        // for the explicit GWD safety-net entries above.
+        let npcType: NpcType | undefined;
+        const getNpcType = (): NpcType | undefined => {
+            if (npcType !== undefined) return npcType;
+            try {
+                npcType = this.npcTypeLoader.load(normalized);
+                return npcType;
+            } catch (err) {
+                logger.warn(`[drops] failed to load npc type ${normalized} for drop lookup`, err);
+                return undefined;
+            }
+        };
+
+        // An imported ID is exact only for the cache revision it came from.
+        // Validate the live definition name before using it: older bootstrap
+        // data calls ID 2115 "Thing under the bed", while the target cache can
+        // use that same numerical ID for General Graardor.
         const importedById = this.imported.byNpcTypeId.get(normalized);
-        if (importedById && PREFER_IMPORTED_OVER_MANUAL.has(normalized)) {
-            this.resolvedByNpcTypeId.set(normalized, importedById);
-            return importedById;
+        const directImportedMatchesLiveNpc =
+            importedById !== undefined &&
+            normalizeName(importedById.name) === normalizeName(String(getNpcType()?.name ?? ""));
+        if (importedById && directImportedMatchesLiveNpc && PREFER_IMPORTED_OVER_MANUAL.has(normalized)) {
+            this.resolvedByNpcTypeId.set(normalized, importedById.table);
+            return importedById.table;
         }
 
         const manual = this.manualByNpcTypeId.get(normalized);
@@ -103,19 +126,13 @@ export class NpcDropRegistry {
             return manual;
         }
 
-        // This is the authoritative OSRSBox join: its top-level record ID is
-        // the cache NPC type ID. Name/combat matching below remains only for
-        // cache variants or incomplete data sets without an ID.
-        if (importedById) {
-            this.resolvedByNpcTypeId.set(normalized, importedById);
-            return importedById;
+        if (importedById && directImportedMatchesLiveNpc) {
+            this.resolvedByNpcTypeId.set(normalized, importedById.table);
+            return importedById.table;
         }
 
-        let npcType: NpcType | undefined;
-        try {
-            npcType = this.npcTypeLoader.load(normalized);
-        } catch (err) {
-            logger.warn(`[drops] failed to load npc type ${normalized} for drop lookup`, err);
+        npcType = getNpcType();
+        if (!npcType) {
             this.resolvedByNpcTypeId.set(normalized, null);
             return undefined;
         }
@@ -130,11 +147,11 @@ export class NpcDropRegistry {
         const directImported = this.imported.byNpcTypeId.get(npcTypeId);
         const manual = this.manualByNpcTypeId.get(npcTypeId);
         let lookupSource: NpcDropLookupDescription["source"] = "none";
-        if (directImported && PREFER_IMPORTED_OVER_MANUAL.has(npcTypeId)) {
+        if (directImported && table === directImported.table && PREFER_IMPORTED_OVER_MANUAL.has(npcTypeId)) {
             lookupSource = "imported-id";
         } else if (manual) {
             lookupSource = "manual";
-        } else if (directImported) {
+        } else if (directImported && table === directImported.table) {
             lookupSource = "imported-id";
         } else if (table) {
             lookupSource = "imported-name";
@@ -142,6 +159,7 @@ export class NpcDropRegistry {
         return {
             source: lookupSource,
             sourceEntries: source.entryCount,
+            sourcePath: source.path,
             sourceError: source.error,
             alwaysCount: table?.always.length ?? 0,
             poolCount: table?.pools.length ?? 0,

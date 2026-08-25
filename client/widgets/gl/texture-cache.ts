@@ -2,6 +2,7 @@ import type { CacheIndex } from "../../rs/cache/CacheIndex";
 import { IndexedSprite } from "../../rs/sprite/IndexedSprite";
 import { SpriteLoader } from "../../rs/sprite/SpriteLoader";
 import { SpritePixels } from "../../rs/sprite/SpritePixels";
+import { reportRuntimeProbe } from "../../debug/runtimeProbe";
 import {
     getAnimatedItemIconPhase,
     getAnimatedItemIconTimeSeconds,
@@ -17,6 +18,9 @@ const SPRITE_LOOKUP_CACHE_VERSION = "3";
 // Item icons may have been cached under the old frame-zero fallback. Keep a
 // separate version so a hot-reloaded client cannot retain the bad texture.
 const ITEM_ICON_CACHE_VERSION = "5";
+const CAPE_ICON_IDS = new Set([6570, 21295]);
+const capeIconTraceSeen = new Set<number>();
+const capeIconCanvasTraceSeen = new Set<number>();
 
 export interface SpriteMaskData {
     texture: Texture;
@@ -456,6 +460,14 @@ export class TextureCache {
         const cached = this.glr.getTexture(key);
         if (cached) return cached;
         try {
+            if (CAPE_ICON_IDS.has(itemId | 0) && !capeIconTraceSeen.has(itemId | 0)) {
+                capeIconTraceSeen.add(itemId | 0);
+                reportRuntimeProbe("cape_icon_texture_request", {
+                    itemId,
+                    rendererInjected: Boolean(this.itemIconCanvas),
+                    animationPhase,
+                });
+            }
             if (this.itemIconCanvas) {
                 const can = this.itemIconCanvas(
                     itemId,
@@ -465,7 +477,13 @@ export class TextureCache {
                     mode,
                     animationTimeSeconds,
                 );
-                if (can) return this.glr.createTextureFromCanvas(key, can);
+                if (can) {
+                    if (CAPE_ICON_IDS.has(itemId | 0) && !capeIconCanvasTraceSeen.has(itemId | 0)) {
+                        capeIconCanvasTraceSeen.add(itemId | 0);
+                        reportRuntimeProbe("cape_icon_model_canvas", { itemId });
+                    }
+                    return this.glr.createTextureFromCanvas(key, can);
+                }
             }
         } catch {}
         // Do not substitute a cache sprite for an item icon. These archives are

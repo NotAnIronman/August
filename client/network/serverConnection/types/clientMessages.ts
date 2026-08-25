@@ -84,7 +84,8 @@ type ClientToServer =
               | { kind: "projectiles_request"; requestId?: number }
               | { kind: "projectiles_snapshot"; requestId: number; snapshot: any }
               | { kind: "anim_request"; requestId?: number }
-              | { kind: "anim_snapshot"; requestId: number; snapshot: any };
+              | { kind: "anim_snapshot"; requestId: number; snapshot: any }
+              | { kind: "runtime_probe"; event: string; details?: unknown };
       }
     | { type: "logout"; payload?: Record<string, never> }
     | { type: "login"; payload: { username: string; password: string; revision: number } }
