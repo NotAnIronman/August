@@ -231,7 +231,10 @@ export function applyQuestListWidgetGroups(
     // revisions, which left this list scrollable but visually blank. Mark the
     // real scrolling container for the shared UIKit/native scrollbar renderer
     // instead; its right edge is the same reserved scrollbar column.
-    list.uikitScrollbar = true;
+    // Component 399:5 is physically positioned at the cache interface's
+    // right edge. Render the native rail through that host rather than at the
+    // row viewport's edge, which sits inset from the steelborder.
+    list.uikitScrollbar = false;
 
     if (textContainer) {
         // The list is the only scroll owner. Keeping its cache parent at the
@@ -254,10 +257,11 @@ export function applyQuestListWidgetGroups(
             scrollbar as WidgetNode & { scrollBarTargetUid?: number; scrollBarAxis?: "y" }
         ).scrollBarAxis = "y";
         // Several cache revisions expose this host without drawable children.
-        // It remains linked for cache compatibility, but all rendering and
-        // input use the visible native rail on component 399:7 instead.
-        scrollbar.isHidden = true;
-        scrollbar.hidden = true;
+        // Keep its cache-determined position but give it a native rail that
+        // reads the dynamic row list's scroll state.
+        scrollbar.uikitScrollbarTargetUid = list.uid;
+        scrollbar.isHidden = false;
+        scrollbar.hidden = false;
         widgetManager.invalidateWidget(scrollbar, "quest-list");
     }
 

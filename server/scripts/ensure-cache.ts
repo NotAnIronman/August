@@ -96,6 +96,17 @@ function isCacheValid(cacheDir: string): boolean {
     return required.every((f) => fs.existsSync(path.join(cacheDir, f)));
 }
 
+function cacheMatchesRevision(cacheDir: string, expectedRevision: number): boolean {
+    try {
+        const entry = JSON.parse(
+            fs.readFileSync(path.join(cacheDir, "info.json"), "utf8"),
+        ) as OpenRS2CacheEntry;
+        return entry.builds?.some((build) => build.major === expectedRevision) === true;
+    } catch {
+        return false;
+    }
+}
+
 function renderProgressBar(current: number, total: number, width = 40): string {
     const ratio = Math.min(current / total, 1);
     const filled = Math.round(width * ratio);
@@ -216,6 +227,29 @@ function writeCachesJson(target: string, entry: OpenRS2CacheEntry): void {
     fs.writeFileSync(cachesJsonPath, JSON.stringify([cacheEntry]), "utf8");
 }
 
+/**
+ * `caches.json` is the cache-loader's source of truth.  A cache directory can
+ * be copied in or survive a target change while that manifest still points to
+ * an older revision, which made data-export scripts silently inspect the
+ * wrong cache.  The validated target's own info.json is sufficient to repair
+ * the manifest without another download.
+ */
+function refreshCacheManifestFromDisk(target: string, cacheDir: string): void {
+    const infoPath = path.join(cacheDir, "info.json");
+    try {
+        const entry = JSON.parse(fs.readFileSync(infoPath, "utf8")) as OpenRS2CacheEntry;
+        if (!Array.isArray(entry.builds) || entry.builds.length === 0) {
+            throw new Error("missing cache build metadata");
+        }
+        writeCachesJson(target, entry);
+        console.log(`[CacheDownloader] Cache manifest set to "${target}"`);
+    } catch (error) {
+        throw new Error(
+            `Validated cache '${target}' has unreadable metadata at ${infoPath}: ${String(error)}`,
+        );
+    }
+}
+
 async function ensureCache(): Promise<void> {
     const target = readTarget();
     const { revision, date } = parseTargetName(target);
@@ -223,15 +257,23 @@ async function ensureCache(): Promise<void> {
 
     console.log(`[CacheDownloader] Target cache: "${target}" (rev ${revision})`);
 
-    if (isCacheValid(cacheDir)) {
+    if (isCacheValid(cacheDir) && cacheMatchesRevision(cacheDir, revision)) {
+        // Keep subsequent cache consumers (item sync, NPC tools, world boot)
+        // locked to target.txt even when this directory already existed.
+        refreshCacheManifestFromDisk(target, cacheDir);
         console.log("[CacheDownloader] Cache is present and valid");
         return;
     }
 
+    if (isCacheValid(cacheDir)) {
+        console.log("[CacheDownloader] Cache metadata does not match target revision; refreshing it");
+    }
+
     if (!acquireLock()) {
         await waitForLock();
-        if (isCacheValid(cacheDir)) {
+        if (isCacheValid(cacheDir) && cacheMatchesRevision(cacheDir, revision)) {
             console.log("[CacheDownloader] Cache is now available (downloaded by another process)");
+            refreshCacheManifestFromDisk(target, cacheDir);
             return;
         }
         if (!acquireLock()) {

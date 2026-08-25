@@ -82,6 +82,8 @@ export type DropContext = {
 export type DropRollResult = PendingNpcDrop[];
 
 export type ImportedMonsterDefinition = {
+    /** The cache NPC type ID: OSRSBox stores it as the record's top-level key/id. */
+    npcTypeId?: number;
     name: string;
     combatLevel?: number;
     duplicate?: boolean;

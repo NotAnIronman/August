@@ -7,6 +7,7 @@ import { loadMonstersCompleteDefinitions } from "./monstersCompleteSource";
 import type { NpcDropTable } from "./types";
 
 type ImportedLookup = {
+    byNpcTypeId: Map<number, NpcDropTable>;
     exact: Map<string, NpcDropTable>;
     byName: Map<string, NpcDropTable[]>;
 };
@@ -16,6 +17,7 @@ function makeCombatKey(name: string, combatLevel: number | undefined): string {
 }
 
 function buildImportedLookup(): ImportedLookup {
+    const byNpcTypeId = new Map<number, NpcDropTable>();
     const exact = new Map<string, NpcDropTable>();
     // A number of OSRSBox records are literal duplicate rows for the same
     // name/combat pair (for example General Graardor and Commander Zilyana).
@@ -31,6 +33,9 @@ function buildImportedLookup(): ImportedLookup {
         const nameKey = normalizeName(entry.name);
         if (!nameKey) continue;
         const combatKey = makeCombatKey(entry.name, entry.combatLevel);
+        if (entry.npcTypeId !== undefined && !byNpcTypeId.has(entry.npcTypeId)) {
+            byNpcTypeId.set(entry.npcTypeId, table);
+        }
         if (!exact.has(combatKey)) exact.set(combatKey, table);
         const bucket = byNameAndCombat.get(nameKey) ?? new Map<string, NpcDropTable>();
         if (!bucket.has(combatKey)) bucket.set(combatKey, table);
@@ -40,7 +45,7 @@ function buildImportedLookup(): ImportedLookup {
     for (const [name, entries] of byNameAndCombat) {
         byName.set(name, [...entries.values()]);
     }
-    return { exact, byName };
+    return { byNpcTypeId, exact, byName };
 }
 
 export class NpcDropRegistry {
@@ -67,6 +72,15 @@ export class NpcDropRegistry {
         if (manual) {
             this.resolvedByNpcTypeId.set(normalized, manual);
             return manual;
+        }
+
+        // This is the authoritative OSRSBox join: its top-level record ID is
+        // the cache NPC type ID. Name/combat matching below remains only for
+        // cache variants or incomplete data sets without an ID.
+        const importedById = this.imported.byNpcTypeId.get(normalized);
+        if (importedById) {
+            this.resolvedByNpcTypeId.set(normalized, importedById);
+            return importedById;
         }
 
         let npcType: NpcType | undefined;

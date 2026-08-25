@@ -1,6 +1,6 @@
 import { EquipmentSlot } from "../../../../client/rs/config/player/Equipment";
 import { SKILL_NAME, type SkillId } from "../../../../client/rs/skill/skills";
-import { getItemDefinition } from "../../data/items";
+import { getEquipmentItemDefinition } from "../../data/items";
 import type { ServerServices } from "../ServerServices";
 import {
     ensureEquipArrayOn,
@@ -214,7 +214,7 @@ export class EquipmentHandler {
 
     /** Item requirements are exported in SkillId order with the item data. */
     private getUnmetRequirementMessage(player: PlayerState, itemId: number): string | undefined {
-        const requirements = getItemDefinition(itemId)?.requirements;
+        const requirements = getEquipmentItemDefinition(itemId)?.requirements;
         if (!requirements) return undefined;
 
         for (let skill = 0; skill < requirements.length; skill++) {

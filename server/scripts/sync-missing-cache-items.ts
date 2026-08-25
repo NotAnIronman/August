@@ -24,9 +24,10 @@ import {
     deriveAdditionalEquipSlotsFromParams,
     deriveEquipSlotFromParams,
 } from "../../client/rs/config/player/Equipment";
-import { loadCache, loadCacheInfos, loadCacheList } from "../../client/scripts/cache/load-util";
+import { loadCache, loadCacheInfos } from "../../client/scripts/cache/load-util";
 
 const ITEMS_PATH = path.resolve(__dirname, "../data/items.json");
+const TARGET_PATH = path.resolve(__dirname, "../target.txt");
 const DEFAULT_BLOCK_ANIMATION = 424;
 const DEFAULT_STAND_ANIMATION = 808;
 const DEFAULT_WALK_ANIMATION = 819;
@@ -73,16 +74,27 @@ function normalizeCacheName(value: string): string {
         .replace(/\/$/, "");
 }
 
+function readTargetCacheName(): string {
+    if (!fs.existsSync(TARGET_PATH)) {
+        throw new Error(`Target cache file was not found: ${TARGET_PATH}`);
+    }
+    const target = normalizeCacheName(fs.readFileSync(TARGET_PATH, "utf8"));
+    if (!target) throw new Error(`Target cache file is empty: ${TARGET_PATH}`);
+    return target;
+}
+
 function resolveCacheInfo(cacheArg: string | undefined): CacheInfo {
     const caches = loadCacheInfos();
-    const requested = normalizeCacheName(cacheArg ?? "");
-    if (requested.length === 0) return loadCacheList(caches).latest;
+    // Never let an old caches.json "latest" entry decide an equipment
+    // export.  target.txt names the cache the server actually boots, and is
+    // refreshed into caches.json by ensure-cache before the normal sync.
+    const requested = normalizeCacheName(cacheArg ?? "") || readTargetCacheName();
 
     const found = caches.find((cache) => cache.name === requested);
     if (!found) {
         throw new Error(
-            `Cache '${requested}' is not listed in server/caches/caches.json. ` +
-                "Run yarn --cwd server ensure-cache first, or pass the listed cache name.",
+            `Target cache '${requested}' is not listed in server/caches/caches.json. ` +
+                "Run yarn --cwd server ensure-cache first so the manifest and target cache agree.",
         );
     }
     return found;

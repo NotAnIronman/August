@@ -34,13 +34,18 @@ export function resolveItemIconSprite(
     itemId: number,
 ): IndexedSprite | undefined {
     if (!(itemId >= 0)) return undefined;
-    // 1) Try common named-token variants that directly point to a single-frame archive
+    // 1) Try common pack names. Item-id tokens mean archive,file — resolving
+    // the entire string first can incorrectly return frame 0 of a collection
+    // (the same failure that produced the wrong Fire/Infernal cape artwork).
     const tryTokens = [`inv,${itemId}`, `obj_icons,${itemId}`, `obj,${itemId}`, `item,${itemId}`];
     for (const tok of tryTokens) {
         try {
-            const id = (spriteIndex as any).getArchiveId?.(tok);
-            if (typeof id === "number" && id >= 0) {
-                const spr = SpriteLoader.loadIntoIndexedSprite(spriteIndex, id);
+            const comma = tok.lastIndexOf(",");
+            const pack = tok.slice(0, comma);
+            const frame = Number(tok.slice(comma + 1));
+            const id = (spriteIndex as any).getArchiveId?.(pack);
+            if (typeof id === "number" && id >= 0 && Number.isInteger(frame)) {
+                const spr = SpriteLoader.loadIntoIndexedSprites(spriteIndex, id)?.[frame];
                 if (spr) return spr;
             }
         } catch {}

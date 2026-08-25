@@ -8,7 +8,10 @@ type Texture = { tex: WebGLTexture; w: number; h: number };
 
 // Renderers live across hot reloads. Bump this whenever sprite lookup
 // semantics change so old, incorrectly decoded textures are not reused.
-const SPRITE_LOOKUP_CACHE_VERSION = "2";
+const SPRITE_LOOKUP_CACHE_VERSION = "3";
+// Item icons may have been cached under the old frame-zero fallback. Keep a
+// separate version so a hot-reloaded client cannot retain the bad texture.
+const ITEM_ICON_CACHE_VERSION = "3";
 
 export interface SpriteMaskData {
     texture: Texture;
@@ -362,22 +365,29 @@ export class TextureCache {
         const cached = this.glr.getTexture(key);
         if (cached) return cached;
         try {
-            let archiveId = (this.spriteIndex as any).getArchiveId?.(token);
+            let archiveId: number | undefined;
             let frameIndex: number | null = null;
 
-            if (typeof archiveId !== "number" || archiveId < 0) {
-                const commaIdx = token.lastIndexOf(",");
-                if (commaIdx > -1 && commaIdx < token.length - 1) {
-                    const candidate = token.slice(commaIdx + 1);
-                    if (/^\d+$/.test(candidate)) {
-                        const archiveToken = token.slice(0, commaIdx);
-                        const fallbackId = (this.spriteIndex as any).getArchiveId?.(archiveToken);
-                        if (typeof fallbackId === "number" && fallbackId >= 0) {
-                            archiveId = fallbackId;
-                            frameIndex = Number(candidate);
-                        }
+            // UIKit tokens such as "scrollbar_v2,1" and "obj_icons,6570"
+            // use the cache's archive,file convention. Resolve that convention
+            // before attempting a literal archive name; otherwise some cache
+            // name tables resolve the whole token to a collection archive and
+            // `loadIntoIndexedSprite` silently returns its unrelated frame 0.
+            const commaIdx = token.lastIndexOf(",");
+            if (commaIdx > -1 && commaIdx < token.length - 1) {
+                const candidate = token.slice(commaIdx + 1);
+                if (/^\d+$/.test(candidate)) {
+                    const archiveToken = token.slice(0, commaIdx);
+                    const collectionId = (this.spriteIndex as any).getArchiveId?.(archiveToken);
+                    if (typeof collectionId === "number" && collectionId >= 0) {
+                        archiveId = collectionId;
+                        frameIndex = Number(candidate);
                     }
                 }
+            }
+
+            if (archiveId === undefined) {
+                archiveId = (this.spriteIndex as any).getArchiveId?.(token);
             }
 
             if (typeof archiveId !== "number" || archiveId < 0) return undefined;
@@ -432,7 +442,7 @@ export class TextureCache {
         if (qty === -1) mode = 0;
         else if (mode === 2 && qty !== 1) mode = 1;
 
-        const key = `item:${itemId | 0}:${qty}:${outline | 0}:${shadow | 0}:${mode}`;
+        const key = `item:${ITEM_ICON_CACHE_VERSION}:${itemId | 0}:${qty}:${outline | 0}:${shadow | 0}:${mode}`;
         const cached = this.glr.getTexture(key);
         if (cached) return cached;
         try {

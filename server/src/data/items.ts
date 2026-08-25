@@ -269,3 +269,36 @@ export function getItemDefinition(itemId: number): ItemDefinition | undefined {
 
     return undefined;
 }
+
+/**
+ * Resolve an item's combat-bearing cache variant. Notes and inventory-set
+ * templates often point at their wearable item through noteId but intentionally
+ * carry no equipment type, bonuses, or requirements of their own. Game logic
+ * must not silently treat those variants as zero-stat equipment.
+ */
+export function getEquipmentItemDefinition(itemId: number): ItemDefinition | undefined {
+    const direct = getItemDefinition(itemId);
+    if (!direct) return undefined;
+
+    const score = (item: ItemDefinition): number =>
+        (item.equipmentType ? 1 : 0) + (item.bonuses ? 2 : 0) + (item.requirements ? 2 : 0);
+
+    let best = direct;
+    let bestScore = score(direct);
+    let current = direct;
+    const seen = new Set<number>([direct.id]);
+    for (let depth = 0; depth < 8; depth++) {
+        const nextId = current.noteId | 0;
+        if (nextId < 0 || seen.has(nextId)) break;
+        const next = getItemDefinition(nextId);
+        if (!next) break;
+        seen.add(next.id);
+        const nextScore = score(next);
+        if (nextScore > bestScore) {
+            best = next;
+            bestScore = nextScore;
+        }
+        current = next;
+    }
+    return best;
+}

@@ -77,11 +77,12 @@ function makeIconRow(entry: NpcDropEntry, services: ScriptServices): UiIconRow {
 
 function buildCategories(table: NpcDropTable): DropCategory[] {
     const out: DropCategory[] = [];
-    if (table.always.length > 0) {
-        out.push({ id: "always", label: "Always", entries: table.always });
-    }
-
     const byCategory = new Map<string, NpcDropEntry[]>();
+    // OSRS presents bones and other guaranteed drops with ordinary loot, not
+    // behind a tab users must dismiss before seeing the actual table.
+    if (table.always.length > 0) {
+        byCategory.set("Main drops", [...table.always]);
+    }
     for (const pool of table.pools) {
         const label = categoryLabel(pool);
         const bucket = byCategory.get(label) ?? [];

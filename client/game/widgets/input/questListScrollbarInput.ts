@@ -4,6 +4,7 @@ import type { WidgetInteractionController } from "../WidgetInteractionController
 import type { WidgetInputFrame } from "./widgetInputTypes";
 
 const QUEST_LIST_GROUP_ID = 399;
+const QUEST_LIST_SCROLLBAR_UID = (QUEST_LIST_GROUP_ID << 16) | 5;
 const QUEST_LIST_CONTENT_UID = (QUEST_LIST_GROUP_ID << 16) | 7;
 
 const SCROLLBAR_WIDTH = 16;
@@ -53,18 +54,26 @@ export function processQuestListScrollbarInput(
     }
 
     const content = widgetManager.getWidgetByUid(QUEST_LIST_CONTENT_UID);
+    const scrollbar = widgetManager.getWidgetByUid(QUEST_LIST_SCROLLBAR_UID);
     if (!content) return;
 
     widgetManager.ensureLayout(content);
+    if (scrollbar) widgetManager.ensureLayout(scrollbar);
 
     const viewportHeight = Math.max(0, content.height | 0);
     const contentHeight = Math.max(viewportHeight, content.scrollHeight | 0);
     const maxScrollY = Math.max(0, contentHeight - viewportHeight);
     if (maxScrollY <= 0) return;
 
-    const scrollbarX = ((content._absX ?? content.x ?? 0) + (content._absWidth ?? content.width ?? 0)) | 0;
-    const scrollbarY = (content._absY ?? content.y ?? 0) | 0;
-    const scrollbarHeight = viewportHeight;
+    const scrollbarX = scrollbar
+        ? (scrollbar._absX ?? scrollbar.x ?? 0) | 0
+        : ((content._absX ?? content.x ?? 0) + (content._absWidth ?? content.width ?? 0)) | 0;
+    const scrollbarY = scrollbar
+        ? (scrollbar._absY ?? scrollbar.y ?? 0) | 0
+        : (content._absY ?? content.y ?? 0) | 0;
+    const scrollbarHeight = scrollbar
+        ? Math.max(0, scrollbar._absHeight ?? scrollbar.height ?? 0)
+        : viewportHeight;
     if (scrollbarHeight <= ARROW_HEIGHT * 2) return;
 
     const { input, mx, my } = frame;
@@ -75,7 +84,7 @@ export function processQuestListScrollbarInput(
         my < ((content._absY ?? content.y ?? 0) | 0) + viewportHeight;
     const isOverScrollbar =
         mx >= scrollbarX &&
-        mx < scrollbarX + SCROLLBAR_WIDTH &&
+        mx < scrollbarX + Math.max(SCROLLBAR_WIDTH, scrollbar?._absWidth ?? scrollbar?.width ?? 0) &&
         my >= scrollbarY &&
         my < scrollbarY + scrollbarHeight;
 

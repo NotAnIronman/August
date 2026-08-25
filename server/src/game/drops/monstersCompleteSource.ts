@@ -13,6 +13,7 @@ type RawMonsterDrop = {
 };
 
 type RawMonsterEntry = {
+    id?: number;
     name?: string;
     combat_level?: number;
     duplicate?: boolean;
@@ -117,6 +118,10 @@ function normalizeRawMonster(raw: RawMonsterEntry): ImportedMonsterDefinition | 
         pools.push({ kind: "independent", category: "tertiary", entries: tertiary });
     }
     return {
+        npcTypeId:
+            typeof raw.id === "number" && Number.isInteger(raw.id) && raw.id >= 0
+                ? raw.id
+                : undefined,
         name: (raw.name ?? "").trim(),
         combatLevel: raw.combat_level,
         duplicate: raw.duplicate === true,

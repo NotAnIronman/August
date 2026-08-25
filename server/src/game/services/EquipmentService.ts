@@ -4,7 +4,7 @@ import {
     DEFAULT_WEAPON_CATEGORY,
     resolveWeaponCategoryFromObj,
 } from "../../../../client/rs/config/player/WeaponCategory";
-import { getItemDefinition } from "../../data/items";
+import { getEquipmentItemDefinition, getItemDefinition } from "../../data/items";
 import { logger } from "../../utils/logger";
 import { DisplayMode, getDefaultInterfaces } from "../../widgets/WidgetManager";
 import type { ServerServices } from "../ServerServices";
@@ -230,7 +230,7 @@ export class EquipmentService {
         const equip = this.ensureEquipArray(player);
         for (const rawItemId of equip) {
             if (!(rawItemId > 0)) continue;
-            const def = getItemDefinition(rawItemId);
+            const def = getEquipmentItemDefinition(rawItemId);
             const itemBonuses = def?.bonuses;
             if (!itemBonuses) continue;
             for (let i = 0; i < EQUIPMENT_STATS_BONUS_COUNT; i++) {

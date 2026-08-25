@@ -256,14 +256,6 @@ export const MANUAL_NPC_DROP_OVERRIDES: ManualNpcDropOverride[] = [
         table: alwaysTable(drop("Big bones", 1, "Always"), drop("Feather", "1-16", "Always")),
     },
     {
-        npcTypeIds: [2205],
-        table: alwaysTable(drop("Bones", 1, "Always")),
-    },
-    {
-        npcTypeIds: [2215],
-        table: alwaysTable(drop("Big bones", 1, "Always")),
-    },
-    {
         npcTypeIds: [2265, 2266, 2267],
         table: alwaysTable(
             drop("Dagannoth bones", 1, "Always"),
