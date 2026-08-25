@@ -1,1 +1,9 @@
 {"at":"2026-08-25T16:18:36.124Z","event":"diagnostic_logger_verified","details":{"writer":"local-verification"}}
+{"at":"2026-08-25T17:58:22.694Z","event":"cape_icon_texture_request","playerId":3,"details":{"itemId":21295,"rendererInjected":true,"animationPhase":118}}
+{"at":"2026-08-25T17:58:22.694Z","event":"cape_icon_model_render","playerId":3,"details":{"itemId":21295,"resolvedItemId":21295,"faces":433,"texturedFaces":433,"animated":true}}
+{"at":"2026-08-25T17:58:22.695Z","event":"cape_icon_model_canvas","playerId":3,"details":{"itemId":21295}}
+{"at":"2026-08-25T17:59:37.692Z","event":"cape_icon_texture_request","playerId":3,"details":{"itemId":6570,"rendererInjected":true,"animationPhase":715}}
+{"at":"2026-08-25T17:59:37.692Z","event":"cape_icon_model_render","playerId":3,"details":{"itemId":6570,"resolvedItemId":6570,"faces":35,"texturedFaces":35,"animated":true}}
+{"at":"2026-08-25T17:59:37.693Z","event":"cape_icon_model_canvas","playerId":3,"details":{"itemId":6570}}
+{"at":"2026-08-25T18:00:36.517Z","event":"drops_lookup","playerId":3,"details":{"npcTypeId":2791,"source":"none","sourceEntries":0,"sourcePath":"/run/media/August/Storage/RSPS/August/August/server/references/monsters-complete.json","sourceError":"Legacy snapshot: ENOENT: no such file or directory, open '/run/media/August/Storage/RSPS/August/August/server/references/monsters-complete.json'","entries":0}}
+{"at":"2026-08-25T18:00:46.693Z","event":"drops_lookup","playerId":3,"details":{"npcTypeId":2115,"source":"none","sourceEntries":0,"sourcePath":"/run/media/August/Storage/RSPS/August/August/server/references/monsters-complete.json","sourceError":"Legacy snapshot: ENOENT: no such file or directory, open '/run/media/August/Storage/RSPS/August/August/server/references/monsters-complete.json'","entries":0}}
