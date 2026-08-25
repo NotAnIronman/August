@@ -6,6 +6,7 @@ import { ComponentIds } from "../../../../client/common/uikit/contracts";
 import type { PlayerState } from "../../../src/game/player";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
 import { getQuestDefinition, getQuestDefinitionByKey } from "../quests/QuestRegistry";
+import type { QuestDefinition } from "../quests/types";
 import {
     buildQuestMap,
     getQuestCompletionInfo,
@@ -111,17 +112,24 @@ function buildJournalLines(
  * difficulty/length/storyline/requirements presentation by opting in with
  * `journalInfo` on its definition. */
 function buildJournalInfoColumnLines(definition: QuestDefinition | undefined): string[] {
-    const info = definition?.journalInfo;
-    if (!definition || !info) return [];
+    // A quest can be catalogued before its scripted definition and its wiki
+    // facts have been authored. Keep the same two-column journal structure in
+    // that case, rather than making the interface visibly change from quest to
+    // quest. These neutral values intentionally do not pretend to be wiki data.
+    const info = definition?.journalInfo ?? {
+        difficulty: "Not yet catalogued",
+        length: "Not yet catalogued",
+        storyline: "Not yet catalogued",
+    };
 
     const requirements: string[] = [];
-    if (definition.requirements?.questPoints !== undefined) {
+    if (definition?.requirements?.questPoints !== undefined) {
         requirements.push(`${definition.requirements.questPoints} Quest Points`);
     }
-    for (const requirement of definition.requirements?.quests ?? []) {
+    for (const requirement of definition?.requirements?.quests ?? []) {
         requirements.push(requirement.label);
     }
-    for (const requirement of definition.requirements?.skills ?? []) {
+    for (const requirement of definition?.requirements?.skills ?? []) {
         requirements.push(`Level ${requirement.level} ${requirement.label}`);
     }
 

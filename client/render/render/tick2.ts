@@ -195,34 +195,14 @@ export function registerNpcSceneTileCandidatesByPriority(host: WebGLOsrsRenderer
         priority: number,
         renderableNpcIds: Set<number>,
     ): void {
-
-        const npcEcs = host.osrsClient.npcEcs;
-        for (const idRaw of npcEcs.getServerLinkedEcsIds()) {
-            const ecsId = idRaw | 0;
-            if (!renderableNpcIds.has(ecsId)) {
-                continue;
-            }
-            if (!host.isNpcSceneTileMarkerCandidate(ecsId)) {
-                continue;
-            }
-            const npcType = host.getEffectiveNpcType(npcEcs.getNpcTypeId(ecsId) | 0);
-            if (!npcType) {
-                continue;
-            }
-            const npcDrawPriority = npcType.drawPriority ?? NpcDrawPriority.DRAW_PRIORITY_DEFAULT;
-            if ((npcDrawPriority | 0) !== (drawPriority | 0)) {
-                continue;
-            }
-
-            host.registerActorTileCandidate(
-                "npc",
-                ecsId,
-                (npcEcs.getWorldX(ecsId) >> 7) | 0,
-                (npcEcs.getWorldY(ecsId) >> 7) | 0,
-                npcEcs.getLevel(ecsId) | 0,
-                priority | 0,
-            );
-        }
+        // NPCs do not take part in the normal player-on-player winner
+        // selection. A local observer should only suppress a 1x1 NPC that is
+        // directly underneath *their own* player; remote observers see both
+        // actors. Keep this exported no-op for the existing render call sites.
+        void host;
+        void drawPriority;
+        void priority;
+        void renderableNpcIds;
     
 }
 
@@ -370,14 +350,21 @@ export function shouldRenderNpcFromMap(host: WebGLOsrsRendererHost, map: WebGLMa
             return true;
         }
 
-        host.ensureActorTileSelectionForFrame();
         const npcEcs = host.osrsClient.npcEcs;
-        const tileKey = host.getActorTileSelectionKey(
-            (npcEcs.getWorldX(ecsId) >> 7) | 0,
-            (npcEcs.getWorldY(ecsId) >> 7) | 0,
-            npcEcs.getLevel(ecsId) | 0,
+        const controlledServerId = host.osrsClient.controlledPlayerServerId | 0;
+        const controlledPid =
+            controlledServerId > 0
+                ? host.osrsClient.playerEcs.getIndexForServerId(controlledServerId)
+                : undefined;
+        if (controlledPid === undefined || !host.isPlayerSceneTileMarkerCandidate(controlledPid)) {
+            return true;
+        }
+
+        const players = host.osrsClient.playerEcs;
+        return !(
+            (players.getX(controlledPid) >> 7) === (npcEcs.getWorldX(ecsId) >> 7) &&
+            (players.getY(controlledPid) >> 7) === (npcEcs.getWorldY(ecsId) >> 7) &&
+            (players.getLevel(controlledPid) | 0) === (npcEcs.getLevel(ecsId) | 0)
         );
-        const winner = host.frameWinningActorByTile.get(tileKey);
-        return winner?.kind === "npc" && (winner.id | 0) === (ecsId | 0);
     
 }

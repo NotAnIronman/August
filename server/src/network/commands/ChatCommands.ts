@@ -42,6 +42,7 @@ const BUILTIN_COMMAND_PERMISSIONS: Readonly<Record<string, PlayerPermission>> = 
     onehealth: "developer",
     quest: "developer",
     randomitem: "developer",
+    resetstats: "developer",
     resetquests: "developer",
     rubytest: "developer",
     scroll: "developer",

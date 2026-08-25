@@ -172,11 +172,24 @@ export function resolveDropPool(def: NpcDropPoolDefinition): NpcDropPool | undef
         (sum, entry) => sum + (entry.probability ?? 0),
         0,
     );
+    // A few imported Wiki tables are flattened from several labelled rows
+    // and can add up to slightly above one. Weighted rolling has always
+    // normalised those weights implicitly; make that normalisation explicit
+    // in the retained probabilities too, so the drop viewer displays the
+    // same effective rate the roll service uses.
+    const normalization = Math.max(1, totalProbability);
+    const weightedEntries =
+        normalization === 1
+            ? normalizedEntries
+            : normalizedEntries.map((entry) => ({
+                  ...entry,
+                  probability: (entry.probability ?? 0) / normalization,
+              }));
     return {
         kind: def.kind,
         category: def.category,
         rolls: Math.max(1, def.rolls ?? 1),
-        entries: normalizedEntries,
+        entries: weightedEntries,
         nothingProbability: Math.max(0, 1 - Math.min(1, totalProbability)),
     };
 }

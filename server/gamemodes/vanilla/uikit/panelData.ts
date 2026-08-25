@@ -234,7 +234,7 @@ export function sendUiIconRows(
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_text",
             uid: levelUid,
-            text: row ? `${row.level}` : "",
+            text: row ? (row.levelLabel ?? `${row.level}`) : "",
         });
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_hidden",

@@ -72,6 +72,13 @@ export function handleExaminePacket(
 
         case "examine_npc": {
             if (packet.npcId === undefined) return false;
+            // Vanilla uses Examine as the natural entry point for the NPC
+            // drop viewer. Keep the hook gamemode-owned so other modes can
+            // retain the normal examine text, and do not emit both UI and
+            // chat text for the same action.
+            if (player.gamemode.onNpcExamine?.(player, packet.npcId) === true) {
+                return true;
+            }
             const npcText = resolveNpcExamineText(deps.npcTypeLoader, packet.npcId) ?? getNpcExamine(packet.npcId);
             logger.debug(`[examine] npc id=${packet.npcId} player=${player.name} -> ${npcText ?? "NO TEXT"}`);
             if (npcText) deps.queuePlayerGameMessage(player, npcText);

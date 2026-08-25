@@ -20,6 +20,8 @@
  * 14. final byte
  * 15. custom ammo quantity (signed int)
  * 16. custom ammo item id (signed int)
+ * 17. custom ring item id (signed int)
+ * 18. render PID priority (signed int)
  */
 import { EquipmentSlot } from "../../../../client/rs/config/player/Equipment";
 import type { PlayerAppearance } from "../../game/player";
@@ -147,6 +149,8 @@ export function encodeAppearanceBinary(
         skillLevel?: number;
         isHidden?: boolean;
         actions?: [string, string, string];
+        /** Server-side PID ordering used only when two remote players overlap. */
+        pidPriority?: number;
     },
 ): Uint8Array {
     const writer = new AppearanceWriter();
@@ -234,6 +238,15 @@ export function encodeAppearanceBinary(
     // local worn inventory (inv 94) display the equipped ammo in the equipment tab.
     const ammoItemId = appearance?.equip?.[EquipmentSlot.AMMO] ?? -1;
     writer.writeInt(ammoItemId);
+
+    // Rings are intentionally absent from PlayerComposition because they do
+    // not contribute a worn player model. They still belong in inventory 94.
+    const ringItemId = appearance?.equip?.[EquipmentSlot.RING] ?? -1;
+    writer.writeInt(ringItemId);
+
+    // PID is not a visual cache property; the client uses it only to choose
+    // the visible remote player when two players occupy the same tile.
+    writer.writeInt(options?.pidPriority ?? 0);
 
     return writer.toUint8Array();
 }

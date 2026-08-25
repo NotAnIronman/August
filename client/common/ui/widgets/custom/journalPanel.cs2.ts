@@ -29,3 +29,5 @@ export const DEV_UIKIT_COMPONENT_PICKER_GROUP_ID = 30028;
 /** Developer-only paginated visual browser for every sprite in the cache. */
 export const DEV_UIKIT_SPRITE_GALLERY_GROUP_ID = 30029;
 export const DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID = 30030;
+/** Player-facing NPC drop-table browser (opened by Examine or ::drops). */
+export const NPC_DROP_TABLE_PANEL_GROUP_ID = 30031;

@@ -74,6 +74,8 @@ export type UiTextRow =
 
 export type UiIconRow = {
     itemId: number; level: number; name: string; description?: string;
+    /** Optional display override for the left cell (for example "x25" in a drop table). */
+    levelLabel?: string;
     /** 0 is opaque and 255 is fully transparent, matching WidgetNode. */
     transparency?: number;
 };

@@ -87,6 +87,7 @@ import { registerDevUIKitMenu } from "./widgets/devUIKitMenu";
 import { registerDevDialogueEditor } from "./widgets/devDialogueEditor";
 import { registerEmoteWidgetHandlers } from "./widgets/emoteWidgets";
 import { registerMinimapWidgetHandlers } from "./widgets/minimapWidgets";
+import { registerNpcDropTableWidgetHandlers, type NpcDropViewer } from "./widgets/npcDropTableWidgets";
 import { registerMusicWidgetHandlers } from "./widgets/musicWidgets";
 import { registerPrayerWidgetHandlers } from "./widgets/prayerWidgets";
 import { registerQuestJournalWidgetHandlers } from "./widgets/questJournalWidgets";
@@ -102,6 +103,7 @@ export class VanillaGamemode extends BaseGamemode {
     private shopService: ShopService | undefined;
     private serverServices: GamemodeServerServices | undefined;
     private scriptServices: ScriptServices | undefined;
+    private npcDropViewer: NpcDropViewer | undefined;
 
     getLootDistributionConfig(npcTypeId: number): NpcLootConfig | undefined {
         return NPC_LOOT_CONFIGS.get(npcTypeId);
@@ -113,6 +115,10 @@ export class VanillaGamemode extends BaseGamemode {
 
     getLoginVarps(_player: PlayerState): Array<[number, number]> {
         return DEFAULT_LOGIN_VARPS;
+    }
+
+    onNpcExamine(player: PlayerState, npcTypeId: number): boolean {
+        return this.npcDropViewer?.open(player, npcTypeId) === true;
     }
 
     override initializePlayer(player: PlayerState): void {
@@ -309,6 +315,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerDiaryJournalWidgetHandlers(registry, services);
         registerAccountSummaryWidgetHandlers(registry, services);
         registerCollectionLogWidgetHandlers(registry, services);
+        this.npcDropViewer = registerNpcDropTableWidgetHandlers(registry, services);
 
         // Skills
         registerSkillHandlers(registry, services);

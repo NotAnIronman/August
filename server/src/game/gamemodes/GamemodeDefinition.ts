@@ -189,6 +189,11 @@ export interface GamemodeDefinition {
     getLootDistributionConfig?(
         npcTypeId: number,
     ): import("../combat/DamageTracker").NpcLootConfig | undefined;
+    /**
+     * Optional replacement for the default chatbox response to examining an
+     * NPC. Return true only when the gamemode handled the examine itself.
+     */
+    onNpcExamine?(player: PlayerState, npcTypeId: number): boolean;
 
     // === Player Rules ===
     canInteract(player: PlayerState): boolean;

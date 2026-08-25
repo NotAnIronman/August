@@ -4384,6 +4384,10 @@ export class OsrsClient {
             }
         }
 
+        if (typeof data?.pidPriority === "number" && Number.isFinite(data.pidPriority)) {
+            this.playerEcs.setRenderPidPriority(ecsIndex, data.pidPriority);
+        }
+
         this.playerEcs.setIsHidden(ecsIndex, data?.isHidden === true);
 
         const appearance = data?.appearance;

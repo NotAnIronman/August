@@ -20,6 +20,8 @@
  * 14. final byte
  * 15. custom ammo quantity (signed int)
  * 16. custom ammo item id (signed int)
+ * 17. custom ring item id (signed int)
+ * 18. render PID priority (signed int)
  */
 
 const EQUIPMENT_SLOTS = 12;
@@ -84,6 +86,8 @@ export interface DecodedAppearance {
     actions: [string, string, string];
     ammoQuantity: number;
     ammoItemId: number;
+    ringItemId: number;
+    pidPriority: number;
 }
 
 /**
@@ -314,6 +318,13 @@ export function decodeAppearanceBinary(buffer: Uint8Array): DecodedAppearance | 
         // composition format so the worn inventory can show the equipped ammo stack.
         const ammoItemId = reader.hasMore() ? reader.readInt() : -1;
 
+        // Rings use a worn-inventory slot but have no PlayerComposition wire
+        // slot, so they are carried in the project extension alongside ammo.
+        const ringItemId = reader.hasMore() ? reader.readInt() : -1;
+
+        // The server's current PID order for remote-player overlap rendering.
+        const pidPriority = reader.hasMore() ? reader.readInt() : 0;
+
         return {
             gender,
             headIconPk,
@@ -339,6 +350,8 @@ export function decodeAppearanceBinary(buffer: Uint8Array): DecodedAppearance | 
             actions,
             ammoQuantity,
             ammoItemId,
+            ringItemId,
+            pidPriority,
         };
     } catch (err) {
         console.warn("[AppearanceDecoder] Failed to decode binary appearance", err);

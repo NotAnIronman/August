@@ -20,18 +20,44 @@ type RawMonsterEntry = {
     drops?: RawMonsterDrop[];
 };
 
-const MONSTERS_COMPLETE_PATH = path.resolve("references/monsters-complete.json");
-
-const EXCLUDED_NAME_PREFIXES = [
-    "clue scroll",
-    "reward casket",
-    "jar of ",
-    "pet ",
-    "brimstone key",
-    "key (elite)",
-];
+function resolveMonstersCompletePath(): string {
+    // `yarn --cwd server` runs the world with server/ as its cwd, whereas
+    // content tooling conventionally stores this ignored source file at the
+    // repository-root references/ directory. Support both without making the
+    // game depend on how it was launched.
+    const candidates = [
+        path.resolve("references/monsters-complete.json"),
+        path.resolve(__dirname, "../../../../references/monsters-complete.json"),
+    ];
+    return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
+}
 
 let cachedEntries: ImportedMonsterDefinition[] | undefined;
+
+/**
+ * The bootstrap JSON flattens the Wiki's labelled subtables. These names are
+ * universally independent rolls in OSRS, so restoring them prevents a pet or
+ * clue chance from consuming the NPC's normal main-drop roll.  Less certain
+ * entries intentionally remain in the main pool instead of being guessed.
+ */
+function isKnownTertiaryDrop(drop: RawMonsterDrop): boolean {
+    const name = String(drop.name ?? "")
+        .replace(/<!--.*?-->/g, "")
+        .trim()
+        .toLowerCase();
+    return (
+        name.startsWith("clue scroll") ||
+        name.startsWith("pet ") ||
+        name === "brimstone key" ||
+        name === "long bone" ||
+        name === "curved bone" ||
+        name.includes("champion scroll") ||
+        name.startsWith("ensouled ") ||
+        name.startsWith("ancient shard") ||
+        name.startsWith("dark totem") ||
+        name.startsWith("skotizo totem")
+    );
+}
 
 function shouldSkipDrop(drop: RawMonsterDrop): boolean {
     const name = (drop.name ?? "")
@@ -39,7 +65,10 @@ function shouldSkipDrop(drop: RawMonsterDrop): boolean {
         .trim()
         .toLowerCase();
     if (!name) return true;
-    if (EXCLUDED_NAME_PREFIXES.some((prefix) => name.startsWith(prefix))) return true;
+    // Keep cache-backed clue, key, jar, pet, and casket entries. The source
+    // does not give us a reliable category for every special drop, but
+    // omitting them would make the displayed table (and actual rolls) less
+    // complete than the game's drop table.
     const itemId = drop.id ?? -1;
     return !getItemDefinition(itemId);
 }
@@ -54,17 +83,39 @@ function toEntry(drop: RawMonsterDrop): NpcDropEntryDefinition | undefined {
 }
 
 function normalizeRawMonster(raw: RawMonsterEntry): ImportedMonsterDefinition | undefined {
-    const entries = (raw.drops ?? [])
-        .map((drop) => toEntry(drop))
-        .filter((drop): drop is NpcDropEntryDefinition => drop !== undefined);
-    if (entries.length === 0) return undefined;
+    const converted = (raw.drops ?? [])
+        .map((drop) => ({ drop, entry: toEntry(drop) }))
+        .filter(
+            (value): value is { drop: RawMonsterDrop; entry: NpcDropEntryDefinition } =>
+                value.entry !== undefined,
+        );
+    if (converted.length === 0) return undefined;
     const hasNumericRarity = (
         entry: NpcDropEntryDefinition,
     ): entry is NpcDropEntryDefinition & { rarity: number } => typeof entry.rarity === "number";
-    const always = entries.filter((entry) => hasNumericRarity(entry) && entry.rarity >= 1);
-    const main = entries.filter(
-        (entry) => hasNumericRarity(entry) && entry.rarity > 0 && entry.rarity < 1,
-    );
+    const always = converted
+        .map(({ entry }) => entry)
+        .filter((entry) => hasNumericRarity(entry) && entry.rarity >= 1);
+    const tertiary = converted
+        .filter(({ drop, entry }) =>
+            hasNumericRarity(entry) && entry.rarity > 0 && entry.rarity < 1 && isKnownTertiaryDrop(drop),
+        )
+        .map(({ entry }) => entry);
+    const main = converted
+        .filter(({ drop, entry }) =>
+            hasNumericRarity(entry) &&
+            entry.rarity > 0 &&
+            entry.rarity < 1 &&
+            !isKnownTertiaryDrop(drop),
+        )
+        .map(({ entry }) => entry);
+    const pools = [] as NonNullable<ImportedMonsterDefinition["table"]["pools"]>;
+    if (main.length > 0) {
+        pools.push({ kind: "weighted", category: "main", entries: main });
+    }
+    if (tertiary.length > 0) {
+        pools.push({ kind: "independent", category: "tertiary", entries: tertiary });
+    }
     return {
         name: (raw.name ?? "").trim(),
         combatLevel: raw.combat_level,
@@ -72,15 +123,7 @@ function normalizeRawMonster(raw: RawMonsterEntry): ImportedMonsterDefinition | 
         incomplete: raw.incomplete === true,
         table: {
             always,
-            pools: main.length
-                ? [
-                      {
-                          kind: "weighted",
-                          category: "main",
-                          entries: main,
-                      },
-                  ]
-                : undefined,
+            pools: pools.length > 0 ? pools : undefined,
         },
     };
 }
@@ -157,7 +200,7 @@ function parseTopLevelEntries(text: string): RawMonsterEntry[] {
 export function loadMonstersCompleteDefinitions(): ImportedMonsterDefinition[] {
     if (cachedEntries) return cachedEntries;
     try {
-        const rawText = fs.readFileSync(MONSTERS_COMPLETE_PATH, "utf8");
+        const rawText = fs.readFileSync(resolveMonstersCompletePath(), "utf8");
         cachedEntries = parseTopLevelEntries(rawText)
             .map((entry) => normalizeRawMonster(entry))
             .filter((entry): entry is ImportedMonsterDefinition => entry !== undefined);

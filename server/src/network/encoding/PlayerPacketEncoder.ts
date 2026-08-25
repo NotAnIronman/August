@@ -169,6 +169,7 @@ export class PlayerPacketEncoder {
             skillLevel: player?.skillSystem.skillTotal ?? 32,
             isHidden: player?.isHidden === true,
             actions: ["", "", ""],
+            pidPriority: player?.getPidPriority() ?? 0,
         });
     }
 
@@ -1480,6 +1481,7 @@ export class PlayerPacketEncoder {
     private computeAppearanceHash(
         appearance: PlayerAppearance | undefined,
         name: string | undefined,
+        pidPriority?: number,
     ): number {
         let hash = 0;
         if (appearance) {
@@ -1512,6 +1514,7 @@ export class PlayerPacketEncoder {
                 hash = hash * 31 + name.charCodeAt(i);
             }
         }
+        hash = foldAppearanceHash(hash, pidPriority ?? 0);
         return hash >>> 0;
     }
 
@@ -1520,7 +1523,11 @@ export class PlayerPacketEncoder {
         id: number,
         view: PlayerViewSnapshot,
     ): boolean {
-        const hash = this.computeAppearanceHash(view.appearance, view.name);
+        const hash = this.computeAppearanceHash(
+            view.appearance,
+            view.name,
+            this.getPlayer(id)?.getPidPriority(),
+        );
         const last = session.lastAppearanceHash.get(id);
         if (hash === last) return false;
         session.lastAppearanceHash.set(id, hash);

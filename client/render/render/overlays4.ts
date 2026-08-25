@@ -43,7 +43,7 @@ import type { OverlayFloorType } from "../../rs/config/floortype/OverlayFloorTyp
 import { LocModelLoader } from "../../rs/config/loctype/LocModelLoader";
 import { LocModelType } from "../../rs/config/loctype/LocModelType";
 import { NpcModelLoader } from "../../rs/config/npctype/NpcModelLoader";
-import { NpcDrawPriority, NpcType } from "../../rs/config/npctype/NpcType";
+import { NpcType } from "../../rs/config/npctype/NpcType";
 import { PlayerAppearance } from "../../rs/config/player/PlayerAppearance";
 import { PlayerModelLoader } from "../../rs/config/player/PlayerModelLoader";
 import { decodeInteractionIndex } from "../../rs/interaction/InteractionIndex";
@@ -400,7 +400,7 @@ export function ensureActorTileSelectionForFrame(host: WebGLOsrsRendererHost, ):
             controlledPid !== undefined &&
             host.isPlayerSceneTileMarkerCandidate(controlledPid | 0)
         ) {
-            host.registerPlayerSceneTileCandidate(controlledPid | 0, 5);
+            host.registerPlayerSceneTileCandidate(controlledPid | 0, Number.MAX_SAFE_INTEGER);
         }
 
         const combatTargetPid = host.getCombatTargetPlayerEcsIndex();
@@ -409,15 +409,11 @@ export function ensureActorTileSelectionForFrame(host: WebGLOsrsRendererHost, ):
             (combatTargetPid | 0) !== (controlledPid ?? -1) &&
             host.isPlayerSceneTileMarkerCandidate(combatTargetPid | 0)
         ) {
-            host.registerPlayerSceneTileCandidate(combatTargetPid | 0, 4);
+            host.registerPlayerSceneTileCandidate(
+                combatTargetPid | 0,
+                pe.getRenderPidPriority(combatTargetPid),
+            );
         }
-
-        const renderableNpcIds = host.collectRenderableNpcIds();
-        host.registerNpcSceneTileCandidatesByPriority(
-            NpcDrawPriority.DRAW_PRIORITY_FIRST,
-            3,
-            renderableNpcIds,
-        );
 
         const activeServerIds = Array.from(pe.getAllServerIds()).sort((a, b) => a - b);
         for (const serverId of activeServerIds) {
@@ -435,18 +431,10 @@ export function ensureActorTileSelectionForFrame(host: WebGLOsrsRendererHost, ):
                 continue;
             }
 
-            host.registerPlayerSceneTileCandidate(pid | 0, 2);
+            // A third observer sees only the highest-PID player at an exact
+            // overlap. The controlled player is registered above with a
+            // larger local-only priority and therefore always sees themself.
+            host.registerPlayerSceneTileCandidate(pid | 0, pe.getRenderPidPriority(pid));
         }
-
-        host.registerNpcSceneTileCandidatesByPriority(
-            NpcDrawPriority.DRAW_PRIORITY_DEFAULT,
-            1,
-            renderableNpcIds,
-        );
-        host.registerNpcSceneTileCandidatesByPriority(
-            NpcDrawPriority.DRAW_PRIORITY_LAST,
-            0,
-            renderableNpcIds,
-        );
     
 }

@@ -592,6 +592,33 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     return;
                 }
 
+                if (root === "resetstats") {
+                    // Restore genuine level-1 defaults, with the standard
+                    // level-10 Hitpoints start.  This deliberately clears
+                    // temporary boosts as well, so a test starts from a
+                    // predictable state.
+                    for (const skillId of SKILL_IDS) {
+                        const defaultXp = skillId === SkillId.Hitpoints ? getXpForLevel(10) : 0;
+                        sender.skillSystem.setSkillXp(skillId, defaultXp);
+                        sender.skillSystem.setSkillBoost(
+                            skillId,
+                            sender.skillSystem.getSkill(skillId).baseLevel,
+                        );
+                    }
+                    sender.skillSystem.setHitpointsCurrent(
+                        sender.skillSystem.getSkill(SkillId.Hitpoints).baseLevel,
+                    );
+                    sender.skillSystem.requestFullSkillSync();
+
+                    services.queueChatMessage({
+                        messageType: "game",
+                        text: "All stats reset to their normal starting levels.",
+                        targetPlayerIds: [sender.id],
+                    });
+                    logger.info(`[cmd] ::resetstats - Reset all stats for player ${sender.id}`);
+                    return;
+                }
+
                 if (root === "smithing") {
                     const levelArgRaw = parts[1];
                     const levelArg = levelArgRaw ? parseInt(levelArgRaw, 10) : NaN;

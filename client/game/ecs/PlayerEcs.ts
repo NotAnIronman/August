@@ -128,6 +128,8 @@ export class PlayerEcs {
     private combatLevels!: Uint8Array; // 0..126
     private teams!: Uint8Array; // 0 = none
     private hidden!: Uint8Array; // 0/1, from appearance isHidden
+    /** Server PID order used for remote player-overlap rendering. */
+    private renderPidPriority!: Int32Array;
 
     // Model cache for dynamic animation (stored as any to avoid circular deps)
     private baseModels: (any | undefined)[] = [];
@@ -332,6 +334,7 @@ export class PlayerEcs {
         this.combatLevels[index] = 0;
         this.teams[index] = 0;
         this.hidden[index] = 0;
+        this.renderPidPriority[index] = 0;
 
         // Initialize model cache
         this.baseModels[index] = undefined;
@@ -382,6 +385,7 @@ export class PlayerEcs {
         this.combatLevels[index] = 0;
         this.teams[index] = 0;
         this.hidden[index] = 0;
+        this.renderPidPriority[index] = 0;
 
         // Clear model cache
         this.baseModels[index] = undefined;
@@ -421,6 +425,7 @@ export class PlayerEcs {
             if (this.combatLevels) this.combatLevels[i] = 0;
             if (this.teams) this.teams[i] = 0;
             if (this.hidden) this.hidden[i] = 0;
+            if (this.renderPidPriority) this.renderPidPriority[i] = 0;
         }
 
         // Clear appearance cache
@@ -548,6 +553,7 @@ export class PlayerEcs {
         this.combatLevels = grow(this.combatLevels, Uint8Array);
         this.teams = grow(this.teams, Uint8Array);
         this.hidden = grow(this.hidden, Uint8Array);
+        this.renderPidPriority = grow(this.renderPidPriority, Int32Array);
         this.overheadColorId = grow(this.overheadColorId, Uint8Array);
         this.overheadEffect = grow(this.overheadEffect, Uint8Array);
         this.overheadCycle = grow(this.overheadCycle, Uint16Array);
@@ -1261,6 +1267,14 @@ export class PlayerEcs {
         if (!(i >= 0 && i < this.capacity)) return;
         const normalized = Number.isFinite(level) ? level | 0 : 0;
         this.combatLevels[i] = normalized < 0 ? 0 : normalized > 126 ? 126 : normalized;
+    }
+    getRenderPidPriority(i: number): number {
+        if (!(i >= 0 && i < this.capacity)) return 0;
+        return this.renderPidPriority[i] | 0;
+    }
+    setRenderPidPriority(i: number, priority: number): void {
+        if (!(i >= 0 && i < this.capacity)) return;
+        this.renderPidPriority[i] = Number.isFinite(priority) ? priority | 0 : 0;
     }
     getTeam(i: number): number {
         if (!(i >= 0 && i < this.capacity)) return 0;

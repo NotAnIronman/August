@@ -426,7 +426,10 @@ export function shouldReplaceTileWinner(host: WebGLOsrsRendererHost,
         priority: number,
     ): boolean {
 
-        return (priority | 0) > (current.priority | 0);
+        if (priority !== current.priority) return priority > current.priority;
+        // PID values are random, but keep the result deterministic if a
+        // collision ever occurs instead of depending on collection order.
+        return id > current.id;
     
 }
 
@@ -441,14 +444,14 @@ export function registerActorTileCandidate(host: WebGLOsrsRendererHost,
 
         const key = host.getActorTileSelectionKey(tileX | 0, tileY | 0, plane | 0);
         const current = host.frameWinningActorByTile.get(key);
-        if (current && !host.shouldReplaceTileWinner(current, kind, id | 0, priority | 0)) {
+        if (current && !host.shouldReplaceTileWinner(current, kind, id | 0, priority)) {
             return;
         }
 
         host.frameWinningActorByTile.set(key, {
             kind: kind,
             id: id | 0,
-            priority: priority | 0,
+            priority,
         });
     
 }
@@ -465,7 +468,7 @@ export function registerPlayerSceneTileCandidate(host: WebGLOsrsRendererHost, pi
             (pe.getX(pid) >> 7) | 0,
             (pe.getY(pid) >> 7) | 0,
             pe.getLevel(pid) | 0,
-            priority | 0,
+            priority,
         );
     
 }

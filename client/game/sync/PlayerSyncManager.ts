@@ -669,6 +669,9 @@ export class PlayerSyncManager {
                         if (decoded.ammoItemId > 0) {
                             equip[10] = decoded.ammoItemId;
                         }
+                        if (decoded.ringItemId > 0) {
+                            equip[9] = decoded.ringItemId;
+                        }
                         return equip;
                     })(),
                     equipQty: (() => {
@@ -691,6 +694,7 @@ export class PlayerSyncManager {
                     walkRight: decoded.anim.walkRight,
                     run: decoded.anim.run,
                 },
+                pidPriority: decoded.pidPriority,
             };
             this.onAppearanceUpdate(serverId, data);
         } catch {

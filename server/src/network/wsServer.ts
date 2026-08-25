@@ -1437,6 +1437,7 @@ export class WSServer {
             skillLevel: player?.skillSystem.skillTotal ?? 32,
             isHidden: player?.isHidden === true,
             actions: ["", "", ""],
+            pidPriority: player?.getPidPriority() ?? 0,
         });
     }
 

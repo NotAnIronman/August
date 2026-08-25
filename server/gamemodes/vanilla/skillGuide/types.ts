@@ -10,11 +10,10 @@ import type { SkillId } from "../../../../client/rs/skill/skills";
  * and an optional note (ingredients, requirements, etc).
  *
  * One file per skill lives in ./data/<skillName>.ts, each exporting a
- * single `SkillGuideData` object. See ./data/smithing.ts for a fully
- * worked example (matches the real in-game Smithing guide); every other
- * skill's file currently has an empty `tabs` array as a template - fill
- * those in directly, no other code changes needed for the data to show up
- * once the guide UI is wired to read from here.
+ * single `SkillGuideData` object. The checked-in files are generated from
+ * the OSRS Wiki's public `Skill/Level up table` pages by
+ * `server/scripts/sync-wiki-skill-guides.ts`; refresh them through that
+ * importer rather than hand-editing individual rows.
  */
 
 export interface SkillGuideEntry {
@@ -47,10 +46,6 @@ export interface SkillGuideTab {
 
 export interface SkillGuideData {
     skillId: SkillId;
-    /**
-     * Tabs in sidebar order. Leave empty ([]) until you've filled in
-     * this skill's data - an empty tabs array just means "nothing to
-     * show yet" for that skill, it won't break anything.
-     */
+    /** Tabs in sidebar order. An empty array is still safe for a future skill. */
     tabs: SkillGuideTab[];
 }
