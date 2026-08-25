@@ -2,6 +2,7 @@ import type { WidgetManager } from "../../../widgets/WidgetManager";
 import { ClickMode } from "../../InputManager";
 import type { WidgetInteractionController } from "../WidgetInteractionController";
 import type { WidgetInputFrame } from "./widgetInputTypes";
+import { reportRuntimeProbe } from "../../../debug/runtimeProbe";
 
 const QUEST_LIST_GROUP_ID = 399;
 const QUEST_LIST_SCROLLBAR_UID = (QUEST_LIST_GROUP_ID << 16) | 5;
@@ -20,6 +21,7 @@ type QuestScrollbarDrag = {
 };
 
 let activeDrag: QuestScrollbarDrag | undefined;
+let handlerTraceWritten = false;
 
 function clampScrollY(value: number, maximum: number): number {
     return Math.min(Math.max(0, value | 0), maximum);
@@ -45,13 +47,16 @@ export function processQuestListScrollbarInput(
     frame: WidgetInputFrame,
     widgetManager: WidgetManager,
     widgetInteraction: WidgetInteractionController,
-): void {
-    // Quest-list widgets remain cached after the side journal switches tabs.
-    // Do not let their stale bounds consume a wheel event intended for the
-    // achievement diary (or any other currently mounted panel).
-    if (widgetManager.getInterfaceParentContainerUid(QUEST_LIST_GROUP_ID) === undefined) {
+): boolean {
+    // The quest interface can be a top-level group rather than a mounted
+    // sub-interface. A parent-container check therefore made this fully
+    // functional controller unreachable while the panel was visibly open.
+    // Visibility is the reliable lifecycle signal and still protects other
+    // panels from stale quest-list bounds after a tab change.
+    if (widgetManager.isEffectivelyHidden(QUEST_LIST_CONTENT_UID)) {
         activeDrag = undefined;
-        return;
+        handlerTraceWritten = false;
+        return false;
     }
 
     if (frame.input.clickMode2 !== ClickMode.LEFT) activeDrag = undefined;
@@ -63,12 +68,12 @@ export function processQuestListScrollbarInput(
         widgetInteraction.isDraggingWidget &&
         !isQuestListScrollbarWidget(widgetInteraction.clickedWidget, widgetManager)
     ) {
-        return;
+        return false;
     }
 
     const content = widgetManager.getWidgetByUid(QUEST_LIST_CONTENT_UID);
     const scrollbar = widgetManager.getWidgetByUid(QUEST_LIST_SCROLLBAR_UID);
-    if (!content) return;
+    if (!content) return false;
 
     widgetManager.ensureLayout(content);
     if (scrollbar) widgetManager.ensureLayout(scrollbar);
@@ -76,7 +81,7 @@ export function processQuestListScrollbarInput(
     const viewportHeight = Math.max(0, content.height | 0);
     const contentHeight = Math.max(viewportHeight, content.scrollHeight | 0);
     const maxScrollY = Math.max(0, contentHeight - viewportHeight);
-    if (maxScrollY <= 0) return;
+    if (maxScrollY <= 0) return false;
 
     // The cache's 399:5 host owns the working scrollbar input/clip geometry.
     // Match the renderer's small logical horizontal tweak without changing
@@ -115,7 +120,23 @@ export function processQuestListScrollbarInput(
         (maxScrollY > 0
             ? Math.floor((draggableHeight * physicalScrollY) / Math.max(1, physicalContentHeight - scrollbarHeight))
             : 0);
-    if (trackHeight <= 0) return;
+    if (trackHeight <= 0) return false;
+
+    if (!handlerTraceWritten) {
+        handlerTraceWritten = true;
+        reportRuntimeProbe("quest_scrollbar_dedicated_handler_active", {
+            hostUid: scrollbar?.uid ?? -1,
+            targetUid: content.uid,
+            scrollbarX,
+            scrollbarY,
+            scrollbarHeight,
+            viewportHeight,
+            contentHeight,
+            maxScrollY,
+            thumbTop,
+            thumbHeight,
+        });
+    }
 
     const { input, mx, my } = frame;
     const isOverContent =
@@ -160,9 +181,10 @@ export function processQuestListScrollbarInput(
             (content.scrollY | 0) + (input.wheelDeltaY > 0 ? WHEEL_STEP : -WHEEL_STEP),
         );
         input.wheelDeltaY = 0;
+        return true;
     }
 
-    if (input.clickMode2 !== ClickMode.LEFT) return;
+    if (input.clickMode2 !== ClickMode.LEFT) return false;
 
     const setScrollFromThumbTop = (wantedThumbTop: number): void => {
         const thumbOffset = Math.min(Math.max(0, wantedThumbTop - scrollbarY - arrowHeight), draggableHeight);
@@ -175,21 +197,32 @@ export function processQuestListScrollbarInput(
     // 16-pixel rail. The generic click picker must never own this gesture.
     if (activeDrag) {
         setScrollFromThumbTop(my - activeDrag.grabOffsetY);
-        return;
+        return true;
     }
 
     // A held click without a new click is not a quest-scrollbar gesture. This
     // prevents a pre-existing click elsewhere from moving the quest list as
     // the cursor passes over it.
-    if (!isNewScrollbarClick || !isOverScrollbar) return;
+    if (!isNewScrollbarClick || !isOverScrollbar) return false;
+
+    reportRuntimeProbe("quest_scrollbar_dedicated_capture", {
+        scrollbarX,
+        scrollbarY,
+        scrollbarHeight,
+        thumbTop,
+        thumbHeight,
+        mouseX: mx,
+        mouseY: my,
+        scrollY: content.scrollY ?? 0,
+    });
 
     if (my < scrollbarY + arrowHeight) {
         setScrollY((content.scrollY | 0) - 4);
-        return;
+        return true;
     }
     if (my >= scrollbarY + scrollbarHeight - arrowHeight) {
         setScrollY((content.scrollY | 0) + 4);
-        return;
+        return true;
     }
 
     const clickedThumb = my >= thumbTop && my < thumbTop + thumbHeight;
@@ -197,4 +230,5 @@ export function processQuestListScrollbarInput(
         grabOffsetY: clickedThumb ? my - thumbTop : thumbHeight >> 1,
     };
     setScrollFromThumbTop(my - activeDrag.grabOffsetY);
+    return true;
 }

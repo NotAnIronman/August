@@ -1,7 +1,10 @@
 import type { WidgetManager } from "../../widgets/WidgetManager";
 import type { InputManager } from "../InputManager";
 import type { WidgetInteractionController } from "./WidgetInteractionController";
-import { isQuestListScrollbarWidget } from "./input/questListScrollbarInput";
+import {
+    isQuestListScrollbarWidget,
+    processQuestListScrollbarInput,
+} from "./input/questListScrollbarInput";
 // Skill guide, diary, quest journal, and quest overview all use the UI
 // kit's generic scroll controller now (client/widgets/uikit/
 // ScrollController.ts), not dedicated per-panel files - see the
@@ -65,13 +68,23 @@ export class WidgetInputController {
         // legacy IF1 hit-zones cannot consume its wheel gesture.
         processRegisteredUiPanelInput(frame, widgetManager, widgetInteraction);
         processWidgetMinimapWheelInput(this.deps, frame, widgetManager, widgetInteraction);
-        processWidgetIf1ScrollbarInput(
-            this.deps,
-            this.state,
+        // Quest 399 is a top-level interface in this cache, not an interface
+        // parent. Its rail is rendered by one cache child and scrolls another,
+        // so it needs its precise controller before the generic IF1 tree walk.
+        const handledQuestScrollbar = processQuestListScrollbarInput(
             frame,
             widgetManager,
             widgetInteraction,
         );
+        if (!handledQuestScrollbar) {
+            processWidgetIf1ScrollbarInput(
+                this.deps,
+                this.state,
+                frame,
+                widgetManager,
+                widgetInteraction,
+            );
+        }
         processWidgetScrollWheelInput(this.deps, frame, widgetManager, widgetInteraction);
 
         if (shouldSkipWidgetClickInput(this.deps, frame)) return;

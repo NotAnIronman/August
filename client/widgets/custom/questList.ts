@@ -4,6 +4,7 @@ import {
     type QuestListWidgetGroup,
 } from "../../common/ui/questList";
 import { FONT_BOLD_12, FONT_PLAIN_11 } from "../../ui/fonts";
+import { reportRuntimeProbe } from "../../debug/runtimeProbe";
 import type { WidgetManager } from "../WidgetManager";
 import type { WidgetNode } from "../WidgetNode";
 
@@ -16,6 +17,7 @@ const QUEST_LIST_LIST_UID = (QUEST_LIST_GROUP_ID << 16) | QUEST_LIST_LIST_CHILD_
 const QUEST_LIST_TEXT_CONTAINER_UID =
     (QUEST_LIST_GROUP_ID << 16) | QUEST_LIST_TEXT_CONTAINER_CHILD_ID;
 const QUEST_LIST_SCROLLBAR_UID = (QUEST_LIST_GROUP_ID << 16) | QUEST_LIST_SCROLLBAR_CHILD_ID;
+const questScrollbarConfigTraceSeen = new Set<number>();
 
 const HEADER_HEIGHT = 18;
 const HEADER_ADVANCE = 25;
@@ -260,6 +262,22 @@ export function applyQuestListWidgetGroups(
         scrollbar.uikitScrollbarOffsetX = 25;
         scrollbar.isHidden = false;
         scrollbar.hidden = false;
+        if (!questScrollbarConfigTraceSeen.has(scrollbar.uid)) {
+            questScrollbarConfigTraceSeen.add(scrollbar.uid);
+            reportRuntimeProbe("quest_scrollbar_configured", {
+                hostUid: scrollbar.uid,
+                targetUid: list.uid,
+                targetWidth: list.width,
+                targetHeight: list.height,
+                targetScrollHeight: list.scrollHeight,
+                targetScrollY: list.scrollY,
+                hostAbsX: scrollbar._absX ?? -1,
+                hostAbsY: scrollbar._absY ?? -1,
+                hostAbsWidth: scrollbar._absWidth ?? -1,
+                hostAbsHeight: scrollbar._absHeight ?? -1,
+                offsetX: scrollbar.uikitScrollbarOffsetX,
+            });
+        }
         widgetManager.invalidateWidget(scrollbar, "quest-list");
     }
 

@@ -19,6 +19,7 @@ import { reportRuntimeProbe } from "../../debug/runtimeProbe";
 type FaceVisibilityPredicate = (model: Model, faceIndex: number) => boolean;
 const CAPE_ICON_IDS = new Set([6570, 21295]);
 const capeIconRenderTraceSeen = new Set<number>();
+const capeIconFrameTraceBucket = new Map<number, number>();
 
 export type ItemIconRenderOptions = {
     outline?: number;
@@ -332,6 +333,24 @@ export class ItemIconRenderer {
             zoomMultiplier,
             animationTimeSeconds,
         });
+        if (CAPE_ICON_IDS.has(itemId | 0) && animationTimeSeconds !== undefined) {
+            // A four-second bucket makes the probe compact while producing a
+            // material offset large enough to visibly change both cape icons.
+            const bucket = Math.floor(animationKey / 32);
+            if (capeIconFrameTraceBucket.get(itemId | 0) !== bucket) {
+                capeIconFrameTraceBucket.set(itemId | 0, bucket);
+                let checksum = 2166136261;
+                for (let i = 0; i < modelPixels.length; i++) {
+                    checksum = Math.imul(checksum ^ modelPixels[i], 16777619);
+                }
+                reportRuntimeProbe("cape_icon_frame_rendered", {
+                    itemId,
+                    animationKey,
+                    bucket,
+                    checksum: checksum >>> 0,
+                });
+            }
+        }
         this.blitTransBgAt(base, modelPixels);
 
         // NotedId overlay is drawn AFTER the model, BEFORE outline/shadow.

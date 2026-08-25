@@ -195,6 +195,11 @@ export function registerNpcDropTableWidgetHandlers(
             sourceEntries: details?.sourceEntries ?? 0,
             sourcePath: details?.sourcePath ?? "",
             sourceError: details?.sourceError ?? "",
+            runtimeNpcName: details?.runtimeNpcName ?? "",
+            runtimeCombatLevel: details?.runtimeCombatLevel ?? -1,
+            directImportedName: details?.directImportedName ?? "",
+            nameCandidateCount: details?.nameCandidateCount ?? 0,
+            exactNameCombatMatch: details?.exactNameCombatMatch ?? false,
             entries: details?.entryCount ?? 0,
         }, player.id);
         return open(player, npcTypeId)
@@ -219,6 +224,11 @@ export function registerNpcDropTableWidgetHandlers(
             sourceEntries: details.sourceEntries,
             sourcePath: details.sourcePath,
             sourceError: details.sourceError ?? "",
+            runtimeNpcName: details.runtimeNpcName,
+            runtimeCombatLevel: details.runtimeCombatLevel,
+            directImportedName: details.directImportedName ?? "",
+            nameCandidateCount: details.nameCandidateCount,
+            exactNameCombatMatch: details.exactNameCombatMatch,
             entries: details.entryCount,
         }, player.id);
         const sourceState = details.sourceError

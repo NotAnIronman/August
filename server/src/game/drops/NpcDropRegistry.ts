@@ -30,6 +30,11 @@ export type NpcDropLookupDescription = {
     sourceEntries: number;
     sourcePath: string;
     sourceError?: string;
+    runtimeNpcName: string;
+    runtimeCombatLevel: number;
+    directImportedName?: string;
+    nameCandidateCount: number;
+    exactNameCombatMatch: boolean;
     alwaysCount: number;
     poolCount: number;
     entryCount: number;
@@ -146,6 +151,21 @@ export class NpcDropRegistry {
         const table = this.get(npcTypeId);
         const directImported = this.imported.byNpcTypeId.get(npcTypeId);
         const manual = this.manualByNpcTypeId.get(npcTypeId);
+        let runtimeNpcType: NpcType | undefined;
+        try {
+            runtimeNpcType = this.npcTypeLoader.load(npcTypeId);
+        } catch {
+            // Keep ::dropsdebug useful even for a bad cache ID.
+        }
+        const runtimeNpcName = String(runtimeNpcType?.name ?? "").trim();
+        const runtimeCombatLevel = runtimeNpcType?.combatLevel ?? -1;
+        const normalizedRuntimeName = normalizeName(runtimeNpcName);
+        const nameCandidateCount = normalizedRuntimeName
+            ? this.imported.byName.get(normalizedRuntimeName)?.length ?? 0
+            : 0;
+        const exactNameCombatMatch = Boolean(
+            this.imported.exact.get(makeCombatKey(runtimeNpcName, runtimeCombatLevel)),
+        );
         let lookupSource: NpcDropLookupDescription["source"] = "none";
         if (directImported && table === directImported.table && PREFER_IMPORTED_OVER_MANUAL.has(npcTypeId)) {
             lookupSource = "imported-id";
@@ -161,6 +181,11 @@ export class NpcDropRegistry {
             sourceEntries: source.entryCount,
             sourcePath: source.path,
             sourceError: source.error,
+            runtimeNpcName,
+            runtimeCombatLevel,
+            directImportedName: directImported?.name,
+            nameCandidateCount,
+            exactNameCombatMatch,
             alwaysCount: table?.always.length ?? 0,
             poolCount: table?.pools.length ?? 0,
             entryCount:
