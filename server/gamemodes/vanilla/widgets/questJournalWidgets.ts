@@ -147,7 +147,7 @@ function buildJournalInfoColumnLines(definition: QuestDefinition | undefined): s
         "<col=000080>Requirements:</col>",
         ...(visibleRequirements.length > 0
             ? visibleRequirements.map((requirement) => `<col=800000>${requirement}</col>`)
-            : ["<col=800000>None</col>"],
+            : ["<col=800000>None</col>"]),
     ];
 }
 
