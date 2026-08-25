@@ -39,8 +39,18 @@ export function processWidgetIf1ScrollbarInput(
                 const widgetWidth = (widget.width ?? 0) | 0;
                 const widgetHeight = (widget.height ?? 0) | 0;
                 const scrollHeight = (widget.scrollHeight ?? 0) | 0;
+                // UIKit rails are rendered by a cache host but deliberately
+                // scroll a different target widget. Their target has its own
+                // input controller; allowing legacy IF1 handling here makes
+                // the visible thumb and the draggable state disagree.
+                const hasDedicatedScrollbarTarget =
+                    typeof widget.uikitScrollbarTargetUid === "number" &&
+                    widget.uikitScrollbarTargetUid >= 0;
                 const isIf1Scrollable =
-                    widgetType === 0 && widget.isIf3 === false && scrollHeight > widgetHeight;
+                    !hasDedicatedScrollbarTarget &&
+                    widgetType === 0 &&
+                    widget.isIf3 === false &&
+                    scrollHeight > widgetHeight;
 
                 if (isIf1Scrollable) {
                     const scrollbarX = absX + widgetWidth;

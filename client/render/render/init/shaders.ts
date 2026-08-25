@@ -730,6 +730,7 @@ export async function initShaders(host: WebGLOsrsRendererHost, ): Promise<Progra
                                 outline?: number,
                                 shadow?: number,
                                 quantityMode?: number,
+                                animationTimeSeconds?: number,
                             ) => {
                                 // Use ItemIconRenderer to render item icons
                                 if (host.itemIconRenderer) {
@@ -737,6 +738,7 @@ export async function initShaders(host: WebGLOsrsRendererHost, ): Promise<Progra
                                         outline,
                                         shadow,
                                         quantityMode,
+                                        animationTimeSeconds,
                                     });
                                 }
                                 return undefined;

@@ -17,6 +17,11 @@ import {
 } from "../../widgets/gl/widgets-gl";
 import { drawTextGL } from "../../widgets/components/TextRenderer";
 import type { WidgetManager } from "../../widgets/WidgetManager";
+import {
+    getAnimatedItemIconPhase,
+    getAnimatedItemIconTimeSeconds,
+    hasAnimatedItemIcon,
+} from "../item/animatedItemIcons";
 import { Overlay, OverlayInitArgs, OverlayUpdateArgs, RenderPhase } from "./Overlay";
 
 export interface WidgetsContext {
@@ -31,6 +36,7 @@ export interface WidgetsContext {
         outline?: number,
         shadow?: number,
         quantityMode?: number,
+        animationTimeSeconds?: number,
     ) => HTMLCanvasElement | undefined;
     getObjLoader?: () => any;
     // Optional game context for plugins (e.g., player ECS, map state)
@@ -80,6 +86,7 @@ export class WidgetsOverlay implements Overlay {
     private lastMenuVisualSignature: string = "";
     private lastMenuVisualRect?: DirtyRect;
     private lastTradeAmountOverlaySignature: string = "";
+    private lastAnimatedItemIconPhase = -1;
 
     // Public property to enable/disable the overlay
     public enabled: boolean = true;
@@ -594,6 +601,15 @@ export class WidgetsOverlay implements Overlay {
             overlayCanvasAny.__ui = sharedUi;
             renderCanvasAny.__ui = sharedUi;
 
+            const animatedItemVisible = this.widgetEntries.some((entry) =>
+                this.rootContainsAnimatedItemIcon(entry.root),
+            );
+            const animatedItemIconPhase = animatedItemVisible
+                ? getAnimatedItemIconPhase(getAnimatedItemIconTimeSeconds())
+                : -1;
+            const animatedItemIconDirty = animatedItemIconPhase !== this.lastAnimatedItemIconPhase;
+            this.lastAnimatedItemIconPhase = animatedItemIconPhase;
+
             // Check dirty state from widget manager
             const widgetManager = this.ctx.getWidgetManager?.();
             let anyDirty = true; // Default to dirty if no manager
@@ -634,7 +650,11 @@ export class WidgetsOverlay implements Overlay {
             // open, partial dirty-rect redraws can visibly blink as hover/click state changes
             // every frame. Redraw the full overlay for the duration of the menu instead.
             const forceFullRedraw =
-                !this.hasPresentedFrame || this.rootSetChanged || menuOpen || tradeOverlayDirty;
+                !this.hasPresentedFrame ||
+                this.rootSetChanged ||
+                menuOpen ||
+                tradeOverlayDirty ||
+                animatedItemIconDirty;
             const preciseDirtyCount = preciseDirtyWidgets.length | 0;
             const shouldRedraw =
                 anyDirty || preciseDirtyCount > 0 || forceFullRedraw || menuVisualDirty;
@@ -755,6 +775,26 @@ export class WidgetsOverlay implements Overlay {
         } catch (e) {
             console.error("Error rendering widgets:", e);
         }
+    }
+
+    /** Widget item icons normally stay cached; animated cape models opt into a
+     * bounded 8fps redraw while visible so their material scroll can advance. */
+    private rootContainsAnimatedItemIcon(root: any): boolean {
+        const pending = [root];
+        const seen = new Set<any>();
+        for (let inspected = 0; pending.length > 0 && inspected < 20_000; inspected++) {
+            const widget = pending.pop();
+            if (!widget || seen.has(widget)) continue;
+            seen.add(widget);
+            if (hasAnimatedItemIcon(Number(widget.itemId))) return true;
+            if (Array.isArray(widget.itemIds)) {
+                for (const itemId of widget.itemIds) {
+                    if (hasAnimatedItemIcon(Number(itemId))) return true;
+                }
+            }
+            if (Array.isArray(widget.children)) pending.push(...widget.children);
+        }
+        return false;
     }
 
     private getTradeAmountOverlaySignature(widgetManager?: WidgetManager): string {

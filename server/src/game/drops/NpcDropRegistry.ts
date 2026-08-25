@@ -42,6 +42,10 @@ function buildImportedLookup(): ImportedLookup {
     // level variant would make a perfectly valid table look ambiguous.
     const byNameAndCombat = new Map<string, Map<string, NpcDropTable>>();
     for (const entry of loadMonstersCompleteDefinitions()) {
+        // Wiki-imported pages are only allowed into runtime once every parsed
+        // item/rate row is cache-backed. A partial table is more dangerous
+        // than an absent one: it can silently create incorrect drops.
+        if (entry.source === "wiki" && entry.incomplete) continue;
         // The bootstrap reference marks many otherwise-usable rows as incomplete.
         // Keep them available until a manual override replaces them.
         if (entry.duplicate) continue;

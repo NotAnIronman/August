@@ -13,6 +13,7 @@ import { SpritePixels } from "../../rs/sprite/SpritePixels";
 import type { TextureLoader } from "../../rs/texture/TextureLoader";
 import { HSL_RGB_MAP } from "../../rs/util/ColorUtil";
 import { FONT_PLAIN_11 } from "../fonts";
+import { hasAnimatedItemIcon } from "./animatedItemIcons";
 
 type FaceVisibilityPredicate = (model: Model, faceIndex: number) => boolean;
 
@@ -20,6 +21,7 @@ export type ItemIconRenderOptions = {
     outline?: number;
     shadow?: number;
     quantityMode?: number;
+    animationTimeSeconds?: number;
 };
 
 export class ItemIconRenderer {
@@ -29,7 +31,7 @@ export class ItemIconRenderer {
     private objModel: ObjModelLoader;
     private objLoader: ObjTypeLoader;
     private textureLoader: TextureLoader;
-    private texCache = new Map<number, { size: number; pixels: Int32Array }>();
+    private texCache = new Map<string, { size: number; pixels: Int32Array }>();
     private cacheSystem?: CacheSystem;
     private fontCache = new Map<number, BitmapFont | undefined>();
     private itemSpriteCache = new Map<
@@ -66,12 +68,26 @@ export class ItemIconRenderer {
         const shadow = (options.shadow ?? 0) | 0;
         const qtyModeRaw = (options.quantityMode ?? 2) | 0;
         const qtyMode = this.normalizeQuantityMode(qty, qtyModeRaw);
-        const key = this.getItemSpriteKey(itemId | 0, qty, outline, shadow, qtyMode);
+        const animationTimeSeconds = options.animationTimeSeconds;
+        const animationKey =
+            hasAnimatedItemIcon(itemId) && animationTimeSeconds !== undefined
+                ? Math.floor(Math.max(0, animationTimeSeconds) * 8) % (128 * 8)
+                : 0;
+        const key = this.getItemSpriteKey(itemId | 0, qty, outline, shadow, qtyMode, animationKey);
 
         const cached = this.itemSpriteCache.get(key);
         if (cached?.canvas) return cached.canvas;
 
-        const entry = this.getItemSpriteEntry(itemId | 0, qty, outline, shadow, qtyMode, false);
+        const entry = this.getItemSpriteEntry(
+            itemId | 0,
+            qty,
+            outline,
+            shadow,
+            qtyMode,
+            false,
+            animationTimeSeconds,
+            animationKey,
+        );
         if (!entry) return undefined;
 
         if (entry.canvas) return entry.canvas;
@@ -105,6 +121,7 @@ export class ItemIconRenderer {
         outline: number,
         shadow: number,
         quantityMode: number,
+        animationKey: number = 0,
     ): bigint {
         // Reference: long var6 = ((long)var4 << 40) + ((long)var1 << 16) + (long)var0 + ((long)var2 << 38) + ((long)var3 << 42);
         return (
@@ -112,7 +129,8 @@ export class ItemIconRenderer {
             (BigInt(quantity | 0) << 16n) +
             BigInt(itemId | 0) +
             (BigInt(outline | 0) << 38n) +
-            (BigInt(shadow | 0) << 42n)
+            (BigInt(shadow | 0) << 42n) +
+            (BigInt(animationKey | 0) << 48n)
         );
     }
 
@@ -200,8 +218,17 @@ export class ItemIconRenderer {
         shadow: number,
         quantityMode: number,
         var5: boolean,
+        animationTimeSeconds?: number,
+        animationKey: number = 0,
     ): { pixels: Int32Array; isStackable: boolean; canvas?: HTMLCanvasElement } | undefined {
-        const key = this.getItemSpriteKey(itemId, quantity, outline, shadow, quantityMode);
+        const key = this.getItemSpriteKey(
+            itemId,
+            quantity,
+            outline,
+            shadow,
+            quantityMode,
+            animationKey,
+        );
         if (!var5) {
             const cached = this.itemSpriteCache.get(key);
             if (cached) return cached;
@@ -227,7 +254,15 @@ export class ItemIconRenderer {
 
         if ((obj.noteTemplate | 0) !== -1) {
             overlayMode = "noteTemplate";
-            const ov = this.getItemSpriteEntry(obj.note | 0, 10, 1, 0, 0, true);
+            const ov = this.getItemSpriteEntry(
+                obj.note | 0,
+                10,
+                1,
+                0,
+                0,
+                true,
+                animationTimeSeconds,
+            );
             if (!ov) return undefined;
             overlayPixels = ov.pixels;
         } else if ((obj.notedId | 0) !== -1) {
@@ -239,12 +274,21 @@ export class ItemIconRenderer {
                 shadow,
                 0,
                 false,
+                animationTimeSeconds,
             );
             if (!ov) return undefined;
             overlayPixels = ov.pixels;
         } else if ((obj.placeholderTemplate | 0) !== -1) {
             overlayMode = "placeholderTemplate";
-            const ov = this.getItemSpriteEntry(obj.placeholder | 0, quantity, 0, 0, 0, false);
+            const ov = this.getItemSpriteEntry(
+                obj.placeholder | 0,
+                quantity,
+                0,
+                0,
+                0,
+                false,
+                animationTimeSeconds,
+            );
             if (!ov) return undefined;
             overlayPixels = ov.pixels;
         }
@@ -262,6 +306,7 @@ export class ItemIconRenderer {
         const zoomMultiplier = var5 ? 1.5 : outline === 2 ? 1.04 : 1;
         const modelPixels = this.renderModelSoftwareToPixels(model, obj, sw, sh, {
             zoomMultiplier,
+            animationTimeSeconds,
         });
         this.blitTransBgAt(base, modelPixels);
 
@@ -294,18 +339,25 @@ export class ItemIconRenderer {
         this.faceVisibilityPredicate = predicate;
     }
 
-    private getTexture(id: number) {
-        const cached = this.texCache.get(id);
+    private getTexture(id: number, animationTimeSeconds: number | undefined) {
+        const material = this.textureLoader.getMaterial(id);
+        const frameCount = Math.max(1, this.textureLoader.getFrameCount(id));
+        const frame =
+            frameCount > 1 && animationTimeSeconds !== undefined
+                ? Math.floor(animationTimeSeconds * Math.max(1, material.animSpeed)) % frameCount
+                : 0;
+        const cacheKey = `${id}:${frame}`;
+        const cached = this.texCache.get(cacheKey);
         if (cached) return cached;
         const size = 128;
         try {
-            const pixels = this.textureLoader.getPixelsArgb(id, size, true, 1.0);
+            const pixels = this.textureLoader.getPixelsArgb(id, size, true, 1.0, frame);
             const res = { size, pixels } as const;
-            this.texCache.set(id, res);
+            this.texCache.set(cacheKey, res);
             return res;
         } catch {
             const res = { size: 0, pixels: new Int32Array(0) } as const;
-            this.texCache.set(id, res);
+            this.texCache.set(cacheKey, res);
             return res;
         }
     }
@@ -315,7 +367,7 @@ export class ItemIconRenderer {
         it: ObjType,
         sw: number,
         sh: number,
-        opts?: { zoomMultiplier?: number },
+        opts?: { zoomMultiplier?: number; animationTimeSeconds?: number },
     ): Int32Array {
         const buf = new Int32Array(sw * sh);
         const zbuf = new Float32Array(sw * sh);
@@ -480,6 +532,8 @@ export class ItemIconRenderer {
             texSize: number,
             faceAlpha: number,
             depthBias: number = 0,
+            textureOffsetU: number = 0,
+            textureOffsetV: number = 0,
         ) => {
             if (texSize <= 0 || texPixels.length === 0) return;
 
@@ -534,11 +588,17 @@ export class ItemIconRenderer {
 
                     const tx = Math.max(
                         0,
-                        Math.min(texSize - 1, Math.floor((((u % 1) + 1) % 1) * texSize)),
+                        Math.min(
+                            texSize - 1,
+                            Math.floor(((((u + textureOffsetU) % 1) + 1) % 1) * texSize),
+                        ),
                     );
                     const ty = Math.max(
                         0,
-                        Math.min(texSize - 1, Math.floor((((v % 1) + 1) % 1) * texSize)),
+                        Math.min(
+                            texSize - 1,
+                            Math.floor(((((v + textureOffsetV) % 1) + 1) % 1) * texSize),
+                        ),
                     );
                     const src = texPixels[ty * texSize + tx] >>> 0;
                     const aT = (src >>> 24) & 255;
@@ -860,7 +920,20 @@ export class ItemIconRenderer {
                     } else if (i2v < 0) {
                         i2v = i1 > 0 ? i1 : i0;
                     }
-                    const tex = this.getTexture(faceTexId);
+                    const tex = this.getTexture(faceTexId, opts?.animationTimeSeconds);
+                    const material = this.textureLoader.getMaterial(faceTexId);
+                    // Match the scene shader's modern material animation:
+                    // mod(mod(time, 128) * anim / 64, 1). This preserves UV
+                    // scrolling on item models such as Fire and Infernal cape.
+                    const animationTime = opts?.animationTimeSeconds ?? 0;
+                    const textureOffsetU =
+                        opts?.animationTimeSeconds === undefined
+                            ? 0
+                            : ((animationTime % 128) * material.animU) / 64;
+                    const textureOffsetV =
+                        opts?.animationTimeSeconds === undefined
+                            ? 0
+                            : ((animationTime % 128) * material.animV) / 64;
 
                     const zA = zc[a];
                     const zB = zc[b];
@@ -912,7 +985,17 @@ export class ItemIconRenderer {
                                 (s1.x - s0.x) * (s2.y - s0.y) - (s1.y - s0.y) * (s2.x - s0.x);
                             if (orient2 >= 0) continue;
 
-                            drawTexturedTri(s0, s1, s2, tex.pixels, tex.size, faceAlpha, depthBias);
+                            drawTexturedTri(
+                                s0,
+                                s1,
+                                s2,
+                                tex.pixels,
+                                tex.size,
+                                faceAlpha,
+                                depthBias,
+                                textureOffsetU,
+                                textureOffsetV,
+                            );
                         }
                     } else {
                         facesClipped++;

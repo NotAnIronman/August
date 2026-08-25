@@ -2,6 +2,11 @@ import type { CacheIndex } from "../../rs/cache/CacheIndex";
 import { IndexedSprite } from "../../rs/sprite/IndexedSprite";
 import { SpriteLoader } from "../../rs/sprite/SpriteLoader";
 import { SpritePixels } from "../../rs/sprite/SpritePixels";
+import {
+    getAnimatedItemIconPhase,
+    getAnimatedItemIconTimeSeconds,
+    hasAnimatedItemIcon,
+} from "../../ui/item/animatedItemIcons";
 import type { GLRenderer } from "./renderer";
 
 type Texture = { tex: WebGLTexture; w: number; h: number };
@@ -11,7 +16,7 @@ type Texture = { tex: WebGLTexture; w: number; h: number };
 const SPRITE_LOOKUP_CACHE_VERSION = "3";
 // Item icons may have been cached under the old frame-zero fallback. Keep a
 // separate version so a hot-reloaded client cannot retain the bad texture.
-const ITEM_ICON_CACHE_VERSION = "4";
+const ITEM_ICON_CACHE_VERSION = "5";
 
 export interface SpriteMaskData {
     texture: Texture;
@@ -210,6 +215,7 @@ export class TextureCache {
         outline?: number,
         shadow?: number,
         quantityMode?: number,
+        animationTimeSeconds?: number,
     ) => HTMLCanvasElement | undefined;
 
     constructor(
@@ -221,6 +227,7 @@ export class TextureCache {
             outline?: number,
             shadow?: number,
             quantityMode?: number,
+            animationTimeSeconds?: number,
         ) => HTMLCanvasElement | undefined,
     ) {
         this.glr = glr;
@@ -442,12 +449,22 @@ export class TextureCache {
         if (qty === -1) mode = 0;
         else if (mode === 2 && qty !== 1) mode = 1;
 
-        const key = `item:${ITEM_ICON_CACHE_VERSION}:${itemId | 0}:${qty}:${outline | 0}:${shadow | 0}:${mode}`;
+        const animated = hasAnimatedItemIcon(itemId);
+        const animationTimeSeconds = animated ? getAnimatedItemIconTimeSeconds() : undefined;
+        const animationPhase = animated ? getAnimatedItemIconPhase(animationTimeSeconds!) : 0;
+        const key = `item:${ITEM_ICON_CACHE_VERSION}:${itemId | 0}:${qty}:${outline | 0}:${shadow | 0}:${mode}:${animationPhase}`;
         const cached = this.glr.getTexture(key);
         if (cached) return cached;
         try {
             if (this.itemIconCanvas) {
-                const can = this.itemIconCanvas(itemId, qty, outline | 0, shadow | 0, mode);
+                const can = this.itemIconCanvas(
+                    itemId,
+                    qty,
+                    outline | 0,
+                    shadow | 0,
+                    mode,
+                    animationTimeSeconds,
+                );
                 if (can) return this.glr.createTextureFromCanvas(key, can);
             }
         } catch {}

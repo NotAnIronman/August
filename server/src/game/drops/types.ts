@@ -88,5 +88,8 @@ export type ImportedMonsterDefinition = {
     combatLevel?: number;
     duplicate?: boolean;
     incomplete?: boolean;
+    /** A current Wiki snapshot is exact-ID only and is rejected when its page
+     * parser reports an unsafe partial table. */
+    source?: "wiki" | "legacy";
     table: NpcDropTableDefinition;
 };

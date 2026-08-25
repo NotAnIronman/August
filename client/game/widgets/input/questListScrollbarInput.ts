@@ -8,8 +8,18 @@ const QUEST_LIST_SCROLLBAR_UID = (QUEST_LIST_GROUP_ID << 16) | 5;
 const QUEST_LIST_CONTENT_UID = (QUEST_LIST_GROUP_ID << 16) | 7;
 
 const SCROLLBAR_WIDTH = 16;
-const ARROW_HEIGHT = 16;
 const WHEEL_STEP = 16;
+
+type QuestScrollbarDrag = {
+    /**
+     * Pointer position inside the thumb, in physical display pixels. Keeping
+     * this offset is what makes the handle follow the pointer rather than
+     * jumping its centre to the click every input frame.
+     */
+    grabOffsetY: number;
+};
+
+let activeDrag: QuestScrollbarDrag | undefined;
 
 function clampScrollY(value: number, maximum: number): number {
     return Math.min(Math.max(0, value | 0), maximum);
@@ -40,8 +50,11 @@ export function processQuestListScrollbarInput(
     // Do not let their stale bounds consume a wheel event intended for the
     // achievement diary (or any other currently mounted panel).
     if (widgetManager.getInterfaceParentContainerUid(QUEST_LIST_GROUP_ID) === undefined) {
+        activeDrag = undefined;
         return;
     }
+
+    if (frame.input.clickMode2 !== ClickMode.LEFT) activeDrag = undefined;
 
     // The quest rail is rendered with a small visual offset from its cache
     // host. It therefore owns its gesture outright, but must never steal an
@@ -69,9 +82,13 @@ export function processQuestListScrollbarInput(
     // Match the renderer's small logical horizontal tweak without changing
     // either widget's bounds or transferring drag ownership to another rail.
     const logicalOffsetX = Math.trunc(scrollbar?.uikitScrollbarOffsetX ?? 0);
-    const logicalWidth = Math.max(1, content.width | 0);
-    const physicalWidth = Math.max(1, content._absWidth ?? logicalWidth);
-    const offsetX = Math.round((logicalOffsetX * physicalWidth) / logicalWidth);
+    const logicalScrollbarWidth = Math.max(1, scrollbar?.width ?? SCROLLBAR_WIDTH);
+    const physicalScrollbarWidth = Math.max(
+        1,
+        scrollbar?._absWidth ?? scrollbar?.width ?? SCROLLBAR_WIDTH,
+    );
+    const scaleX = physicalScrollbarWidth / logicalScrollbarWidth;
+    const offsetX = Math.round(logicalOffsetX * scaleX);
     const scrollbarX =
         ((scrollbar?._absX ?? scrollbar?.x ?? (content._absX ?? content.x ?? 0)) + offsetX) | 0;
     const scrollbarY =
@@ -79,7 +96,26 @@ export function processQuestListScrollbarInput(
     const scrollbarHeight = scrollbar
         ? Math.max(0, scrollbar._absHeight ?? scrollbar.height ?? 0)
         : viewportHeight;
-    if (scrollbarHeight <= ARROW_HEIGHT * 2) return;
+    const logicalScrollbarHeight = Math.max(1, scrollbar?.height ?? viewportHeight);
+    const scaleY = scrollbarHeight / logicalScrollbarHeight;
+    // This is deliberately the same geometry drawScrollBar receives. The
+    // previous handler mixed logical content/arrow dimensions with the
+    // rendered physical rail, so the visible handle was not the handle being
+    // clicked or dragged on non-1x UI scales.
+    const arrowHeight = Math.max(1, Math.round(16 * scaleY));
+    const trackHeight = scrollbarHeight - arrowHeight * 2;
+    const physicalContentHeight = Math.max(1, Math.round(contentHeight * scaleY));
+    const physicalScrollY = Math.round((content.scrollY | 0) * scaleY);
+    let thumbHeight = Math.floor((scrollbarHeight * trackHeight) / physicalContentHeight);
+    thumbHeight = Math.max(Math.max(1, Math.round(8 * scaleY)), thumbHeight);
+    const draggableHeight = Math.max(0, trackHeight - thumbHeight);
+    const thumbTop =
+        scrollbarY +
+        arrowHeight +
+        (maxScrollY > 0
+            ? Math.floor((draggableHeight * physicalScrollY) / Math.max(1, physicalContentHeight - scrollbarHeight))
+            : 0);
+    if (trackHeight <= 0) return;
 
     const { input, mx, my } = frame;
     const isOverContent =
@@ -89,13 +125,13 @@ export function processQuestListScrollbarInput(
         my < ((content._absY ?? content.y ?? 0) | 0) + viewportHeight;
     const isOverScrollbar =
         mx >= scrollbarX &&
-        mx < scrollbarX + Math.max(SCROLLBAR_WIDTH, scrollbar?._absWidth ?? scrollbar?.width ?? 0) &&
+        mx < scrollbarX + Math.max(Math.round(SCROLLBAR_WIDTH * scaleX), physicalScrollbarWidth) &&
         my >= scrollbarY &&
         my < scrollbarY + scrollbarHeight;
     const isNewScrollbarClick =
         input.leftClickX >= scrollbarX &&
         input.leftClickX <
-            scrollbarX + Math.max(SCROLLBAR_WIDTH, scrollbar?._absWidth ?? scrollbar?.width ?? 0) &&
+            scrollbarX + Math.max(Math.round(SCROLLBAR_WIDTH * scaleX), physicalScrollbarWidth) &&
         input.leftClickY >= scrollbarY &&
         input.leftClickY < scrollbarY + scrollbarHeight;
 
@@ -126,20 +162,39 @@ export function processQuestListScrollbarInput(
         input.wheelDeltaY = 0;
     }
 
-    if (input.clickMode2 !== ClickMode.LEFT || !isOverScrollbar) return;
+    if (input.clickMode2 !== ClickMode.LEFT) return;
 
-    if (my < scrollbarY + ARROW_HEIGHT) {
+    const setScrollFromThumbTop = (wantedThumbTop: number): void => {
+        const thumbOffset = Math.min(Math.max(0, wantedThumbTop - scrollbarY - arrowHeight), draggableHeight);
+        setScrollY(
+            draggableHeight > 0 ? Math.floor((thumbOffset * maxScrollY) / draggableHeight) : 0,
+        );
+    };
+
+    // Continue a captured thumb drag even when the pointer slips outside the
+    // 16-pixel rail. The generic click picker must never own this gesture.
+    if (activeDrag) {
+        setScrollFromThumbTop(my - activeDrag.grabOffsetY);
+        return;
+    }
+
+    // A held click without a new click is not a quest-scrollbar gesture. This
+    // prevents a pre-existing click elsewhere from moving the quest list as
+    // the cursor passes over it.
+    if (!isNewScrollbarClick || !isOverScrollbar) return;
+
+    if (my < scrollbarY + arrowHeight) {
         setScrollY((content.scrollY | 0) - 4);
         return;
     }
-    if (my >= scrollbarY + scrollbarHeight - ARROW_HEIGHT) {
+    if (my >= scrollbarY + scrollbarHeight - arrowHeight) {
         setScrollY((content.scrollY | 0) + 4);
         return;
     }
 
-    const trackHeight = scrollbarHeight - ARROW_HEIGHT * 2;
-    const thumbHeight = Math.max(8, Math.floor((viewportHeight * trackHeight) / contentHeight));
-    const draggableHeight = Math.max(0, trackHeight - thumbHeight);
-    const thumbOffset = my - scrollbarY - ARROW_HEIGHT - (thumbHeight >> 1);
-    setScrollY(draggableHeight > 0 ? Math.floor((thumbOffset * maxScrollY) / draggableHeight) : 0);
+    const clickedThumb = my >= thumbTop && my < thumbTop + thumbHeight;
+    activeDrag = {
+        grabOffsetY: clickedThumb ? my - thumbTop : thumbHeight >> 1,
+    };
+    setScrollFromThumbTop(my - activeDrag.grabOffsetY);
 }

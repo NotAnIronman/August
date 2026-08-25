@@ -21,6 +21,7 @@ export type GLRenderOpts = {
         outline?: number,
         shadow?: number,
         quantityMode?: number,
+        animationTimeSeconds?: number,
     ) => HTMLCanvasElement | undefined;
     objLoader?: any;
     // Optional root render offset in canvas space (for game-area centering)

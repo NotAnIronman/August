@@ -2,7 +2,11 @@ import fs from "fs";
 import path from "path";
 
 import { getItemDefinition } from "../../data/items";
-import type { ImportedMonsterDefinition, NpcDropEntryDefinition } from "./types";
+import type {
+    ImportedMonsterDefinition,
+    NpcDropEntryDefinition,
+    NpcDropTableDefinition,
+} from "./types";
 
 type RawMonsterDrop = {
     id?: number;
@@ -20,6 +24,24 @@ type RawMonsterEntry = {
     incomplete?: boolean;
     drops?: RawMonsterDrop[];
 };
+
+type WikiDropSnapshot = {
+    format?: string;
+    records?: Array<{
+        npcTypeId?: number;
+        name?: string;
+        source?: "wiki";
+        table?: ImportedMonsterDefinition["table"];
+    }>;
+};
+
+function resolveWikiDropSnapshotPath(): string {
+    const candidates = [
+        path.resolve("references/npc-drops-wiki.json"),
+        path.resolve(__dirname, "../../../../references/npc-drops-wiki.json"),
+    ];
+    return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
+}
 
 function resolveMonstersCompletePath(): string {
     // `yarn --cwd server` runs the world with server/ as its cwd, whereas
@@ -206,23 +228,84 @@ function parseTopLevelEntries(text: string): RawMonsterEntry[] {
     return out;
 }
 
+function loadWikiSnapshotDefinitions(sourcePath: string): ImportedMonsterDefinition[] {
+    if (!fs.existsSync(sourcePath)) return [];
+    const raw = JSON.parse(fs.readFileSync(sourcePath, "utf8")) as WikiDropSnapshot;
+    if (raw.format !== "xrsps.osrs-wiki-npc-drops.v1" || !Array.isArray(raw.records)) {
+        throw new Error("unexpected Wiki snapshot format");
+    }
+    return raw.records
+        .map((record): ImportedMonsterDefinition | undefined => {
+            const npcTypeId = record.npcTypeId;
+            const name = String(record.name ?? "").trim();
+            if (!Number.isInteger(npcTypeId) || (npcTypeId ?? -1) < 0 || !name || !record.table) {
+                return undefined;
+            }
+            return {
+                npcTypeId,
+                name,
+                source: "wiki",
+                table: normalizeWikiDropTable(record.table),
+            };
+        })
+        .filter((entry): entry is ImportedMonsterDefinition => entry !== undefined);
+}
+
+/**
+ * Wiki subheadings such as "Weapons and armour" and "Runes and ammunition"
+ * are display categories for one normal NPC drop roll. Keeping each heading
+ * as its own weighted pool would incorrectly award several regular drops in
+ * one death. Only the labelled tertiary table is an independent roll.
+ */
+function normalizeWikiDropTable(table: NpcDropTableDefinition): NpcDropTableDefinition {
+    const weightedEntries = (table.pools ?? [])
+        .filter((pool) => pool.kind === "weighted")
+        .flatMap((pool) => pool.entries);
+    const independentPools = (table.pools ?? []).filter((pool) => pool.kind === "independent");
+    return {
+        always: table.always,
+        pools: [
+            ...(weightedEntries.length > 0
+                ? [{ kind: "weighted" as const, category: "main" as const, entries: weightedEntries }]
+                : []),
+            ...independentPools,
+        ],
+    };
+}
+
 export function loadMonstersCompleteDefinitions(): ImportedMonsterDefinition[] {
     if (cachedEntries) return cachedEntries;
-    const sourcePath = resolveMonstersCompletePath();
+    const legacySourcePath = resolveMonstersCompletePath();
+    const wikiSourcePath = resolveWikiDropSnapshotPath();
+    let wikiEntries: ImportedMonsterDefinition[] = [];
+    let legacyEntries: ImportedMonsterDefinition[] = [];
+    const errors: string[] = [];
     try {
-        const rawText = fs.readFileSync(sourcePath, "utf8");
-        cachedEntries = parseTopLevelEntries(rawText)
+        // Current Wiki records are ordered before the legacy bootstrap source,
+        // so their exact cache-NPC IDs win without a name-based heuristic.
+        wikiEntries = loadWikiSnapshotDefinitions(wikiSourcePath);
+    } catch (error) {
+        errors.push(`Wiki snapshot: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    try {
+        const rawText = fs.readFileSync(legacySourcePath, "utf8");
+        legacyEntries = parseTopLevelEntries(rawText)
             .map((entry) => normalizeRawMonster(entry))
             .filter((entry): entry is ImportedMonsterDefinition => entry !== undefined);
-        sourceStatus = { path: sourcePath, entryCount: cachedEntries.length };
-        console.info(
-            `[drops] Loaded ${cachedEntries.length} usable NPC drop tables from ${sourcePath}.`,
-        );
     } catch (error) {
-        cachedEntries = [];
-        const message = error instanceof Error ? error.message : String(error);
-        sourceStatus = { path: sourcePath, entryCount: 0, error: message };
-        console.warn(`[drops] Full NPC drop source unavailable at ${sourcePath}: ${message}`);
+        errors.push(`Legacy snapshot: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    cachedEntries = [...wikiEntries, ...legacyEntries];
+    const sourcePath = wikiEntries.length > 0 ? `${wikiSourcePath} + ${legacySourcePath}` : legacySourcePath;
+    if (cachedEntries.length === 0) {
+        sourceStatus = { path: sourcePath, entryCount: 0, error: errors.join("; ") || "no drop tables found" };
+        console.warn(`[drops] Full NPC drop source unavailable: ${sourceStatus.error}`);
+    } else {
+        sourceStatus = { path: sourcePath, entryCount: cachedEntries.length };
+        if (errors.length > 0) console.warn(`[drops] ${errors.join("; ")}`);
+        console.info(
+            `[drops] Loaded ${wikiEntries.length} current Wiki and ${legacyEntries.length} legacy NPC drop tables.`,
+        );
     }
     return cachedEntries;
 }

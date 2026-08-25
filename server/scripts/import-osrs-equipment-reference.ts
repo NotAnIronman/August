@@ -26,6 +26,11 @@ const LOCAL_REFERENCE_PATH = path.resolve(
     path.dirname(process.argv[1] ?? "."),
     "../../references/osrs-equipment.json",
 );
+const LOCAL_REQUIREMENTS_PATH = path.resolve(
+    path.dirname(process.argv[1] ?? "."),
+    "../../references/osrs-equipment-requirements.json",
+);
+const REQUIREMENT_COUNT = 23;
 const BONUS_FIELDS = [
     "attack_stab",
     "attack_slash",
@@ -43,18 +48,26 @@ const BONUS_FIELDS = [
     "prayer_bonus",
 ] as const;
 
-type LocalItem = { id: number; bonuses?: number[]; doubleHanded?: boolean };
+type LocalItem = {
+    id: number;
+    bonuses?: number[];
+    requirements?: number[];
+    doubleHanded?: boolean;
+};
 type ReferenceRecord = {
     exact_osrs_item_id: number;
     is_two_handed?: boolean;
     [field: string]: unknown;
 };
 type ReferenceFile = { records?: ReferenceRecord[] } | ReferenceRecord[];
+type RequirementRecord = { id?: number; requirements?: unknown };
+type RequirementFile = { records?: RequirementRecord[] } | RequirementRecord[];
 type ImportResult = {
     text: string;
     matchedCacheItems: number;
     updatedBonuses: number;
     updatedTwoHanded: number;
+    updatedRequirements: number;
     unavailableInCache: number;
 };
 
@@ -63,6 +76,14 @@ function readSourceArgument(args: readonly string[]): string | undefined {
     if (index < 0) return undefined;
     const value = args[index + 1]?.trim();
     if (!value) throw new Error("--source requires a JSON file path");
+    return path.resolve(value);
+}
+
+function readRequirementsSourceArgument(args: readonly string[]): string | undefined {
+    const index = args.indexOf("--requirements-source");
+    if (index < 0) return undefined;
+    const value = args[index + 1]?.trim();
+    if (!value) throw new Error("--requirements-source requires a JSON file path");
     return path.resolve(value);
 }
 
@@ -87,6 +108,14 @@ function sameBonuses(left: readonly number[] | undefined, right: readonly number
     );
 }
 
+function sameRequirements(left: readonly number[] | undefined, right: readonly number[]): boolean {
+    return (
+        Array.isArray(left) &&
+        left.length === right.length &&
+        left.every((value, index) => Number(value) === right[index])
+    );
+}
+
 function getObjectIndent(chunk: string): string {
     const match = chunk.match(/^([ \t]*)\{/);
     if (!match) throw new Error("Unable to determine item JSON indentation");
@@ -98,6 +127,13 @@ function formatBonuses(values: readonly number[], newline: string, propertyInden
         .map((value, index) => `${propertyIndent}  ${value}${index === values.length - 1 ? "" : ","}`)
         .join(newline);
     return `${propertyIndent}"bonuses": [${newline}${lines}${newline}${propertyIndent}]`;
+}
+
+function formatRequirements(values: readonly number[], newline: string, propertyIndent: string): string {
+    const lines = values
+        .map((value, index) => `${propertyIndent}  ${value}${index === values.length - 1 ? "" : ","}`)
+        .join(newline);
+    return `${propertyIndent}"requirements": [${newline}${lines}${newline}${propertyIndent}]`;
 }
 
 function appendProperty(chunk: string, property: string, newline: string): string {
@@ -120,7 +156,22 @@ function addBonusesProperty(chunk: string, property: string, newline: string): s
     return appendProperty(chunk, property, newline);
 }
 
-function updateItemsJson(text: string, reference: readonly ReferenceRecord[]): ImportResult {
+function addRequirementsProperty(chunk: string, property: string, newline: string): string {
+    const propertyIndent = `${getObjectIndent(chunk)}  `;
+    // Requirements and bonuses describe the same equipment contract. Keeping
+    // them adjacent makes generated cache-sync diffs reviewable.
+    const bonusesIndex = chunk.lastIndexOf(`${newline}${propertyIndent}"bonuses":`);
+    if (bonusesIndex >= 0) {
+        return `${chunk.slice(0, bonusesIndex)}${newline}${property},${chunk.slice(bonusesIndex)}`;
+    }
+    return appendProperty(chunk, property, newline);
+}
+
+function updateItemsJson(
+    text: string,
+    reference: readonly ReferenceRecord[],
+    requirementsById: ReadonlyMap<number, number[]>,
+): ImportResult {
     const newline = text.includes("\r\n") ? "\r\n" : "\n";
     const referenceById = new Map<number, ReferenceRecord>();
     for (const record of reference) {
@@ -131,6 +182,7 @@ function updateItemsJson(text: string, reference: readonly ReferenceRecord[]): I
     let matchedCacheItems = 0;
     let updatedBonuses = 0;
     let updatedTwoHanded = 0;
+    let updatedRequirements = 0;
     const matchedIds = new Set<number>();
     // Cache sync appends compact top-level objects while the curated snapshot
     // uses two-space object indentation. Both are valid item records and must
@@ -141,56 +193,74 @@ function updateItemsJson(text: string, reference: readonly ReferenceRecord[]): I
         const local = JSON.parse(chunk) as LocalItem;
         const id = Number(local.id);
         const record = referenceById.get(id);
-        if (!record) return chunk;
+        const requirements = requirementsById.get(id);
+        if (!record && !requirements) return chunk;
 
-        matchedCacheItems++;
-        matchedIds.add(id);
-        const bonuses = bonusesFor(record);
         let updatedChunk = chunk;
-        if (!sameBonuses(local.bonuses, bonuses)) {
-            const propertyIndent = `${getObjectIndent(chunk)}  `;
-            const replacement = formatBonuses(bonuses, newline, propertyIndent);
-            const existing = new RegExp(
-                `^${propertyIndent}"bonuses": \\[\\r?\\n.*?^${propertyIndent}\\](,?)`,
-                "ms",
-            );
-            const existingMatch = updatedChunk.match(existing);
-            if (existingMatch) {
-                // Keep an unchanged cache spelling such as `0.0` intact.
-                // This makes the generated review diff show only actual stat
-                // corrections, not superficial numeric formatting changes.
-                let bonusIndex = 0;
-                const corrected = existingMatch[0].replace(/-?\d+(?:\.\d+)?/g, (token) => {
-                    const expected = bonuses[bonusIndex++];
-                    return Number(token) === expected ? token : String(expected);
-                });
-                updatedChunk = updatedChunk.replace(existing, corrected);
-            } else {
-                updatedChunk = addBonusesProperty(updatedChunk, replacement, newline);
+        if (record) {
+            matchedCacheItems++;
+            matchedIds.add(id);
+            const bonuses = bonusesFor(record);
+            if (!sameBonuses(local.bonuses, bonuses)) {
+                const propertyIndent = `${getObjectIndent(chunk)}  `;
+                const replacement = formatBonuses(bonuses, newline, propertyIndent);
+                const existing = new RegExp(
+                    `^${propertyIndent}"bonuses": \\[\\r?\\n.*?^${propertyIndent}\\](,?)`,
+                    "ms",
+                );
+                const existingMatch = updatedChunk.match(existing);
+                if (existingMatch) {
+                    // Keep an unchanged cache spelling such as `0.0` intact.
+                    // This makes the generated review diff show only actual stat
+                    // corrections, not superficial numeric formatting changes.
+                    let bonusIndex = 0;
+                    const corrected = existingMatch[0].replace(/-?\d+(?:\.\d+)?/g, (token) => {
+                        const expected = bonuses[bonusIndex++];
+                        return Number(token) === expected ? token : String(expected);
+                    });
+                    updatedChunk = updatedChunk.replace(existing, corrected);
+                } else {
+                    updatedChunk = addBonusesProperty(updatedChunk, replacement, newline);
+                }
+                updatedBonuses++;
             }
-            updatedBonuses++;
+
+            const twoHanded = record.is_two_handed === true;
+            if ((local.doubleHanded === true) !== twoHanded) {
+                const propertyIndent = `${getObjectIndent(updatedChunk)}  `;
+                const existing = new RegExp(
+                    `^(${propertyIndent}"doubleHanded": )(?:true|false)(,?)$`,
+                    "m",
+                );
+                if (existing.test(updatedChunk)) {
+                    updatedChunk = updatedChunk.replace(
+                        existing,
+                        (_match, prefix: string, comma: string) => `${prefix}${twoHanded}${comma}`,
+                    );
+                } else if (twoHanded) {
+                    updatedChunk = appendProperty(
+                        updatedChunk,
+                        `${propertyIndent}"doubleHanded": true`,
+                        newline,
+                    );
+                }
+                updatedTwoHanded++;
+            }
         }
 
-        const twoHanded = record.is_two_handed === true;
-        if ((local.doubleHanded === true) !== twoHanded) {
+        if (requirements && !sameRequirements(local.requirements, requirements)) {
             const propertyIndent = `${getObjectIndent(updatedChunk)}  `;
+            const replacement = formatRequirements(requirements, newline, propertyIndent);
             const existing = new RegExp(
-                `^(${propertyIndent}"doubleHanded": )(?:true|false)(,?)$`,
-                "m",
+                `^${propertyIndent}"requirements": \\[\\r?\\n.*?^${propertyIndent}\\](,?)`,
+                "ms",
             );
             if (existing.test(updatedChunk)) {
-                updatedChunk = updatedChunk.replace(
-                    existing,
-                    (_match, prefix: string, comma: string) => `${prefix}${twoHanded}${comma}`,
-                );
-            } else if (twoHanded) {
-                updatedChunk = appendProperty(
-                    updatedChunk,
-                    `${propertyIndent}"doubleHanded": true`,
-                    newline,
-                );
+                updatedChunk = updatedChunk.replace(existing, `${replacement}$1`);
+            } else {
+                updatedChunk = addRequirementsProperty(updatedChunk, replacement, newline);
             }
-            updatedTwoHanded++;
+            updatedRequirements++;
         }
         return updatedChunk;
     });
@@ -200,6 +270,7 @@ function updateItemsJson(text: string, reference: readonly ReferenceRecord[]): I
         matchedCacheItems,
         updatedBonuses,
         updatedTwoHanded,
+        updatedRequirements,
         unavailableInCache: referenceById.size - matchedIds.size,
     };
 }
@@ -230,24 +301,56 @@ async function readReference(sourcePath: string | undefined): Promise<ReferenceR
     return records;
 }
 
+function readRequirements(sourcePath: string | undefined): Map<number, number[]> {
+    const resolvedSourcePath = sourcePath ??
+        (fs.existsSync(LOCAL_REQUIREMENTS_PATH) ? LOCAL_REQUIREMENTS_PATH : undefined);
+    if (!resolvedSourcePath) return new Map<number, number[]>();
+    if (!fs.existsSync(resolvedSourcePath)) {
+        throw new Error(`Equipment requirements file was not found: ${resolvedSourcePath}`);
+    }
+    const parsed = JSON.parse(fs.readFileSync(resolvedSourcePath, "utf8")) as RequirementFile;
+    const records = Array.isArray(parsed) ? parsed : parsed.records;
+    if (!Array.isArray(records)) {
+        throw new Error("Equipment requirements reference must contain a records array");
+    }
+    const out = new Map<number, number[]>();
+    for (const record of records) {
+        const id = Number(record.id);
+        const values = record.requirements;
+        if (!Number.isInteger(id) || id < 0 || !Array.isArray(values) || values.length !== REQUIREMENT_COUNT) {
+            throw new Error(`Invalid requirement record for item ${record.id ?? "unknown"}`);
+        }
+        const normalized = values.map((value) => Number(value));
+        if (normalized.some((value) => !Number.isInteger(value) || value < 0 || value > 99)) {
+            throw new Error(`Invalid skill requirement values for item ${id}`);
+        }
+        out.set(id, normalized);
+    }
+    return out;
+}
+
 async function main(): Promise<void> {
     const args = process.argv.slice(2);
     const dryRun = args.includes("--dry-run");
     const sourcePath = readSourceArgument(args);
+    const requirementsSourcePath = readRequirementsSourceArgument(args);
     const localItemsText = fs.readFileSync(ITEMS_PATH, "utf8");
     const localItems = JSON.parse(localItemsText) as LocalItem[];
     if (!Array.isArray(localItems)) throw new Error("server/data/items.json must be an array");
 
-    const result = updateItemsJson(localItemsText, await readReference(sourcePath));
+    const requirements = readRequirements(requirementsSourcePath);
+    const result = updateItemsJson(localItemsText, await readReference(sourcePath), requirements);
     if (!dryRun && result.text !== localItemsText) {
         fs.writeFileSync(ITEMS_PATH, result.text, "utf8");
     }
 
     console.log(
         `[equipment-import] ${dryRun ? "Dry run: " : ""}matched ${result.matchedCacheItems} cache items; ` +
-            `${result.updatedBonuses} bonus records and ${result.updatedTwoHanded} two-handed flags ${
+            `${result.updatedBonuses} bonus records, ${result.updatedTwoHanded} two-handed flags, and ` +
+            `${result.updatedRequirements} skill-requirement records ${
                 dryRun ? "would be" : "were"
-            } updated; ${result.unavailableInCache} current-reference IDs are not in this cache revision.`,
+            } updated; ${requirements.size} requirements were available; ` +
+            `${result.unavailableInCache} current-reference IDs are not in this cache revision.`,
     );
 }
 
