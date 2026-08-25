@@ -180,7 +180,9 @@ export class SpriteTextureLoader implements TextureLoader {
         sprite.normalize();
 
         const palettePixels = sprite.pixels;
-        const palette = sprite.palette;
+        // Per-render brightening must not mutate a palette retained by the
+        // sprite cache; that can corrupt later textured item icons.
+        const palette = sprite.palette.slice();
         const transform = def.transforms[spriteIndex];
 
         // not used by any texture but who knows

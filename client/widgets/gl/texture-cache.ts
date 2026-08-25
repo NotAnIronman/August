@@ -17,7 +17,7 @@ type Texture = { tex: WebGLTexture; w: number; h: number };
 const SPRITE_LOOKUP_CACHE_VERSION = "3";
 // Item icons may have been cached under the old frame-zero fallback. Keep a
 // separate version so a hot-reloaded client cannot retain the bad texture.
-const ITEM_ICON_CACHE_VERSION = "5";
+const ITEM_ICON_CACHE_VERSION = "6";
 const CAPE_ICON_IDS = new Set([6570, 21295]);
 const capeIconTraceSeen = new Set<number>();
 const capeIconCanvasTraceSeen = new Set<number>();
@@ -456,9 +456,37 @@ export class TextureCache {
         const animated = hasAnimatedItemIcon(itemId);
         const animationTimeSeconds = animated ? getAnimatedItemIconTimeSeconds() : undefined;
         const animationPhase = animated ? getAnimatedItemIconPhase(animationTimeSeconds!) : 0;
-        const key = `item:${ITEM_ICON_CACHE_VERSION}:${itemId | 0}:${qty}:${outline | 0}:${shadow | 0}:${mode}:${animationPhase}`;
-        const cached = this.glr.getTexture(key);
-        if (cached) return cached;
+        // Animated icons update one GPU texture in place. This removes the
+        // stale-frame failure mode caused by allocating a texture per phase.
+        const key = animated
+            ? "item-animated:" +
+              ITEM_ICON_CACHE_VERSION +
+              ":" +
+              (itemId | 0) +
+              ":" +
+              qty +
+              ":" +
+              (outline | 0) +
+              ":" +
+              (shadow | 0) +
+              ":" +
+              mode
+            : "item:" +
+              ITEM_ICON_CACHE_VERSION +
+              ":" +
+              (itemId | 0) +
+              ":" +
+              qty +
+              ":" +
+              (outline | 0) +
+              ":" +
+              (shadow | 0) +
+              ":" +
+              mode;
+        if (!animated) {
+            const cached = this.glr.getTexture(key);
+            if (cached) return cached;
+        }
         try {
             if (CAPE_ICON_IDS.has(itemId | 0) && !capeIconTraceSeen.has(itemId | 0)) {
                 capeIconTraceSeen.add(itemId | 0);
@@ -482,7 +510,9 @@ export class TextureCache {
                         capeIconCanvasTraceSeen.add(itemId | 0);
                         reportRuntimeProbe("cape_icon_model_canvas", { itemId });
                     }
-                    return this.glr.createTextureFromCanvas(key, can);
+                    return animated
+                        ? this.glr.updateTextureFromCanvas(key, can)
+                        : this.glr.createTextureFromCanvas(key, can);
                 }
             }
         } catch {}

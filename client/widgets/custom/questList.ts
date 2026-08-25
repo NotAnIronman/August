@@ -4,9 +4,7 @@ import {
     type QuestListWidgetGroup,
 } from "../../common/ui/questList";
 import { FONT_BOLD_12, FONT_PLAIN_11 } from "../../ui/fonts";
-import { reportRuntimeProbe } from "../../debug/runtimeProbe";
 import type { WidgetManager } from "../WidgetManager";
-import type { WidgetNode } from "../WidgetNode";
 
 const QUEST_LIST_GROUP_ID = 399;
 const QUEST_LIST_LIST_CHILD_ID = 7;
@@ -17,7 +15,6 @@ const QUEST_LIST_LIST_UID = (QUEST_LIST_GROUP_ID << 16) | QUEST_LIST_LIST_CHILD_
 const QUEST_LIST_TEXT_CONTAINER_UID =
     (QUEST_LIST_GROUP_ID << 16) | QUEST_LIST_TEXT_CONTAINER_CHILD_ID;
 const QUEST_LIST_SCROLLBAR_UID = (QUEST_LIST_GROUP_ID << 16) | QUEST_LIST_SCROLLBAR_CHILD_ID;
-const questScrollbarConfigTraceSeen = new Set<number>();
 
 const HEADER_HEIGHT = 18;
 const HEADER_ADVANCE = 25;
@@ -229,16 +226,13 @@ export function applyQuestListWidgetGroups(
     }
     list.scrollHeight = contentHeight;
     list.scrollY = Math.min(list.scrollY | 0, Math.max(0, contentHeight - viewportHeight));
-    // The cached rail host (399:5) is the one proven to have correct clipping
-    // and thumb geometry. The dynamic list owns the scroll state, while that
-    // host draws it. Do not enable a second rail on the list itself.
-    list.uikitScrollbar = false;
-    list.uikitScrollbarOffsetX = 0;
+    // Use the same native rail as the achievement diary. The scroll owner
+    // draws its own thumb, so it cannot drift away from list.scrollY.
+    list.uikitScrollbar = true;
 
     if (textContainer) {
-        // The list is the only scroll owner. Keeping its cache parent at the
-        // viewport height prevents a second invisible cache rail and stops
-        // nested scroll offsets from fighting the native rail.
+        // The list is the only scroll owner, preventing nested offsets from
+        // fighting the native rail.
         textContainer.scrollHeight = Math.max(0, textContainer.height | 0);
         textContainer.scrollY = 0;
         widgetManager.invalidateWidget(textContainer, "quest-list");
@@ -246,38 +240,10 @@ export function applyQuestListWidgetGroups(
 
     const scrollbar = widgetManager.getWidgetByUid(QUEST_LIST_SCROLLBAR_UID);
     if (scrollbar) {
-        // The list (399:7) is the component that owns the dynamic rows and
-        // therefore the scroll position. Make the link explicit so the custom
-        // quest list does not depend on a cache script's inferred linkage.
-        (
-            scrollbar as WidgetNode & { scrollBarTargetUid?: number; scrollBarAxis?: "y" }
-        ).scrollBarTargetUid = list.uid;
-        (
-            scrollbar as WidgetNode & { scrollBarTargetUid?: number; scrollBarAxis?: "y" }
-        ).scrollBarAxis = "y";
-        // Keep the working host-rendered rail and apply the horizontal tweak
-        // to this exact rail. This leaves the scroll owner and grab behaviour
-        // unchanged, so it cannot create a second visual-only thumb.
-        scrollbar.uikitScrollbarTargetUid = list.uid;
-        scrollbar.uikitScrollbarOffsetX = 25;
-        scrollbar.isHidden = false;
-        scrollbar.hidden = false;
-        if (!questScrollbarConfigTraceSeen.has(scrollbar.uid)) {
-            questScrollbarConfigTraceSeen.add(scrollbar.uid);
-            reportRuntimeProbe("quest_scrollbar_configured", {
-                hostUid: scrollbar.uid,
-                targetUid: list.uid,
-                targetWidth: list.width,
-                targetHeight: list.height,
-                targetScrollHeight: list.scrollHeight,
-                targetScrollY: list.scrollY,
-                hostAbsX: scrollbar._absX ?? -1,
-                hostAbsY: scrollbar._absY ?? -1,
-                hostAbsWidth: scrollbar._absWidth ?? -1,
-                hostAbsHeight: scrollbar._absHeight ?? -1,
-                offsetX: scrollbar.uikitScrollbarOffsetX,
-            });
-        }
+        // Cache child 399:5 is a decorative legacy rail. The list above is
+        // now the sole visual and input owner.
+        scrollbar.isHidden = true;
+        scrollbar.hidden = true;
         widgetManager.invalidateWidget(scrollbar, "quest-list");
     }
 

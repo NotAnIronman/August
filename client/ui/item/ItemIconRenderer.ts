@@ -21,6 +21,39 @@ const CAPE_ICON_IDS = new Set([6570, 21295]);
 const capeIconRenderTraceSeen = new Set<number>();
 const capeIconFrameTraceBucket = new Map<number, number>();
 
+function compactCapeIconPreview(pixels: Int32Array, width: number, height: number): string {
+    // 18 x 16 = 288 symbols plus 15 newlines, which fits in the deliberately
+    // small probe payload while still making a wrong source texture obvious.
+    const previewWidth = 18;
+    const previewHeight = 16;
+    const rows: string[] = [];
+    for (let py = 0; py < previewHeight; py++) {
+        let row = "";
+        for (let px = 0; px < previewWidth; px++) {
+            const x = Math.min(width - 1, px * 2);
+            const y = Math.min(height - 1, py * 2);
+            const color = pixels[y * width + x] >>> 0;
+            if (color === 0) {
+                row += ".";
+                continue;
+            }
+            const red = (color >>> 16) & 255;
+            const green = (color >>> 8) & 255;
+            const blue = color & 255;
+            const max = Math.max(red, green, blue);
+            const min = Math.min(red, green, blue);
+            if (max < 48) row += "x";
+            else if (max - min < 28) row += max > 170 ? "W" : "g";
+            else if (red >= green * 1.3 && red >= blue * 1.6) row += green > red * 0.55 ? "O" : "R";
+            else if (green >= red * 1.25 && green >= blue * 1.15) row += "G";
+            else if (blue >= red * 1.2) row += "B";
+            else row += "Y";
+        }
+        rows.push(row);
+    }
+    return rows.join("\n");
+}
+
 export type ItemIconRenderOptions = {
     outline?: number;
     shadow?: number;
@@ -259,10 +292,17 @@ export class ItemIconRenderer {
                 faces: model.indices1?.length ?? 0,
                 texturedFaces: model.faceTextures?.length ?? 0,
                 animated: animationTimeSeconds !== undefined,
+                textureLoader: this.textureLoader.constructor?.name ?? "unknown",
                 materials: textureIds.map((id) => {
                     const material = this.textureLoader.getMaterial(id);
+                    const textureDefinition = (
+                        this.textureLoader as unknown as {
+                            definitions?: Map<number, { spriteIds?: number[] }>;
+                        }
+                    ).definitions?.get(id);
                     return {
                         id,
+                        sourceSpriteIds: textureDefinition?.spriteIds ?? [],
                         frames: this.textureLoader.getFrameCount(id),
                         animSpeed: material.animSpeed,
                         animU: material.animU,
@@ -338,6 +378,7 @@ export class ItemIconRenderer {
             // material offset large enough to visibly change both cape icons.
             const bucket = Math.floor(animationKey / 32);
             if (capeIconFrameTraceBucket.get(itemId | 0) !== bucket) {
+                const isFirstFrame = !capeIconFrameTraceBucket.has(itemId | 0);
                 capeIconFrameTraceBucket.set(itemId | 0, bucket);
                 let checksum = 2166136261;
                 for (let i = 0; i < modelPixels.length; i++) {
@@ -348,6 +389,9 @@ export class ItemIconRenderer {
                     animationKey,
                     bucket,
                     checksum: checksum >>> 0,
+                    ...(isFirstFrame
+                        ? { preview: compactCapeIconPreview(modelPixels, sw, sh) }
+                        : {}),
                 });
             }
         }

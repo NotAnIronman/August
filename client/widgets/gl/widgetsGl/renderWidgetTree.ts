@@ -1788,34 +1788,7 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
         // content containers are IF3 and live inside a steelborder modal.
         // Widget border rendering
         // Scrollbar is drawn on the right edge of the container
-        const uikitScrollbarTargetUid = (w as WidgetNode).uikitScrollbarTargetUid;
-        const uikitScrollbarTarget =
-            typeof uikitScrollbarTargetUid === "number"
-                ? widgetManager?.getWidgetByUid(uikitScrollbarTargetUid)
-                : undefined;
-        if (uikitScrollbarTarget) {
-            widgetManager?.ensureLayout(uikitScrollbarTarget);
-            const targetScrollHeight = uikitScrollbarTarget.scrollHeight ?? 0;
-            const targetHeight = uikitScrollbarTarget.height ?? 0;
-            if (targetScrollHeight > targetHeight) {
-                const scrollbarStartMs = profileWidgetRender ? performance.now() : 0;
-                drawScrollBar(
-                    glr,
-                    x + scaleLogicalPixels(rootScaleX, Math.trunc(w.uikitScrollbarOffsetX ?? 0)),
-                    y,
-                    Math.round((uikitScrollbarTarget.scrollY ?? 0) * rootScaleY),
-                    height,
-                    Math.max(1, Math.round(targetScrollHeight * rootScaleY)),
-                    tc,
-                    opts,
-                    rootScaleX,
-                    rootScaleY,
-                );
-                if (profileWidgetRender) {
-                    scrollbarMs += performance.now() - scrollbarStartMs;
-                }
-            }
-        } else if (
+        if (
             w.type === 0 &&
             (!isIf3 || w.uikitScrollbar === true) &&
             (w.scrollHeight ?? 0) > logicalHeight

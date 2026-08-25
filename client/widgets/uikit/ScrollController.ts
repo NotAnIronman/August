@@ -30,10 +30,7 @@ export interface UiScrollController {
  * Creates a scroll controller for one panel (identified by groupId),
  * built with this kit's PanelBuilder. This is the single, shared
  * implementation of the scrolling behavior every custom panel in this
- * project needs - previously duplicated near-verbatim across multiple
- * per-panel files (skillGuideScrollbarInput.ts, diaryScrollbarInput.ts).
- * Fixing a bug here fixes it for every panel using this kit, instead of
- * needing the same fix copy-pasted into each one.
+ * project needs. Fixing a bug here fixes every panel using this kit.
  *
  * rowKind/rowHeight tell the controller which component range holds each
  * row's "primary" widget (used to figure out how many rows are actually

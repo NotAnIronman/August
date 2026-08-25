@@ -8,6 +8,12 @@ import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/
 import { getQuestDefinition, getQuestDefinitionByKey } from "../quests/QuestRegistry";
 import type { QuestDefinition } from "../quests/types";
 import {
+    buildFreeToPlayQuestJournal,
+    buildFreeToPlayQuestOverview,
+    getFreeToPlayQuestContent,
+    type FreeToPlayQuestContent,
+} from "../quests/content/freeToPlay";
+import {
     buildQuestMap,
     getQuestCompletionInfo,
     type QuestEntry,
@@ -57,8 +63,9 @@ type QuestJournalPanelState = { quest: QuestEntry };
  * Build journal lines for a quest based on its completion status.
  *
  * Implemented quests (registered in the quest registry) generate stage-specific
- * journal text from their definitions. For the rest, we check the quest's
- * progress varp against its completion value to determine basic status.
+ * journal text from their definitions. F2P catalog content supplies a complete
+ * state-neutral journal until its dedicated state script exists. Other quests
+ * retain the legacy completion-varp fallback.
  */
 function buildJournalLines(
     player: PlayerState,
@@ -68,6 +75,11 @@ function buildJournalLines(
     const definition = getQuestDefinition(quest.displayName);
     if (definition) {
         return definition.buildJournal(player, services);
+    }
+
+    const freeToPlayContent = getFreeToPlayQuestContent(quest.displayName);
+    if (freeToPlayContent) {
+        return buildFreeToPlayQuestJournal(freeToPlayContent);
     }
 
     // Check if quest was completed via ::quest command by checking known quest varps
@@ -107,31 +119,26 @@ function buildJournalLines(
     ];
 }
 
-/** Formats shared quest-definition metadata rather than hard-coding it into
- * individual journal prose. Every future authored quest gets the same
- * difficulty/length/storyline/requirements presentation by opting in with
- * `journalInfo` on its definition. */
-function buildJournalInfoColumnLines(definition: QuestDefinition | undefined): string[] {
+/** Formats shared quest metadata rather than hard-coding it into individual
+ * journal prose. Stateful definitions and display-only F2P content both use
+ * the same difficulty/length/storyline/requirements presentation. */
+function buildJournalInfoColumnLines(
+    definition: QuestDefinition | undefined,
+    freeToPlayContent: FreeToPlayQuestContent | undefined,
+): string[] {
     // A quest can be catalogued before its scripted definition and its wiki
     // facts have been authored. Keep the same two-column journal structure in
     // that case, rather than making the interface visibly change from quest to
     // quest. These neutral values intentionally do not pretend to be wiki data.
-    const info = definition?.journalInfo ?? {
+    const info = freeToPlayContent?.journalInfo ?? definition?.journalInfo ?? {
         difficulty: "Not yet catalogued",
         length: "Not yet catalogued",
         storyline: "Not yet catalogued",
     };
 
-    const requirements: string[] = [];
-    if (definition?.requirements?.questPoints !== undefined) {
-        requirements.push(`${definition.requirements.questPoints} Quest Points`);
-    }
-    for (const requirement of definition?.requirements?.quests ?? []) {
-        requirements.push(requirement.label);
-    }
-    for (const requirement of definition?.requirements?.skills ?? []) {
-        requirements.push(`Level ${requirement.level} ${requirement.label}`);
-    }
+    const requirements: string[] = freeToPlayContent
+        ? [...freeToPlayContent.requirementLines]
+        : buildDefinitionRequirementLines(definition);
 
     // The column contains 16 rows. Preserve a clear indication that a very
     // requirement-heavy quest has more prerequisites rather than throwing or
@@ -157,6 +164,20 @@ function buildJournalInfoColumnLines(definition: QuestDefinition | undefined): s
             ? visibleRequirements.map((requirement) => `<col=800000>${requirement}</col>`)
             : ["<col=800000>None</col>"]),
     ];
+}
+
+function buildDefinitionRequirementLines(definition: QuestDefinition | undefined): string[] {
+    const requirements: string[] = [];
+    if (definition?.requirements?.questPoints !== undefined) {
+        requirements.push(`${definition.requirements.questPoints} Quest Points`);
+    }
+    for (const requirement of definition?.requirements?.quests ?? []) {
+        requirements.push(requirement.label);
+    }
+    for (const requirement of definition?.requirements?.skills ?? []) {
+        requirements.push(`Level ${requirement.level} ${requirement.label}`);
+    }
+    return requirements;
 }
 
 export function registerQuestJournalWidgetHandlers(
@@ -291,20 +312,21 @@ function openQuestJournal(player: PlayerState, quest: QuestEntry, services: Scri
 
     // Show the "View Quest Overview" switch button, if this quest has one.
     const definition = getQuestDefinition(quest.displayName);
+    const freeToPlayContent = getFreeToPlayQuestContent(quest.displayName);
     sendUiInfoColumnRows(
         services,
         playerId,
         QUEST_JOURNAL_PANEL_GROUP_ID,
-        buildJournalInfoColumnLines(definition),
+        buildJournalInfoColumnLines(definition, freeToPlayContent),
     );
     for (const componentId of [ComponentIds.FOOTER_BUTTON, ComponentIds.FOOTER_BUTTON_LABEL]) {
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_hidden",
             uid: packUid(QUEST_JOURNAL_PANEL_GROUP_ID, componentId),
-            hidden: !definition?.overviewStartText,
+            hidden: !freeToPlayContent && !definition?.overviewStartText,
         });
     }
-    if (definition?.overviewStartText) {
+    if (freeToPlayContent || definition?.overviewStartText) {
         sendUiFooterButton(services, playerId, QUEST_JOURNAL_PANEL_GROUP_ID, "View Quest Overview");
     }
 
@@ -316,14 +338,16 @@ function openQuestJournal(player: PlayerState, quest: QuestEntry, services: Scri
 function openQuestOverview(player: PlayerState, quest: QuestEntry, services: ScriptServices): void {
     const playerId = player.id;
     const definition = getQuestDefinition(quest.displayName);
-    if (!definition?.overviewStartText) {
+    const freeToPlayContent = getFreeToPlayQuestContent(quest.displayName);
+    if (!freeToPlayContent && !definition?.overviewStartText) {
         services.system.logger.info?.(
             `[quest-journal] No overview start text for quest="${quest.displayName}" (dbrow=${quest.dbrowId})`,
         );
         return;
     }
-    const overviewStartText = definition.overviewStartText;
-    const lines = wrapTextToLines(overviewStartText, QUEST_JOURNAL_CHARS_PER_LINE);
+    const lines = freeToPlayContent
+        ? reflowLines(buildFreeToPlayQuestOverview(freeToPlayContent), QUEST_JOURNAL_CHARS_PER_LINE)
+        : wrapTextToLines(definition!.overviewStartText!, QUEST_JOURNAL_CHARS_PER_LINE);
 
     player.varps.setVarpValue(VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);
     services.variables.sendVarp?.(player, VARP_LATEST_QUEST_JOURNAL, quest.dbrowId);

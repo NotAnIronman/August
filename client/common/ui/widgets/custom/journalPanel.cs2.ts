@@ -10,7 +10,7 @@
  * client/widgets/custom/questJournalPanel.ts (registers both quest
  * journal and quest overview), diaryPanel.ts, and skillGuidePanel.ts.
  * Only the group ids live here; the component layout is the kit's
- * shared ComponentIds scheme (client/widgets/uikit/types.ts), not a
+ * shared ComponentIds scheme (client/common/uikit/contracts.ts), not a
  * bespoke one per panel anymore.
  */
 

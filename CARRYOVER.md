@@ -20,23 +20,19 @@ The workspace may be a dirty worktree. Preserve changes unrelated to the task; d
 The quest-panel list is cache interface `399`:
 
 - Dynamic row list / scroll owner: `399:7`
-- Original cache scrollbar host: `399:5`
+- Cache-era rail child: `399:5` (hidden)
 
-The last known-good version used `399:5` to draw the rail while `399:7` owned `scrollY`. It was functional but about 25 px too far left.
+The list uses the same direct native UIKit rail as the achievement diary: it
+draws its own rail at its right edge and owns `scrollY`.
 
-Current changes restore that ownership model and apply only a 25 logical-pixel horizontal adjustment to the host-rendered rail:
+Current implementation:
 
 - `client/widgets/custom/questList.ts`
-  - `399:7` has `uikitScrollbar = false`.
-  - `399:5.uikitScrollbarTargetUid = list.uid`.
-  - `399:5.uikitScrollbarOffsetX = 25`.
-- `client/widgets/gl/widgetsGl/renderWidgetTree.ts`
-  - Adds the offset only while drawing a host-owned UIKit scrollbar.
+  - `399:7` has `uikitScrollbar = true`.
+  - `399:5` is hidden, preventing a duplicate cache handle.
 - `client/game/widgets/input/questListScrollbarInput.ts`
-  - Uses the same display-scaled offset for hit-testing.
-  - Consumes the newly clicked shifted rail before generic widget/world click selection. This is important: without it, the generic picker still sees the cache host at its old x-coordinate, causing a phantom drag source or a click-through to the game world.
-- `client/widgets/WidgetNode.ts`
-  - Defines `uikitScrollbarOffsetX?: number`.
+  - Uses the native rail's rendered bounds for input and preserves a captured
+    thumb drag outside the 16-pixel rail.
 
 Expected test after restart:
 
@@ -44,8 +40,6 @@ Expected test after restart:
 - Wheel scroll should move the thumb smoothly.
 - Click-and-hold/drag over the visible thumb/track should work.
 - Clicking the rail must not walk the player or select an underlying UI element.
-
-Do not switch this back to a list-owned native rail unless there is a measured reason; that was the regression source.
 
 ### Equipment stat import
 
@@ -168,17 +162,17 @@ Current fix in `client/widgets/gl/texture-cache.ts`:
 
 - Remove cache-sprite fallback for item icons.
 - Wait for the injected 3D item-icon renderer instead of drawing a wrong sprite.
-- Bump `ITEM_ICON_CACHE_VERSION` to `4`, so hot reload cannot reuse the earlier bad texture.
+- Keep one GPU texture per animated item icon and re-upload its current
+  software-rendered frame in place, rather than retaining a texture for every
+  animation phase.
+- Clone a texture sprite's palette before applying brightness so cached
+  sprites cannot corrupt later item-icon renders.
+- Bump `ITEM_ICON_CACHE_VERSION` to `6`, so hot reload cannot reuse the
+  earlier bad texture.
 
-This change should fix the incorrect icon identity. Do **not** claim cape animation fixed yet.
-
-Why animation remains a separate task:
-
-- The 3D world renderer supports animated texture materials.
-- `ItemIconRenderer` produces a cached 36×32 software-rendered inventory image, currently at one texture frame/phase.
-- If the user means animated cape artwork inside an inventory/equipment widget, that renderer needs a deliberately implemented dynamic texture-frame/UV path—not a guessed `spriteId` swap.
-
-First verify that the correct cape artwork appears after restart. If it does and the user still expects it to animate in a UI item slot, next work should trace cache texture materials for models `9631` / `33144`, then add dynamic item-icon rendering only for genuinely animated materials.
+The updated cape path still requires a live visual confirmation after restart;
+the persistent probe logger remains available if a source-material issue
+survives the GPU update.
 
 ## Earlier relevant context
 
@@ -251,27 +245,10 @@ Using the bundled Node runtime because the workspace shell does not expose norma
 - Syntax checks passed for the recently edited client/server TypeScript files via Node strip-types mode.
 - `git diff --check` has no content whitespace errors; it only prints line-ending conversion warnings.
 
-## Current modified files
+## Working-tree state
 
-At the time of this handoff, these files are modified and should be treated as intentional in-scope work:
-
-```text
-client/game/widgets/input/questListScrollbarInput.ts
-client/widgets/WidgetNode.ts
-client/widgets/custom/questList.ts
-client/widgets/gl/texture-cache.ts
-client/widgets/gl/widgetsGl/renderWidgetTree.ts
-server/data/items.json
-server/gamemodes/vanilla/widgets/npcDropTableWidgets.ts
-server/scripts/audit-equipment-data.ts
-server/scripts/import-osrs-equipment-reference.ts
-server/scripts/sync-osrs-npc-drops.ts
-server/src/game/drops/NpcDropRegistry.ts
-server/src/game/drops/manualTables.ts
-server/src/game/drops/monstersCompleteSource.ts
-server/src/network/commands/ChatCommands.ts
-server/src/network/handlers/chatHandler.ts
-```
+Use `git status --short` for the authoritative current worktree state. A
+persisted file list becomes stale as soon as a fix is committed or handed off.
 
 ## First testing checklist for the next task
 
@@ -282,12 +259,14 @@ Restart server and client once, then report the literal output / behavior of:
 3. `::itemdata 26382` and `::itemdata 26409` — noted version should resolve to normal Torva.
 4. `::dropsdebug 2215` and `::dropsdebug 2205` — expect `imported-id` and nonzero entry/table counts.
 5. Examine/open drops for Graardor and Zilyana, then kill several to verify actual table rolls.
-6. Equip Fire cape and Infernal cape; confirm whether the artwork is correct. Specify whether “movement” means the worn world model or the equipment/inventory slot icon if animation still needs work.
+6. Equip Fire cape and Infernal cape; confirm that both artwork and movement
+   are correct in the equipment/inventory slot.
 
 ## Recommended next work order
 
 1. Gather the checklist results without changing unrelated UIKit code.
 2. If drops fail, use `::dropsdebug` and the `[drops]` startup log before changing lookup code.
 3. If Noxious/Torva still lack stats, use `::itemdata` first to establish whether the running server was restarted / uses current `items.json`.
-4. If the cape icon is correct but needs animation, inspect models/materials and implement a targeted dynamic item-icon path.
+4. If either cape is still wrong, inspect the new runtime-probe events before
+   changing cache texture IDs or models.
 5. Only after these are green, proceed to the planned large overhaul / new UI features.

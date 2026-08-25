@@ -1,4 +1,5 @@
 import type { GamemodeQuestListGroup } from "../../src/game/gamemodes/GamemodeDefinition";
+import { FREE_TO_PLAY_QUEST_CONTENT } from "./quests/content/freeToPlay";
 
 /** Canonical display record for one quest-list entry. */
 export interface QuestCatalogEntry {
@@ -199,34 +200,18 @@ const QUEST_DISPLAY_NAMES: readonly string[] = [
     "Zogre Flesh Eaters",
 ];
 
-/** The current live free-to-play quest set. Kept as names so the catalog
- * remains cache-version-agnostic and display spelling stays canonical. */
-const FREE_TO_PLAY_QUEST_NAMES = new Set<string>([
-    "Black Knights' Fortress",
-    "Below Ice Mountain",
-    "Cook's Assistant",
-    "The Corsair Curse",
-    "Demon Slayer",
-    "Doric's Quest",
-    "Dragon Slayer I",
-    "Ernest the Chicken",
-    "Goblin Diplomacy",
-    "Imp Catcher",
-    "The Ides of Milk",
-    "Learning the Ropes",
-    "Misthalin Mystery",
-    "Pirate's Treasure",
-    "Prince Ali Rescue",
-    "The Restless Ghost",
-    "Romeo & Juliet",
-    "Rune Mysteries",
-    "Sheep Shearer",
-    "Shield of Arrav",
-    "The Knight's Sword",
-    "Vampyre Slayer",
-    "Witch's Potion",
-    "X Marks the Spot",
-]);
+/** Every F2P quest-list row has a matching content record. Keeping the group
+ * derived from that record prevents the list and the journal facts from
+ * drifting apart when a new free-to-play quest is added. */
+const FREE_TO_PLAY_QUEST_NAMES = new Set<string>(
+    FREE_TO_PLAY_QUEST_CONTENT.map((quest) => quest.displayName),
+);
+
+for (const quest of FREE_TO_PLAY_QUEST_CONTENT) {
+    if (!QUEST_DISPLAY_NAMES.includes(quest.displayName)) {
+        throw new Error(`Free-to-play quest is missing from the display catalog: ${quest.displayName}`);
+    }
+}
 
 /**
  * Miniquests are intentionally distinct from the 181 quest records above:
