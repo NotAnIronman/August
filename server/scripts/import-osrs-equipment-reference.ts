@@ -22,6 +22,10 @@ import path from "path";
 const REFERENCE_URL =
     "https://raw.githubusercontent.com/MisterTriangle/osrs-item-reference-data/main/osrs-equipment.json";
 const ITEMS_PATH = path.resolve(path.dirname(process.argv[1] ?? "."), "../data/items.json");
+const LOCAL_REFERENCE_PATH = path.resolve(
+    path.dirname(process.argv[1] ?? "."),
+    "../../references/osrs-equipment.json",
+);
 const BONUS_FIELDS = [
     "attack_stab",
     "attack_slash",
@@ -83,15 +87,21 @@ function sameBonuses(left: readonly number[] | undefined, right: readonly number
     );
 }
 
-function formatBonuses(values: readonly number[], newline: string): string {
+function getObjectIndent(chunk: string): string {
+    const match = chunk.match(/^([ \t]*)\{/);
+    if (!match) throw new Error("Unable to determine item JSON indentation");
+    return match[1];
+}
+
+function formatBonuses(values: readonly number[], newline: string, propertyIndent: string): string {
     const lines = values
-        .map((value, index) => `      ${value}${index === values.length - 1 ? "" : ","}`)
+        .map((value, index) => `${propertyIndent}  ${value}${index === values.length - 1 ? "" : ","}`)
         .join(newline);
-    return `    "bonuses": [${newline}${lines}${newline}    ]`;
+    return `${propertyIndent}"bonuses": [${newline}${lines}${newline}${propertyIndent}]`;
 }
 
 function appendProperty(chunk: string, property: string, newline: string): string {
-    const closeIndex = chunk.lastIndexOf(`${newline}  }`);
+    const closeIndex = chunk.lastIndexOf(`${newline}${getObjectIndent(chunk)}}`);
     if (closeIndex < 0) throw new Error("Unable to locate item JSON closing brace");
     return `${chunk.slice(0, closeIndex)},${newline}${property}${chunk.slice(closeIndex)}`;
 }
@@ -100,7 +110,8 @@ function addBonusesProperty(chunk: string, property: string, newline: string): s
     // `doubleHanded` is usually the final existing property. Insert bonuses
     // immediately before it so adding missing stats does not move that field
     // (and needlessly obscure the real data change in review).
-    const doubleHandedIndex = chunk.lastIndexOf(`${newline}    "doubleHanded":`);
+    const propertyIndent = `${getObjectIndent(chunk)}  `;
+    const doubleHandedIndex = chunk.lastIndexOf(`${newline}${propertyIndent}"doubleHanded":`);
     if (doubleHandedIndex >= 0) {
         return `${chunk.slice(0, doubleHandedIndex)}${newline}${property},${chunk.slice(
             doubleHandedIndex,
@@ -121,7 +132,11 @@ function updateItemsJson(text: string, reference: readonly ReferenceRecord[]): I
     let updatedBonuses = 0;
     let updatedTwoHanded = 0;
     const matchedIds = new Set<number>();
-    const itemObjectPattern = /^  \{\r?\n.*?^  \}(?=,?\r?\n)/gms;
+    // Cache sync appends compact top-level objects while the curated snapshot
+    // uses two-space object indentation. Both are valid item records and must
+    // be imported; matching only the latter caused every newly synced item to
+    // retain zero/missing stats indefinitely.
+    const itemObjectPattern = /^[ \t]*\{\r?\n.*?^[ \t]*\}(?=,?\r?\n)/gms;
     const updatedText = text.replace(itemObjectPattern, (chunk) => {
         const local = JSON.parse(chunk) as LocalItem;
         const id = Number(local.id);
@@ -133,8 +148,12 @@ function updateItemsJson(text: string, reference: readonly ReferenceRecord[]): I
         const bonuses = bonusesFor(record);
         let updatedChunk = chunk;
         if (!sameBonuses(local.bonuses, bonuses)) {
-            const replacement = formatBonuses(bonuses, newline);
-            const existing = /^    "bonuses": \[\r?\n.*?^    \](,?)/ms;
+            const propertyIndent = `${getObjectIndent(chunk)}  `;
+            const replacement = formatBonuses(bonuses, newline, propertyIndent);
+            const existing = new RegExp(
+                `^${propertyIndent}"bonuses": \\[\\r?\\n.*?^${propertyIndent}\\](,?)`,
+                "ms",
+            );
             const existingMatch = updatedChunk.match(existing);
             if (existingMatch) {
                 // Keep an unchanged cache spelling such as `0.0` intact.
@@ -154,14 +173,22 @@ function updateItemsJson(text: string, reference: readonly ReferenceRecord[]): I
 
         const twoHanded = record.is_two_handed === true;
         if ((local.doubleHanded === true) !== twoHanded) {
-            const existing = /^(    "doubleHanded": )(?:true|false)(,?)$/m;
+            const propertyIndent = `${getObjectIndent(updatedChunk)}  `;
+            const existing = new RegExp(
+                `^(${propertyIndent}"doubleHanded": )(?:true|false)(,?)$`,
+                "m",
+            );
             if (existing.test(updatedChunk)) {
                 updatedChunk = updatedChunk.replace(
                     existing,
                     (_match, prefix: string, comma: string) => `${prefix}${twoHanded}${comma}`,
                 );
             } else if (twoHanded) {
-                updatedChunk = appendProperty(updatedChunk, '    "doubleHanded": true', newline);
+                updatedChunk = appendProperty(
+                    updatedChunk,
+                    `${propertyIndent}"doubleHanded": true`,
+                    newline,
+                );
             }
             updatedTwoHanded++;
         }
@@ -178,14 +205,16 @@ function updateItemsJson(text: string, reference: readonly ReferenceRecord[]): I
 }
 
 async function readReference(sourcePath: string | undefined): Promise<ReferenceRecord[]> {
-    if (sourcePath && !fs.existsSync(sourcePath)) {
+    const resolvedSourcePath = sourcePath ??
+        (fs.existsSync(LOCAL_REFERENCE_PATH) ? LOCAL_REFERENCE_PATH : undefined);
+    if (resolvedSourcePath && !fs.existsSync(resolvedSourcePath)) {
         throw new Error(
-            `Equipment reference file was not found: ${sourcePath}. ` +
+            `Equipment reference file was not found: ${resolvedSourcePath}. ` +
                 "Omit --source to download the maintained reference automatically.",
         );
     }
-    const text = sourcePath
-        ? fs.readFileSync(sourcePath, "utf8")
+    const text = resolvedSourcePath
+        ? fs.readFileSync(resolvedSourcePath, "utf8")
         : await (async () => {
               const response = await fetch(REFERENCE_URL);
               if (!response.ok) {

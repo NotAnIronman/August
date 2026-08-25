@@ -5,7 +5,7 @@ import {
     SkillId,
     getXpForLevel,
 } from "../../../../client/rs/skill/skills";
-import { getItemDefinition } from "../../data/items";
+import { getEquipmentItemDefinition, getItemDefinition } from "../../data/items";
 import { SpellbookName } from "../../data/spellWidgetLoader";
 import { getCollectionLogItems } from "../../game/collectionlog";
 import { clearAutocastState } from "../../game/combat/AutocastState";
@@ -425,6 +425,40 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                             `Item ${itemId} (${obj.name ?? "unnamed"}): ` +
                             `${models || "no models"}; wear slots ${obj.wearPos ?? -1}/` +
                             `${obj.wearPos2 ?? -1}/${obj.wearPos3 ?? -1}.`,
+                        targetPlayerIds: [sender.id],
+                    });
+                    return;
+                }
+
+                if (root === "itemdata") {
+                    const itemId = Number(parts[1]);
+                    if (!Number.isInteger(itemId) || itemId < 0) {
+                        services.queueChatMessage({
+                            messageType: "game",
+                            text: "Usage: ::itemdata <itemId>",
+                            targetPlayerIds: [sender.id],
+                        });
+                        return;
+                    }
+                    const raw = getItemDefinition(itemId);
+                    if (!raw) {
+                        services.queueChatMessage({
+                            messageType: "game",
+                            text: `Item ${itemId} is absent from the running server's items.json.`,
+                            targetPlayerIds: [sender.id],
+                        });
+                        return;
+                    }
+                    const resolved = getEquipmentItemDefinition(itemId);
+                    const bonuses = resolved?.bonuses;
+                    const statSummary = bonuses
+                        ? `stats=14 (slash ${bonuses[1]}, str ${bonuses[10]})`
+                        : "stats=none";
+                    services.queueChatMessage({
+                        messageType: "game",
+                        text:
+                            `Item ${itemId} (${raw.name}): raw slot=${raw.equipmentType ?? "none"}, ` +
+                            `resolved=${resolved?.id ?? "none"}, ${statSummary}.`,
                         targetPlayerIds: [sender.id],
                     });
                     return;

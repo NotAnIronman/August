@@ -44,6 +44,17 @@ const IMP_NPC_TYPE_IDS = [5007, 3134] as const;
 const SCORPION_NPC_TYPE_IDS = [3024, 5242, 2480, 2479] as const;
 
 export const MANUAL_NPC_DROP_OVERRIDES: ManualNpcDropOverride[] = [
+    // Safety-net tables for the live GWD spawns. The full imported table takes
+    // priority whenever its required source is available; these merely retain
+    // the previously working guaranteed drop if that source is misconfigured.
+    {
+        npcTypeIds: [2205],
+        table: alwaysTable(drop("Bones", 1, "Always")),
+    },
+    {
+        npcTypeIds: [2215],
+        table: alwaysTable(drop("Big bones", 1, "Always")),
+    },
     // Imp drops (OSRS wiki)
     {
         npcTypeIds: [...IMP_NPC_TYPE_IDS],

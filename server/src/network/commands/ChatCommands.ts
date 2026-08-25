@@ -33,6 +33,7 @@ const BUILTIN_COMMAND_PERMISSIONS: Readonly<Record<string, PlayerPermission>> = 
     bank: "developer",
     devbank: "developer",
     item: "developer",
+    itemdata: "developer",
     itemmodel: "developer",
     itemspawner: "developer",
     kill: "developer",
@@ -77,6 +78,7 @@ const HIDDEN_FROM_COMMAND_LIST = new Set([
     "dnest",
     "dtext",
     "dspeaker",
+    "itemdata",
 ]);
 
 export function getBuiltinChatCommandPermission(command: string): PlayerPermission | undefined {

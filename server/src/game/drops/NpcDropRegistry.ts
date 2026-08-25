@@ -3,13 +3,30 @@ import type { NpcTypeLoader } from "../../../../client/rs/config/npctype/NpcType
 import { logger } from "../../utils/logger";
 import { normalizeName, resolveDropTable } from "./helpers";
 import { MANUAL_NPC_DROP_OVERRIDES } from "./manualTables";
-import { loadMonstersCompleteDefinitions } from "./monstersCompleteSource";
+import {
+    getMonstersCompleteSourceStatus,
+    loadMonstersCompleteDefinitions,
+} from "./monstersCompleteSource";
 import type { NpcDropTable } from "./types";
 
 type ImportedLookup = {
     byNpcTypeId: Map<number, NpcDropTable>;
     exact: Map<string, NpcDropTable>;
     byName: Map<string, NpcDropTable[]>;
+};
+
+// These two live boss spawns have a deliberately small manual safety-net
+// table. Prefer their full source-backed tables when present, but never let a
+// missing ignored reference make their drops disappear altogether.
+const PREFER_IMPORTED_OVER_MANUAL = new Set([2205, 2215]);
+
+export type NpcDropLookupDescription = {
+    source: "imported-id" | "imported-name" | "manual" | "none";
+    sourceEntries: number;
+    sourceError?: string;
+    alwaysCount: number;
+    poolCount: number;
+    entryCount: number;
 };
 
 function makeCombatKey(name: string, combatLevel: number | undefined): string {
@@ -68,6 +85,14 @@ export class NpcDropRegistry {
         const cached = this.resolvedByNpcTypeId.get(normalized);
         if (cached !== undefined) return cached ?? undefined;
 
+        // OSRSBox's top-level ID is the exact cache NPC type ID and must win
+        // for the explicit GWD safety-net entries above.
+        const importedById = this.imported.byNpcTypeId.get(normalized);
+        if (importedById && PREFER_IMPORTED_OVER_MANUAL.has(normalized)) {
+            this.resolvedByNpcTypeId.set(normalized, importedById);
+            return importedById;
+        }
+
         const manual = this.manualByNpcTypeId.get(normalized);
         if (manual) {
             this.resolvedByNpcTypeId.set(normalized, manual);
@@ -77,7 +102,6 @@ export class NpcDropRegistry {
         // This is the authoritative OSRSBox join: its top-level record ID is
         // the cache NPC type ID. Name/combat matching below remains only for
         // cache variants or incomplete data sets without an ID.
-        const importedById = this.imported.byNpcTypeId.get(normalized);
         if (importedById) {
             this.resolvedByNpcTypeId.set(normalized, importedById);
             return importedById;
@@ -94,6 +118,33 @@ export class NpcDropRegistry {
         const resolved = this.resolveImported(npcType);
         this.resolvedByNpcTypeId.set(normalized, resolved ?? null);
         return resolved;
+    }
+
+    describe(npcTypeId: number): NpcDropLookupDescription {
+        const source = getMonstersCompleteSourceStatus();
+        const table = this.get(npcTypeId);
+        const directImported = this.imported.byNpcTypeId.get(npcTypeId);
+        const manual = this.manualByNpcTypeId.get(npcTypeId);
+        let lookupSource: NpcDropLookupDescription["source"] = "none";
+        if (directImported && PREFER_IMPORTED_OVER_MANUAL.has(npcTypeId)) {
+            lookupSource = "imported-id";
+        } else if (manual) {
+            lookupSource = "manual";
+        } else if (directImported) {
+            lookupSource = "imported-id";
+        } else if (table) {
+            lookupSource = "imported-name";
+        }
+        return {
+            source: lookupSource,
+            sourceEntries: source.entryCount,
+            sourceError: source.error,
+            alwaysCount: table?.always.length ?? 0,
+            poolCount: table?.pools.length ?? 0,
+            entryCount:
+                (table?.always.length ?? 0) +
+                (table?.pools.reduce((count, pool) => count + pool.entries.length, 0) ?? 0),
+        };
     }
 
     private resolveImported(npcType: NpcType | undefined): NpcDropTable | undefined {

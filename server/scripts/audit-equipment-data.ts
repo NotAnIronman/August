@@ -20,6 +20,7 @@ const ITEMS_PATH = path.resolve(SCRIPT_DIR, "../data/items.json");
 const WEAPONS_PATH = path.resolve(SCRIPT_DIR, "../gamemodes/vanilla/data/weapons.ts");
 const REFERENCE_URL =
     "https://raw.githubusercontent.com/MisterTriangle/osrs-item-reference-data/main/osrs-equipment.json";
+const LOCAL_REFERENCE_PATH = path.resolve(SCRIPT_DIR, "../../references/osrs-equipment.json");
 
 const EQUIPPABLE_TYPES = new Set([
     "AMULET",
@@ -67,14 +68,16 @@ function hasCompleteBonuses(item: LocalItem): boolean {
 }
 
 async function readReferenceIds(sourcePath: string | undefined): Promise<Set<number>> {
-    if (sourcePath && !fs.existsSync(sourcePath)) {
+    const resolvedSourcePath = sourcePath ??
+        (fs.existsSync(LOCAL_REFERENCE_PATH) ? LOCAL_REFERENCE_PATH : undefined);
+    if (resolvedSourcePath && !fs.existsSync(resolvedSourcePath)) {
         throw new Error(
-            `Equipment reference file was not found: ${sourcePath}. ` +
+            `Equipment reference file was not found: ${resolvedSourcePath}. ` +
                 "Omit --source to download the maintained reference automatically.",
         );
     }
-    const text = sourcePath
-        ? fs.readFileSync(sourcePath, "utf8")
+    const text = resolvedSourcePath
+        ? fs.readFileSync(resolvedSourcePath, "utf8")
         : await (async () => {
               const response = await fetch(REFERENCE_URL);
               if (!response.ok) {
@@ -117,6 +120,19 @@ async function main(): Promise<void> {
     const missingBonuses = equipable.filter((item) => !hasCompleteBonuses(item));
     const sourceBackedGaps = missingBonuses.filter((item) => referenceIds.has(item.id));
     const configuredWeaponGaps = weaponConfigIds().filter((id) => !knownIds.has(id));
+    const byId = new Map(items.map((item) => [item.id, item]));
+    const configuredWeaponsMissingBonuses = weaponConfigIds().filter((id) => {
+        const item = byId.get(id);
+        return (
+            item !== undefined &&
+            EQUIPPABLE_TYPES.has(item.equipmentType ?? "") &&
+            !hasCompleteBonuses(item)
+        );
+    });
+    const configuredNonEquippableIds = weaponConfigIds().filter((id) => {
+        const item = byId.get(id);
+        return item !== undefined && !EQUIPPABLE_TYPES.has(item.equipmentType ?? "");
+    });
 
     console.log(
         `[equipment-audit] cache items=${items.length}; equipable=${equipable.length}; ` +
@@ -136,6 +152,26 @@ async function main(): Promise<void> {
         console.log(
             "[equipment-audit] Run sync-missing-cache-items against the active cache, then import-equipment-reference.",
         );
+    }
+    if (configuredWeaponsMissingBonuses.length > 0) {
+        console.error(
+            `[equipment-audit] Configured weapons with no complete bonus record: ${configuredWeaponsMissingBonuses.join(
+                ", ",
+            )}.`,
+        );
+    }
+    if (configuredNonEquippableIds.length > 0) {
+        console.warn(
+            `[equipment-audit] Weapon config IDs not marked equippable in items.json (configuration cleanup, not a stat-import failure): ${configuredNonEquippableIds.join(
+                ", ",
+            )}.`,
+        );
+    }
+    if (configuredWeaponGaps.length > 0 || configuredWeaponsMissingBonuses.length > 0) {
+        // A successful sync must mean that configured combat content can use
+        // its data. Exit non-zero rather than presenting an all-green command
+        // after only part of the pipeline completed.
+        process.exitCode = 1;
     }
 }
 

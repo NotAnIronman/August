@@ -227,14 +227,11 @@ export function applyQuestListWidgetGroups(
     }
     list.scrollHeight = contentHeight;
     list.scrollY = Math.min(list.scrollY | 0, Math.max(0, contentHeight - viewportHeight));
-    // The cache's 399:5 scrollbar host has no drawable children in several
-    // revisions, which left this list scrollable but visually blank. Mark the
-    // real scrolling container for the shared UIKit/native scrollbar renderer
-    // instead; its right edge is the same reserved scrollbar column.
-    // Component 399:5 is physically positioned at the cache interface's
-    // right edge. Render the native rail through that host rather than at the
-    // row viewport's edge, which sits inset from the steelborder.
+    // The cached rail host (399:5) is the one proven to have correct clipping
+    // and thumb geometry. The dynamic list owns the scroll state, while that
+    // host draws it. Do not enable a second rail on the list itself.
     list.uikitScrollbar = false;
+    list.uikitScrollbarOffsetX = 0;
 
     if (textContainer) {
         // The list is the only scroll owner. Keeping its cache parent at the
@@ -256,10 +253,11 @@ export function applyQuestListWidgetGroups(
         (
             scrollbar as WidgetNode & { scrollBarTargetUid?: number; scrollBarAxis?: "y" }
         ).scrollBarAxis = "y";
-        // Several cache revisions expose this host without drawable children.
-        // Keep its cache-determined position but give it a native rail that
-        // reads the dynamic row list's scroll state.
+        // Keep the working host-rendered rail and apply the horizontal tweak
+        // to this exact rail. This leaves the scroll owner and grab behaviour
+        // unchanged, so it cannot create a second visual-only thumb.
         scrollbar.uikitScrollbarTargetUid = list.uid;
+        scrollbar.uikitScrollbarOffsetX = 25;
         scrollbar.isHidden = false;
         scrollbar.hidden = false;
         widgetManager.invalidateWidget(scrollbar, "quest-list");

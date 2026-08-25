@@ -11,7 +11,7 @@ type Texture = { tex: WebGLTexture; w: number; h: number };
 const SPRITE_LOOKUP_CACHE_VERSION = "3";
 // Item icons may have been cached under the old frame-zero fallback. Keep a
 // separate version so a hot-reloaded client cannot retain the bad texture.
-const ITEM_ICON_CACHE_VERSION = "3";
+const ITEM_ICON_CACHE_VERSION = "4";
 
 export interface SpriteMaskData {
     texture: Texture;
@@ -451,18 +451,12 @@ export class TextureCache {
                 if (can) return this.glr.createTextureFromCanvas(key, can);
             }
         } catch {}
-        try {
-            const tokOrder = [
-                `obj_icons,${itemId}`,
-                `inv,${itemId}`,
-                `obj,${itemId}`,
-                `item,${itemId}`,
-            ];
-            for (const tok of tokOrder) {
-                const t = this.getByNameToken(tok);
-                if (t) return t;
-            }
-        } catch {}
+        // Do not substitute a cache sprite for an item icon. These archives are
+        // collections, not an item-id lookup, so an early startup fallback can
+        // cache an unrelated frame for the rest of the session (the Fire and
+        // Infernal capes were the visible examples). A missing 3D renderer is
+        // transient; returning undefined lets the next frame request the
+        // exact item model once the renderer is ready.
         return undefined;
     }
 

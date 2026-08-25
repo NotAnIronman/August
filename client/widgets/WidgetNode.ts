@@ -223,6 +223,8 @@ export interface WidgetNode {
     isScrollBar?: boolean; // If true, widget is a scrollbar component
     /** UIKit-only: draw a native scrollbar beside this scroll container. */
     uikitScrollbar?: boolean;
+    /** UIKit-only: horizontal rail adjustment in logical interface pixels. */
+    uikitScrollbarOffsetX?: number;
     /** UIKit-only: this cached host draws a native rail for the target container. */
     uikitScrollbarTargetUid?: number;
     dataText?: string; // Extra text data (used by some widgets)

@@ -1801,7 +1801,7 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                 const scrollbarStartMs = profileWidgetRender ? performance.now() : 0;
                 drawScrollBar(
                     glr,
-                    x,
+                    x + scaleLogicalPixels(rootScaleX, Math.trunc(w.uikitScrollbarOffsetX ?? 0)),
                     y,
                     Math.round((uikitScrollbarTarget.scrollY ?? 0) * rootScaleY),
                     height,

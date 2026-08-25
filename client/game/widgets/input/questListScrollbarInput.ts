@@ -43,8 +43,8 @@ export function processQuestListScrollbarInput(
         return;
     }
 
-    // The generic widget-drag controller owns the scrollbar thumb after its
-    // initial click. Continue processing that drag, but never steal an
+    // The quest rail is rendered with a small visual offset from its cache
+    // host. It therefore owns its gesture outright, but must never steal an
     // unrelated inventory/widget drag that happens to pass over this area.
     if (
         widgetInteraction.isDraggingWidget &&
@@ -65,12 +65,17 @@ export function processQuestListScrollbarInput(
     const maxScrollY = Math.max(0, contentHeight - viewportHeight);
     if (maxScrollY <= 0) return;
 
-    const scrollbarX = scrollbar
-        ? (scrollbar._absX ?? scrollbar.x ?? 0) | 0
-        : ((content._absX ?? content.x ?? 0) + (content._absWidth ?? content.width ?? 0)) | 0;
-    const scrollbarY = scrollbar
-        ? (scrollbar._absY ?? scrollbar.y ?? 0) | 0
-        : (content._absY ?? content.y ?? 0) | 0;
+    // The cache's 399:5 host owns the working scrollbar input/clip geometry.
+    // Match the renderer's small logical horizontal tweak without changing
+    // either widget's bounds or transferring drag ownership to another rail.
+    const logicalOffsetX = Math.trunc(scrollbar?.uikitScrollbarOffsetX ?? 0);
+    const logicalWidth = Math.max(1, content.width | 0);
+    const physicalWidth = Math.max(1, content._absWidth ?? logicalWidth);
+    const offsetX = Math.round((logicalOffsetX * physicalWidth) / logicalWidth);
+    const scrollbarX =
+        ((scrollbar?._absX ?? scrollbar?.x ?? (content._absX ?? content.x ?? 0)) + offsetX) | 0;
+    const scrollbarY =
+        (scrollbar?._absY ?? scrollbar?.y ?? (content._absY ?? content.y ?? 0)) | 0;
     const scrollbarHeight = scrollbar
         ? Math.max(0, scrollbar._absHeight ?? scrollbar.height ?? 0)
         : viewportHeight;
@@ -87,6 +92,21 @@ export function processQuestListScrollbarInput(
         mx < scrollbarX + Math.max(SCROLLBAR_WIDTH, scrollbar?._absWidth ?? scrollbar?.width ?? 0) &&
         my >= scrollbarY &&
         my < scrollbarY + scrollbarHeight;
+    const isNewScrollbarClick =
+        input.leftClickX >= scrollbarX &&
+        input.leftClickX <
+            scrollbarX + Math.max(SCROLLBAR_WIDTH, scrollbar?._absWidth ?? scrollbar?.width ?? 0) &&
+        input.leftClickY >= scrollbarY &&
+        input.leftClickY < scrollbarY + scrollbarHeight;
+
+    // `399:5` remains at its cache-defined position while its rail is drawn
+    // 25 logical pixels to the right. Consume the click at the *drawn*
+    // position before the generic picker sees the old host rectangle; that
+    // prevents both a phantom drag source and a world click behind the modal.
+    if (isNewScrollbarClick) {
+        input.leftClickX = -1;
+        input.leftClickY = -1;
+    }
 
     const setScrollY = (value: number): void => {
         const next = clampScrollY(value, maxScrollY);

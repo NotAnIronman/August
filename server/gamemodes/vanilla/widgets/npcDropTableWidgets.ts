@@ -191,6 +191,26 @@ export function registerNpcDropTableWidgetHandlers(
             : `No imported drop table is available for NPC ${npcTypeId}.`;
     });
 
+    // A compact, in-game proof of the data path. This avoids guessing whether
+    // a running server actually loaded the ignored source file or fell back to
+    // a small hand-written table.
+    registry.registerCommand("dropsdebug", ({ args }) => {
+        const npcTypeId = Number.parseInt(args[0] ?? "", 10);
+        if (!Number.isInteger(npcTypeId) || npcTypeId < 0) {
+            return "Usage: ::dropsdebug <NpcID>";
+        }
+        const source = getDropRegistry();
+        if (!source) return "Drop registry is not available.";
+        const details = source.registry.describe(npcTypeId);
+        const sourceState = details.sourceError
+            ? `source ERROR: ${details.sourceError.slice(0, 120)}`
+            : `source tables=${details.sourceEntries}`;
+        return (
+            `Drops ${npcTypeId}: ${details.source}; always=${details.alwaysCount}, ` +
+            `pools=${details.poolCount}, entries=${details.entryCount}; ${sourceState}`
+        );
+    });
+
     for (let index = 0; index < ComponentIds.MAX_TABS; index++) {
         registry.onButton(NPC_DROP_TABLE_PANEL_GROUP_ID, ComponentIds.TAB_BASE + index, (event) => {
             const state = services.dialog

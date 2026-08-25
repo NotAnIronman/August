@@ -72,12 +72,8 @@ async function main(): Promise<void> {
 
 void main().catch((error) => {
     console.error(`[sync-npc-drops] ${error instanceof Error ? error.message : String(error)}`);
-    if (hasFlag("--if-missing")) {
-        // Full drop data improves the game but must never prevent a local
-        // world from starting when a developer is offline. The next normal
-        // start will retry the bootstrap automatically.
-        console.warn("[sync-npc-drops] Continuing without the optional full drop reference.");
-        return;
-    }
+    // This source is the authoritative data for the runtime drop registry.
+    // Starting without it made the world appear healthy while bosses silently
+    // had no drops, so a failed bootstrap must be a visible start failure.
     process.exitCode = 1;
 });

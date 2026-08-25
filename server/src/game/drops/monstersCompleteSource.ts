@@ -34,6 +34,10 @@ function resolveMonstersCompletePath(): string {
 }
 
 let cachedEntries: ImportedMonsterDefinition[] | undefined;
+let sourceStatus:
+    | { path: string; entryCount: number; error?: undefined }
+    | { path: string; entryCount: 0; error: string }
+    | undefined;
 
 /**
  * The bootstrap JSON flattens the Wiki's labelled subtables. These names are
@@ -204,13 +208,27 @@ function parseTopLevelEntries(text: string): RawMonsterEntry[] {
 
 export function loadMonstersCompleteDefinitions(): ImportedMonsterDefinition[] {
     if (cachedEntries) return cachedEntries;
+    const sourcePath = resolveMonstersCompletePath();
     try {
-        const rawText = fs.readFileSync(resolveMonstersCompletePath(), "utf8");
+        const rawText = fs.readFileSync(sourcePath, "utf8");
         cachedEntries = parseTopLevelEntries(rawText)
             .map((entry) => normalizeRawMonster(entry))
             .filter((entry): entry is ImportedMonsterDefinition => entry !== undefined);
-    } catch {
+        sourceStatus = { path: sourcePath, entryCount: cachedEntries.length };
+        console.info(
+            `[drops] Loaded ${cachedEntries.length} usable NPC drop tables from ${sourcePath}.`,
+        );
+    } catch (error) {
         cachedEntries = [];
+        const message = error instanceof Error ? error.message : String(error);
+        sourceStatus = { path: sourcePath, entryCount: 0, error: message };
+        console.warn(`[drops] Full NPC drop source unavailable at ${sourcePath}: ${message}`);
     }
     return cachedEntries;
+}
+
+/** Exposes the actual runtime source status for the developer drop diagnostic. */
+export function getMonstersCompleteSourceStatus(): NonNullable<typeof sourceStatus> {
+    loadMonstersCompleteDefinitions();
+    return sourceStatus!;
 }
