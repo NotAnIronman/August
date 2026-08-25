@@ -15,3 +15,30 @@
 {"at":"2026-08-25T18:13:44.094Z","event":"cape_icon_model_canvas","playerId":3,"details":{"itemId":21295}}
 {"at":"2026-08-25T18:15:06.373Z","event":"drops_lookup","playerId":3,"details":{"npcTypeId":2115,"source":"none","sourceEntries":1040,"sourcePath":"/run/media/August/Storage/RSPS/August/August/references/npc-drops-wiki.json + /run/media/August/Storage/RSPS/August/August/server/references/monsters-complete.json","sourceError":"","entries":0}}
 {"at":"2026-08-25T18:15:31.493Z","event":"drops_lookup","playerId":3,"details":{"npcTypeId":2791,"source":"imported-id","sourceEntries":1040,"sourcePath":"/run/media/August/Storage/RSPS/August/August/references/npc-drops-wiki.json + /run/media/August/Storage/RSPS/August/August/server/references/monsters-complete.json","sourceError":"","entries":4}}
+{"at":"2026-08-25T20:27:40.873Z","event":"quest_scrollbar_configured","playerId":3,"details":{"hostUid":26148869,"targetUid":26148871,"targetWidth":134,"targetHeight":166,"targetScrollHeight":3280,"targetScrollY":0,"hostAbsX":-1,"hostAbsY":-1,"hostAbsWidth":-1,"hostAbsHeight":-1,"offsetX":25}}
+{"at":"2026-08-25T20:27:40.873Z","event":"cape_icon_texture_request","playerId":3,"details":{"itemId":6570,"rendererInjected":true,"animationPhase":244}}
+{"at":"2026-08-25T20:27:40.873Z","event":"cape_icon_model_render","playerId":3,"details":{"itemId":6570,"resolvedItemId":6570,"faces":35,"texturedFaces":35,"animated":true,"materials":[{"id":40,"frames":1,"animSpeed":2,"animU":0,"animV":-2}]}}
+{"at":"2026-08-25T20:27:40.873Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":244,"bucket":7,"checksum":4095054345}}
+{"at":"2026-08-25T20:27:40.874Z","event":"cape_icon_model_canvas","playerId":3,"details":{"itemId":6570}}
+{"at":"2026-08-25T20:27:42.673Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":258,"bucket":8,"checksum":2787249742}}
+{"at":"2026-08-25T20:27:47.473Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":293,"bucket":9,"checksum":2537200978}}
+{"at":"2026-08-25T20:27:51.073Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":322,"bucket":10,"checksum":990925432}}
+{"at":"2026-08-25T20:27:54.673Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":352,"bucket":11,"checksum":1519188756}}
+{"at":"2026-08-25T20:27:59.473Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":389,"bucket":12,"checksum":2721209588}}
+{"at":"2026-08-25T20:28:02.473Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":416,"bucket":13,"checksum":3517701163}}
+{"at":"2026-08-25T20:28:06.673Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":450,"bucket":14,"checksum":2423775434}}
+{"at":"2026-08-25T20:28:10.272Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":480,"bucket":15,"checksum":817089278}}
+{"at":"2026-08-25T20:28:14.473Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":512,"bucket":16,"checksum":3471405029}}
+{"at":"2026-08-25T20:28:18.072Z","event":"cape_icon_texture_request","playerId":3,"details":{"itemId":21295,"rendererInjected":true,"animationPhase":538}}
+{"at":"2026-08-25T20:28:18.072Z","event":"cape_icon_model_render","playerId":3,"details":{"itemId":21295,"resolvedItemId":21295,"faces":433,"texturedFaces":433,"animated":true,"materials":[{"id":59,"frames":1,"animSpeed":1,"animU":0,"animV":-1}]}}
+{"at":"2026-08-25T20:28:18.072Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":21295,"animationKey":538,"bucket":16,"checksum":1230207980}}
+{"at":"2026-08-25T20:28:18.072Z","event":"cape_icon_model_canvas","playerId":3,"details":{"itemId":21295}}
+{"at":"2026-08-25T20:28:18.672Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":21295,"animationKey":544,"bucket":17,"checksum":1718470324}}
+{"at":"2026-08-25T20:28:21.674Z","event":"quest_scrollbar_dedicated_handler_active","playerId":3,"details":{"hostUid":26148869,"targetUid":26148871,"scrollbarX":934,"scrollbarY":211,"scrollbarHeight":166,"viewportHeight":166,"contentHeight":3280,"maxScrollY":3114,"thumbTop":227,"thumbHeight":8}}
+{"at":"2026-08-25T20:29:00.143Z","event":"drops_lookup","playerId":3,"details":{"npcTypeId":2115,"source":"none","sourceEntries":1040,"sourcePath":"/run/media/August/Storage/RSPS/August/August/references/npc-drops-wiki.json + /run/media/August/Storage/RSPS/August/August/server/references/monsters-complete.json","sourceError":"","runtimeNpcName":"Thing under the bed","runtimeCombatLevel":0,"directImportedName":"","nameCandidateCount":0,"exactNameCombatMatch":false,"entries":0}}
+{"at":"2026-08-25T20:29:26.473Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":21295,"animationKey":62,"bucket":1,"checksum":1500659331}}
+{"at":"2026-08-25T20:29:26.473Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":21295,"animationKey":64,"bucket":2,"checksum":2865919214}}
+{"at":"2026-08-25T20:29:28.873Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":80,"bucket":2,"checksum":2683095321}}
+{"at":"2026-08-25T20:29:30.673Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":96,"bucket":3,"checksum":3053138121}}
+{"at":"2026-08-25T20:29:34.273Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":128,"bucket":4,"checksum":3797894194}}
+{"at":"2026-08-25T20:29:39.073Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":165,"bucket":5,"checksum":2458041171}}
