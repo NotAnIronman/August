@@ -72,6 +72,13 @@ export function processQuestListScrollbarInput(
     widgetManager: WidgetManager,
     widgetInteraction: WidgetInteractionController,
 ): void {
+    // Quest-list widgets remain cached after the side journal switches tabs.
+    // Do not let their stale bounds consume a wheel event intended for the
+    // achievement diary (or any other currently mounted panel).
+    if (widgetManager.getInterfaceParentContainerUid(QUEST_LIST_GROUP_ID) === undefined) {
+        return;
+    }
+
     // The generic widget-drag controller owns the scrollbar thumb after its
     // initial click. Continue processing that drag, but never steal an
     // unrelated inventory/widget drag that happens to pass over this area.

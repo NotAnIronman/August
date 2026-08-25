@@ -16,6 +16,7 @@ export interface QuestListConfigQuest {
 export interface QuestListConfigGroup {
     title: string;
     quests: readonly QuestListConfigQuest[];
+    countsTowardsQuestSummary?: boolean;
 }
 
 export interface QuestListWidgetQuest {
@@ -28,6 +29,7 @@ export interface QuestListWidgetQuest {
 export interface QuestListWidgetGroup {
     title: string;
     quests: QuestListWidgetQuest[];
+    countsTowardsQuestSummary: boolean;
 }
 
 export function buildQuestListWidgetGroups(
@@ -60,7 +62,11 @@ export function buildQuestListWidgetGroups(
         }
 
         if (widgetQuests.length === 0) continue;
-        widgetGroups.push({ title, quests: widgetQuests });
+        widgetGroups.push({
+            title,
+            quests: widgetQuests,
+            countsTowardsQuestSummary: group.countsTowardsQuestSummary !== false,
+        });
     }
 
     return widgetGroups;

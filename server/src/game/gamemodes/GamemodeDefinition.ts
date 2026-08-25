@@ -40,6 +40,12 @@ export interface GamemodeQuestListQuest {
 export interface GamemodeQuestListGroup {
     title: string;
     quests: readonly (string | GamemodeQuestListQuest)[];
+    /**
+     * Miniquests live in the same side-panel list, but do not award quest
+     * points and must not inflate the main quest completion counter.
+     * Omitted deliberately means "true" for existing gamemodes.
+     */
+    countsTowardsQuestSummary?: boolean;
 }
 
 export interface GamemodeBridge {

@@ -199,6 +199,62 @@ const QUEST_DISPLAY_NAMES: readonly string[] = [
     "Zogre Flesh Eaters",
 ];
 
+/** The current live free-to-play quest set. Kept as names so the catalog
+ * remains cache-version-agnostic and display spelling stays canonical. */
+const FREE_TO_PLAY_QUEST_NAMES = new Set<string>([
+    "Black Knights' Fortress",
+    "Below Ice Mountain",
+    "Cook's Assistant",
+    "The Corsair Curse",
+    "Demon Slayer",
+    "Doric's Quest",
+    "Dragon Slayer I",
+    "Ernest the Chicken",
+    "Goblin Diplomacy",
+    "Imp Catcher",
+    "The Ides of Milk",
+    "Learning the Ropes",
+    "Misthalin Mystery",
+    "Pirate's Treasure",
+    "Prince Ali Rescue",
+    "The Restless Ghost",
+    "Romeo & Juliet",
+    "Rune Mysteries",
+    "Sheep Shearer",
+    "Shield of Arrav",
+    "The Knight's Sword",
+    "Vampyre Slayer",
+    "Witch's Potion",
+    "X Marks the Spot",
+]);
+
+/**
+ * Miniquests are intentionally distinct from the 181 quest records above:
+ * they appear in the side journal for discovery, but do not add quest points
+ * or alter the completed-quest count.
+ */
+const MINIQUEST_DISPLAY_NAMES: readonly string[] = [
+    "Alfred Grimhand's Barcrawl",
+    "Barbarian Training",
+    "Bear Your Soul",
+    "Curse of the Empty Lord",
+    "Daddy's Home",
+    "Enter the Abyss",
+    "Family Pest",
+    "The Enchanted Key",
+    "The Frozen Door",
+    "The General's Shadow",
+    "His Faithful Servants",
+    "Hopespear's Will",
+    "In Search of Knowledge",
+    "Into the Tombs",
+    "Lair of Tarn Razorlor",
+    "Mage Arena I",
+    "Mage Arena II",
+    "Skippy and the Mogres",
+    "Vale Totems",
+];
+
 function normalizeCatalogKey(value: string): string {
     return String(value ?? "").trim().toLowerCase();
 }
@@ -208,10 +264,27 @@ export const VANILLA_QUEST_CATALOG: readonly QuestCatalogEntry[] = QUEST_DISPLAY
     (displayName) => ({ key: normalizeCatalogKey(displayName), displayName }),
 );
 
+export const VANILLA_MINIQUEST_CATALOG: readonly QuestCatalogEntry[] = MINIQUEST_DISPLAY_NAMES.map(
+    (displayName) => ({ key: normalizeCatalogKey(displayName), displayName }),
+);
+
 /** Quest-list groups are a view derived from the canonical catalog. */
 export const VANILLA_QUEST_LIST_GROUPS: readonly GamemodeQuestListGroup[] = [
     {
-        title: "",
-        quests: VANILLA_QUEST_CATALOG.map((entry) => entry.displayName),
+        title: "Free-to-play",
+        quests: VANILLA_QUEST_CATALOG
+            .filter((entry) => FREE_TO_PLAY_QUEST_NAMES.has(entry.displayName))
+            .map((entry) => entry.displayName),
+    },
+    {
+        title: "Members",
+        quests: VANILLA_QUEST_CATALOG
+            .filter((entry) => !FREE_TO_PLAY_QUEST_NAMES.has(entry.displayName))
+            .map((entry) => entry.displayName),
+    },
+    {
+        title: "Miniquests",
+        quests: VANILLA_MINIQUEST_CATALOG.map((entry) => entry.displayName),
+        countsTowardsQuestSummary: false,
     },
 ];

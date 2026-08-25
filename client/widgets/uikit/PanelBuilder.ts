@@ -246,8 +246,11 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     }
 
     const contentLeft = tabPosition === "left" ? sidebarWidth + 12 + 16 : CONTENT_MARGIN_X;
+    const infoColumnWidth = Math.max(0, layout.infoColumn?.width ?? 0);
+    const infoColumnGap = infoColumnWidth > 0 ? Math.max(4, layout.infoColumn?.gap ?? 12) : 0;
     const contentWidth =
-        layout.width - contentLeft - CONTENT_MARGIN_X - layout.content.scrollbarWidth;
+        layout.width - contentLeft - CONTENT_MARGIN_X - layout.content.scrollbarWidth -
+        infoColumnWidth - infoColumnGap;
     // More bottom margin reserved when a footer button exists, so the
     // last content row doesn't render underneath it.
     const contentBottomMargin = layout.footerButton || layout.controls ? 36 : CONTENT_BOTTOM_MARGIN;
@@ -270,6 +273,54 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     });
     widgets.set(contentView.uid, contentView);
     const contentViewUid = contentView.uid;
+
+    if (infoColumnWidth > 0) {
+        const infoLeft = contentLeft + contentWidth + layout.content.scrollbarWidth + infoColumnGap;
+        const dividerX = infoLeft - Math.ceil(infoColumnGap / 2);
+        const divider = makeWidget(groupId, ComponentIds.INFO_COLUMN_DIVIDER, rootUid, {
+            type: 3,
+            rawX: dividerX,
+            rawY: contentTop,
+            rawWidth: 1,
+            rawHeight: contentHeight,
+            width: 1,
+            height: contentHeight,
+            filled: true,
+            color: 0x5a5040,
+            isHidden: true,
+            hidden: true,
+        });
+        widgets.set(divider.uid, divider);
+
+        const infoRowHeight = Math.max(1, layout.infoColumn?.rowHeight ?? rowHeight);
+        const infoRowCapacity = Math.max(
+            0,
+            Math.min(
+                ComponentIds.MAX_INFO_COLUMN_ROWS,
+                layout.infoColumn?.rowCapacity ?? ComponentIds.MAX_INFO_COLUMN_ROWS,
+            ),
+        );
+        for (let i = 0; i < infoRowCapacity; i++) {
+            const line = makeWidget(groupId, ComponentIds.INFO_COLUMN_ROW_BASE + i, rootUid, {
+                type: 4,
+                rawX: infoLeft,
+                rawY: contentTop + i * infoRowHeight,
+                rawWidth: infoColumnWidth,
+                rawHeight: infoRowHeight,
+                width: infoColumnWidth,
+                height: infoRowHeight,
+                text: "",
+                fontId: FONT_PLAIN_12,
+                textColor: 0xe8ded0,
+                textShadowed: true,
+                xTextAlignment: 0,
+                yTextAlignment: 1,
+                isHidden: true,
+                hidden: true,
+            });
+            widgets.set(line.uid, line);
+        }
+    }
 
     if (layout.search) {
         // Steelborder owns the outermost pixels of a modal. Keep UIKit input

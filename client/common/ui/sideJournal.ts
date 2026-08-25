@@ -93,7 +93,9 @@ export const QUEST_LIST_COMPLETED_UID = packWidgetUid(
     INTERFACE_QUEST_LIST_ID,
     QUEST_LIST_COMPLETED_CHILD_ID,
 );
-export const QUEST_LIST_ENTRY_MAX_SLOT = 199;
+// 181 quests + 19 miniquests + three group headings presently need 203
+// dynamic slots. Keep a little headroom for the next cache quest release.
+export const QUEST_LIST_ENTRY_MAX_SLOT = 255;
 // Ops 1-6 transmit (View info / Read journal / Show on map / wiki ops / Pin journal)
 export const QUEST_LIST_ENTRY_EVENT_FLAGS = 0x7e;
 

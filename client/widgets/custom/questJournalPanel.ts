@@ -14,7 +14,22 @@ import { createScrollController } from "../uikit/ScrollController";
  */
 export const QUEST_JOURNAL_ROW_HEIGHT = 18;
 
-const layout = {
+const journalLayout = {
+    width: 520,
+    height: 300,
+    content: {
+        rowKind: "text" as const,
+        rowHeight: QUEST_JOURNAL_ROW_HEIGHT,
+        scrollbarWidth: 16,
+    },
+    infoColumn: {
+        width: 172,
+        rowHeight: QUEST_JOURNAL_ROW_HEIGHT,
+    },
+    footerButton: true,
+};
+
+const overviewLayout = {
     width: 520,
     height: 300,
     content: {
@@ -38,11 +53,11 @@ const questOverviewScrollController = createScrollController(
 
 registerUiPanel({
     groupId: QUEST_JOURNAL_PANEL_GROUP_ID,
-    build: () => buildUiPanel(QUEST_JOURNAL_PANEL_GROUP_ID, layout),
+    build: () => buildUiPanel(QUEST_JOURNAL_PANEL_GROUP_ID, journalLayout),
     scrollController: questJournalScrollController,
 });
 registerUiPanel({
     groupId: QUEST_OVERVIEW_PANEL_GROUP_ID,
-    build: () => buildUiPanel(QUEST_OVERVIEW_PANEL_GROUP_ID, layout),
+    build: () => buildUiPanel(QUEST_OVERVIEW_PANEL_GROUP_ID, overviewLayout),
     scrollController: questOverviewScrollController,
 });

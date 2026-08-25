@@ -8,6 +8,8 @@ export const ComponentIds = {
     ICON_ROW_DESC_BASE: 700, MAX_ROWS: 100, FOOTER_BUTTON: 900, FOOTER_BUTTON_LABEL: 901,
     SEARCH_BACKGROUND: 910, SEARCH_TEXT: 911,
     CONTROL_BACKGROUND_BASE: 920, CONTROL_LABEL_BASE: 930, CONTROL_ICON_BASE: 940, MAX_CONTROLS: 8,
+    /** Fixed, non-scrolling information column available beside text content. */
+    INFO_COLUMN_DIVIDER: 950, INFO_COLUMN_ROW_BASE: 960, MAX_INFO_COLUMN_ROWS: 16,
     MENU_BUTTON_BACKGROUND_BASE: 1000, MENU_BUTTON_ICON_BASE: 1040,
     MENU_BUTTON_LABEL_BASE: 1080, MAX_MENU_BUTTONS: 24,
     /** Reserved for a future always-visible tab background sprite layer
@@ -110,6 +112,8 @@ export type UiPanelLayout = {
          *  room. Independent of clickableRows (a panel can have one, both,
          *  or neither). */
         inlineRowActions?: boolean };
+    /** A static right-hand column separate from the scrollable main content. */
+    infoColumn?: { width: number; gap?: number; rowHeight?: number; rowCapacity?: number };
     /** Defaults to true. Blocks world input for every pixel inside the modal. */
     inputCapture?: boolean;
     /** Simple local background for developer tools that do not use steelborder. */

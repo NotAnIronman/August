@@ -180,6 +180,39 @@ export function sendUiTextRows(
     }
 }
 
+/**
+ * Populates the optional static information column built by
+ * UiPanelLayout.infoColumn. It never joins the main content scroll range, so
+ * quest requirements remain visible while a longer journal is read.
+ */
+export function sendUiInfoColumnRows(
+    services: ScriptServices,
+    playerId: number,
+    groupId: number,
+    lines: readonly string[],
+): void {
+    assertCapacity("info-column rows", lines.length, ComponentIds.MAX_INFO_COLUMN_ROWS);
+    const hasContent = lines.length > 0;
+    services.dialog.queueWidgetEvent(playerId, {
+        action: "set_hidden",
+        uid: packUid(groupId, ComponentIds.INFO_COLUMN_DIVIDER),
+        hidden: !hasContent,
+    });
+    for (let i = 0; i < ComponentIds.MAX_INFO_COLUMN_ROWS; i++) {
+        const visible = i < lines.length;
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_text",
+            uid: packUid(groupId, ComponentIds.INFO_COLUMN_ROW_BASE + i),
+            text: visible ? lines[i] : "",
+        });
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden",
+            uid: packUid(groupId, ComponentIds.INFO_COLUMN_ROW_BASE + i),
+            hidden: !visible,
+        });
+    }
+}
+
 export type UiIconRowData = UiIconRow;
 
 /** Populates a panel's "icon" content rows (level + item icon + name +

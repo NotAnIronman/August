@@ -17,6 +17,7 @@ import {
     packUid,
     reflowLines,
     sendUiFooterButton,
+    sendUiInfoColumnRows,
     sendUiTextRows,
     wrapTextToLines,
 } from "../uikit/panelData";
@@ -39,7 +40,9 @@ const VARP_QJ_LINES = 4398;
 /** OP ID for "Read journal:" right-click option */
 const OP_READ_JOURNAL = 2;
 /** The custom journal uses a much wider text column than the cache panel. */
-const QUEST_JOURNAL_CHARS_PER_LINE = 80;
+// The journal now reserves a right-hand facts column. This width keeps the
+// left narrative column inside its visible bounds even with markup applied.
+const QUEST_JOURNAL_CHARS_PER_LINE = 46;
 
 /** The selected quest must survive a journal/overview view switch even when
  * the current cache does not have a dbrow for a newly catalogued quest. */
@@ -100,6 +103,51 @@ function buildJournalLines(
         "",
         "Quest objectives and completion checks will be added",
         "in a future update.",
+    ];
+}
+
+/** Formats shared quest-definition metadata rather than hard-coding it into
+ * individual journal prose. Every future authored quest gets the same
+ * difficulty/length/storyline/requirements presentation by opting in with
+ * `journalInfo` on its definition. */
+function buildJournalInfoColumnLines(definition: QuestDefinition | undefined): string[] {
+    const info = definition?.journalInfo;
+    if (!definition || !info) return [];
+
+    const requirements: string[] = [];
+    if (definition.requirements?.questPoints !== undefined) {
+        requirements.push(`${definition.requirements.questPoints} Quest Points`);
+    }
+    for (const requirement of definition.requirements?.quests ?? []) {
+        requirements.push(requirement.label);
+    }
+    for (const requirement of definition.requirements?.skills ?? []) {
+        requirements.push(`Level ${requirement.level} ${requirement.label}`);
+    }
+
+    // The column contains 16 rows. Preserve a clear indication that a very
+    // requirement-heavy quest has more prerequisites rather than throwing or
+    // silently clipping the panel.
+    const requirementCapacity = 5;
+    const visibleRequirements = requirements.slice(0, requirementCapacity);
+    if (requirements.length > requirementCapacity) {
+        visibleRequirements.push(`...and ${requirements.length - requirementCapacity} more`);
+    }
+
+    return [
+        "<col=000080>Difficulty:</col>",
+        `<col=800000>${info.difficulty}</col>`,
+        "",
+        "<col=000080>Length:</col>",
+        `<col=800000>${info.length}</col>`,
+        "",
+        "<col=000080>Storyline:</col>",
+        `<col=800000>${info.storyline}</col>`,
+        "",
+        "<col=000080>Requirements:</col>",
+        ...(visibleRequirements.length > 0
+            ? visibleRequirements.map((requirement) => `<col=800000>${requirement}</col>`)
+            : ["<col=800000>None</col>"],
     ];
 }
 
@@ -235,6 +283,12 @@ function openQuestJournal(player: PlayerState, quest: QuestEntry, services: Scri
 
     // Show the "View Quest Overview" switch button, if this quest has one.
     const definition = getQuestDefinition(quest.displayName);
+    sendUiInfoColumnRows(
+        services,
+        playerId,
+        QUEST_JOURNAL_PANEL_GROUP_ID,
+        buildJournalInfoColumnLines(definition),
+    );
     for (const componentId of [ComponentIds.FOOTER_BUTTON, ComponentIds.FOOTER_BUTTON_LABEL]) {
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_hidden",

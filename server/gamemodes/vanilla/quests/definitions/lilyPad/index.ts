@@ -36,6 +36,11 @@ export const lilyPadQuest: QuestDefinition = {
     },
     overviewStartText:
         "speaking to <col=800000>Marcellus<col=000080> in the <col=800000>Locus Oasis<col=000080>.",
+    journalInfo: {
+        difficulty: "Novice",
+        length: "Very Short",
+        storyline: "Standalone",
+    },
     buildJournal(player, services): string[] {
         return buildLilyPadJournal(player, services, lilyPadQuest);
     },

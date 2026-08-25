@@ -54,6 +54,13 @@ export interface QuestRewards {
     other?: string[];
 }
 
+/** Canonical fact sheet shown beside an authored quest journal. */
+export interface QuestJournalInfo {
+    difficulty: string;
+    length: string;
+    storyline: string;
+}
+
 interface QuestDefinitionBase {
     /** Stable content key used by gamemodes and server systems */
     key: string;
@@ -71,6 +78,8 @@ interface QuestDefinitionBase {
     rewardItemId?: number;
     /** Start text fragment shown by the quest overview. */
     overviewStartText?: string;
+    /** Static facts displayed in the quest journal's right-hand column. */
+    journalInfo?: QuestJournalInfo;
     /** Build the quest journal lines for the player's current stage */
     buildJournal(player: PlayerState, services: ScriptServices): string[];
     /** Register the quest's interaction handlers (NPCs, locs, items) */

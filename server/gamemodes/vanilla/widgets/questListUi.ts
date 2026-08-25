@@ -133,6 +133,7 @@ export function buildPlayerQuestListWidgetGroups(
         groups.push({
             title: group.title,
             quests: resolvedQuests,
+            countsTowardsQuestSummary: group.countsTowardsQuestSummary,
         });
     }
     return buildQuestListWidgetGroups(groups);
@@ -146,6 +147,7 @@ export function findPlayerQuestListQuestBySlot(
 
     const groups = buildPlayerQuestListWidgetGroups(player);
     for (const group of groups) {
+        if (!group.countsTowardsQuestSummary) continue;
         for (const quest of group.quests) {
             if (quest.slot === slot) return quest;
         }

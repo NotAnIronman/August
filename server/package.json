@@ -23,6 +23,7 @@
     "build-collision": "tsx scripts/build-collision-cache.ts --include-models --force",
     "build-npc-aggression": "tsx scripts/build-npc-aggression.ts",
     "build-shops": "tsx scripts/build-shops.ts",
+    "sync-missing-cache-items": "tsx scripts/sync-missing-cache-items.ts",
     "import-equipment-reference": "tsx scripts/import-osrs-equipment-reference.ts",
     "ensure-cache": "tsx scripts/ensure-cache.ts --server",
     "merge-wiki-examine": "tsx scripts/merge-wiki-examine.ts",
