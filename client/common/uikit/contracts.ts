@@ -99,6 +99,8 @@ export type UiPanelLayout = {
     /** Preferred spelling for new panels; sidebar remains backwards compatible. */
     tabs?: {
         position: UiTabPosition; width?: number; height?: number;
+        /** Centers left-sidebar tab labels inside their selected rectangle. */
+        textAlignment?: UiTextAlignment;
         /** NOT YET WIRED in PanelBuilder.ts - the highlight widget's id
          *  range has no room for a second, always-visible background layer
          *  without shifting every component id after it. See the note in

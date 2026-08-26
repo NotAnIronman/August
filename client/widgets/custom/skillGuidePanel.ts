@@ -13,7 +13,7 @@ import { createScrollController } from "../uikit/ScrollController";
  * another scrollbar edge case) now fixes this panel automatically.
  */
 /** Compact item line plus a wrap-enabled requirement field. */
-export const SKILL_GUIDE_ROW_HEIGHT = 46;
+export const SKILL_GUIDE_ROW_HEIGHT = 40;
 
 const scrollController = createScrollController(
     SKILL_GUIDE_PANEL_GROUP_ID,
@@ -26,13 +26,13 @@ registerUiPanel({
     build: () => buildUiPanel(SKILL_GUIDE_PANEL_GROUP_ID, {
         width: 520,
         height: 320,
-        tabs: { position: "left", width: 116 },
+        tabs: { position: "left", width: 116, textAlignment: "center" },
         content: {
             rowKind: "icon",
             rowHeight: SKILL_GUIDE_ROW_HEIGHT,
             scrollbarWidth: 16,
             iconRowNameHeight: 15,
-            iconRowDescriptionHeight: 31,
+            iconRowDescriptionHeight: 25,
             iconRowAlternateBackground: true,
         },
     }),

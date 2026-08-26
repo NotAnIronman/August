@@ -147,6 +147,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
 
     if (tabPosition === "left") {
         const dividerX = sidebarWidth + 12;
+        const centerLeftTabText = layout.tabs?.textAlignment === "center";
         const divider = makeWidget(groupId, ComponentIds.SIDEBAR_DIVIDER, rootUid, {
             type: 3,
             rawX: dividerX,
@@ -163,6 +164,8 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
 
         for (let i = 0; i < ComponentIds.MAX_TABS; i++) {
             const tabY = SIDEBAR_TOP + i * TAB_HEIGHT;
+            const tabLeft = centerLeftTabText ? 8 : 16;
+            const tabWidth = centerLeftTabText ? sidebarWidth - 4 : sidebarWidth - 16;
 
             // Highlight's component id is LOWER than the tab text's (see
             // the fileId z-order note in types.ts) so it draws behind,
@@ -184,11 +187,11 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 {
                     type: 3,
                     rawX: 8,
-                    rawY: tabY - 2,
+                    rawY: centerLeftTabText ? tabY : tabY - 2,
                     rawWidth: sidebarWidth - 4,
-                    rawHeight: TAB_HEIGHT - 2,
+                    rawHeight: centerLeftTabText ? TAB_HEIGHT : TAB_HEIGHT - 2,
                     width: sidebarWidth - 4,
-                    height: TAB_HEIGHT - 2,
+                    height: centerLeftTabText ? TAB_HEIGHT : TAB_HEIGHT - 2,
                     filled: true,
                     color: 0x3a2e1f,
                     cacheUiAsset: layout.tabs?.backgroundHoverAsset,
@@ -200,18 +203,18 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
 
             const tab = makeWidget(groupId, ComponentIds.TAB_BASE + i, rootUid, {
                 type: 4,
-                rawX: 16,
+                rawX: tabLeft,
                 rawY: tabY,
-                rawWidth: sidebarWidth - 16,
+                rawWidth: tabWidth,
                 rawHeight: TAB_HEIGHT,
-                width: sidebarWidth - 16,
+                width: tabWidth,
                 height: TAB_HEIGHT,
                 text: "",
                 fontId: FONT_BOLD_12,
                 textColor: 0xff981f,
                 mouseOverColor: 0xffffff,
                 textShadowed: true,
-                xTextAlignment: 0,
+                xTextAlignment: centerLeftTabText ? 1 : 0,
                 yTextAlignment: 1,
                 actions: ["Select"],
                 flags: FLAG_TRANSMIT_OP1,
@@ -518,7 +521,9 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
 
     if (includesIconRows) {
         const levelWidth = 26;
-        const iconSize = 26;
+        const levelHeight = 26;
+        const iconSize = 32;
+        const iconTop = 2;
         const alternatingRowConfig = layout.content.iconRowAlternateBackground;
         const iconRowNameHeight = Math.max(
             1,
@@ -590,11 +595,11 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 {
                     type: 4,
                     rawX: 0,
-                    rawY: rawY + 2,
+                    rawY: rawY + iconTop + Math.floor((iconSize - levelHeight) / 2),
                     rawWidth: levelWidth,
-                    rawHeight: iconSize,
+                    rawHeight: levelHeight,
                     width: levelWidth,
-                    height: iconSize,
+                    height: levelHeight,
                     text: "",
                     fontId: FONT_PLAIN_11,
                     textColor: 0xc5b79b,
@@ -614,7 +619,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 {
                     type: 5,
                     rawX: levelWidth + 6,
-                    rawY: rawY + 2,
+                    rawY: rawY + iconTop,
                     rawWidth: iconSize,
                     rawHeight: iconSize,
                     width: iconSize,
