@@ -6,6 +6,7 @@ import {
 import type { PlayerState } from "../../../src/game/player";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
 import { getAllSpellData } from "../../../src/game/spells/SpellDataProvider";
+import { registerNpcAnimationReviewCommands } from "./npcAnimationReview";
 
 const DEFAULT_MAGIC_RUNE_QUANTITY = 10_000;
 const MAX_MAGIC_RUNE_QUANTITY = 2_000_000_000;
@@ -136,4 +137,6 @@ export function registerVanillaCommandHandlers(
         );
         return `Added ${runeItemIds.length} spell rune types x${quantity}.`;
     });
+
+    registerNpcAnimationReviewCommands(registry, services);
 }
