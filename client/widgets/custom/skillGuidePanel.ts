@@ -12,8 +12,8 @@ import { createScrollController } from "../uikit/ScrollController";
  * copy of the frame/tabs/scroll logic. Any future fix to the kit (e.g.
  * another scrollbar edge case) now fixes this panel automatically.
  */
-/** One item line plus a wrap-enabled, up-to-three-line requirement field. */
-export const SKILL_GUIDE_ROW_HEIGHT = 54;
+/** Compact item line plus a wrap-enabled requirement field. */
+export const SKILL_GUIDE_ROW_HEIGHT = 46;
 
 const scrollController = createScrollController(
     SKILL_GUIDE_PANEL_GROUP_ID,
@@ -31,8 +31,9 @@ registerUiPanel({
             rowKind: "icon",
             rowHeight: SKILL_GUIDE_ROW_HEIGHT,
             scrollbarWidth: 16,
-            iconRowNameHeight: 16,
-            iconRowDescriptionHeight: 38,
+            iconRowNameHeight: 15,
+            iconRowDescriptionHeight: 31,
+            iconRowAlternateBackground: true,
         },
     }),
     scrollController,

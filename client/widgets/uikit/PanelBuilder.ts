@@ -519,6 +519,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     if (includesIconRows) {
         const levelWidth = 26;
         const iconSize = 26;
+        const alternatingRowConfig = layout.content.iconRowAlternateBackground;
         const iconRowNameHeight = Math.max(
             1,
             Math.min(rowHeight, layout.content.iconRowNameHeight ?? 16),
@@ -531,8 +532,56 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             ),
         );
         const iconRowDescriptionYAlignment = iconRowDescriptionHeight > 16 ? 0 : 1;
+        const iconRowBackgroundLayerUid = alternatingRowConfig
+            ? panelWidgetUid(groupId, ComponentIds.ICON_ROW_BACKGROUND_LAYER)
+            : undefined;
+        if (alternatingRowConfig) {
+            const backgroundLayer = makeWidget(
+                groupId,
+                ComponentIds.ICON_ROW_BACKGROUND_LAYER,
+                contentViewUid,
+                {
+                    type: 0,
+                    rawX: 0,
+                    rawY: 0,
+                    rawWidth: contentWidth,
+                    rawHeight: (layout.content.rowCapacity ?? ComponentIds.MAX_ROWS) * rowHeight,
+                    width: contentWidth,
+                    height: (layout.content.rowCapacity ?? ComponentIds.MAX_ROWS) * rowHeight,
+                    scrollWidth: contentWidth,
+                    scrollHeight: (layout.content.rowCapacity ?? ComponentIds.MAX_ROWS) * rowHeight,
+                },
+            );
+            widgets.set(backgroundLayer.uid, backgroundLayer);
+        }
         for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
             const rawY = i * rowHeight;
+
+            if (iconRowBackgroundLayerUid !== undefined) {
+                const config = alternatingRowConfig === true ? {} : alternatingRowConfig;
+                const background = makeWidget(
+                    groupId,
+                    ComponentIds.ICON_ROW_BACKGROUND_BASE + i,
+                    iconRowBackgroundLayerUid,
+                    {
+                        type: 3,
+                        rawX: 0,
+                        rawY,
+                        rawWidth: contentWidth,
+                        rawHeight: rowHeight,
+                        width: contentWidth,
+                        height: rowHeight,
+                        filled: true,
+                        // A muted overlay keeps the cache panel texture
+                        // visible, matching the main game's subtle stripes.
+                        color: config.color ?? 0x504a40,
+                        transparency: config.transparency ?? 132,
+                        isHidden: true,
+                        hidden: true,
+                    },
+                );
+                widgets.set(background.uid, background);
+            }
 
             const level = makeWidget(
                 groupId,

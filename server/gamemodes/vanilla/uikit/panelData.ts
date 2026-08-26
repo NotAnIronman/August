@@ -79,6 +79,7 @@ export function sendUiTabs(
     groupId: number,
     tabs: ReadonlyArray<{ label: string }>,
     activeIndex: number,
+    colors?: { active: string; inactive: string },
 ): void {
     assertCapacity("tabs", tabs.length, ComponentIds.MAX_TABS);
     for (let i = 0; i < ComponentIds.MAX_TABS; i++) {
@@ -89,7 +90,9 @@ export function sendUiTabs(
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_text",
             uid: tabUid,
-            text: tab ? (i === activeIndex ? `<col=ffffff>${tab.label}</col>` : tab.label) : "",
+            text: tab
+                ? `<col=${i === activeIndex ? colors?.active ?? "ffffff" : colors?.inactive ?? "ff981f"}>${tab.label}</col>`
+                : "",
         });
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_hidden",
@@ -222,6 +225,7 @@ export function sendUiIconRows(
     playerId: number,
     groupId: number,
     rows: readonly (UiIconRowData | undefined)[],
+    options?: { alternatingBackground?: boolean },
 ): void {
     assertCapacity("rows", rows.length, ComponentIds.MAX_ROWS);
     for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
@@ -230,6 +234,15 @@ export function sendUiIconRows(
         const iconUid = packUid(groupId, ComponentIds.ICON_ROW_ICON_BASE + i);
         const nameUid = packUid(groupId, ComponentIds.ICON_ROW_NAME_BASE + i);
         const descUid = packUid(groupId, ComponentIds.ICON_ROW_DESC_BASE + i);
+        const backgroundUid = packUid(groupId, ComponentIds.ICON_ROW_BACKGROUND_BASE + i);
+
+        if (options?.alternatingBackground) {
+            services.dialog.queueWidgetEvent(playerId, {
+                action: "set_hidden",
+                uid: backgroundUid,
+                hidden: !row || i % 2 !== 0,
+            });
+        }
 
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_text",

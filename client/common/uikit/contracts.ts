@@ -4,6 +4,9 @@ export const ComponentIds = {
     TAB_HIGHLIGHT_BASE: 3, TAB_BASE: 13, MAX_TABS: 10,
     CONTENT_VIEW: 30, SCROLLBAR: 31, SCROLLBAR_TRACK: 32, SCROLLBAR_THUMB: 33,
     TEXT_ROW_LINE_BASE: 40, TEXT_ROW_DIVIDER_BASE: 140, TEXT_ROW_CENTER_BASE: 240,
+    /** A container below all icon-row foreground widgets; its children hold
+     *  optional alternating row surfaces. */
+    ICON_ROW_BACKGROUND_LAYER: 340,
     ICON_ROW_LEVEL_BASE: 400, ICON_ROW_ICON_BASE: 500, ICON_ROW_NAME_BASE: 600,
     ICON_ROW_DESC_BASE: 700, MAX_ROWS: 100, FOOTER_BUTTON: 900, FOOTER_BUTTON_LABEL: 901,
     SEARCH_BACKGROUND: 910, SEARCH_TEXT: 911,
@@ -58,6 +61,9 @@ export const ComponentIds = {
     ROW_MOVE_DOWN_BASE: 4460,
     ROW_DELETE_BASE: 4510,
     INLINE_ROW_ACTION_CAPACITY: 40,
+    /** Children of ICON_ROW_BACKGROUND_LAYER. Their high IDs are safe
+     *  because the layer itself renders before all icon row foregrounds. */
+    ICON_ROW_BACKGROUND_BASE: 4700,
 } as const;
 
 export type UiRowKind = "text" | "icon" | "mixed" | "picker" | "sprite-gallery";
@@ -108,6 +114,8 @@ export type UiPanelLayout = {
         /** Height of an icon row's secondary label. Defaults to 16 pixels.
          *  Give this more space when that line needs automatic text wrapping. */
         iconRowDescriptionHeight?: number;
+        /** Optional subtle surface behind every other populated icon row. */
+        iconRowAlternateBackground?: boolean | { color?: number; transparency?: number };
         /** Builds an invisible full-row hit-zone (DIALOGUE_ROW_HITZONE_BASE)
          *  behind every "text"/"mixed" row, up to MAX_ROWS, for panels that
          *  want per-row click/right-click via GalleryClickController rather

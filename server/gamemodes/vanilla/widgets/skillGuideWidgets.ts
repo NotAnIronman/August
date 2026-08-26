@@ -95,6 +95,18 @@ function requirementsForEntry(entry: SkillGuideEntry): {
     return { name: legacy[1].trim(), requirements: [legacy[2].trim()] };
 }
 
+/** A hand-authored string may contain several independently checked skill
+ * requirements, e.g. "Level 30 Ranged, Level 30 Magic". Split separators
+ * here so one unmet skill never paints every other requirement grey. */
+function splitRequirementList(requirement: SkillGuideRequirement): readonly SkillGuideRequirement[] {
+    if (typeof requirement !== "string") return [requirement];
+    const parts = requirement
+        .split(/\s*(?:,|;|&|\band\b)\s*/i)
+        .map((part) => part.trim())
+        .filter(Boolean);
+    return parts.length > 1 ? parts : [requirement];
+}
+
 function parseSkillLevelRequirement(text: string): { skillId: SkillId; level: number } | undefined {
     const normalized = text.replace(/\s+/g, " ").trim();
     const levelFirst = /^(?:level )?(\d{1,3}) (.+)$/i.exec(normalized);
@@ -134,7 +146,8 @@ function toSkillGuideRow(
     player: PlayerState,
     entry: SkillGuideEntry,
 ): UiIconRow {
-    const { name, requirements } = requirementsForEntry(entry);
+    const { name, requirements: rawRequirements } = requirementsForEntry(entry);
+    const requirements = rawRequirements.flatMap(splitRequirementList);
     const description = requirements.length === 0
         ? entry.description
         : `<col=${GUIDE_ORANGE}>Requires:</col> ${requirements
@@ -165,12 +178,16 @@ function renderSkillGuidePanel(
     const clampedIndex =
         tabs.length === 0 ? 0 : Math.min(Math.max(activeTabIndex, 0), tabs.length - 1);
 
-    sendUiTabs(services, playerId, SKILL_GUIDE_PANEL_GROUP_ID, tabs, clampedIndex);
+    sendUiTabs(services, playerId, SKILL_GUIDE_PANEL_GROUP_ID, tabs, clampedIndex, {
+        active: "ffcf70",
+        inactive: "ff981f",
+    });
     sendUiIconRows(
         services,
         playerId,
         SKILL_GUIDE_PANEL_GROUP_ID,
         (tabs[clampedIndex]?.entries ?? []).map((entry) => toSkillGuideRow(services, player, entry)),
+        { alternatingBackground: true },
     );
 }
 
