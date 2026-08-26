@@ -16,6 +16,7 @@ export function registerFollowerItemHandlers(
     services: ScriptServices,
 ): void {
     const followerDefs = services.followers?.getItemDefinitions() ?? [];
+    const registeredPrimaryNpcTypeIds = new Set<number>();
     for (const definition of followerDefs) {
         registry.registerItemAction(
             definition.itemId,
@@ -48,6 +49,13 @@ export function registerFollowerItemHandlers(
             },
             "drop",
         );
+
+        // Cache variants can share an NPC form. The interaction operates from
+        // the follower state on that NPC, so one pick-up handler per NPC type
+        // is sufficient and avoids stacking identical registrations.
+        if (!registeredPrimaryNpcTypeIds.add(definition.npcTypeId)) {
+            continue;
+        }
 
         registry.registerNpcInteraction(
             definition.npcTypeId,
