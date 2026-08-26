@@ -1,6 +1,14 @@
 {
   "$comment": "NPC combat definitions - server-side only. Client loads animations dynamically.",
   "npcs": {
+    "73": {
+      "name": "Skeleton",
+      "anims": {
+        "attack": 5485,
+        "block": 5489,
+        "death": 5491
+      }
+    },
     "100": {
       "name": "Rock Crab",
       "anims": {
@@ -197,6 +205,30 @@
         "death": 5389
       }
     },
+    "1262": {
+      "name": "Ram",
+      "anims": {
+        "attack": 5338,
+        "block": 5337,
+        "death": 5336
+      }
+    },
+    "1263": {
+      "name": "Ram",
+      "anims": {
+        "attack": 5338,
+        "block": 5337,
+        "death": 5336
+      }
+    },
+    "1264": {
+      "name": "Ram",
+      "anims": {
+        "attack": 5338,
+        "block": 5337,
+        "death": 5336
+      }
+    },
     "1679": {
       "name": "Rat",
       "anims": {
@@ -243,6 +275,94 @@
         "attack": 5319,
         "block": 5320,
         "death": 5321
+      }
+    },
+    "1838": {
+      "name": "Duck",
+      "anims": {
+        "attack": 3467,
+        "block": 424,
+        "death": 3468
+      }
+    },
+    "1839": {
+      "name": "Duck",
+      "anims": {
+        "attack": 3467,
+        "block": 424,
+        "death": 3468
+      }
+    },
+    "2001": {
+      "name": "Duckling",
+      "anims": {
+        "attack": 3467,
+        "block": 424,
+        "death": 3468
+      }
+    },
+    "2205": {
+      "name": "Commander Zilyana",
+      "anims": {
+        "attack": 422,
+        "block": 424,
+        "death": 6968
+      }
+    },
+    "2206": {
+      "name": "Starlight",
+      "anims": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      }
+    },
+    "2207": {
+      "name": "Growler",
+      "anims": {
+        "attack": 7037,
+        "block": 7035,
+        "death": 7034
+      }
+    },
+    "2208": {
+      "name": "Bree",
+      "anims": {
+        "attack": 7026,
+        "block": 7027,
+        "death": 7028
+      }
+    },
+    "2215": {
+      "name": "General Graardor",
+      "anims": {
+        "attack": 7018,
+        "block": 7019,
+        "death": 7020
+      }
+    },
+    "2216": {
+      "name": "Sergeant Strongstack",
+      "anims": {
+        "attack": 6154,
+        "block": 6155,
+        "death": 6156
+      }
+    },
+    "2217": {
+      "name": "Sergeant Steelwill",
+      "anims": {
+        "attack": 7071,
+        "block": 6155,
+        "death": 6156
+      }
+    },
+    "2218": {
+      "name": "Sergeant Grimspike",
+      "anims": {
+        "attack": 7073,
+        "block": 6155,
+        "death": 6156
       }
     },
     "2245": {
@@ -414,6 +534,46 @@
       },
       "sounds": {
         "death": 763
+      }
+    },
+    "2790": {
+      "name": "Cow",
+      "anims": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      }
+    },
+    "2791": {
+      "name": "Cow",
+      "anims": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      }
+    },
+    "2792": {
+      "name": "Cow calf",
+      "anims": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      }
+    },
+    "2793": {
+      "name": "Cow",
+      "anims": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      }
+    },
+    "2794": {
+      "name": "Cow calf",
+      "anims": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
       }
     },
     "2804": {
@@ -599,9 +759,9 @@
     "3017": {
       "name": "Giant Spider",
       "anims": {
-        "attack": 5319,
-        "block": 5320,
-        "death": 5321
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
       }
     },
     "3018": {
@@ -615,9 +775,9 @@
     "3019": {
       "name": "Spider",
       "anims": {
-        "attack": 5327,
-        "block": 5328,
-        "death": 5329
+        "attack": 6249,
+        "block": 6250,
+        "death": 6251
       }
     },
     "3020": {
@@ -867,7 +1027,7 @@
       "name": "Man",
       "anims": {
         "attack": 422,
-        "block": 424,
+        "block": 425,
         "death": 836
       },
       "sounds": {
@@ -878,7 +1038,7 @@
       "name": "Man",
       "anims": {
         "attack": 422,
-        "block": 424,
+        "block": 425,
         "death": 836
       },
       "sounds": {
@@ -889,7 +1049,7 @@
       "name": "Man",
       "anims": {
         "attack": 422,
-        "block": 424,
+        "block": 425,
         "death": 836
       },
       "sounds": {
@@ -918,12 +1078,124 @@
         "death": 512
       }
     },
+    "3111": {
+      "name": "Woman",
+      "anims": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      }
+    },
+    "3112": {
+      "name": "Woman",
+      "anims": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      }
+    },
+    "3113": {
+      "name": "Woman",
+      "anims": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      }
+    },
+    "3114": {
+      "name": "Farmer",
+      "anims": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
+      }
+    },
+    "3129": {
+      "name": "K'ril Tsutsaroth",
+      "anims": {
+        "attack": 422,
+        "block": 424,
+        "death": 6949
+      }
+    },
+    "3130": {
+      "name": "Tstanon Karlak",
+      "anims": {
+        "attack": 4644,
+        "block": 65,
+        "death": 68
+      }
+    },
+    "3131": {
+      "name": "Zakl'n Gritch",
+      "anims": {
+        "attack": 7077,
+        "block": 65,
+        "death": 67
+      }
+    },
+    "3132": {
+      "name": "Balfrug Kreeyath",
+      "anims": {
+        "attack": 4630,
+        "block": 65,
+        "death": 67
+      }
+    },
     "3134": {
       "name": "Imp",
       "anims": {
         "attack": 169,
         "block": 170,
         "death": 172
+      }
+    },
+    "3162": {
+      "name": "Kree'arra",
+      "anims": {
+        "attack": 422,
+        "block": 424,
+        "death": 6979
+      }
+    },
+    "3163": {
+      "name": "Wingman Skree",
+      "anims": {
+        "attack": 6956,
+        "block": 6958,
+        "death": 6959
+      }
+    },
+    "3164": {
+      "name": "Flockleader Geerin",
+      "anims": {
+        "attack": 6956,
+        "block": 6958,
+        "death": 6959
+      }
+    },
+    "3165": {
+      "name": "Flight Kilisa",
+      "anims": {
+        "attack": 6957,
+        "block": 6958,
+        "death": 6959
+      }
+    },
+    "3243": {
+      "name": "Farmer",
+      "anims": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
+      }
+    },
+    "3244": {
+      "name": "Farmer",
+      "anims": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
       }
     },
     "3261": {
@@ -1388,6 +1660,14 @@
         "death": 6182
       }
     },
+    "5211": {
+      "name": "null",
+      "anims": {
+        "attack": 390,
+        "block": 383,
+        "death": 836
+      }
+    },
     "5228": {
       "name": "Kharid Scorpion",
       "anims": {
@@ -1499,7 +1779,7 @@
       "name": "Man",
       "anims": {
         "attack": 422,
-        "block": 424,
+        "block": 425,
         "death": 836
       },
       "sounds": {
@@ -1550,6 +1830,22 @@
         "death": 3835
       }
     },
+    "7221": {
+      "name": "Scurrius",
+      "anims": {
+        "attack": 422,
+        "block": 424,
+        "death": 10705
+      }
+    },
+    "7222": {
+      "name": "Scurrius",
+      "anims": {
+        "attack": 422,
+        "block": 424,
+        "death": 10705
+      }
+    },
     "7223": {
       "name": "Giant rat",
       "anims": {
@@ -1597,6 +1893,30 @@
       },
       "sounds": {
         "death": 512
+      }
+    },
+    "8700": {
+      "name": "Giant frog",
+      "anims": {
+        "attack": 1793,
+        "block": 1794,
+        "death": 1795
+      }
+    },
+    "8701": {
+      "name": "Big frog",
+      "anims": {
+        "attack": 1793,
+        "block": 1794,
+        "death": 1795
+      }
+    },
+    "8702": {
+      "name": "Frog",
+      "anims": {
+        "attack": 1793,
+        "block": 1794,
+        "death": 1795
       }
     },
     "8986": {
@@ -1786,49 +2106,88 @@
       "name": "Guard",
       "anims": {
         "attack": 386,
-        "block": 1156
+        "block": 1156,
+        "death": 836
       }
     },
     "11912": {
       "name": "Guard",
       "anims": {
         "attack": 386,
-        "block": 1156
+        "block": 1156,
+        "death": 836
       }
     },
     "11913": {
       "name": "Guard",
       "anims": {
         "attack": 386,
-        "block": 1156
+        "block": 1156,
+        "death": 836
       }
     },
     "11914": {
       "name": "Guard",
       "anims": {
         "attack": 386,
-        "block": 1156
+        "block": 1156,
+        "death": 836
       }
     },
     "11915": {
       "name": "Guard",
       "anims": {
         "attack": 386,
-        "block": 1156
+        "block": 1156,
+        "death": 836
       }
     },
     "11916": {
       "name": "Guard",
       "anims": {
         "attack": 386,
-        "block": 1156
+        "block": 1156,
+        "death": 836
       }
     },
     "11917": {
       "name": "Guard",
       "anims": {
         "attack": 386,
-        "block": 1156
+        "block": 1156,
+        "death": 836
+      }
+    },
+    "11918": {
+      "name": "Farmer",
+      "anims": {
+        "attack": 386,
+        "block": 387,
+        "death": 836
+      }
+    },
+    "11919": {
+      "name": "Farmer",
+      "anims": {
+        "attack": 386,
+        "block": 387,
+        "death": 836
+      }
+    },
+    "11920": {
+      "name": "Farmer",
+      "anims": {
+        "attack": 386,
+        "block": 387,
+        "death": 836
+      }
+    },
+    "11921": {
+      "name": "Farmer",
+      "anims": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
       }
     },
     "13624": {
