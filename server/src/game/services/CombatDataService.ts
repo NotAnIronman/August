@@ -165,40 +165,42 @@ export class CombatDataService {
         };
     }
 
-    getNpcCombatAnimations(
-        npc: NpcState | number,
-        attackType?: AttackType,
-    ): NpcCombatAnimations {
+    getNpcCombatAnimations(npc: NpcState | number): NpcCombatAnimations {
         this.loadNpcCombatDefs();
         const typeId = typeof npc === "number" ? Math.trunc(npc) : npc.typeId;
         const idle = typeof npc === "number" ? undefined : npc.idleSeqId;
         const walk = typeof npc === "number" ? undefined : npc.walkSeqId;
         const key = String(typeId);
         const entry = this.npcCombatDefs?.[key];
-        const resolved = resolveNpcCombatAnimations({
+        return resolveNpcCombatAnimations({
             npcTypeId: typeId,
             configured: entry,
             defaults: this.npcCombatDefaults,
             idle,
             walk,
         });
-        const styleAttack = attackType ? entry?.[attackType] : undefined;
-        if (
-            typeof styleAttack !== "number" ||
-            !Number.isFinite(styleAttack) ||
-            styleAttack <= 0
-        ) {
-            return resolved;
-        }
-        return { ...resolved, attack: Math.trunc(styleAttack) };
     }
 
-    getNpcDefinition(npc: NpcState, attackType?: AttackType): NpcDefinition {
+    getNpcDefinition(npc: NpcState): NpcDefinition {
         return {
             id: npc.typeId,
             name: npc.name,
-            animations: this.getNpcCombatAnimations(npc, attackType),
+            animations: this.getNpcCombatAnimations(npc),
         };
+    }
+
+    /**
+     * A multi-style animation is metadata for a mechanic or boss script to
+     * select deliberately. It is not safe for ordinary NPC combat to choose
+     * one automatically, because the generic engine does not know which
+     * special or phase condition is active.
+     */
+    getNpcCombatStyleAnimation(typeId: number, attackType: AttackType): number | undefined {
+        this.loadNpcCombatDefs();
+        const animation = this.npcCombatDefs?.[String(Math.trunc(typeId))]?.[attackType];
+        return typeof animation === "number" && Number.isFinite(animation) && animation > 0
+            ? Math.trunc(animation)
+            : undefined;
     }
 
     /**

@@ -1145,10 +1145,7 @@ export class CombatHitProcessor {
         specialAttack?: WeaponSpecialAttack,
     ): void {
         if (context.attacker instanceof NpcState) {
-            const definition = this.services.combatDataService.getNpcDefinition(
-                context.attacker,
-                context.attack.traits.type,
-            );
+            const definition = this.services.combatDataService.getNpcDefinition(context.attacker);
             const attackAnimation = specialAttack?.attackAnimation ?? definition.animations.attack;
             if (attackAnimation > 0) {
                 this.services.combatEffectService.broadcastNpcSequence(
