@@ -7,7 +7,7 @@ export const strengthSkillGuide: SkillGuideData = {
     skillId: SkillId.Strength,
     tabs: [
         {
-            label: "Free-to-play",
+            label: "Overview",
             entries: [
                 {
                     itemId: -1,
@@ -22,315 +22,285 @@ export const strengthSkillGuide: SkillGuideData = {
                     requires: "",
                     description: "combat bonuses"
                 },
-                {
-                    itemId: 1337,
-                    level: 1,
-                    name: "Wield bronze warhammers",
-                    requires: "",
-                },
-                {
-                    itemId: 1335,
-                    level: 1,
-                    name: "Wield iron warhammers",
-                    requires: "",
-                },
-                {
-                    itemId: 1339,
-                    level: 5,
-                    name: "Wield steel warhammers",
-                    requires: "",
-                },
-                {
-                    itemId: 1341,
-                    level: 10,
-                    name: "Wield black warhammers",
-                    requires: "",
-                },
-                {
-                    itemId: 1343,
-                    level: 20,
-                    name: "Wield mithril warhammers",
-                    requires: "",
-                },
-                {
-                    itemId: 1345,
-                    level: 30,
-                    name: "Wield adamant warhammers",
-                    requires: "",
-                },
-                {
-                    itemId: 1347,
-                    level: 40,
-                    name: "Wield rune warhammers",
-                    requires: "",
-                },
-                {
-                    itemId: -1,
-                    level: 99,
-                    name: "Skill mastery",
-                    requires: "",
-                }
+
             ]
         },
         {
-            label: "Members",
+            label: "Weapons",
             entries: [
                 {
-                    itemId: 3196,
+                    itemId: ,
+                    level: 1,
+                    name: "Bronze warhammer",
+                    requires: "",
+                },
+                {
+                    itemId: ,
+                    level: 1,
+                    name: "Iron warhammer",
+                    requires: "",
+                },
+                {
+                    itemId: ,
                     level: 5,
-                    name: "Wield black halberds (with Attack 10)",
+                    name: "Steel warhammer",
                     requires: "",
                 },
                 {
-                    itemId: 3198,
+                    itemId: ,
+                    level: 5,
+                    name: "Blask halberd",
+                    requires: "Level 10 Attack",
+                },
+                {
+                    itemId: ,
+                    level: 5,
+                    name: "White halberd",
+                    requires: "Level 10 Attack",
+                },
+                {
+                    itemId: ,
                     level: 10,
-                    name: "Wield mithril halberds (with Attack 20)",
+                    name: "Black warhammer",
                     requires: "",
                 },
                 {
-                    itemId: 11328,
+                    itemId: ,
+                    level: 10,
+                    name: "White warhammer",
+                    requires: "Level 10 Prayer",
+                },
+                {
+                    itemId: ,
+                    level: 10,
+                    name: "Mithril halberd",
+                    requires: "Level 20 Attack",
+                },
+                {
+                    itemId: ,
                     level: 15,
-                    name: "Catch leaping trout (with Fishing 48, Agility 15, and Barbarian Training completed)",
-                    requires: "",
+                    name: "Adamant halberd",
+                    requires: "Level 30 Attack",
                 },
                 {
-                    itemId: 3200,
-                    level: 15,
-                    name: "Wield adamant halberds (with Attack 30)",
-                    requires: "",
-                },
-                {
-                    itemId: 9418,
-                    level: 19,
-                    name: "Access Broken raft (South of Lumbridge) shortcut (Requires grappling, Agility 8, and Ranged 37)",
-                    requires: "",
-                },
-                {
-                    itemId: 8901,
+                    itemId: ,
                     level: 20,
-                    name: "Wear black masks (with Defence 10 and 40 Combat)",
+                    name: "Mithril warhammer",
                     requires: "",
                 },
                 {
-                    itemId: 3202,
+                    itemId: ,
                     level: 20,
-                    name: "Wield rune halberds (with Attack 40)",
-                    requires: "",
+                    name: "Rune halberd",
+                    requires: "Level 40 Attack",
                 },
                 {
-                    itemId: 9418,
-                    level: 21,
-                    name: "Access Rock (South of Volcano area on Karamja) shortcut (Requires grappling, Agility 53, and Ran",
-                    requires: "",
-                    description: "ged 42)"
-                },
-                {
-                    itemId: 9418,
-                    level: 22,
-                    name: "Access Rock (Taverley Dungeon) shortcut (Requires grappling, Agility 36, and Ranged 39)",
-                    requires: "",
-                },
-                {
-                    itemId: 11330,
+                    itemId: ,
                     level: 30,
-                    name: "Catch leaping salmon (with Fishing 58, Agility 30, and Barbarian Training completed)",
+                    name: "Adamant warhammer",
                     requires: "",
                 },
                 {
-                    itemId: -1,
+                    itemId: ,
                     level: 30,
-                    name: "Wield hunter's spears (with Ranged 55)",
+                    name: "Hunter's spear",
+                    requires: "Level 55 Ranged",
+                },
+                {
+                    itemId: ,
+                    level: 30,
+                    name: "Dragon halberd",
+                    requires: "Level 60 Attack",
+                },
+                {
+                    itemId: ,
+                    level: 40,
+                    name: "Rune warhammer",
                     requires: "",
                 },
                 {
-                    itemId: 9418,
-                    level: 35,
-                    name: "Access Rock (East Catherby) shortcut (Requires grappling, Agility 32, and Ranged 35)",
-                    requires: "",
+                    itemId: ,
+                    level: 40,
+                    name: "Barrelchest Anchor",
+                    requires: "Level 60 Attack, The Great Brain Robbery",
                 },
                 {
-                    itemId: 359,
-                    level: 35,
-                    name: "Catch tuna barehanded (with Fishing 55 and Barbarian Training completed)",
-                    requires: "",
+                    itemId: ,
+                    level: 69,
+                    name: "Adding more later, this is boring.",
+                    requires: "Me to give a damn.",
                 },
-                {
-                    itemId: 25564,
-                    level: 35,
-                    name: "Catch harpoonfish barehanded (with Fishing 55 and Barbarian Training completed)",
-                    requires: "",
-                },
-                {
-                    itemId: 9418,
-                    level: 37,
-                    name: "Access Wall (North wall of Falador) shortcut (Requires grappling, Agility 11, and Ranged 19)",
-                    requires: "",
-                },
-                {
-                    itemId: 9418,
-                    level: 38,
-                    name: "Access Wall (South-west wall of Yanille) shortcut (Requires grappling, Agility 39, and Ranged 21",
-                    requires: "",
-                    description: ")"
-                },
-                {
-                    itemId: 8839,
-                    level: 42,
-                    name: "Wear Void knight top (with Attack 42, Magic, Defence, Ranged, Hitpoints, and Prayer 22)",
-                    requires: "",
-                },
-                {
-                    itemId: 11332,
-                    level: 45,
-                    name: "Catch leaping sturgeon (with Fishing 70, Agility 45, and Barbarian Training completed)",
-                    requires: "",
-                },
-                {
-                    itemId: 371,
-                    level: 50,
-                    name: "Catch swordfish barehanded (with Fishing 70 and Barbarian Training completed)",
-                    requires: "",
-                },
-                {
-                    itemId: 10564,
-                    level: 50,
-                    name: "Wear granite equipment (with Defence 50)",
-                    requires: "",
-                },
-                {
-                    itemId: 4153,
-                    level: 50,
-                    name: "Wield granite weapons (with Attack 50)",
-                    requires: "",
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Wield eclipse atlatls (with Attack 50 and Ranged 75)",
-                    requires: "",
-                },
-                {
-                    itemId: -1,
-                    level: 50,
-                    name: "Wear zombie helmets (with Defence 50)",
-                    requires: "",
-                },
-                {
-                    itemId: -1,
-                    level: 60,
-                    name: "Enter the God Wars Dungeon via the strength route",
-                    requires: "",
-                },
-                {
-                    itemId: 13576,
-                    level: 60,
-                    name: "Wield dragon warhammers",
-                    requires: "",
-                },
-                {
-                    itemId: 6528,
-                    level: 60,
-                    name: "Wield tzhaar-ket-oms",
-                    requires: "",
-                },
-                {
-                    itemId: -1,
-                    level: 70,
-                    name: "Access Bandos' Stronghold in the God Wars Dungeon",
-                    requires: "",
-                },
-                {
-                    itemId: 24420,
-                    level: 70,
-                    name: "Wear Inquisitor's hauberk (with Defence 30)",
-                    requires: "",
-                },
-                {
-                    itemId: 13263,
-                    level: 70,
-                    name: "Wield abyssal bludgeons (with Attack 70)",
-                    requires: "",
-                },
-                {
-                    itemId: 4718,
-                    level: 70,
-                    name: "Wield Dharok's greataxes (with Attack 70)",
-                    requires: "",
-                },
-                {
-                    itemId: 4747,
-                    level: 70,
-                    name: "Wield Torag's hammers (with Attack 70)",
-                    requires: "",
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Wear Blood moon chestplate (with Defence 50)",
-                    requires: "",
-                },
-                {
-                    itemId: -1,
-                    level: 75,
-                    name: "Wield dual macuahuitl (with Attack 70)",
-                    requires: "",
-                },
-                {
-                    itemId: 20601,
-                    level: 75,
-                    name: "Wield elder mauls (with Attack 75)",
-                    requires: "",
-                },
-                {
-                    itemId: 22622,
-                    level: 75,
-                    name: "Wield Statius's warhammer (bh)s",
-                    requires: "",
-                },
-                {
-                    itemId: 13239,
-                    level: 75,
-                    name: "Wear primordial boots (with Defence 75)",
-                    requires: "",
-                },
-                {
-                    itemId: 383,
-                    level: 76,
-                    name: "Catch sharks barehanded (with Fishing 96 and Barbarian Training completed)",
-                    requires: "",
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Wield soulreaper axes (with Attack 80)",
-                    requires: "",
-                },
-                {
-                    itemId: -1,
-                    level: 80,
-                    name: "Wear Avernic treads and its maxed variants (with Defence 80, Ranged 80, and Magic 80)",
-                    requires: "",
-                },
-                {
-                    itemId: -1,
-                    level: 85,
-                    name: "Wield crimson kisten (with Attack 60)",
-                    requires: "",
-                },
-                {
-                    itemId: 22325,
-                    level: 90,
-                    name: "Wield Scythe of Vitur (with Attack 80)",
-                    requires: "",
-                },
-                {
-                    itemId: 9750,
-                    level: 99,
-                    name: "Buy the strength cape and hood from Sloane/Yadech Strongarm in the Warriors' Guild, and wear the",
-                    requires: "",
-                    description: "m"
-                }
             ]
-        }
+        },
+        {
+            label: "Armour",
+            entries: [
+                {
+                    itemId: ,
+                    level: 42,
+                    name: "Void Knight equipment",
+                    requires: "Level 22 Prayer, level 42 Ranged, level 42 Magic, level 42 Defence, level 42 Attack, level 42 Hitpoints",
+                },
+                {
+                    itemId: ,
+                    level: 50,
+                    name: "Granite armour",
+                    requires: "Level 50 Defence",
+                },
+                {
+                    itemId: ,
+                    level: 50,
+                    name: "Zombie helmet",
+                    requires: "Level 50 Defence",
+                },
+                {
+                    itemId: ,
+                    level: 70,
+                    name: "Inquisitor's armour",
+                    requires: "Level 30 Defence",
+                },
+                {
+                    itemId: ,
+                    level: 75,
+                    name: "Primordial boots",
+                    requires: "Level 75 Defence",
+                },
+                {
+                    itemId: ,
+                    level: 75,
+                    name: "Bloodrager set",
+                    requires: "Level 50 Defence",
+                },
+                {
+                    itemId: ,
+                    level: 80,
+                    name: "Avernic treads",
+                    requires: "Level 80 Defence, level 80 Ranged, level 80 Magic",
+                },
+                {
+                    itemId: ,
+                    level: 99,
+                    name: "Skillcape",
+                    requires: "See the custodian of the shot put room in the Warriors' Guild",
+                },
+            ]
+        },
+        {
+            label: "Shortcuts",
+            entries: [
+                {
+                    itemId: ,
+                    level: 19,
+                    name: "Grapple across the River Lum to Al Kharid",
+                    requires: "Level 37 Ranged, level 8 agility",
+                },
+                {
+                    itemId: ,
+                    level: 21,
+                    name: "Karamja crossing south of volcano",
+                    requires: "Level 42 Ranged, level 53 Agility",
+                },
+                {
+                    itemId: ,
+                    level: 22,
+                    name: "Escape from the Water Obelisk island",
+                    requires: "Level 39 Ranged, level 36 Agility",
+                },
+                {
+                    itemId: ,
+                    level: 28,
+                    name: "Scale the Observatory cliff",
+                    requires: "Level 24 Ranged, level 23 Agility, Observatory Quest",
+                },
+                {
+                    itemId: ,
+                    level: 35,
+                    name: "Scale the Catherby cliff",
+                    requires: "Level 35 Ranged, level 32 Agility",
+                },
+                {
+                    itemId: ,
+                    level: 37,
+                    name: "Scale Falador wall",
+                    requires: "Level 19 Ranged, level 11 Agility",
+                },
+                {
+                    itemId: ,
+                    level: 38,
+                    name: "Scale Yanille wall",
+                    requires: "Level 21 Ranged, level 39 Agility",
+                },
+                {
+                    itemId: ,
+                    level: 70,
+                    name: "Cross cave south of Dorgesh-Kaan",
+                    requires: "Level 70 Ranged, level 70 Agility, Death to the Dorgeshuun",
+                },
+            ]
+        },
+        {
+            label: "Areas",
+            entries: [
+                {
+                    itemId: ,
+                    level: 60,
+                    name: "Access the God Wars Dungeon via the Strength route",
+                    requires: "",
+                },
+                {
+                    itemId: ,
+                    level: 70,
+                    name: "Enter the Bandos area of the God Wars Dungeon",
+                    requires: "",
+                },
+            ]
+        },
+        {
+            label: "Barbarian",
+            entries: [
+                {
+                    itemId: ,
+                    level: 15,
+                    name: "Leaping trout",
+                    requires: "Level 48 Fishing, level 15 Agility",
+                },
+                {
+                    itemId: ,
+                    level: 30,
+                    name: "Leaping salmon",
+                    requires: "Level 58 Fishing, level 30 Agility",
+                },
+                {
+                    itemId: ,
+                    level: 35,
+                    name: "Tuna (barehanded)",
+                    requires: "Level 55 Fishing",
+                },
+                {
+                    itemId: ,
+                    level: 35,
+                    name: "Harpoonfish (barehanded)",
+                    requires: "Level 55 Fishing",
+                },
+                {
+                    itemId: ,
+                    level: 45,
+                    name: "Leaping sturgeon",
+                    requires: "Level 70 Fishing, level 45 Agilty",
+                },
+                {
+                    itemId: ,
+                    level: 50,
+                    name: "Swordfish (barehanded)",
+                    requires: "Level 70 Fishing",
+                },
+                {
+                    itemId: ,
+                    level: 76,
+                    name: "Shark (barehanded)",
+                    requires: "Level 96 Fishing",
+                },
+            ]
+        },
     ]
 };
