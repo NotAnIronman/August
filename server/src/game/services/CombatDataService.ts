@@ -4,6 +4,7 @@ import type { EnumTypeLoader } from "../../../../client/rs/config/enumtype/EnumT
 import type { NpcSoundType } from "../../audio/NpcSoundLookup";
 import { logger } from "../../utils/logger";
 import type { ServerServices } from "../ServerServices";
+import type { AttackType } from "../combat/AttackType";
 import type { NpcCombatProfile, NpcState } from "../npc";
 import {
     type NpcCombatAnimations,
@@ -18,7 +19,16 @@ import {
 export class CombatDataService {
     private npcCombatDefs?: Record<
         string,
-        { attack?: number; block?: number; death?: number; deathSound?: number }
+        {
+            attack?: number;
+            melee?: number;
+            ranged?: number;
+            magic?: number;
+            block?: number;
+            death?: number;
+            specials?: number[];
+            deathSound?: number;
+        }
     >;
     private npcCombatDefaults?: {
         attack: number;
@@ -50,7 +60,15 @@ export class CombatDataService {
                 npcs?: Record<
                     string,
                     {
-                        anims?: { attack?: number; block?: number; death?: number };
+                        anims?: {
+                            attack?: number;
+                            melee?: number;
+                            ranged?: number;
+                            magic?: number;
+                            block?: number;
+                            death?: number;
+                            specials?: number[];
+                        };
                         sounds?: { death?: number };
                         deathSound?: number;
                     }
@@ -66,7 +84,16 @@ export class CombatDataService {
             };
             const entries: Record<
                 string,
-                { attack?: number; block?: number; death?: number; deathSound?: number }
+                {
+                    attack?: number;
+                    melee?: number;
+                    ranged?: number;
+                    magic?: number;
+                    block?: number;
+                    death?: number;
+                    specials?: number[];
+                    deathSound?: number;
+                }
             > = {};
             const npcs = raw?.npcs;
             if (npcs && typeof npcs === "object") {
@@ -74,8 +101,19 @@ export class CombatDataService {
                     if (!val || typeof val !== "object") continue;
                     entries[key] = {
                         attack: val.anims?.attack,
+                        melee: val.anims?.melee,
+                        ranged: val.anims?.ranged,
+                        magic: val.anims?.magic,
                         block: val.anims?.block,
                         death: val.anims?.death,
+                        specials: Array.isArray(val.anims?.specials)
+                            ? val.anims.specials.filter(
+                                  (sequenceId): sequenceId is number =>
+                                      typeof sequenceId === "number" &&
+                                      Number.isFinite(sequenceId) &&
+                                      sequenceId > 0,
+                              )
+                            : undefined,
                         deathSound: val.sounds?.death ?? val.deathSound,
                     };
                 }
@@ -127,28 +165,50 @@ export class CombatDataService {
         };
     }
 
-    getNpcCombatAnimations(npc: NpcState | number): NpcCombatAnimations {
+    getNpcCombatAnimations(
+        npc: NpcState | number,
+        attackType?: AttackType,
+    ): NpcCombatAnimations {
         this.loadNpcCombatDefs();
         const typeId = typeof npc === "number" ? Math.trunc(npc) : npc.typeId;
         const idle = typeof npc === "number" ? undefined : npc.idleSeqId;
         const walk = typeof npc === "number" ? undefined : npc.walkSeqId;
         const key = String(typeId);
         const entry = this.npcCombatDefs?.[key];
-        return resolveNpcCombatAnimations({
+        const resolved = resolveNpcCombatAnimations({
             npcTypeId: typeId,
             configured: entry,
             defaults: this.npcCombatDefaults,
             idle,
             walk,
         });
+        const styleAttack = attackType ? entry?.[attackType] : undefined;
+        if (
+            typeof styleAttack !== "number" ||
+            !Number.isFinite(styleAttack) ||
+            styleAttack <= 0
+        ) {
+            return resolved;
+        }
+        return { ...resolved, attack: Math.trunc(styleAttack) };
     }
 
-    getNpcDefinition(npc: NpcState): NpcDefinition {
+    getNpcDefinition(npc: NpcState, attackType?: AttackType): NpcDefinition {
         return {
             id: npc.typeId,
             name: npc.name,
-            animations: this.getNpcCombatAnimations(npc),
+            animations: this.getNpcCombatAnimations(npc, attackType),
         };
+    }
+
+    /**
+     * Special sequences are deliberately separate from normal combat styles.
+     * A boss script chooses when one is appropriate; generic NPC combat must
+     * never pick a charge-up or phase animation at random.
+     */
+    getNpcSpecialAnimations(typeId: number): readonly number[] {
+        this.loadNpcCombatDefs();
+        return this.npcCombatDefs?.[String(Math.trunc(typeId))]?.specials ?? [];
     }
 
     resolveNpcCombatProfile(npc: NpcState): NpcCombatProfile {

@@ -12,6 +12,7 @@ import "./questJournalPanel";
 import "./diaryPanel";
 import "./devUIKitPanels";
 import "./npcDropTablePanel";
+import "./npcAnimationReviewPanel";
 import { buildSmithingBarModalGroup } from "./smithing.cs2";
 
 type WidgetGroupLoadResult = { root: WidgetNode | undefined; widgets: Map<number, WidgetNode> };

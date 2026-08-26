@@ -31,3 +31,5 @@ export const DEV_UIKIT_SPRITE_GALLERY_GROUP_ID = 30029;
 export const DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID = 30030;
 /** Player-facing NPC drop-table browser (opened by Examine or ::drops). */
 export const NPC_DROP_TABLE_PANEL_GROUP_ID = 30031;
+/** Developer-only animation-review panel (opened with ::npcreview <npc id>). */
+export const NPC_ANIMATION_REVIEW_PANEL_GROUP_ID = 30032;

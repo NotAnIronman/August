@@ -1,8 +1,13 @@
 import fs from "fs";
 import path from "path";
 
+import { NPC_ANIMATION_REVIEW_PANEL_GROUP_ID } from "../../../../client/common/ui/widgets/custom/journalPanel.cs2";
+import { ComponentIds, type UiMenuButton } from "../../../../client/common/uikit/contracts";
 import type { NpcState } from "../../../src/game/npc";
+import type { PlayerState } from "../../../src/game/player";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
+import { registerUiPanelActions } from "../uikit/actions";
+import { openUiPanel, sendUiFooterButton, sendUiMenuButtons } from "../uikit/panelData";
 
 /**
  * Candidate sequence ids observed by the OpenOSRS-style animation collector.
@@ -12,10 +17,23 @@ import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/
 const CANDIDATE_SOURCE = "OpenOSRS service-animations observed sequence data";
 const PREVIEW_LIFETIME_TICKS = 6_000;
 
-type CombatAnimationRole = "attack" | "block" | "death";
+type CombatAnimationRole =
+    | "attack"
+    | "melee"
+    | "ranged"
+    | "magic"
+    | "block"
+    | "death"
+    | "special";
+
+type NpcCombatAnimationData = Partial<
+    Record<Exclude<CombatAnimationRole, "special">, number>
+> & {
+    specials?: number[];
+};
 
 type NpcCombatDefinitionsFile = {
-    npcs?: Record<string, { name?: string; anims?: Partial<Record<CombatAnimationRole, number>> }>;
+    npcs?: Record<string, { name?: string; anims?: NpcCombatAnimationData }>;
     [key: string]: unknown;
 };
 
@@ -28,6 +46,17 @@ type ReviewSession = {
 };
 
 const sessionsByPlayerId = new Map<number, ReviewSession>();
+
+const REVIEW_BUTTONS: readonly UiMenuButton[] = [
+    { itemId: 4151, label: "Previous" },
+    { itemId: 4151, label: "Next" },
+    { itemId: 1305, label: "Melee" },
+    { itemId: 861, label: "Ranged" },
+    { itemId: 1381, label: "Magic" },
+    { itemId: 8850, label: "Defend" },
+    { itemId: 964, label: "Death" },
+    { itemId: 11802, label: "Special" },
+];
 
 function resolveDataPath(fileName: string): string {
     const paths = [
@@ -110,6 +139,33 @@ function getCurrentCandidate(session: ReviewSession): number | undefined {
     return session.candidates[session.candidateIndex];
 }
 
+function openReviewPanel(player: PlayerState, services: ScriptServices, session: ReviewSession): void {
+    const candidate = getCurrentCandidate(session);
+    const sequenceId = session.selectedSequenceId;
+    openUiPanel(
+        services,
+        player,
+        NPC_ANIMATION_REVIEW_PANEL_GROUP_ID,
+        `NPC ${session.npcTypeId} animation review`,
+    );
+    sendUiMenuButtons(
+        services,
+        player.id,
+        NPC_ANIMATION_REVIEW_PANEL_GROUP_ID,
+        REVIEW_BUTTONS,
+    );
+    const candidateLabel =
+        candidate === undefined
+            ? "No recorded candidates"
+            : `Candidate ${session.candidateIndex + 1}/${session.candidates.length}: ${candidate}`;
+    sendUiFooterButton(
+        services,
+        player.id,
+        NPC_ANIMATION_REVIEW_PANEL_GROUP_ID,
+        `${candidateLabel} | Playing: ${sequenceId ?? "none"}`,
+    );
+}
+
 function saveConfirmedAnimation(
     npcTypeId: number,
     role: CombatAnimationRole,
@@ -123,22 +179,45 @@ function saveConfirmedAnimation(
 
     const entry = (definitions.npcs[String(npcTypeId)] ??= {});
     entry.anims ??= {};
-    entry.anims[role] = sequenceId;
+    if (role === "special") {
+        const specials = Array.isArray(entry.anims.specials) ? entry.anims.specials : [];
+        if (!specials.includes(sequenceId)) specials.push(sequenceId);
+        entry.anims.specials = specials;
+    } else {
+        entry.anims[role] = sequenceId;
+    }
+    // Keep existing one-style NPCs working immediately. Multi-style NPCs
+    // retain their explicit style ids; the legacy `attack` slot remains a
+    // backwards-compatible fallback until a combat context selects a style.
+    if (
+        (role === "melee" || role === "ranged" || role === "magic") &&
+        entry.anims.attack === undefined
+    ) {
+        entry.anims.attack = sequenceId;
+    }
 
     const formatted = `${JSON.stringify(definitions, null, 2)}\n`.replace(/\n/g, lineEnding);
     fs.writeFileSync(combatDefsPath, formatted, "utf8");
 }
 
 function isRole(value: string | undefined): value is CombatAnimationRole {
-    return value === "attack" || value === "block" || value === "death";
+    return (
+        value === "attack" ||
+        value === "melee" ||
+        value === "ranged" ||
+        value === "magic" ||
+        value === "block" ||
+        value === "death" ||
+        value === "special"
+    );
 }
 
 function help(): string {
     return [
-        "::npcreview <npc id> - spawn a private review NPC and play its first candidate.",
+        "::npcreview <npc id> - spawn a private review NPC and open the button panel.",
         "::npcreview next|prev|show - cycle or inspect the observed candidates.",
         "::npcreview play <sequence id> - preview any sequence manually.",
-        "::npcreview save <attack|block|death> [sequence id] - save a reviewed role.",
+        "::npcreview save <attack|melee|ranged|magic|block|death|special> [sequence id] - save a reviewed role.",
         "::npcreview clear - remove your current preview NPC.",
         "Saved roles apply after a server restart. Candidates are observations, not assignments.",
     ].join(" ");
@@ -182,6 +261,7 @@ export function registerNpcAnimationReviewCommands(
             };
             sessionsByPlayerId.set(player.id, session);
             const sequenceId = candidates[0];
+            openReviewPanel(player, services, session);
             if (sequenceId === undefined) {
                 return `Reviewing NPC ${requestedNpcId}: it has no ${CANDIDATE_SOURCE} candidates. Use ::npcreview play <sequence id> to test one manually.`;
             }
@@ -197,6 +277,7 @@ export function registerNpcAnimationReviewCommands(
         if (action === "clear") {
             services.npc.removeNpc(session.previewNpcId);
             sessionsByPlayerId.delete(player.id);
+            services.dialog.getInterfaceService()?.closeModal(player);
             return `Removed the NPC ${session.npcTypeId} preview.`;
         }
 
@@ -210,6 +291,7 @@ export function registerNpcAnimationReviewCommands(
             const sequenceId = getCurrentCandidate(session)!;
             session.selectedSequenceId = sequenceId;
             playCandidate(services, player.id, session, sequenceId);
+            openReviewPanel(player, services, session);
             return `NPC ${session.npcTypeId}: candidate ${session.candidateIndex + 1}/${session.candidates.length} is ${sequenceId}.`;
         }
 
@@ -227,18 +309,23 @@ export function registerNpcAnimationReviewCommands(
             const candidateIndex = session.candidates.indexOf(sequenceId);
             if (candidateIndex >= 0) session.candidateIndex = candidateIndex;
             session.selectedSequenceId = sequenceId;
-            return playCandidate(services, player.id, session, sequenceId);
+            const result = playCandidate(services, player.id, session, sequenceId);
+            openReviewPanel(player, services, session);
+            return result;
         }
 
         if (action === "save") {
             const role = args[1]?.toLowerCase();
-            if (!isRole(role)) return "Usage: ::npcreview save <attack|block|death> [sequence id]";
+            if (!isRole(role)) {
+                return "Usage: ::npcreview save <attack|melee|ranged|magic|block|death|special> [sequence id]";
+            }
 
             const sequenceId = parseSequenceId(args[2]) ?? session.selectedSequenceId;
             if (sequenceId === undefined) return "No candidate is selected; provide a sequence id explicitly.";
 
             try {
                 saveConfirmedAnimation(session.npcTypeId, role, sequenceId);
+                openReviewPanel(player, services, session);
                 return `Saved NPC ${session.npcTypeId} ${role} animation ${sequenceId} to npc-combat-defs.json. Restart the server to use it in combat.`;
             } catch (error) {
                 services.system.logger.error("[npcreview] failed to save animation", error);
@@ -248,4 +335,62 @@ export function registerNpcAnimationReviewCommands(
 
         return help();
     });
+
+    const getPanelSession = (player: PlayerState): ReviewSession | undefined => {
+        const session = sessionsByPlayerId.get(player.id);
+        return session && getPreviewNpc(services, player.id, session) ? session : undefined;
+    };
+
+    const moveCandidate = (player: PlayerState, change: number): void => {
+        const session = getPanelSession(player);
+        if (!session) return;
+        if (session.candidates.length === 0) {
+            services.messaging.sendGameMessage(player, "This NPC has no recorded candidates.");
+            return;
+        }
+        session.candidateIndex =
+            (session.candidateIndex + change + session.candidates.length) % session.candidates.length;
+        const sequenceId = getCurrentCandidate(session)!;
+        session.selectedSequenceId = sequenceId;
+        playCandidate(services, player.id, session, sequenceId);
+        openReviewPanel(player, services, session);
+    };
+
+    const savePanelRole = (player: PlayerState, role: CombatAnimationRole): void => {
+        const session = getPanelSession(player);
+        const sequenceId = session?.selectedSequenceId;
+        if (!session || sequenceId === undefined) return;
+        try {
+            saveConfirmedAnimation(session.npcTypeId, role, sequenceId);
+            services.messaging.sendGameMessage(
+                player,
+                `Saved ${role} animation ${sequenceId} for NPC ${session.npcTypeId}.`,
+            );
+            // Reviewing is usually a one-pass job: one role click saves this
+            // sequence and immediately shows the next candidate. Previous is
+            // always available for a correction.
+            moveCandidate(player, 1);
+        } catch (error) {
+            services.system.logger.error("[npcreview] failed to save animation", error);
+            services.messaging.sendGameMessage(player, "Could not save npc-combat-defs.json.");
+        }
+    };
+
+    registerUiPanelActions(registry, services, NPC_ANIMATION_REVIEW_PANEL_GROUP_ID, [
+        {
+            componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE,
+            actionId: "review_previous",
+            handle: ({ player }) => moveCandidate(player, -1),
+        },
+        {
+            componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE + 1,
+            actionId: "review_next",
+            handle: ({ player }) => moveCandidate(player, 1),
+        },
+        ...(["melee", "ranged", "magic", "block", "death", "special"] as const).map((role, index) => ({
+            componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE + index + 2,
+            actionId: `review_save_${role}`,
+            handle: ({ player }: { player: PlayerState }) => savePanelRole(player, role),
+        })),
+    ]);
 }
