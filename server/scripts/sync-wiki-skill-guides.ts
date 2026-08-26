@@ -53,7 +53,13 @@ const SKILLS = [
 ] as const;
 
 type LocalItem = { id: number; name?: string };
-type GuideEntry = { itemId: number; level: number; name: string; description?: string };
+type GuideEntry = {
+    itemId: number;
+    level: number;
+    name: string;
+    description?: string;
+    requires?: string[];
+};
 type GuideTab = { label: string; entries: GuideEntry[] };
 type ParsedWikiResponse = { parse?: { wikitext?: { "*"?: string } } };
 
@@ -126,6 +132,17 @@ function itemIdForWikitext(raw: string, itemIds: ReadonlyMap<string, number>): n
     return itemIds.get(normalizeName(candidate)) ?? -1;
 }
 
+/** Moves a wiki's trailing "(with …)" clause into the guide's dedicated
+ * requirement line. The renderer evaluates recognised skill-level clauses;
+ * other requirements remain visible as neutral reference text. */
+function splitEntryRequirements(text: string): { name: string; requires?: string[] } {
+    const match = /^(.*?)\s+\(with\s+(.+)\)$/i.exec(text.trim());
+    if (!match) return { name: text };
+    const name = match[1].trim();
+    const requirement = match[2].trim();
+    return name && requirement ? { name, requires: [requirement] } : { name: text };
+}
+
 function collectRows(
     wikitext: string,
     group: "freeplay" | "members",
@@ -157,14 +174,16 @@ function collectRows(
     for (const [level, serialized] of [...sections.entries()].sort((a, b) => a[0] - b[0])) {
         for (const encoded of serialized) {
             const { raw, text } = JSON.parse(encoded) as { raw: string; text: string };
+            const entry = splitEntryRequirements(text);
             output.push({
                 itemId: itemIdForWikitext(raw, itemIds),
                 level,
                 // Keep an individual UIKit row readable; details such as a
                 // quest requirement use the second text line instead of
                 // allowing a giant line to overflow the panel.
-                name: text.slice(0, 96),
-                ...(text.length > 96 ? { description: text.slice(96, 210) } : {}),
+                name: entry.name.slice(0, 96),
+                ...(entry.requires ? { requires: entry.requires } : {}),
+                ...(entry.name.length > 96 ? { description: entry.name.slice(96, 210) } : {}),
             });
         }
     }

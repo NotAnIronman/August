@@ -103,6 +103,11 @@ export type UiPanelLayout = {
         backgroundHoverAsset?: string;
     };
     content: { rowKind: UiRowKind; rowHeight: number; scrollbarWidth: number; rowCapacity?: number;
+        /** Height of an icon row's primary label. Defaults to 16 pixels. */
+        iconRowNameHeight?: number;
+        /** Height of an icon row's secondary label. Defaults to 16 pixels.
+         *  Give this more space when that line needs automatic text wrapping. */
+        iconRowDescriptionHeight?: number;
         /** Builds an invisible full-row hit-zone (DIALOGUE_ROW_HITZONE_BASE)
          *  behind every "text"/"mixed" row, up to MAX_ROWS, for panels that
          *  want per-row click/right-click via GalleryClickController rather

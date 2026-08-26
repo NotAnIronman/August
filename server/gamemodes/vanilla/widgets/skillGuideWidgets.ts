@@ -4,9 +4,12 @@ import {
 } from "../../../../client/common/vars";
 import { SKILL_GUIDE_PANEL_GROUP_ID } from "../../../../client/common/ui/widgets";
 import { ComponentIds } from "../../../../client/common/uikit/contracts";
-import { SkillId } from "../../../../client/rs/skill/skills";
+import { getSkillName, SKILL_IDS, SkillId } from "../../../../client/rs/skill/skills";
+import type { UiIconRow } from "../../../../client/common/uikit/contracts";
+import type { PlayerState } from "../../../src/game/player";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
 import { getSkillGuideData } from "../skillGuide";
+import type { SkillGuideEntry, SkillGuideRequirement } from "../skillGuide/types";
 import { openUiPanel, sendUiIconRows, sendUiTabs } from "../uikit/panelData";
 
 /**
@@ -22,6 +25,13 @@ import { openUiPanel, sendUiIconRows, sendUiTabs } from "../uikit/panelData";
  */
 
 const SKILLS_TAB_GROUP_ID = 320;
+const GUIDE_ORANGE = "ff981f";
+const GUIDE_REQUIREMENT_MET = "a89a80";
+const GUIDE_REQUIREMENT_UNMET = "ff0000";
+
+const SKILL_ID_BY_NAME = new Map(
+    SKILL_IDS.map((skillId) => [getSkillName(skillId).toLowerCase(), skillId]),
+);
 
 type SkillGuideEntryDef = {
     childId: number;
@@ -65,16 +75,88 @@ function findSkillGuideEntryByVarbitValue(value: number): SkillGuideEntryDef | u
     return SKILL_GUIDE_ENTRIES.find((e) => e.skillVarbitValue === value);
 }
 
+function requirementsForEntry(entry: SkillGuideEntry): {
+    name: string;
+    requirements: readonly SkillGuideRequirement[];
+} {
+    const explicit = entry.requires ?? entry.Requires;
+    if (explicit !== undefined) {
+        return { name: entry.name, requirements: Array.isArray(explicit) ? explicit : [explicit] };
+    }
+
+    // Existing generated tables used trailing "(with …)" text inside the
+    // name. Preserve that content while displaying it in the new dedicated
+    // requirement field until the next importer refresh rewrites the files.
+    const legacy = /^(.*?)\s+\(with\s+(.+)\)$/i.exec(entry.name.trim());
+    if (!legacy) return { name: entry.name, requirements: [] };
+    return { name: legacy[1].trim(), requirements: [legacy[2].trim()] };
+}
+
+function parseSkillLevelRequirement(text: string): { skillId: SkillId; level: number } | undefined {
+    const normalized = text.replace(/\s+/g, " ").trim();
+    const levelFirst = /^(?:level )?(\d{1,3}) (.+)$/i.exec(normalized);
+    const skillFirst = /^(.+?) (?:level )?(\d{1,3})$/i.exec(normalized);
+    const level = Number(levelFirst?.[1] ?? skillFirst?.[2]);
+    const skillName = (levelFirst?.[2] ?? skillFirst?.[1] ?? "").trim().toLowerCase();
+    const skillId = SKILL_ID_BY_NAME.get(skillName);
+    if (skillId === undefined || !Number.isFinite(level) || level < 1) return undefined;
+    return { skillId, level };
+}
+
+function renderRequirement(
+    services: ScriptServices,
+    player: PlayerState,
+    requirement: SkillGuideRequirement,
+): string {
+    let parsed: { skillId: SkillId; level: number } | undefined;
+    let text: string;
+    if (typeof requirement === "string") {
+        parsed = parseSkillLevelRequirement(requirement);
+        text = parsed ? `Level ${parsed.level} ${getSkillName(parsed.skillId)}` : requirement.trim();
+    } else {
+        parsed = { skillId: requirement.skillId, level: requirement.level };
+        text = requirement.text?.trim() || `Level ${parsed.level} ${getSkillName(parsed.skillId)}`;
+    }
+    const meetsRequirement = parsed
+        ? (services.skills.getSkill(player, parsed.skillId)?.baseLevel ?? 1) >= parsed.level
+        // A free-form requirement (quest, item, minigame, etc.) has no
+        // player-state predicate in this guide schema, so keep it neutral
+        // rather than claiming it is unmet.
+        : true;
+    return `<col=${meetsRequirement ? GUIDE_REQUIREMENT_MET : GUIDE_REQUIREMENT_UNMET}>${text}</col>`;
+}
+
+function toSkillGuideRow(
+    services: ScriptServices,
+    player: PlayerState,
+    entry: SkillGuideEntry,
+): UiIconRow {
+    const { name, requirements } = requirementsForEntry(entry);
+    const description = requirements.length === 0
+        ? entry.description
+        : `<col=${GUIDE_ORANGE}>Requires:</col> ${requirements
+            .map((requirement) => renderRequirement(services, player, requirement))
+            .join(`<col=${GUIDE_REQUIREMENT_MET}>, </col>`)}`;
+    return {
+        itemId: entry.itemId ?? entry.itemID ?? -1,
+        level: entry.level,
+        levelLabel: `<col=${GUIDE_ORANGE}>${entry.level}</col>`,
+        name: `<col=${GUIDE_ORANGE}>${name}</col>`,
+        ...(description ? { description } : {}),
+    };
+}
+
 /**
  * Populates the sidebar tabs + the currently selected tab's entries.
  * Safe to call repeatedly (tab clicks) without reopening the modal.
  */
 function renderSkillGuidePanel(
     services: ScriptServices,
-    playerId: number,
+    player: PlayerState,
     skillId: SkillId,
     activeTabIndex: number,
 ): void {
+    const playerId = player.id;
     const data = getSkillGuideData(skillId);
     const tabs = data.tabs;
     const clampedIndex =
@@ -85,7 +167,7 @@ function renderSkillGuidePanel(
         services,
         playerId,
         SKILL_GUIDE_PANEL_GROUP_ID,
-        tabs[clampedIndex]?.entries ?? [],
+        (tabs[clampedIndex]?.entries ?? []).map((entry) => toSkillGuideRow(services, player, entry)),
     );
 }
 
@@ -116,7 +198,7 @@ export function registerSkillGuideWidgetHandlers(
                 },
             });
 
-            renderSkillGuidePanel(services, playerId, entry.skillId, 0);
+            renderSkillGuidePanel(services, player, entry.skillId, 0);
         });
     }
 
@@ -135,7 +217,7 @@ export function registerSkillGuideWidgetHandlers(
                 player.varps.setVarbitValue(VARBIT_SKILL_GUIDE_SUBSECTION, i);
                 services.variables.queueVarbit?.(playerId, VARBIT_SKILL_GUIDE_SUBSECTION, i);
 
-                renderSkillGuidePanel(services, playerId, entry.skillId, i);
+                renderSkillGuidePanel(services, player, entry.skillId, i);
             },
         );
     }

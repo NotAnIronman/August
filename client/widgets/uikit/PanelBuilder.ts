@@ -519,6 +519,18 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     if (includesIconRows) {
         const levelWidth = 26;
         const iconSize = 26;
+        const iconRowNameHeight = Math.max(
+            1,
+            Math.min(rowHeight, layout.content.iconRowNameHeight ?? 16),
+        );
+        const iconRowDescriptionHeight = Math.max(
+            1,
+            Math.min(
+                Math.max(1, rowHeight - iconRowNameHeight),
+                layout.content.iconRowDescriptionHeight ?? 16,
+            ),
+        );
+        const iconRowDescriptionYAlignment = iconRowDescriptionHeight > 16 ? 0 : 1;
         for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
             const rawY = i * rowHeight;
 
@@ -576,10 +588,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                     rawX: nameLeft,
                     rawY,
                     rawWidth: nameLeft,
-                    rawHeight: 16,
+                    rawHeight: iconRowNameHeight,
                     widthMode: 1,
                     width: contentWidth - nameLeft,
-                    height: 16,
+                    height: iconRowNameHeight,
                     text: "",
                     fontId: FONT_PLAIN_12,
                     textColor: 0xe8ded0,
@@ -599,18 +611,21 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 {
                     type: 4,
                     rawX: nameLeft,
-                    rawY: rawY + 16,
+                    rawY: rawY + iconRowNameHeight,
                     rawWidth: nameLeft,
-                    rawHeight: 16,
+                    rawHeight: iconRowDescriptionHeight,
                     widthMode: 1,
                     width: contentWidth - nameLeft,
-                    height: 16,
+                    height: iconRowDescriptionHeight,
                     text: "",
                     fontId: FONT_PLAIN_11,
                     textColor: 0xa89a80,
                     textShadowed: true,
                     xTextAlignment: 0,
-                    yTextAlignment: 1,
+                    // A tall secondary field is reserved for wrapped text;
+                    // top-align it so a one-line requirement sits directly
+                    // beneath the row name instead of floating in the middle.
+                    yTextAlignment: iconRowDescriptionYAlignment,
                     isHidden: true,
                     hidden: true,
                 },

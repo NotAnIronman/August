@@ -648,7 +648,56 @@ export function wrapTextToWidth(
         }
         if (cur) out.push(cur);
     }
-    return out;
+    return hasOsrsMarkup(text) ? carryMarkupAcrossWrappedLines(out) : out;
+}
+
+/**
+ * The word wrapper intentionally works on raw OSRS text so formatting tags
+ * do not contribute to its width. When a line break lands inside an open
+ * colour/style span, however, the next line otherwise loses that span. Carry
+ * the currently active tags forward so wrapped rich text stays styled.
+ */
+function carryMarkupAcrossWrappedLines(lines: readonly string[]): string[] {
+    let color = "";
+    let shadow = "";
+    let underline = "";
+    let strikethrough = "";
+    let bold = false;
+
+    const prefix = (): string =>
+        `${color}${shadow}${underline}${strikethrough}${bold ? "<b>" : ""}`;
+    const updateState = (line: string): void => {
+        for (const match of line.matchAll(/<([^>]*)>/g)) {
+            const tag = match[1].toLowerCase();
+            if (tag.startsWith("col=") || tag.startsWith("color=")) {
+                color = match[0];
+            } else if (tag === "/col" || tag === "/color") {
+                color = "";
+            } else if (tag.startsWith("shad=") || tag === "shad") {
+                shadow = match[0];
+            } else if (tag === "/shad") {
+                shadow = "";
+            } else if (tag.startsWith("u=") || tag === "u") {
+                underline = match[0];
+            } else if (tag === "/u") {
+                underline = "";
+            } else if (tag === "str") {
+                strikethrough = match[0];
+            } else if (tag === "/str") {
+                strikethrough = "";
+            } else if (tag === "b") {
+                bold = true;
+            } else if (tag === "/b") {
+                bold = false;
+            }
+        }
+    };
+
+    return lines.map((line) => {
+        const continued = `${prefix()}${line}`;
+        updateState(line);
+        return continued;
+    });
 }
 
 export function splitExplicitLineBreaks(text: string): string[] {
