@@ -28,10 +28,11 @@ export type SkillGuideRequirement =
  * and an optional note (ingredients, requirements, etc).
  *
  * One file per skill lives in ./data/<skillName>.ts, each exporting a
- * single `SkillGuideData` object. The checked-in files are generated from
- * the OSRS Wiki's public `Skill/Level up table` pages by
- * `server/scripts/sync-wiki-skill-guides.ts`; refresh them through that
- * importer rather than hand-editing individual rows.
+ * single `SkillGuideData` object. The checked-in files begin as imports from
+ * the OSRS Wiki's public `Skill/Level up table` pages, but `requires` is
+ * intentionally available for hand-authored game requirements. Running
+ * `server/scripts/sync-wiki-skill-guides.ts` regenerates the files, so keep
+ * a backup or commit those manual entries before refreshing.
  */
 
 export interface SkillGuideEntry {

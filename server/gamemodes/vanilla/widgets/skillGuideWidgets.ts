@@ -81,7 +81,10 @@ function requirementsForEntry(entry: SkillGuideEntry): {
 } {
     const explicit = entry.requires ?? entry.Requires;
     if (explicit !== undefined) {
-        return { name: entry.name, requirements: Array.isArray(explicit) ? explicit : [explicit] };
+        const requirements = (Array.isArray(explicit) ? explicit : [explicit]).filter(
+            (requirement) => typeof requirement !== "string" || requirement.trim().length > 0,
+        );
+        return { name: entry.name, requirements };
     }
 
     // Existing generated tables used trailing "(with …)" text inside the
