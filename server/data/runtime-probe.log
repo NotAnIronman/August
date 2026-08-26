@@ -42,3 +42,9 @@
 {"at":"2026-08-25T20:29:30.673Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":96,"bucket":3,"checksum":3053138121}}
 {"at":"2026-08-25T20:29:34.273Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":128,"bucket":4,"checksum":3797894194}}
 {"at":"2026-08-25T20:29:39.073Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":165,"bucket":5,"checksum":2458041171}}
+{"at":"2026-08-26T01:04:22.561Z","event":"cape_icon_texture_request","playerId":3,"details":{"itemId":6570,"rendererInjected":true,"animationPhase":174}}
+{"at":"2026-08-26T01:04:22.562Z","event":"cape_icon_model_render","playerId":3,"details":{"itemId":6570,"resolvedItemId":6570,"faces":35,"texturedFaces":35,"animated":true,"textureLoader":"SpriteTextureLoader","materials":[{"id":40,"sourceSpriteIds":"[truncated]","frames":1,"animSpeed":2,"animU":0,"animV":-2}]}}
+{"at":"2026-08-26T01:04:22.562Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":174,"bucket":5,"checksum":168961288,"preview":"..................\n............O.....\n...........OR.....\n.........YRROOO...\n.......OROROOOR...\n......OOOOOOOR....\n.....YRROOORO.....\n....ROYOORORR.....\n...ORORROOOR......\n..YOOROOOOOO......\n..OOOROOOOO.......\n...RROOORRR.......\n...ROOOROO........\n...OORRRR.........\n......R...........\n.................."}}
+{"at":"2026-08-26T01:04:22.563Z","event":"cape_icon_model_canvas","playerId":3,"details":{"itemId":6570}}
+{"at":"2026-08-26T01:04:24.960Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":192,"bucket":6,"checksum":84718768}}
+{"at":"2026-08-26T01:04:28.560Z","event":"cape_icon_frame_rendered","playerId":3,"details":{"itemId":6570,"animationKey":224,"bucket":7,"checksum":681233150}}
