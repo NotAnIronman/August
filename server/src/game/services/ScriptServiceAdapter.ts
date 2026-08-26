@@ -346,8 +346,9 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             openSmithingBarModal: undefined,
             getBarTypeByItemId: (_itemId) => undefined,
         },
-        followers: deps.followerManager
-            ? {
+        get followers() {
+            return deps.followerManager
+                ? {
                   summonFollowerFromItem: (player, itemId, npcTypeId) => {
                       const result = deps.followerManager!.summonFollowerFromItem(
                           player,
@@ -398,8 +399,9 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                   getDefinitionByItemId: (itemId) => getFollowerDefinitionByItemId(itemId),
                   getDefinitionByNpcTypeId: (npcTypeId) =>
                       getFollowerDefinitionByNpcTypeId(npcTypeId),
-              }
-            : undefined,
+                  }
+                : undefined;
+        },
         sailing: deps.sailingInstanceManager
             ? {
                   initSailingInstance: (player) =>
