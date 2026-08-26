@@ -34,6 +34,7 @@ registerUiPanel({
             iconRowNameHeight: 15,
             iconRowDescriptionHeight: 25,
             iconRowAlternateBackground: true,
+            iconRowCenterNameWithoutDescription: true,
         },
     }),
     scrollController,

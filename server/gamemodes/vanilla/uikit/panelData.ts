@@ -225,7 +225,7 @@ export function sendUiIconRows(
     playerId: number,
     groupId: number,
     rows: readonly (UiIconRowData | undefined)[],
-    options?: { alternatingBackground?: boolean },
+    options?: { alternatingBackground?: boolean; centerNameWithoutDescription?: boolean },
 ): void {
     assertCapacity("rows", rows.length, ComponentIds.MAX_ROWS);
     for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
@@ -233,8 +233,10 @@ export function sendUiIconRows(
         const levelUid = packUid(groupId, ComponentIds.ICON_ROW_LEVEL_BASE + i);
         const iconUid = packUid(groupId, ComponentIds.ICON_ROW_ICON_BASE + i);
         const nameUid = packUid(groupId, ComponentIds.ICON_ROW_NAME_BASE + i);
+        const centeredNameUid = packUid(groupId, ComponentIds.ICON_ROW_CENTERED_NAME_BASE + i);
         const descUid = packUid(groupId, ComponentIds.ICON_ROW_DESC_BASE + i);
         const backgroundUid = packUid(groupId, ComponentIds.ICON_ROW_BACKGROUND_BASE + i);
+        const useCenteredName = !!row && options?.centerNameWithoutDescription === true && !row.description;
 
         if (options?.alternatingBackground) {
             services.dialog.queueWidgetEvent(playerId, {
@@ -275,13 +277,26 @@ export function sendUiIconRows(
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_text",
             uid: nameUid,
-            text: row?.name ?? "",
+            text: row && !useCenteredName ? row.name : "",
         });
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_hidden",
             uid: nameUid,
-            hidden: !row,
+            hidden: !row || useCenteredName,
         });
+
+        if (options?.centerNameWithoutDescription) {
+            services.dialog.queueWidgetEvent(playerId, {
+                action: "set_text",
+                uid: centeredNameUid,
+                text: useCenteredName ? row.name : "",
+            });
+            services.dialog.queueWidgetEvent(playerId, {
+                action: "set_hidden",
+                uid: centeredNameUid,
+                hidden: !useCenteredName,
+            });
+        }
 
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_text",

@@ -64,6 +64,8 @@ export const ComponentIds = {
     /** Children of ICON_ROW_BACKGROUND_LAYER. Their high IDs are safe
      *  because the layer itself renders before all icon row foregrounds. */
     ICON_ROW_BACKGROUND_BASE: 4700,
+    /** Vertically centred primary labels for icon rows with no secondary text. */
+    ICON_ROW_CENTERED_NAME_BASE: 4800,
 } as const;
 
 export type UiRowKind = "text" | "icon" | "mixed" | "picker" | "sprite-gallery";
@@ -118,6 +120,9 @@ export type UiPanelLayout = {
         iconRowDescriptionHeight?: number;
         /** Optional subtle surface behind every other populated icon row. */
         iconRowAlternateBackground?: boolean | { color?: number; transparency?: number };
+        /** Builds a vertically centred name variant for icon rows without
+         *  secondary text, so simple entries do not reserve blank space. */
+        iconRowCenterNameWithoutDescription?: boolean;
         /** Builds an invisible full-row hit-zone (DIALOGUE_ROW_HITZONE_BASE)
          *  behind every "text"/"mixed" row, up to MAX_ROWS, for panels that
          *  want per-row click/right-click via GalleryClickController rather

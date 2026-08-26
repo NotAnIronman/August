@@ -525,6 +525,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         const iconSize = 32;
         const iconTop = 2;
         const alternatingRowConfig = layout.content.iconRowAlternateBackground;
+        const centerNameWithoutDescription = layout.content.iconRowCenterNameWithoutDescription === true;
         const iconRowNameHeight = Math.max(
             1,
             Math.min(rowHeight, layout.content.iconRowNameHeight ?? 16),
@@ -601,7 +602,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                     width: levelWidth,
                     height: levelHeight,
                     text: "",
-                    fontId: FONT_PLAIN_11,
+                    fontId: FONT_PLAIN_12,
                     textColor: 0xc5b79b,
                     textShadowed: true,
                     xTextAlignment: 1,
@@ -658,6 +659,33 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             );
             widgets.set(name.uid, name);
 
+            if (centerNameWithoutDescription) {
+                const centeredName = makeWidget(
+                    groupId,
+                    ComponentIds.ICON_ROW_CENTERED_NAME_BASE + i,
+                    contentViewUid,
+                    {
+                        type: 4,
+                        rawX: nameLeft,
+                        rawY,
+                        rawWidth: nameLeft,
+                        rawHeight: rowHeight,
+                        widthMode: 1,
+                        width: contentWidth - nameLeft,
+                        height: rowHeight,
+                        text: "",
+                        fontId: FONT_PLAIN_12,
+                        textColor: 0xe8ded0,
+                        textShadowed: true,
+                        xTextAlignment: 0,
+                        yTextAlignment: 1,
+                        isHidden: true,
+                        hidden: true,
+                    },
+                );
+                widgets.set(centeredName.uid, centeredName);
+            }
+
             const desc = makeWidget(
                 groupId,
                 ComponentIds.ICON_ROW_DESC_BASE + i,
@@ -672,7 +700,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                     width: contentWidth - nameLeft,
                     height: iconRowDescriptionHeight,
                     text: "",
-                    fontId: FONT_PLAIN_11,
+                    fontId: FONT_PLAIN_12,
                     textColor: 0xa89a80,
                     textShadowed: true,
                     xTextAlignment: 0,
