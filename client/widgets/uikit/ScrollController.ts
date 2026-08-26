@@ -2,7 +2,7 @@ import type { WidgetManager } from "../WidgetManager";
 import { ClickMode } from "../../game/InputManager";
 import type { WidgetInteractionController } from "../../game/widgets/WidgetInteractionController";
 import type { WidgetInputFrame } from "../../game/widgets/input/widgetInputTypes";
-import { ComponentIds, type UiRowKind } from "./types";
+import { ComponentIds, type UiRowKind } from "../../common/uikit/contracts";
 
 function packUid(groupId: number, componentId: number): number {
     return ((groupId & 0xffff) << 16) | (componentId & 0xffff);

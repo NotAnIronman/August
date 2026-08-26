@@ -1,7 +1,7 @@
 import { FONT_BOLD_12, FONT_PLAIN_11, FONT_PLAIN_12 } from "../../ui/fonts";
 import { FLAG_TRANSMIT_OP1 } from "../WidgetFlags";
 import type { WidgetNode } from "../WidgetNode";
-import { ComponentIds, type UiPanelLayout } from "./types";
+import { ComponentIds, type UiPanelLayout } from "../../common/uikit/contracts";
 
 export type WidgetGroupLoadResult = {
     root: WidgetNode | undefined;
