@@ -1,12 +1,14 @@
 import type { WebSocket } from "ws";
 
 import { getItemDefinition } from "../../data/items";
+import { appendRuntimeProbe } from "../../debug/runtimeProbeLog";
 import type { GroundItemActionPayload } from "../../network/managers/GroundItemHandler";
 import { logger } from "../../utils/logger";
 import type { InventoryConsumableType } from "../actions/actionPayloads";
 import type { ActionEnqueueResult, ActionRequest } from "../actions/types";
 import { isInWilderness } from "../combat/MultiCombatZones";
 import { combatConsumableManager } from "../combat/engine/CombatConsumableManager";
+import { getFollowerDefinitionByItemId } from "../followers/followerDefinitions";
 import { INVENTORY_SLOT_COUNT, type InventoryEntry, PlayerState } from "../player";
 import type { ScriptDialogOptionRequest, ScriptDialogRequest } from "../scripts/types";
 import type { ChatMessageSnapshot } from "../systems/BroadcastScheduler";
@@ -63,6 +65,11 @@ export interface InventoryMessageServiceDeps {
     getObjType: (itemId: number) => ObjTypeView | undefined;
     requestAction: (playerId: number, request: ActionRequest, tick: number) => ActionEnqueueResult;
     queueItemAction: (request: ItemActionRequest) => boolean;
+    summonFollowerFromItem?: (
+        player: PlayerState,
+        itemId: number,
+        npcTypeId: number,
+    ) => { ok: true; npcId: number } | { ok: false; reason: string };
     closeInterruptibleInterfaces: (player: PlayerState) => void;
     openDialog: (player: PlayerState, request: ScriptDialogRequest) => void;
     openDialogOptions: (player: PlayerState, request: ScriptDialogOptionRequest) => void;
@@ -107,6 +114,75 @@ export class InventoryMessageService {
         return false;
     }
 
+    /**
+     * Pet item drops are intercepted before normal scripts and floor-item logic.
+     * This keeps pets functional even if a gamemode script has not been registered.
+     */
+    private tryHandleFollowerDrop(
+        player: PlayerState,
+        slotIndex: number,
+        itemId: number,
+        slotEntry: InventoryEntry,
+    ): boolean {
+        const definition = getFollowerDefinitionByItemId(itemId);
+        if (!definition) return false;
+
+        this.deps.closeInterruptibleInterfaces(player);
+        appendRuntimeProbe(
+            "pet_drop_attempt",
+            {
+                itemId,
+                npcTypeId: definition.npcTypeId,
+                slot: slotIndex,
+                quantity: slotEntry.quantity,
+            },
+            player.id,
+        );
+
+        const result = this.deps.summonFollowerFromItem?.(
+            player,
+            itemId,
+            definition.npcTypeId,
+        );
+        if (!result || !result.ok) {
+            const reason = result?.reason ?? "service_unavailable";
+            appendRuntimeProbe(
+                "pet_drop_failed",
+                { itemId, npcTypeId: definition.npcTypeId, reason },
+                player.id,
+            );
+            this.deps.queueChatMessage({
+                messageType: "game",
+                text:
+                    reason === "already_active"
+                        ? "You already have a follower."
+                        : "Your follower could not be summoned.",
+                targetPlayerIds: [player.id],
+            });
+            return true;
+        }
+
+        const remainingQuantity = Math.max(0, slotEntry.quantity - 1);
+        this.deps.setInventorySlot(
+            player,
+            slotIndex,
+            remainingQuantity > 0 ? itemId : -1,
+            remainingQuantity,
+        );
+        this.deps.checkAndSendSnapshots(player);
+        appendRuntimeProbe(
+            "pet_drop_summoned",
+            {
+                itemId,
+                npcTypeId: definition.npcTypeId,
+                npcId: result.npcId,
+                slot: slotIndex,
+            },
+            player.id,
+        );
+        return true;
+    }
+
     handleInventoryUseMessage(
         ws: WebSocket,
         payload:
@@ -141,6 +217,14 @@ export class InventoryMessageService {
         }
 
         const nowTick = this.deps.getCurrentTick();
+        if (
+            optionLower === "drop" &&
+            hasItemInInventory &&
+            this.tryHandleFollowerDrop(p, slotIndex, itemId, slotEntry)
+        ) {
+            return;
+        }
+
         // First, allow scripts to handle item actions (e.g., bury bones, herblore steps)
         if (optionLower && hasItemInInventory) {
             try {

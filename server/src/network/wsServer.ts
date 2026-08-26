@@ -1205,6 +1205,15 @@ export class WSServer {
             requestAction: (playerId, request, tick) =>
                 this.actionScheduler.requestAction(playerId, request, tick),
             queueItemAction: (request) => this.scriptRuntime.queueItemAction(request),
+            summonFollowerFromItem: (player, itemId, npcTypeId) => {
+                const result = this.followerManager?.summonFollowerFromItem(
+                    player,
+                    itemId,
+                    npcTypeId,
+                ) ?? { ok: false as const, reason: "service_unavailable" };
+                if (result.ok) this.followerCombatManager?.resetPlayer(player.id);
+                return result;
+            },
             closeInterruptibleInterfaces: (p) =>
                 this.interfaceManager.closeInterruptibleInterfaces(p),
             openDialog: (p, req) => this.widgetDialogHandler!.openDialog(p, req),
