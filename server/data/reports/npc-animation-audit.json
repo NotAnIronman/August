@@ -1,0 +1,5671 @@
+{
+  "generatedAt": "2026-08-26T22:25:02.043Z",
+  "augustDefinitions": "C:\\Users\\tyler.reck\\OneDrive - Kiewit Corporation\\Desktop\\Personal Files\\August\\server\\data\\npc-combat-defs.json",
+  "referenceDefinitions": "https://github.com/tobywisener/elvarg-typescript/raw/74feb43bf85000b090f9cce88267e7f1fbe4c9c0/data/definitions/npc-combat-defs-239.json",
+  "cache": {
+    "enabled": false
+  },
+  "filters": {
+    "ids": [],
+    "includeGeneric": false
+  },
+  "summary": {
+    "entries": 226,
+    "additions": 0,
+    "replacements": 0,
+    "unchanged": 226,
+    "readyForInGameReview": 0
+  },
+  "entries": [
+    {
+      "npcId": 100,
+      "name": "Rock Crab",
+      "action": "unchanged",
+      "reference": {
+        "attack": 1312,
+        "block": 1313,
+        "death": 1314
+      },
+      "august": {
+        "attack": 1312,
+        "block": 1313,
+        "death": 1314
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 102,
+      "name": "Rock Crab",
+      "action": "unchanged",
+      "reference": {
+        "attack": 1312,
+        "block": 1313,
+        "death": 1314
+      },
+      "august": {
+        "attack": 1312,
+        "block": 1313,
+        "death": 1314
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 655,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 656,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 657,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 658,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6199,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6199,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 659,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 660,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 661,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 662,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 663,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 664,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 665,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6199,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6199,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 667,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 668,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1020,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1021,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1022,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1061,
+      "name": "Angry unicorn",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "august": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1062,
+      "name": "Angry giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1173,
+      "name": "Chicken",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "august": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1174,
+      "name": "Chicken",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "august": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1262,
+      "name": "Ram",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5338,
+        "block": 5337,
+        "death": 5336
+      },
+      "august": {
+        "attack": 5338,
+        "block": 5337,
+        "death": 5336
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1263,
+      "name": "Ram",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5338,
+        "block": 5337,
+        "death": 5336
+      },
+      "august": {
+        "attack": 5338,
+        "block": 5337,
+        "death": 5336
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1264,
+      "name": "Ram",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5338,
+        "block": 5337,
+        "death": 5336
+      },
+      "august": {
+        "attack": 5338,
+        "block": 5337,
+        "death": 5336
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1679,
+      "name": "Crypt rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 240,
+        "block": 241,
+        "death": 243
+      },
+      "august": {
+        "attack": 240,
+        "block": 241,
+        "death": 243
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1680,
+      "name": "Giant crypt rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1681,
+      "name": "Giant crypt rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1682,
+      "name": "Giant crypt rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1683,
+      "name": "Crypt spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
+      },
+      "august": {
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1684,
+      "name": "Giant crypt spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "august": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1838,
+      "name": "Duck",
+      "action": "unchanged",
+      "reference": {
+        "attack": 3467,
+        "block": 424,
+        "death": 3468
+      },
+      "august": {
+        "attack": 3467,
+        "block": 424,
+        "death": 3468
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 1839,
+      "name": "Duck",
+      "action": "unchanged",
+      "reference": {
+        "attack": 3467,
+        "block": 424,
+        "death": 3468
+      },
+      "august": {
+        "attack": 3467,
+        "block": 424,
+        "death": 3468
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2001,
+      "name": "Duckling",
+      "action": "unchanged",
+      "reference": {
+        "attack": 3467,
+        "block": 424,
+        "death": 3468
+      },
+      "august": {
+        "attack": 3467,
+        "block": 424,
+        "death": 3468
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2205,
+      "name": "Commander Zilyana",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 424,
+        "death": 6968
+      },
+      "august": {
+        "attack": 422,
+        "block": 424,
+        "death": 6968
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2206,
+      "name": "Starlight",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "august": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2207,
+      "name": "Growler",
+      "action": "unchanged",
+      "reference": {
+        "attack": 7037,
+        "block": 7035,
+        "death": 7034
+      },
+      "august": {
+        "attack": 7037,
+        "block": 7035,
+        "death": 7034
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2208,
+      "name": "Bree",
+      "action": "unchanged",
+      "reference": {
+        "attack": 7026,
+        "block": 7027,
+        "death": 7028
+      },
+      "august": {
+        "attack": 7026,
+        "block": 7027,
+        "death": 7028
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2215,
+      "name": "General Graardor",
+      "action": "unchanged",
+      "reference": {
+        "attack": 7018,
+        "block": 7019,
+        "death": 7020
+      },
+      "august": {
+        "attack": 7018,
+        "block": 7019,
+        "death": 7020
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2216,
+      "name": "Sergeant Strongstack",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6154,
+        "block": 6155,
+        "death": 6156
+      },
+      "august": {
+        "attack": 6154,
+        "block": 6155,
+        "death": 6156
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2217,
+      "name": "Sergeant Steelwill",
+      "action": "unchanged",
+      "reference": {
+        "attack": 7071,
+        "block": 6155,
+        "death": 6156
+      },
+      "august": {
+        "attack": 7071,
+        "block": 6155,
+        "death": 6156
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2218,
+      "name": "Sergeant Grimspike",
+      "action": "unchanged",
+      "reference": {
+        "attack": 7073,
+        "block": 6155,
+        "death": 6156
+      },
+      "august": {
+        "attack": 7073,
+        "block": 6155,
+        "death": 6156
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2245,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2246,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2247,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 7042
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 7042
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2248,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2249,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2477,
+      "name": "Giant spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "august": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2478,
+      "name": "Spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
+      },
+      "august": {
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2479,
+      "name": "Scorpion",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "august": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2480,
+      "name": "Scorpion",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "august": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2484,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2485,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2486,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2487,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2488,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2489,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2492,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2510,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2511,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2512,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2513,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2693,
+      "name": "Sheep",
+      "action": "unchanged",
+      "reference": {
+        "attack": 250,
+        "block": 251,
+        "death": 253
+      },
+      "august": {
+        "attack": 250,
+        "block": 251,
+        "death": 253
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2790,
+      "name": "Cow",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      },
+      "august": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2791,
+      "name": "Cow",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      },
+      "august": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2792,
+      "name": "Cow calf",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      },
+      "august": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2793,
+      "name": "Cow",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      },
+      "august": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2794,
+      "name": "Cow calf",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      },
+      "august": {
+        "attack": 5849,
+        "block": 5850,
+        "death": 5851
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2804,
+      "name": "Chicken",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "august": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2805,
+      "name": "Chicken",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "august": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2806,
+      "name": "Chicken",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "august": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2837,
+      "name": "Unicorn",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "august": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2849,
+      "name": "Black unicorn",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "august": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2854,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2855,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2856,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2857,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2858,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2859,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2860,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2861,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2862,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2863,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2864,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2865,
+      "name": "Dungeon rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2866,
+      "name": "Dungeon rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2867,
+      "name": "Dungeon rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3016,
+      "name": "Shadow spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
+      },
+      "august": {
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3017,
+      "name": "Giant spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
+      },
+      "august": {
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3018,
+      "name": "Giant spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "august": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3019,
+      "name": "Spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6249,
+        "block": 6250,
+        "death": 6251
+      },
+      "august": {
+        "attack": 6249,
+        "block": 6250,
+        "death": 6251
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3020,
+      "name": "Jungle spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
+      },
+      "august": {
+        "attack": 5327,
+        "block": 5328,
+        "death": 5329
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3021,
+      "name": "Deadly red spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "august": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3022,
+      "name": "Ice spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "august": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3023,
+      "name": "Poison spider",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "august": {
+        "attack": 5319,
+        "block": 5320,
+        "death": 5321
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3024,
+      "name": "Scorpion",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "august": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3025,
+      "name": "Poison Scorpion",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "august": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3026,
+      "name": "Pit Scorpion",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "august": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3027,
+      "name": "King Scorpion",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "august": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3028,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3029,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3030,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3031,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3032,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3033,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3034,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3035,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3036,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3045,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3046,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3051,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3052,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3053,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3054,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3073,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3074,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3075,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3076,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3106,
+      "name": "Man",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "august": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3107,
+      "name": "Man",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "august": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3108,
+      "name": "Man",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "august": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3111,
+      "name": "Woman",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "august": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3112,
+      "name": "Woman",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "august": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3113,
+      "name": "Woman",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "august": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3114,
+      "name": "Farmer",
+      "action": "unchanged",
+      "reference": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
+      },
+      "august": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3129,
+      "name": "K'ril Tsutsaroth",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 424,
+        "death": 6949
+      },
+      "august": {
+        "attack": 422,
+        "block": 424,
+        "death": 6949
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3130,
+      "name": "Tstanon Karlak",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4644,
+        "block": 65,
+        "death": 68
+      },
+      "august": {
+        "attack": 4644,
+        "block": 65,
+        "death": 68
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3131,
+      "name": "Zakl'n Gritch",
+      "action": "unchanged",
+      "reference": {
+        "attack": 7077,
+        "block": 65,
+        "death": 67
+      },
+      "august": {
+        "attack": 7077,
+        "block": 65,
+        "death": 67
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3132,
+      "name": "Balfrug Kreeyath",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4630,
+        "block": 65,
+        "death": 67
+      },
+      "august": {
+        "attack": 4630,
+        "block": 65,
+        "death": 67
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3134,
+      "name": "Imp",
+      "action": "unchanged",
+      "reference": {
+        "attack": 169,
+        "block": 170,
+        "death": 172
+      },
+      "august": {
+        "attack": 169,
+        "block": 170,
+        "death": 172
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3162,
+      "name": "Kree'arra",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 424,
+        "death": 6979
+      },
+      "august": {
+        "attack": 422,
+        "block": 424,
+        "death": 6979
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3163,
+      "name": "Wingman Skree",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6956,
+        "block": 6958,
+        "death": 6959
+      },
+      "august": {
+        "attack": 6956,
+        "block": 6958,
+        "death": 6959
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3164,
+      "name": "Flockleader Geerin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6956,
+        "block": 6958,
+        "death": 6959
+      },
+      "august": {
+        "attack": 6956,
+        "block": 6958,
+        "death": 6959
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3165,
+      "name": "Flight Kilisa",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6957,
+        "block": 6958,
+        "death": 6959
+      },
+      "august": {
+        "attack": 6957,
+        "block": 6958,
+        "death": 6959
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3243,
+      "name": "Farmer",
+      "action": "unchanged",
+      "reference": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
+      },
+      "august": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3244,
+      "name": "Farmer",
+      "action": "unchanged",
+      "reference": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
+      },
+      "august": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3313,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3314,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3315,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3316,
+      "name": "Chicken",
+      "action": "unchanged",
+      "reference": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "august": {
+        "attack": 5387,
+        "block": 5388,
+        "death": 5389
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3607,
+      "name": "Dungeon rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3608,
+      "name": "Dungeon rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3609,
+      "name": "Dungeon rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3910,
+      "name": "Unicorn Foal",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "august": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3911,
+      "name": "Black unicorn Foal",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "august": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3969,
+      "name": "Zombie rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3970,
+      "name": "Zombie rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3971,
+      "name": "Zombie rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4000,
+      "name": "Mouse",
+      "action": "unchanged",
+      "reference": {
+        "attack": 240,
+        "block": 241,
+        "death": 243
+      },
+      "august": {
+        "attack": 240,
+        "block": 241,
+        "death": 243
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4534,
+      "name": "Blessed giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4535,
+      "name": "Blessed giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4594,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4595,
+      "name": "King rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4610,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4611,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4612,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4613,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4614,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4615,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4616,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4617,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4618,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4688,
+      "name": "Angry unicorn",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "august": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4689,
+      "name": "Angry giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4690,
+      "name": "Angry giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 4809,
+      "name": "Hell-Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5007,
+      "name": "Imp",
+      "action": "unchanged",
+      "reference": {
+        "attack": 169,
+        "block": 170,
+        "death": 172
+      },
+      "august": {
+        "attack": 169,
+        "block": 170,
+        "death": 172
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5192,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5193,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5195,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5196,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5197,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5198,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5199,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5200,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5201,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5202,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5203,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6184,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5204,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "august": {
+        "attack": 6188,
+        "block": 6189,
+        "death": 6190
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5205,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5206,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5207,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5208,
+      "name": "Goblin",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "august": {
+        "attack": 6185,
+        "block": 6183,
+        "death": 6182
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5211,
+      "name": "null",
+      "action": "unchanged",
+      "reference": {
+        "attack": 390,
+        "block": 383,
+        "death": 836
+      },
+      "august": {
+        "attack": 390,
+        "block": 383,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5228,
+      "name": "Kharid Scorpion",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "august": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5229,
+      "name": "Kharid Scorpion",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "august": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5230,
+      "name": "Kharid Scorpion",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "august": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5242,
+      "name": "Scorpion",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "august": {
+        "attack": 6254,
+        "block": 6255,
+        "death": 6256
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 5728,
+      "name": "Imp",
+      "action": "unchanged",
+      "reference": {
+        "attack": 169,
+        "block": 170,
+        "death": 172
+      },
+      "august": {
+        "attack": 169,
+        "block": 170,
+        "death": 172
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 6224,
+      "name": "null",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 6225,
+      "name": "null",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 6226,
+      "name": "null",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 6227,
+      "name": "null",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 6228,
+      "name": "null",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 6229,
+      "name": "null",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 6793,
+      "name": "Hell-Rat Behemoth",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 6818,
+      "name": "Man",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "august": {
+        "attack": 422,
+        "block": 425,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 7024,
+      "name": "Reanimated unicorn",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "august": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 7221,
+      "name": "Scurrius",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 424,
+        "death": 10705
+      },
+      "august": {
+        "attack": 422,
+        "block": 424,
+        "death": 10705
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 7222,
+      "name": "Scurrius",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 424,
+        "death": 10705
+      },
+      "august": {
+        "attack": 422,
+        "block": 424,
+        "death": 10705
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 7223,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 7225,
+      "name": "null",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 8700,
+      "name": "Giant frog",
+      "action": "unchanged",
+      "reference": {
+        "attack": 1793,
+        "block": 1794,
+        "death": 1795
+      },
+      "august": {
+        "attack": 1793,
+        "block": 1794,
+        "death": 1795
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 8701,
+      "name": "Big frog",
+      "action": "unchanged",
+      "reference": {
+        "attack": 1793,
+        "block": 1794,
+        "death": 1795
+      },
+      "august": {
+        "attack": 1793,
+        "block": 1794,
+        "death": 1795
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 8702,
+      "name": "Frog",
+      "action": "unchanged",
+      "reference": {
+        "attack": 1793,
+        "block": 1794,
+        "death": 1795
+      },
+      "august": {
+        "attack": 1793,
+        "block": 1794,
+        "death": 1795
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 8986,
+      "name": "Unicorn",
+      "action": "unchanged",
+      "reference": {
+        "attack": 289,
+        "block": 290,
+        "death": 292
+      },
+      "august": {
+        "attack": 289,
+        "block": 290,
+        "death": 292
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 9026,
+      "name": "Crystalline Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 9029,
+      "name": "Crystalline Unicorn",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "august": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 9040,
+      "name": "Corrupted Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 9043,
+      "name": "Corrupted Unicorn",
+      "action": "unchanged",
+      "reference": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "august": {
+        "attack": 6376,
+        "block": 6375,
+        "death": 6377
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 9209,
+      "name": "null",
+      "action": "unchanged",
+      "reference": {
+        "attack": 289,
+        "block": 290,
+        "death": 292
+      },
+      "august": {
+        "attack": 289,
+        "block": 290,
+        "death": 292
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 9483,
+      "name": "Giant rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "august": {
+        "attack": 4933,
+        "block": 4934,
+        "death": 4935
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 9618,
+      "name": "null",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 10682,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11911,
+      "name": "Guard",
+      "action": "unchanged",
+      "reference": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "august": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11912,
+      "name": "Guard",
+      "action": "unchanged",
+      "reference": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "august": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11913,
+      "name": "Guard",
+      "action": "unchanged",
+      "reference": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "august": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11914,
+      "name": "Guard",
+      "action": "unchanged",
+      "reference": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "august": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11915,
+      "name": "Guard",
+      "action": "unchanged",
+      "reference": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "august": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11916,
+      "name": "Guard",
+      "action": "unchanged",
+      "reference": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "august": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11917,
+      "name": "Guard",
+      "action": "unchanged",
+      "reference": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "august": {
+        "attack": 386,
+        "block": 1156,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11918,
+      "name": "Farmer",
+      "action": "unchanged",
+      "reference": {
+        "attack": 386,
+        "block": 387,
+        "death": 836
+      },
+      "august": {
+        "attack": 386,
+        "block": 387,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11919,
+      "name": "Farmer",
+      "action": "unchanged",
+      "reference": {
+        "attack": 386,
+        "block": 387,
+        "death": 836
+      },
+      "august": {
+        "attack": 386,
+        "block": 387,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11920,
+      "name": "Farmer",
+      "action": "unchanged",
+      "reference": {
+        "attack": 386,
+        "block": 387,
+        "death": 836
+      },
+      "august": {
+        "attack": 386,
+        "block": 387,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 11921,
+      "name": "Farmer",
+      "action": "unchanged",
+      "reference": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
+      },
+      "august": {
+        "attack": 433,
+        "block": 434,
+        "death": 836
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 13624,
+      "name": "Rat",
+      "action": "unchanged",
+      "reference": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "august": {
+        "attack": 2705,
+        "block": 2706,
+        "death": 2707
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    }
+  ]
+}

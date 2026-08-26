@@ -7,7 +7,7 @@
  * before they are considered for a manual in-game test.
  *
  * Example:
- *   yarn audit-npc-animations --reference C:\\path\\to\\npc-combat-defs-239.json
+ *   yarn audit-npc-animations
  *
  * Useful options:
  *   --ids 2205,2215,3129,3162     Review only selected NPC IDs.
@@ -18,9 +18,7 @@
 import fs from "fs";
 import path from "path";
 import { execFileSync } from "child_process";
-
-import { getCacheLoaderFactory } from "../../client/rs/cache/loader/CacheLoaderFactory";
-import { initCacheEnv } from "../src/world/CacheEnv";
+import { fileURLToPath } from "url";
 
 type Animations = {
     attack?: number;
@@ -50,11 +48,14 @@ type CacheValidation = {
     };
 };
 
-const SERVER_ROOT = path.resolve(__dirname, "..");
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const SERVER_ROOT = path.resolve(SCRIPT_DIR, "..");
 const DEFAULT_AUGUST_DEFINITIONS = path.join(SERVER_ROOT, "data", "npc-combat-defs.json");
 const DEFAULT_OUTPUT = path.join(SERVER_ROOT, "data", "reports", "npc-animation-audit.json");
-const DEFAULT_REFERENCE_GIT_REPOSITORY = path.resolve(SERVER_ROOT, "..", "..", "Elvarg", "Elvarg-TS");
 const OPENRUNE_REFERENCE_SPEC = "74feb43b:data/definitions/npc-combat-defs-239.json";
+const PUBLIC_REFERENCE_URL =
+    "https://github.com/tobywisener/elvarg-typescript/raw/74feb43bf85000b090f9cce88267e7f1fbe4c9c0/" +
+    OPENRUNE_REFERENCE_SPEC.split(":")[1];
 const GENERIC_ANIMATIONS: Required<Animations> = { attack: 422, block: 424, death: 836 };
 
 function usage(): never {
@@ -77,29 +78,40 @@ function readJson(filePath: string): CombatDefinitionFile {
     return JSON.parse(fs.readFileSync(filePath, "utf8")) as CombatDefinitionFile;
 }
 
-function loadReference(referencePath: string | undefined, referenceGit: string | undefined): {
+async function loadReference(referencePath: string | undefined, referenceGit: string | undefined): Promise<{
     source: string;
     data: CombatDefinitionFile;
-} {
+}> {
     if (referencePath) {
         const resolved = path.resolve(referencePath);
         return { source: resolved, data: readJson(resolved) };
     }
 
-    const repository = path.resolve(referenceGit ?? DEFAULT_REFERENCE_GIT_REPOSITORY);
-    if (!fs.existsSync(repository)) {
+    if (referenceGit) {
+        const repository = path.resolve(referenceGit);
+        if (!fs.existsSync(repository)) {
+            throw new Error(`Reference git repository does not exist: ${repository}`);
+        }
+        const raw = execFileSync("git", ["-C", repository, "show", OPENRUNE_REFERENCE_SPEC], {
+            encoding: "utf8",
+            maxBuffer: 64 * 1024 * 1024,
+        });
+        return {
+            source: `${repository}@${OPENRUNE_REFERENCE_SPEC}`,
+            data: JSON.parse(raw) as CombatDefinitionFile,
+        };
+    }
+
+    const response = await fetch(PUBLIC_REFERENCE_URL);
+    if (!response.ok) {
         throw new Error(
-            "No reference file was supplied and the default Elvarg checkout was not found. " +
-                "Pass --reference <file> or --reference-git <Elvarg repository>.",
+            `Unable to download the public animation reference (${response.status}). ` +
+                "Pass --reference <file> to use a local copy instead.",
         );
     }
-    const raw = execFileSync("git", ["-C", repository, "show", OPENRUNE_REFERENCE_SPEC], {
-        encoding: "utf8",
-        maxBuffer: 64 * 1024 * 1024,
-    });
     return {
-        source: `${repository}@${OPENRUNE_REFERENCE_SPEC}`,
-        data: JSON.parse(raw) as CombatDefinitionFile,
+        source: PUBLIC_REFERENCE_URL,
+        data: (await response.json()) as CombatDefinitionFile,
     };
 }
 
@@ -128,7 +140,7 @@ function matches(left: Animations | undefined, right: Animations | undefined): b
     );
 }
 
-function loadCacheValidation(disabled: boolean): CacheValidation {
+async function loadCacheValidation(disabled: boolean): Promise<CacheValidation> {
     if (disabled) {
         return {
             enabled: false,
@@ -137,6 +149,10 @@ function loadCacheValidation(disabled: boolean): CacheValidation {
     }
 
     try {
+        const [{ getCacheLoaderFactory }, { initCacheEnv }] = await Promise.all([
+            import("../../client/rs/cache/loader/CacheLoaderFactory"),
+            import("../src/world/CacheEnv"),
+        ]);
         const cacheEnv = initCacheEnv(path.join(SERVER_ROOT, "caches"));
         const loaders = getCacheLoaderFactory(cacheEnv.info, cacheEnv.cacheSystem);
         const npcLoader = loaders.getNpcTypeLoader();
@@ -175,7 +191,7 @@ function loadCacheValidation(disabled: boolean): CacheValidation {
     }
 }
 
-function main(): void {
+async function main(): Promise<void> {
     const referencePath = readArgument("--reference");
     const referenceGit = readArgument("--reference-git");
     const outputPath = path.resolve(readArgument("--output") ?? DEFAULT_OUTPUT);
@@ -186,9 +202,9 @@ function main(): void {
             .filter(Boolean),
     );
     const includeGeneric = process.argv.includes("--include-generic");
-    const cache = loadCacheValidation(process.argv.includes("--no-cache"));
+    const cache = await loadCacheValidation(process.argv.includes("--no-cache"));
     const august = readJson(DEFAULT_AUGUST_DEFINITIONS).npcs ?? {};
-    const referenceSource = loadReference(referencePath, referenceGit);
+    const referenceSource = await loadReference(referencePath, referenceGit);
     const reference = referenceSource.data.npcs ?? {};
 
     const entries = Object.entries(reference)
@@ -274,4 +290,7 @@ function main(): void {
     );
 }
 
-main();
+main().catch((error) => {
+    console.error("[npc-animation-audit]", error);
+    process.exitCode = 1;
+});
