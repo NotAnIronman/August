@@ -451,7 +451,7 @@ export class ScriptRuntime {
             option: event.option,
         };
         const sourceItemId = scriptEvent.source.itemId;
-        const handler = this.registry.findItemOnItem(sourceItemId, -1, scriptEvent.option);
+        const handler = this.registry.findItemAction(sourceItemId, scriptEvent.option);
         if (!handler) {
             this.logger.debug(
                 `[script] no item action for item=${sourceItemId} option=${
