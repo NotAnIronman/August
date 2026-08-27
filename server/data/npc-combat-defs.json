@@ -6,7 +6,8 @@
       "anims": {
         "attack": 5485,
         "block": 5489,
-        "death": 5491
+        "death": 5491,
+        "melee": 5485
       }
     },
     "100": {
@@ -301,12 +302,22 @@
         "death": 3468
       }
     },
+    "2043": {
+      "anims": {
+        "melee": 5807,
+        "attack": 5807
+      }
+    },
     "2205": {
       "name": "Commander Zilyana",
       "anims": {
         "attack": 422,
-        "block": 424,
-        "death": 6968
+        "block": 6969,
+        "death": 6968,
+        "melee": 6967,
+        "specials": [
+          6970
+        ]
       }
     },
     "2206": {
@@ -1113,8 +1124,8 @@
     "3129": {
       "name": "K'ril Tsutsaroth",
       "anims": {
-        "attack": 422,
-        "block": 424,
+        "attack": 6948,
+        "block": 6947,
         "death": 6949
       }
     },
@@ -1153,9 +1164,11 @@
     "3162": {
       "name": "Kree'arra",
       "anims": {
-        "attack": 422,
-        "block": 424,
-        "death": 6979
+        "attack": 6981,
+        "block": 6978,
+        "death": 6979,
+        "ranged": 6980,
+        "melee": 6981
       }
     },
     "3163": {
@@ -1871,6 +1884,15 @@
       },
       "sounds": {
         "death": 512
+      }
+    },
+    "7416": {
+      "anims": {
+        "block": 4651,
+        "death": 4653,
+        "melee": 4666,
+        "attack": 7183,
+        "ranged": 7183
       }
     },
     "7919": {
