@@ -1,7 +1,13 @@
 /** Serializable contract shared by browser UIKit and server presenters. */
 export const ComponentIds = {
     ROOT: 0, FRAME: 1, SIDEBAR_DIVIDER: 2,
-    TAB_HIGHLIGHT_BASE: 3, TAB_BASE: 13, MAX_TABS: 10,
+    /**
+     * Native tab backgrounds must render before their labels.  Keeping the
+     * idle/active layers in the first component slots and the labels later
+     * gives cache sprites the same stacking order as the game's own tabs.
+     */
+    TAB_BACKGROUND_BASE: 3, TAB_HIGHLIGHT_BASE: 13, MAX_TABS: 10,
+    TAB_BASE: 1130,
     CONTENT_VIEW: 30, SCROLLBAR: 31, SCROLLBAR_TRACK: 32, SCROLLBAR_THUMB: 33,
     TEXT_ROW_LINE_BASE: 40, TEXT_ROW_DIVIDER_BASE: 140, TEXT_ROW_CENTER_BASE: 240,
     /** A container below all icon-row foreground widgets; its children hold
@@ -15,11 +21,6 @@ export const ComponentIds = {
     INFO_COLUMN_DIVIDER: 950, INFO_COLUMN_ROW_BASE: 960, MAX_INFO_COLUMN_ROWS: 16,
     MENU_BUTTON_BACKGROUND_BASE: 1000, MENU_BUTTON_ICON_BASE: 1040,
     MENU_BUTTON_LABEL_BASE: 1080, MAX_MENU_BUTTONS: 24,
-    /** Reserved for a future always-visible tab background sprite layer
-     *  (tabs.backgroundAsset) - not yet consumed by PanelBuilder.ts. See
-     *  the note there before wiring it up; it needs every id below shifted
-     *  to make room, not just this one reservation. */
-    TAB_BACKGROUND_BASE: 1120,
     /** Client-local metadata and rows for cache interface component inspection. */
     PICKER_SOURCE: 1200, PICKER_ROW_PREVIEW_BASE: 2000,
     PICKER_ROW_LABEL_BASE: 2600, PICKER_ROW_ALT_PREVIEW_BASE: 3200,
@@ -95,21 +96,41 @@ export type UiPanelRow = UiTextRow | UiIconRow;
 /** An intent only; the server must register and validate every action. */
 export type UiActionId = string;
 
+/**
+ * Cache-first presentation choices for one UIKit panel.  Every value is a
+ * semantic cache key (for example "ui.tab-base"), a raw gallery reference
+ * ("cache.sprite.185.0"), or a cached widget reference
+ * ("cache.widget.116.11.sprite").  The resolver intentionally supports all
+ * three so a discovered cache asset becomes immediately reusable without a
+ * new builder feature.
+ */
+export type UiPanelSkin = {
+    /** The outer frame remains the native steelborder cache script by default. */
+    tabs?: {
+        backgroundAsset?: string;
+        activeAsset?: string;
+    };
+    /** Visual used for menu/control/footer buttons when a suitable cache
+     * button skin has been identified. Undefined preserves the safe native
+     * rectangle fallback rather than stretching an unrelated sprite. */
+    button?: { backgroundAsset?: string; hoverAsset?: string };
+    /** Optional cache artwork behind the local search field. */
+    input?: { backgroundAsset?: string; hoverAsset?: string };
+};
+
 export type UiPanelLayout = {
     width: number; height: number;
+    /** Cache-first skin shared by all reusable pieces of this panel. */
+    skin?: UiPanelSkin;
     sidebar?: { width: number };
     /** Preferred spelling for new panels; sidebar remains backwards compatible. */
     tabs?: {
         position: UiTabPosition; width?: number; height?: number;
         /** Centers left-sidebar tab labels inside their selected rectangle. */
         textAlignment?: UiTextAlignment;
-        /** NOT YET WIRED in PanelBuilder.ts - the highlight widget's id
-         *  range has no room for a second, always-visible background layer
-         *  without shifting every component id after it. See the note in
-         *  PanelBuilder.ts's tab-building code. */
+        /** Native idle-tab artwork. Defaults to UIKit's cache-backed skin. */
         backgroundAsset?: string;
-        /** Sprite shown in place of the plain highlight color for whichever
-         *  tab is currently active - wired now. */
+        /** Native active-tab artwork. Defaults to UIKit's cache-backed skin. */
         backgroundHoverAsset?: string;
     };
     content: { rowKind: UiRowKind; rowHeight: number; scrollbarWidth: number; rowCapacity?: number;

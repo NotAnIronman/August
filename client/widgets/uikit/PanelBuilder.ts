@@ -2,6 +2,7 @@ import { FONT_BOLD_12, FONT_PLAIN_11, FONT_PLAIN_12 } from "../../ui/fonts";
 import { FLAG_TRANSMIT_OP1 } from "../WidgetFlags";
 import type { WidgetNode } from "../WidgetNode";
 import { ComponentIds, type UiPanelLayout } from "../../common/uikit/contracts";
+import { NATIVE_UIKIT_SKIN } from "./CacheUiAssets";
 
 export type WidgetGroupLoadResult = {
     root: WidgetNode | undefined;
@@ -140,6 +141,16 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     widgets.set(frame.uid, frame);
 
     const tabPosition = layout.tabs?.position ?? (layout.sidebar ? "left" : undefined);
+    const tabBackgroundAsset =
+        layout.tabs?.backgroundAsset ?? layout.skin?.tabs?.backgroundAsset ??
+        NATIVE_UIKIT_SKIN.tabs.backgroundAsset;
+    const tabActiveAsset =
+        layout.tabs?.backgroundHoverAsset ?? layout.skin?.tabs?.activeAsset ??
+        NATIVE_UIKIT_SKIN.tabs.activeAsset;
+    const buttonBackgroundAsset = layout.skin?.button?.backgroundAsset;
+    const buttonHoverAsset = layout.skin?.button?.hoverAsset;
+    const inputBackgroundAsset = layout.skin?.input?.backgroundAsset;
+    const inputHoverAsset = layout.skin?.input?.hoverAsset;
     const sidebarWidth =
         tabPosition === "left" ? (layout.tabs?.width ?? layout.sidebar?.width ?? 0) : 0;
     const tabsBottom = tabPosition === "top" ? CONTENT_TOP + (layout.tabs?.height ?? TAB_HEIGHT) + 4 : CONTENT_TOP;
@@ -167,19 +178,29 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             const tabLeft = centerLeftTabText ? 8 : 16;
             const tabWidth = centerLeftTabText ? sidebarWidth - 4 : sidebarWidth - 16;
 
-            // Highlight's component id is LOWER than the tab text's (see
-            // the fileId z-order note in types.ts) so it draws behind,
-            // not on top of, the label. The server only ever reveals this
-            // widget for the currently-active tab (sendUiTabs in
-            // panelData.ts), so backgroundHoverAsset - not backgroundAsset -
-            // is what belongs here: it's already exactly the "this tab is
-            // selected" signal, just swapping a sprite in for the plain
-            // color instead of a persistent all-tabs background. A true
-            // always-visible backgroundAsset needs its own widget below
-            // TAB_BASE in the id space, which the current 3..12 range has
-            // no room left for without shifting every id after it -
-            // deliberately not doing that shift silently in the same patch
-            // as everything else this round.
+            // Native idle and active layers deliberately render before the
+            // label (ComponentIds guarantees that order).  This is the same
+            // compositional pattern the cache uses: a real sprite for chrome,
+            // with server-owned text/actions as foreground widgets.
+            const background = makeWidget(
+                groupId,
+                ComponentIds.TAB_BACKGROUND_BASE + i,
+                rootUid,
+                {
+                    type: 3,
+                    rawX: 8,
+                    rawY: centerLeftTabText ? tabY : tabY - 2,
+                    rawWidth: sidebarWidth - 4,
+                    rawHeight: centerLeftTabText ? TAB_HEIGHT : TAB_HEIGHT - 2,
+                    width: sidebarWidth - 4,
+                    height: centerLeftTabText ? TAB_HEIGHT : TAB_HEIGHT - 2,
+                    filled: true,
+                    color: 0x2b241b,
+                    cacheUiAsset: tabBackgroundAsset,
+                },
+            );
+            widgets.set(background.uid, background);
+
             const highlight = makeWidget(
                 groupId,
                 ComponentIds.TAB_HIGHLIGHT_BASE + i,
@@ -194,7 +215,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                     height: centerLeftTabText ? TAB_HEIGHT : TAB_HEIGHT - 2,
                     filled: true,
                     color: 0x3a2e1f,
-                    cacheUiAsset: layout.tabs?.backgroundHoverAsset,
+                    cacheUiAsset: tabActiveAsset,
                     isHidden: true,
                     hidden: true,
                 },
@@ -228,11 +249,17 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
         const tabWidth = Math.max(1, Math.floor((layout.width - CONTENT_MARGIN_X * 2) / ComponentIds.MAX_TABS));
         for (let i = 0; i < ComponentIds.MAX_TABS; i++) {
             const tabX = CONTENT_MARGIN_X + i * tabWidth;
+            const background = makeWidget(groupId, ComponentIds.TAB_BACKGROUND_BASE + i, rootUid, {
+                type: 3, rawX: tabX, rawY: CONTENT_TOP - 2, rawWidth: tabWidth - 2,
+                rawHeight: tabHeight, width: tabWidth - 2, height: tabHeight,
+                filled: true, color: 0x2b241b, cacheUiAsset: tabBackgroundAsset,
+            });
+            widgets.set(background.uid, background);
             const highlight = makeWidget(groupId, ComponentIds.TAB_HIGHLIGHT_BASE + i, rootUid, {
                 type: 3, rawX: tabX, rawY: CONTENT_TOP - 2, rawWidth: tabWidth - 2,
                 rawHeight: tabHeight, width: tabWidth - 2, height: tabHeight,
                 filled: true, color: 0x3a2e1f,
-                cacheUiAsset: layout.tabs?.backgroundHoverAsset,
+                cacheUiAsset: tabActiveAsset,
                 isHidden: true, hidden: true,
             });
             widgets.set(highlight.uid, highlight);
@@ -338,6 +365,8 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             type: 3, rawX: contentLeft + searchInset, rawY: searchY, rawWidth: searchWidth,
             rawHeight: 22, width: searchWidth, height: 22, filled: true,
             color: 0x2b241b, mouseOverColor: 0x342b20,
+            cacheUiAsset: inputBackgroundAsset,
+            cacheUiAssetHover: inputHoverAsset,
         });
         const text = makeWidget(groupId, ComponentIds.SEARCH_TEXT, rootUid, {
             type: 4, rawX: contentLeft + searchInset + 6, rawY: searchY, rawWidth: searchWidth - 12,
@@ -752,8 +781,8 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 rawX: gridOffsetX + column * (buttonWidth + gap), rawY: row * (buttonHeight + gap),
                 rawWidth: buttonWidth, rawHeight: buttonHeight, width: buttonWidth, height: buttonHeight,
                 filled: true, color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 104,
-                cacheUiAsset: layout.menuButtons.backgroundAsset,
-                cacheUiAssetHover: layout.menuButtons.backgroundHoverAsset,
+                cacheUiAsset: layout.menuButtons.backgroundAsset ?? buttonBackgroundAsset,
+                cacheUiAssetHover: layout.menuButtons.backgroundHoverAsset ?? buttonHoverAsset,
                 actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
             });
             widgets.set(button.uid, button);
@@ -922,6 +951,8 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             color: 0x241e16,
             mouseOverColor: 0x3a3022,
             opacity: 104,
+            cacheUiAsset: buttonBackgroundAsset,
+            cacheUiAssetHover: buttonHoverAsset,
             actions: ["View"],
             flags: FLAG_TRANSMIT_OP1,
         });
@@ -975,6 +1006,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
                 type: 3, rawX: x, rawY: 10, rawWidth: controlWidth, rawHeight: controlHeight,
                 yPositionMode: 2, width: controlWidth, height: controlHeight, filled: true,
                 color: 0x241e16, mouseOverColor: 0x3a3022, opacity: 104,
+                cacheUiAsset: buttonBackgroundAsset, cacheUiAssetHover: buttonHoverAsset,
                 actions: ["Select"], flags: FLAG_TRANSMIT_OP1, isHidden: true, hidden: true,
             });
             widgets.set(background.uid, background);

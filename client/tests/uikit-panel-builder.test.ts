@@ -24,7 +24,17 @@ assert.equal(
     topTabs.widgets.get(uid(ComponentIds.FOOTER_BUTTON_LABEL))?.parentUid,
     uid(ComponentIds.ROOT),
 );
-assert.equal(topTabs.widgets.size, 1 + 1 + ComponentIds.MAX_TABS * 2 + 1 + ComponentIds.MAX_ROWS * 3 + 2);
+assert.equal(topTabs.widgets.size, 1 + 1 + ComponentIds.MAX_TABS * 3 + 1 + ComponentIds.MAX_ROWS * 3 + 2);
+assert.equal(
+    topTabs.widgets.get(uid(ComponentIds.TAB_BACKGROUND_BASE))?.cacheUiAsset,
+    "ui.tab-base",
+);
+assert.equal(
+    topTabs.widgets.get(uid(ComponentIds.TAB_HIGHLIGHT_BASE))?.cacheUiAsset,
+    "ui.tab-hover",
+);
+assert.ok(ComponentIds.TAB_BACKGROUND_BASE < ComponentIds.TAB_BASE);
+assert.ok(ComponentIds.TAB_HIGHLIGHT_BASE < ComponentIds.TAB_BASE);
 
 assert.throws(
     () => buildUiPanel(-1, { width: 1, height: 1, content: { rowKind: "text", rowHeight: 1, scrollbarWidth: 0 } }),

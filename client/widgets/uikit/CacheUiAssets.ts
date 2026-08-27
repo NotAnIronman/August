@@ -7,6 +7,13 @@ import { resolveSpriteByCommonName } from "./SpriteNameCache";
  * only after a developer has named a source component in the asset inspector.
  */
 export const CacheUiAssetKey = {
+    /** Native UI chrome available in the current cache. */
+    TAB_IDLE: "ui.tab-base",
+    TAB_ACTIVE: "ui.tab-hover",
+    RADIO_OFF: "ui.radio-unchecked",
+    RADIO_ON: "ui.radio-checked",
+    PAGE_PREVIOUS: "ui.page-left",
+    PAGE_NEXT: "ui.page-right",
     SCROLLBAR_ARROW_UP: "scrollbar.arrow-up",
     SCROLLBAR_ARROW_DOWN: "scrollbar.arrow-down",
     SCROLLBAR_TRACK: "scrollbar.track",
@@ -54,6 +61,32 @@ type ArchiveSpriteAsset = {
 export type CacheUiAsset = NamedSpriteAsset | WidgetSpriteAsset | ArchiveSpriteAsset;
 
 /**
+ * The default visual vocabulary for code-built interfaces.  This is a
+ * deliberately small set of *correct* native assets, not a random cache
+ * sprite sprayed over every rectangle.  New discoveries can be used straight
+ * away with cache.sprite/cache.widget keys, then promoted here when they are
+ * proven to be a stable reusable UI primitive.
+ */
+export const NATIVE_UIKIT_SKIN = {
+    tabs: {
+        backgroundAsset: CacheUiAssetKey.TAB_IDLE,
+        activeAsset: CacheUiAssetKey.TAB_ACTIVE,
+    },
+    scrollbar: {
+        arrowUp: CacheUiAssetKey.SCROLLBAR_ARROW_UP,
+        arrowDown: CacheUiAssetKey.SCROLLBAR_ARROW_DOWN,
+        track: CacheUiAssetKey.SCROLLBAR_TRACK,
+        thumbTop: CacheUiAssetKey.SCROLLBAR_THUMB_TOP,
+        thumbCentre: CacheUiAssetKey.SCROLLBAR_THUMB_CENTRE,
+        thumbBottom: CacheUiAssetKey.SCROLLBAR_THUMB_BOTTOM,
+    },
+    pagination: {
+        previous: CacheUiAssetKey.PAGE_PREVIOUS,
+        next: CacheUiAssetKey.PAGE_NEXT,
+    },
+} as const;
+
+/**
  * Stable blank-reference format shown next to every component in the picker.
  * It is deliberately based on interface/component IDs, not the raw sprite ID:
  * the component remains useful if a later cache revision changes its sprite.
@@ -92,7 +125,7 @@ function parseCacheSpriteAssetKey(key: string): CacheSpriteAssetReference | unde
 }
 
 /** Initial named entries whose cache identifiers are already known and stable. */
-export const CACHE_UI_ASSETS: Readonly<Record<CacheUiAssetKey, NamedSpriteAsset>> = {
+export const CACHE_UI_ASSETS: Readonly<Partial<Record<CacheUiAssetKey, NamedSpriteAsset>>> = {
     [CacheUiAssetKey.SCROLLBAR_ARROW_UP]: {
         kind: "named-sprite", token: "scrollbar_v2,0", description: "Native scrollbar up arrow.",
     },
@@ -137,6 +170,36 @@ export const CACHE_UI_ASSETS: Readonly<Record<CacheUiAssetKey, NamedSpriteAsset>
  * }
  */
 export const CACHE_UI_ASSET_ALIASES: Readonly<Record<string, CacheUiAsset>> = {
+    [CacheUiAssetKey.TAB_IDLE]: {
+        kind: "archive-sprite",
+        source: { archiveId: 185, frame: 0 },
+        description: "Native inactive tab background.",
+    },
+    [CacheUiAssetKey.TAB_ACTIVE]: {
+        kind: "archive-sprite",
+        source: { archiveId: 186, frame: 0 },
+        description: "Native active tab background.",
+    },
+    [CacheUiAssetKey.RADIO_OFF]: {
+        kind: "archive-sprite",
+        source: { archiveId: 180, frame: 0 },
+        description: "Native unchecked radio button.",
+    },
+    [CacheUiAssetKey.RADIO_ON]: {
+        kind: "archive-sprite",
+        source: { archiveId: 181, frame: 0 },
+        description: "Native checked radio button.",
+    },
+    [CacheUiAssetKey.PAGE_PREVIOUS]: {
+        kind: "archive-sprite",
+        source: { archiveId: 308, frame: 0 },
+        description: "Native previous-page arrow.",
+    },
+    [CacheUiAssetKey.PAGE_NEXT]: {
+        kind: "archive-sprite",
+        source: { archiveId: 309, frame: 0 },
+        description: "Native next-page arrow.",
+    },
     "settings.brightness-icon": {
         kind: "widget-sprite",
         source: { groupId: 116, componentId: 11, field: "sprite" },
@@ -225,22 +288,56 @@ function resolveWidgetSprite(
     };
 }
 
-function restoreDefaultMenuButton(widget: WidgetNode): void {
-    widget.type = 3;
-    widget.filled = true;
-    widget.color = 0x241e16;
-    widget.mouseOverColor = 0x3a3022;
-    widget.opacity = 104;
-    widget.transparency = 0;
-    widget.spriteId = -1;
-    widget.spriteId2 = -1;
-    widget.cacheSpriteToken = undefined;
-    widget.cacheSpriteArchiveId = undefined;
-    widget.cacheSpriteFrame = undefined;
-    widget.cacheSpriteTokenHover = undefined;
-    widget.cacheSpriteArchiveIdHover = undefined;
-    widget.cacheSpriteFrameHover = undefined;
-    widget.spriteTiling = false;
+type CacheUiFallback = Pick<
+    WidgetNode,
+    | "type"
+    | "isIf3"
+    | "filled"
+    | "color"
+    | "mouseOverColor"
+    | "opacity"
+    | "transparency"
+    | "spriteId"
+    | "spriteId2"
+    | "cacheSpriteToken"
+    | "cacheSpriteArchiveId"
+    | "cacheSpriteFrame"
+    | "cacheSpriteTokenHover"
+    | "cacheSpriteArchiveIdHover"
+    | "cacheSpriteFrameHover"
+    | "spriteTiling"
+    | "borderType"
+    | "graphicShadow"
+    | "horizontalFlip"
+    | "verticalFlip"
+>;
+
+const CACHE_UI_FALLBACK_FIELDS: ReadonlyArray<keyof CacheUiFallback> = [
+    "type", "isIf3", "filled", "color", "mouseOverColor", "opacity", "transparency",
+    "spriteId", "spriteId2", "cacheSpriteToken", "cacheSpriteArchiveId", "cacheSpriteFrame",
+    "cacheSpriteTokenHover", "cacheSpriteArchiveIdHover", "cacheSpriteFrameHover", "spriteTiling",
+    "borderType", "graphicShadow", "horizontalFlip", "verticalFlip",
+];
+
+function captureFallback(widget: WidgetNode): void {
+    if ((widget as any).__cacheUiAssetFallback) return;
+    const fallback: Partial<CacheUiFallback> = {};
+    for (const field of CACHE_UI_FALLBACK_FIELDS) {
+        fallback[field] = widget[field] as never;
+    }
+    (widget as any).__cacheUiAssetFallback = fallback;
+}
+
+/** Restore the widget exactly as the panel builder created it.  The old
+ * implementation restored every failed asset as a menu button, which made
+ * cache-first skinning unsafe for search fields, tabs, and future controls. */
+function restoreFallback(widget: WidgetNode): void {
+    const fallback = (widget as any).__cacheUiAssetFallback as Partial<CacheUiFallback> | undefined;
+    if (!fallback) return;
+    for (const field of CACHE_UI_FALLBACK_FIELDS) {
+        (widget as any)[field] = fallback[field];
+    }
+    (widget as any).__cacheUiAssetFallback = undefined;
 }
 
 /** Resolves widget.cacheUiAssetHover (if any) into the matching hover-swap
@@ -275,16 +372,18 @@ export function syncCacheUiAssetsForGroup(widgetManager: WidgetManager, groupId:
         if (!assetKey) continue;
         const asset = resolveAssetDefinition(assetKey);
         if (!asset) {
-            // Clears the temporary auto-selected brightness icon from a live
-            // hot-reloaded dev panel and restores the normal UIKit fallback.
+            // A renamed/deleted gallery reference can disappear while a
+            // panel is open. Restore its own original visual, regardless of
+            // whether it was a button, field, tab, or future component.
             if ((widget as any).__cacheUiAssetSignature) {
-                restoreDefaultMenuButton(widget);
+                restoreFallback(widget);
                 (widget as any).__cacheUiAssetSignature = undefined;
-                widget.cacheUiAsset = undefined;
                 widgetManager.invalidateWidgetRender(widget, "cache-ui-asset-reset");
             }
             continue;
         }
+
+        captureFallback(widget);
 
         if (asset.kind === "named-sprite") {
             const signature = `${assetKey}:${asset.token}:${widget.cacheUiAssetHover ?? ""}`;

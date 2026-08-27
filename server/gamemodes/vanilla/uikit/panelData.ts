@@ -84,8 +84,18 @@ export function sendUiTabs(
     assertCapacity("tabs", tabs.length, ComponentIds.MAX_TABS);
     for (let i = 0; i < ComponentIds.MAX_TABS; i++) {
         const tab = i < tabs.length ? tabs[i] : undefined;
+        const backgroundUid = packUid(groupId, ComponentIds.TAB_BACKGROUND_BASE + i);
         const tabUid = packUid(groupId, ComponentIds.TAB_BASE + i);
         const highlightUid = packUid(groupId, ComponentIds.TAB_HIGHLIGHT_BASE + i);
+
+        // Cache-backed idle layer mirrors the text label's visibility.  A
+        // blank, unused slot must not leave a clickable-looking native tab
+        // behind just because the panel has capacity for ten of them.
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_hidden",
+            uid: backgroundUid,
+            hidden: !tab,
+        });
 
         services.dialog.queueWidgetEvent(playerId, {
             action: "set_text",
