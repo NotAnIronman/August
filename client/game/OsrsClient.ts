@@ -607,6 +607,7 @@ export class OsrsClient {
     private playerWeight: number = 0; // Player weight in kg, used by CS2 RUNWEIGHT_VISIBLE opcode
     private specialEnergyPercent: number = 100;
     private specialAttackEnabled: boolean = false;
+    private savedAccountLoginInProgress: boolean = false;
     /** Flag to prevent varp changes from server sync being sent back to server */
     private _serverVarpSync: boolean = false;
     /** See the "Collection log fix, take 3" comment in the run_script handler
@@ -5593,6 +5594,10 @@ export class OsrsClient {
                 this.updateGameState(GameState.CONNECTING);
                 return "connect";
 
+            case "select_saved_account":
+                void this.loginWithSavedAccount(action.slot);
+                return undefined;
+
             case "cancel":
                 this.loginState.loginIndex = LoginIndex.WELCOME;
                 this.loginState.password = "";
@@ -5751,6 +5756,39 @@ export class OsrsClient {
         }
     }
 
+    private async loginWithSavedAccount(slot: number): Promise<void> {
+        if (this.gameState === GameState.CONNECTING || this.savedAccountLoginInProgress) return;
+        this.savedAccountLoginInProgress = true;
+        try {
+            const credentials = await this.loginState.getSavedAccountCredentials(slot);
+            if (!credentials) return;
+
+            this.loginState.username = credentials.username;
+            if (!credentials.password) {
+                this.loginState.password = "";
+                this.loginState.currentLoginField = 1;
+                this.loginState.setResponse("", "Enter the password for this saved account.", "", "");
+                return;
+            }
+
+            this.loginState.password = credentials.password;
+            if (!this.loginState.canAttemptLogin()) {
+                this.loginState.showCredentialValidationError();
+                return;
+            }
+            this.loginState.virtualKeyboardVisible = false;
+            this.loginState.savePersistedLoginState();
+            this.updateGameState(GameState.CONNECTING);
+            sendLogin(
+                this.loginState.username.trim(),
+                this.loginState.password,
+                this.loadedCache?.info?.revision ?? 0,
+            );
+        } finally {
+            this.savedAccountLoginInProgress = false;
+        }
+    }
+
     /**
      * Attempt auto-login if credentials were provided via URL params (?username=X&password=Y).
      * Called after loading completes.
@@ -5799,6 +5837,7 @@ export class OsrsClient {
      */
     onLoginSuccess(): void {
         this.loginState.savePersistedLoginState();
+        void this.loginState.rememberSuccessfulLogin();
 
         // Restore uncapped desktop pacing if CS2 previously applied a mobile FPS cap.
         this.applyDisplayDefaults();

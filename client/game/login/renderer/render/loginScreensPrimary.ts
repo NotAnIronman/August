@@ -3,7 +3,38 @@ import type { LoginState } from "../../LoginState";
 import type { LoginRendererHost, RenderContext } from "../host";
 import { getWelcomeLayout } from "../layout/geometry";
 import { isCaretVisible } from "../canvas";
-import { drawButton, drawCenteredText, drawText, drawSprite, measureText, getCheckboxSprite, truncateFromStart } from "./drawUtils";
+import { drawButton, drawCenteredText, drawGradientRect, drawText, drawSprite, ellipsis, measureText, getCheckboxSprite, truncateFromStart } from "./drawUtils";
+
+const SAVED_ACCOUNTS_X_OFFSET = 370;
+const SAVED_ACCOUNTS_Y = 216;
+const SAVED_ACCOUNTS_WIDTH = 172;
+const SAVED_ACCOUNTS_ROW_Y = 236;
+const SAVED_ACCOUNTS_ROW_HEIGHT = 21;
+
+export function getSavedAccountSlotBounds(host: LoginRendererHost, slot: number) {
+    return {
+        x: host.loginBoxX + SAVED_ACCOUNTS_X_OFFSET,
+        y: SAVED_ACCOUNTS_ROW_Y + slot * SAVED_ACCOUNTS_ROW_HEIGHT,
+        width: SAVED_ACCOUNTS_WIDTH,
+        height: SAVED_ACCOUNTS_ROW_HEIGHT - 1,
+    };
+}
+
+function drawSavedAccounts(host: LoginRendererHost, ctx: RenderContext, state: LoginState): void {
+    const panelX = host.loginBoxX + SAVED_ACCOUNTS_X_OFFSET;
+    drawGradientRect(host, ctx, panelX, SAVED_ACCOUNTS_Y, SAVED_ACCOUNTS_WIDTH, SAVED_ACCOUNTS_ROW_HEIGHT * 4 + 18, 0x3a3022, 0x17120c);
+    drawCenteredText(host, ctx, host.fontBold12!, "Saved accounts", panelX + 86, 230, 0xffff00, true);
+    for (let slot = 0; slot < 4; slot++) {
+        const bounds = getSavedAccountSlotBounds(host, slot);
+        const account = state.savedAccountSlots[slot];
+        const occupied = !!account?.username;
+        drawGradientRect(host, ctx, bounds.x + 1, bounds.y, bounds.width - 2, bounds.height, occupied ? 0x4c4131 : 0x282017, occupied ? 0x2e271d : 0x17120c);
+        const label = occupied
+            ? `${slot + 1}. ${ellipsis(host, account.username, bounds.width - 12)}`
+            : `${slot + 1}. Empty`;
+        drawText(host, ctx, host.fontBold12!, label, bounds.x + 6, bounds.y + 14, occupied ? 0xffffff : 0x9c9588, true);
+    }
+}
 
 export function drawWelcomeScreen(host: LoginRendererHost, ctx: RenderContext, state: LoginState) {
 
@@ -178,6 +209,7 @@ export function drawLoginForm(host: LoginRendererHost, ctx: RenderContext, state
         if (!isConnecting) {
             drawButton(host, ctx, host.loginBoxCenter - 80, 301, "Login");
             drawButton(host, ctx, host.loginBoxCenter + 80, 301, "Cancel");
+            drawSavedAccounts(host, ctx, state);
         }
 
         // Help link (only show when not connecting)

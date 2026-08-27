@@ -434,7 +434,9 @@ export class LoginOverlay implements Overlay {
             loginState.downloadCurrent
         }|${
             loginState.downloadTotal
-        }|${loginRenderer.getViewportTransformStateHash()}|${loginRenderer.getTitleAssetStateHash()}`;
+        }|${loginState.savedAccountSlots
+            .map((slot) => `${slot.username}:${slot.lastUsed}:${slot.passwordAvailable}`)
+            .join(",")}|${loginRenderer.getViewportTransformStateHash()}|${loginRenderer.getTitleAssetStateHash()}`;
     }
 
     draw(phase: RenderPhase): void {
