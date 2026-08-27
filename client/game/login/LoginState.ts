@@ -16,6 +16,14 @@ import {
     updateClientPreferences,
 } from "../preferences/ClientPreferences";
 import { LoginIndex } from "./GameState";
+import {
+    SAVED_ACCOUNT_SLOT_COUNT,
+    loadSavedAccountCredentials,
+    loadSavedAccountSlots,
+    saveSuccessfulAccount,
+    type SavedAccountCredentials,
+    type SavedAccountSlot,
+} from "./SavedAccountSlots";
 
 const STORAGE_KEY_IOS_PWA_LOGIN_STATE = "osrs:iosPwaLoginState";
 const IOS_PWA_LOGIN_STATE_VERSION = 2;
@@ -55,6 +63,7 @@ export class LoginState {
         // Load persisted settings from localStorage
         this.loadPersistedSettings();
         this.loadPersistedLoginState();
+        void this.loadSavedAccounts();
     }
 
     /** Load settings that should persist between sessions */
@@ -150,6 +159,19 @@ export class LoginState {
             // localStorage unavailable
         }
     }
+    private async loadSavedAccounts(): Promise<void> {
+        this.savedAccountSlots = await loadSavedAccountSlots();
+    }
+
+    /** Store a slot only after a server login succeeds. */
+    async rememberSuccessfulLogin(): Promise<void> {
+        this.savedAccountSlots = await saveSuccessfulAccount(this.username, this.password);
+    }
+
+    async getSavedAccountCredentials(slot: number): Promise<SavedAccountCredentials | undefined> {
+        return loadSavedAccountCredentials(slot);
+    }
+
     // ========== UI Dialog State ==========
 
     /** Current login screen index (which dialog to show) */
@@ -167,6 +189,12 @@ export class LoginState {
 
     /** Password input */
     password: string = "";
+
+    /** Four browser-local account choices, loaded asynchronously from IndexedDB. */
+    savedAccountSlots: SavedAccountSlot[] = Array.from(
+        { length: SAVED_ACCOUNT_SLOT_COUNT },
+        () => ({ username: "", lastUsed: 0, passwordAvailable: false }),
+    );
 
     /** Authenticator OTP code */
     otp: string = "";

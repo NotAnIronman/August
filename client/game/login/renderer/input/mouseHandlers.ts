@@ -4,6 +4,7 @@ import { GameState, LoginIndex } from "../../GameState";
 import type { LoginRendererHost } from "../host";
 import { getWelcomeLayout } from "../layout/geometry";
 import { measureText } from "../render/drawUtils";
+import { getSavedAccountSlotBounds } from "../render/loginScreensPrimary";
 
 export function handleWelcomeClick(host: LoginRendererHost, x: number, y: number) {
 
@@ -49,6 +50,17 @@ export function handleLoginFormClick(host: LoginRendererHost, state: LoginState,
         // Don't process button/checkbox clicks when connecting
         if (isConnecting) {
             return undefined;
+        }
+
+        for (let slot = 0; slot < 4; slot++) {
+            const bounds = getSavedAccountSlotBounds(host, slot);
+            if (
+                state.savedAccountSlots[slot]?.username &&
+                x >= bounds.x && x <= bounds.x + bounds.width &&
+                y >= bounds.y && y <= bounds.y + bounds.height
+            ) {
+                return { type: "select_saved_account", slot } as const;
+            }
         }
 
         // Checkbox: Remember username
