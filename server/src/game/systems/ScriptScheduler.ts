@@ -5,7 +5,8 @@ type ScriptHandler = (tick: number) => void;
 export type ScriptTaskOwner =
     | { kind: "player"; id: number }
     | { kind: "npc"; id: number }
-    | { kind: "quest"; id: string };
+    | { kind: "quest"; id: string }
+    | { kind: "instance"; id: string };
 
 interface ScriptTask {
     id: number;

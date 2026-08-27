@@ -773,6 +773,14 @@ export interface InstanceFacade {
     buildTemplate(copies: readonly InstanceAreaCopy[]): number[][][];
     create(player: PlayerState, spec: QuestInstanceSpec): QuestInstanceHandle | undefined;
     get(playerId: number): QuestInstanceHandle | undefined;
+    getById(instanceId: string): QuestInstanceHandle | undefined;
+    listJoinable(definitionId?: string): readonly QuestInstanceHandle[];
+    join(player: PlayerState, instanceId: string): QuestInstanceHandle | undefined;
+    markStarted(instanceId: string): boolean;
+    leave(
+        player: PlayerState,
+        destination?: { x: number; y: number; level: number },
+    ): boolean;
     dispose(
         player: PlayerState,
         destination?: { x: number; y: number; level: number },

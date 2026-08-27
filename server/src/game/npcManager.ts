@@ -37,6 +37,10 @@ import {
 import { MovementProcessor } from "./movement/engine/MovementProcessor";
 import { StatusEffectSystem } from "./systems/StatusEffectSystem";
 import { EncounterRegistry } from "./encounters/EncounterRegistry";
+import {
+    getBaseNpcEffectImmunities,
+    mergeNpcEffectImmunities,
+} from "./combat/NpcEffectImmunity";
 
 export type NpcStatusEvent = {
     npcId: number;
@@ -338,7 +342,8 @@ export class NpcManager {
         const walkSeqId = npcType.getWalkSeqId(this.basTypeLoader);
         const size = Math.max(1, npcType.size);
         const rotationSpeed = Math.max(1, npcType.rotationSpeed);
-        const encounterMovement = EncounterRegistry.shared.findByNpcTypeId(spawn.id)?.movement;
+        const encounterDefinition = EncounterRegistry.shared.findByNpcTypeId(spawn.id);
+        const encounterMovement = encounterDefinition?.movement;
         const wanderRadius = Math.max(
             0,
             spawn.wanderRadius ?? encounterMovement?.wanderRadius ?? DEFAULT_NPC_WANDER_RADIUS,
@@ -403,6 +408,11 @@ export class NpcManager {
                     spawn.retreatInteractionRange ?? encounterMovement?.retreatInteractionRange,
                 worldViewId: spawn.worldViewId,
                 ownerPlayerId: spawn.ownerPlayerId,
+                effectImmunities: mergeNpcEffectImmunities(
+                    getBaseNpcEffectImmunities(npcType.id),
+                    encounterDefinition?.immunities,
+                    spawn.immunities,
+                ),
             },
         );
         npc.setMovementPathfinder((targetX, targetY) => {

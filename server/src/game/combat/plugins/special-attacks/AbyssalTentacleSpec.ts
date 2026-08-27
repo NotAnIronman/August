@@ -45,7 +45,7 @@ export function applyBindingTentacleEffects(
     }
 
     if (target instanceof NpcState) {
-        target.applyFreeze(BINDING_TENTACLE_DURATION_TICKS, currentMapClock);
+        target.applyFreeze(BINDING_TENTACLE_DURATION_TICKS, currentMapClock, "bind");
         if (random() < BINDING_TENTACLE_POISON_CHANCE) {
             target.inflictPoison(BINDING_TENTACLE_POISON_POTENCY, currentMapClock);
         }

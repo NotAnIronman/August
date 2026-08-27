@@ -41,14 +41,48 @@ export interface QuestInstanceSpec {
     npcs?: readonly QuestInstanceNpc[];
     locs?: readonly QuestInstanceLoc[];
     exit?: { x: number; y: number; level: number };
+    /** Stable content identifier, such as "graardor-room". */
+    definitionId?: string;
+    /** Solo is the backwards-compatible default. Party instances accept joins. */
+    access?: "solo" | "party";
+    maxPlayers?: number;
+    /** Whether players may join after the encounter has started. */
+    joinInProgress?: boolean;
 }
 
 export interface QuestInstanceHandle {
+    readonly id: string;
     readonly playerId: number;
+    readonly ownerPlayerId: number;
+    readonly definitionId?: string;
+    readonly access: "solo" | "party";
+    readonly maxPlayers: number;
+    readonly joinInProgress: boolean;
+    readonly started: boolean;
+    readonly memberPlayerIds: readonly number[];
     readonly worldViewId: number;
     readonly baseX: number;
     readonly baseY: number;
     readonly exit?: { x: number; y: number; level: number };
+}
+
+interface InstanceRuntime {
+    readonly id: string;
+    readonly definitionId?: string;
+    ownerPlayerId: number;
+    readonly access: "solo" | "party";
+    readonly maxPlayers: number;
+    readonly joinInProgress: boolean;
+    readonly worldViewId: number;
+    readonly baseX: number;
+    readonly baseY: number;
+    readonly destination: { x: number; y: number; level: number };
+    readonly templateChunks: number[][][];
+    readonly exit?: { x: number; y: number; level: number };
+    readonly memberPlayerIds: Set<number>;
+    readonly npcRuntimeIds: Set<number>;
+    readonly locs: TemporaryLocChange[];
+    started: boolean;
 }
 
 export function buildInstanceTemplate(copies: readonly InstanceAreaCopy[]): number[][][] {
@@ -88,8 +122,9 @@ export function buildInstanceTemplate(copies: readonly InstanceAreaCopy[]): numb
 
 export class InstancedAreaManager {
     private nextWorldViewId = 4000;
-    private readonly activeByPlayer = new Map<number, QuestInstanceHandle>();
-    private readonly locsByPlayer = new Map<number, TemporaryLocChange[]>();
+    private nextInstanceId = 1;
+    private readonly instancesById = new Map<string, InstanceRuntime>();
+    private readonly instanceIdByPlayer = new Map<number, string>();
 
     constructor(private readonly services: ServerServices) {}
 
@@ -122,14 +157,34 @@ export class InstancedAreaManager {
         );
         pathService.registerWorldViewCollision(worldViewId, view);
 
-        const handle: QuestInstanceHandle = {
-            playerId: player.id,
+        const access = spec.access ?? "solo";
+        const requestedMaxPlayers = Math.trunc(spec.maxPlayers ?? 5);
+        const maxPlayers =
+            access === "solo"
+                ? 1
+                : Number.isFinite(requestedMaxPlayers)
+                  ? Math.max(1, requestedMaxPlayers)
+                  : 5;
+        const runtime: InstanceRuntime = {
+            id: `instance-${this.nextInstanceId++}`,
+            definitionId: spec.definitionId,
+            ownerPlayerId: player.id,
+            access,
+            maxPlayers,
+            joinInProgress: spec.joinInProgress ?? true,
             worldViewId,
             baseX,
             baseY,
+            destination: { ...spec.destination },
+            templateChunks: spec.templateChunks,
             exit: spec.exit,
+            memberPlayerIds: new Set([player.id]),
+            npcRuntimeIds: new Set(),
+            locs: [],
+            started: false,
         };
-        this.activeByPlayer.set(player.id, handle);
+        this.instancesById.set(runtime.id, runtime);
+        this.instanceIdByPlayer.set(player.id, runtime.id);
         player.worldViewId = worldViewId;
         this.services.movementService.teleportToInstance(
             player,
@@ -145,9 +200,12 @@ export class InstancedAreaManager {
                 x: baseX + Math.trunc(spawn.offsetX),
                 y: baseY + Math.trunc(spawn.offsetY),
                 worldViewId,
-                ownerPlayerId: player.id,
+                ownerPlayerId: access === "solo" ? player.id : undefined,
             });
-            if (npc) player.instanceNpcIds.add(npc.id);
+            if (npc) {
+                runtime.npcRuntimeIds.add(npc.id);
+                player.instanceNpcIds.add(npc.id);
+            }
         }
 
         const locs: TemporaryLocChange[] = [];
@@ -163,40 +221,85 @@ export class InstancedAreaManager {
                 ),
             );
         }
-        this.locsByPlayer.set(player.id, locs);
-        return handle;
+        runtime.locs.push(...locs);
+        runtime.started = access === "solo";
+        return this.toHandle(runtime);
     }
 
     get(playerId: number): QuestInstanceHandle | undefined {
-        return this.activeByPlayer.get(Math.trunc(playerId));
+        const runtime = this.getRuntimeForPlayer(playerId);
+        return runtime ? this.toHandle(runtime) : undefined;
+    }
+
+    getById(instanceId: string): QuestInstanceHandle | undefined {
+        const runtime = this.instancesById.get(instanceId);
+        return runtime ? this.toHandle(runtime) : undefined;
+    }
+
+    listJoinable(definitionId?: string): readonly QuestInstanceHandle[] {
+        const matches: QuestInstanceHandle[] = [];
+        for (const runtime of this.instancesById.values()) {
+            if (runtime.access !== "party") continue;
+            if (definitionId !== undefined && runtime.definitionId !== definitionId) continue;
+            if (runtime.memberPlayerIds.size >= runtime.maxPlayers) continue;
+            if (runtime.started && !runtime.joinInProgress) continue;
+            matches.push(this.toHandle(runtime));
+        }
+        return Object.freeze(matches);
+    }
+
+    markStarted(instanceId: string): boolean {
+        const runtime = this.instancesById.get(instanceId);
+        if (!runtime) return false;
+        runtime.started = true;
+        return true;
+    }
+
+    join(player: PlayerState, instanceId: string): QuestInstanceHandle | undefined {
+        const runtime = this.instancesById.get(instanceId);
+        if (!runtime || runtime.access !== "party") return undefined;
+        if (runtime.memberPlayerIds.size >= runtime.maxPlayers) return undefined;
+        if (runtime.started && !runtime.joinInProgress) return undefined;
+
+        const current = this.getRuntimeForPlayer(player.id);
+        if (current?.id === runtime.id) return this.toHandle(runtime);
+        if (current) this.dispose(player);
+
+        runtime.memberPlayerIds.add(player.id);
+        this.instanceIdByPlayer.set(player.id, runtime.id);
+        player.worldViewId = runtime.worldViewId;
+        player.instanceNpcIds.clear();
+        for (const npcId of runtime.npcRuntimeIds) player.instanceNpcIds.add(npcId);
+        this.services.movementService.teleportToInstance(
+            player,
+            runtime.destination.x,
+            runtime.destination.y,
+            runtime.destination.level,
+            runtime.templateChunks,
+        );
+        return this.toHandle(runtime);
     }
 
     dispose(
         player: PlayerState,
         destination?: { x: number; y: number; level: number },
     ): boolean {
-        const handle = this.activeByPlayer.get(player.id);
-        if (!handle) return false;
+        const runtime = this.getRuntimeForPlayer(player.id);
+        if (!runtime) return false;
 
-        for (const loc of this.locsByPlayer.get(player.id) ?? []) {
-            this.services.locationService.clearTemporaryLoc(
-                loc.scope,
-                loc.oldId,
-                loc.tile,
-                loc.level,
-                loc.oldShape,
-            );
-        }
-        this.locsByPlayer.delete(player.id);
         this.services.scriptScheduler.cancelOwner({ kind: "player", id: player.id });
-        this.services.npcManager?.removeNpcsOwnedByPlayer(player.id);
-        this.services.groundItems.removeOwnedByPlayer(player.id, handle.worldViewId);
-        this.services.pathService?.removeWorldViewCollision(handle.worldViewId);
         player.instanceNpcIds.clear();
         player.worldViewId = -1;
-        this.activeByPlayer.delete(player.id);
+        runtime.memberPlayerIds.delete(player.id);
+        this.instanceIdByPlayer.delete(player.id);
 
-        const exit = destination ?? handle.exit;
+        if (runtime.ownerPlayerId === player.id && runtime.memberPlayerIds.size > 0) {
+            runtime.ownerPlayerId = runtime.memberPlayerIds.values().next().value as number;
+        }
+
+        if (runtime.memberPlayerIds.size === 0) this.destroyRuntime(runtime);
+
+        const exit = destination ?? runtime.exit;
         if (exit) {
             this.services.movementService.teleportPlayer(
                 player,
@@ -209,11 +312,58 @@ export class InstancedAreaManager {
         return true;
     }
 
+    leave(
+        player: PlayerState,
+        destination?: { x: number; y: number; level: number },
+    ): boolean {
+        return this.dispose(player, destination);
+    }
+
+    private getRuntimeForPlayer(playerId: number): InstanceRuntime | undefined {
+        const instanceId = this.instanceIdByPlayer.get(Math.trunc(playerId));
+        return instanceId ? this.instancesById.get(instanceId) : undefined;
+    }
+
+    private toHandle(runtime: InstanceRuntime): QuestInstanceHandle {
+        return Object.freeze({
+            id: runtime.id,
+            playerId: runtime.ownerPlayerId,
+            ownerPlayerId: runtime.ownerPlayerId,
+            definitionId: runtime.definitionId,
+            access: runtime.access,
+            maxPlayers: runtime.maxPlayers,
+            joinInProgress: runtime.joinInProgress,
+            started: runtime.started,
+            memberPlayerIds: Object.freeze([...runtime.memberPlayerIds]),
+            worldViewId: runtime.worldViewId,
+            baseX: runtime.baseX,
+            baseY: runtime.baseY,
+            exit: runtime.exit,
+        });
+    }
+
+    private destroyRuntime(runtime: InstanceRuntime): void {
+        for (const loc of runtime.locs) {
+            this.services.locationService.clearTemporaryLoc(
+                loc.scope,
+                loc.oldId,
+                loc.tile,
+                loc.level,
+                loc.oldShape,
+            );
+        }
+        this.services.scriptScheduler.cancelOwner({ kind: "instance", id: runtime.id });
+        for (const npcId of runtime.npcRuntimeIds) this.services.npcManager?.removeNpc(npcId);
+        this.services.groundItems.removeByWorldView(runtime.worldViewId);
+        this.services.pathService?.removeWorldViewCollision(runtime.worldViewId);
+        this.instancesById.delete(runtime.id);
+    }
+
     private allocateWorldViewId(): number {
         for (let attempts = 0; attempts < 60_000; attempts++) {
             const candidate = this.nextWorldViewId++;
             if (this.nextWorldViewId > 65_000) this.nextWorldViewId = 4000;
-            if ([...this.activeByPlayer.values()].some((handle) => handle.worldViewId === candidate)) {
+            if ([...this.instancesById.values()].some((runtime) => runtime.worldViewId === candidate)) {
                 continue;
             }
             return candidate;

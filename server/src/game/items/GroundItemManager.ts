@@ -348,6 +348,24 @@ export class GroundItemManager {
         return removed;
     }
 
+    removeByWorldView(worldViewId: number): number {
+        const viewId = Math.trunc(worldViewId);
+        let removed = 0;
+        for (const [stackId, entry] of [...this.stacksById]) {
+            if (entry.stack.worldViewId !== viewId) continue;
+            const list = this.stacksByTile.get(entry.key);
+            if (list) {
+                const index = list.indexOf(entry.stack);
+                if (index >= 0) list.splice(index, 1);
+                if (list.length === 0) this.stacksByTile.delete(entry.key);
+            }
+            this.stacksById.delete(stackId);
+            removed++;
+        }
+        if (removed > 0) this.bumpSerial();
+        return removed;
+    }
+
     tick(currentTick: number): void {
         let touched = false;
         for (const [key, stacks] of this.stacksByTile.entries()) {

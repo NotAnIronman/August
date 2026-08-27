@@ -20,6 +20,12 @@ registerEncounter({
         combatLeashRadius: 30,
         retreatInteractionRange: 40,
     },
+    immunities: {
+        poison: true,
+        venom: true,
+        burn: true,
+        "stat-drain": true,
+    },
     attacks: [
         {
             id: "claw",
@@ -44,6 +50,12 @@ registerEncounter({
     thresholds: [{ id: "summon-minions", atHealthPercent: 50 }],
 });
 ```
+
+Immunities are resolved once when the NPC spawns. Base NPC data is applied first, then the encounter
+profile, then an explicit transient-spawn override. The NPC methods that apply poison, venom,
+disease, freeze/bind, and stat drains enforce the result. Burn and stun/knockback special attacks
+also check the same profile, so encounter scripts should describe immunity rather than duplicating
+checks in each attack.
 
 Attack decisions are sticky while an NPC approaches its target. This prevents a boss from choosing
 ranged at eight tiles, rerolling melee at one tile, and using routing that no longer matches the

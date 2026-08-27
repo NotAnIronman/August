@@ -1,5 +1,6 @@
 import type { AttackType } from "../combat/AttackType";
 import type { CombatAttackStyle, CombatAttackTraits } from "../combat/model/CombatAttack";
+import type { NpcEffectImmunityProfile } from "../combat/NpcEffectImmunity";
 
 export type EncounterLifecycle =
     | "idle"
@@ -84,6 +85,8 @@ export interface EncounterDefinition {
     readonly npcTypeIds: readonly number[];
     readonly maxHealth?: number;
     readonly movement?: EncounterMovementProfile;
+    /** Permanent NPC effect immunities shared by every form in this encounter. */
+    readonly immunities?: NpcEffectImmunityProfile;
     readonly attacks: readonly EncounterAttackDefinition[];
     readonly phases?: readonly EncounterPhaseDefinition[];
     readonly thresholds?: readonly EncounterThresholdDefinition[];

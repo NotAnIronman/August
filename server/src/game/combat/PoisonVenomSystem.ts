@@ -15,6 +15,7 @@
 // =============================================================================
 import type { Actor } from "../actor";
 import { HITMARK_POISON, HITMARK_VENOM } from "./HitEffects";
+import { getBaseNpcEffectImmunities } from "./NpcEffectImmunity";
 
 // Constants
 
@@ -596,23 +597,23 @@ export function getNpcPoisonConfig(npcId: number): NpcPoisonConfig {
     // Known poisonous NPCs
     const poisonousNpcs: Record<number, NpcPoisonConfig> = {
         // Zulrah applies venom
-        2042: { appliesVenom: true, poisonImmune: true, venomImmune: true },
-        2043: { appliesVenom: true, poisonImmune: true, venomImmune: true },
-        2044: { appliesVenom: true, poisonImmune: true, venomImmune: true },
+        2042: { appliesVenom: true },
+        2043: { appliesVenom: true },
+        2044: { appliesVenom: true },
 
         // Vorkath applies venom
-        7937: { appliesVenom: true, poisonImmune: true, venomImmune: true },
+        7937: { appliesVenom: true },
 
         // King Black Dragon applies poison
-        239: { poisonDamage: 8, poisonImmune: true },
+        239: { poisonDamage: 8 },
 
         // K'ril Tsutsaroth applies poison
-        3129: { poisonDamage: 16, poisonImmune: true },
+        3129: { poisonDamage: 16 },
 
         // Kalphite Queen
-        963: { poisonImmune: true }, // Workers
-        959: { poisonImmune: true }, // Soldiers
-        960: { poisonImmune: true }, // Guardians
+        963: {}, // Workers
+        959: {}, // Soldiers
+        960: {}, // Guardians
 
         // Cave horrors apply poison
         1047: { poisonDamage: 4 },
@@ -621,10 +622,15 @@ export function getNpcPoisonConfig(npcId: number): NpcPoisonConfig {
         3024: { poisonDamage: 2 },
 
         // Aberrant spectres - immune to poison
-        2: { poisonImmune: true },
+        2: {},
     };
 
-    return poisonousNpcs[npcId] ?? {};
+    const immunities = getBaseNpcEffectImmunities(npcId);
+    return {
+        ...(poisonousNpcs[npcId] ?? {}),
+        poisonImmune: immunities.poison || undefined,
+        venomImmune: immunities.venom || undefined,
+    };
 }
 
 // =============================================================================

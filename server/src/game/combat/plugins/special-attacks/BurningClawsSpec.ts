@@ -1,4 +1,5 @@
 import type { CombatAttack } from "../../model/CombatAttack";
+import { NpcState } from "../../../npc";
 import {
     type WeaponSpecialAttackScript,
     setWeaponSpecialAttackTraitOverrides,
@@ -48,6 +49,7 @@ export class BurningClawsSpec implements WeaponSpecialAttackScript {
 
     onHitAppliedWithAttack(attacker: any, target: any, damageCalculated: number, currentMapClock: number, attack: CombatAttack): void {
         void damageCalculated;
+        if (target instanceof NpcState && target.isImmuneToEffect("burn")) return;
         const attempt = Number(getWeaponSpecialAttackRuntimeMetadata(attack)?.firstSuccessfulAccuracyRoll ?? 0);
         const chance = attempt === 1 ? 0.15 : attempt === 2 ? 0.30 : attempt === 3 ? 0.45 : 0;
         if (chance <= 0 || Math.random() >= chance) return;

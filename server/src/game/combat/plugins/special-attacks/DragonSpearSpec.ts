@@ -119,6 +119,13 @@ export function applyDragonSpearShove(
     if (!(attacker instanceof PlayerState)) return false;
     if (!(target instanceof PlayerState) && !(target instanceof NpcState)) return false;
 
+    if (
+        target instanceof NpcState &&
+        (target.isImmuneToEffect("stun") || target.isImmuneToEffect("knockback"))
+    ) {
+        return false;
+    }
+
     if (target.size > 1) {
         services.messagingService.queueChatMessage({
             messageType: "game",

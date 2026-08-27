@@ -846,6 +846,13 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             buildTemplate: (copies) => buildInstanceTemplate(copies),
             create: (player, spec) => deps.instancedAreaManager.create(player, spec),
             get: (playerId) => deps.instancedAreaManager.get(playerId),
+            getById: (instanceId) => deps.instancedAreaManager.getById(instanceId),
+            listJoinable: (definitionId) =>
+                deps.instancedAreaManager.listJoinable(definitionId),
+            join: (player, instanceId) => deps.instancedAreaManager.join(player, instanceId),
+            markStarted: (instanceId) => deps.instancedAreaManager.markStarted(instanceId),
+            leave: (player, destination) =>
+                deps.instancedAreaManager.leave(player, destination),
             dispose: (player, destination) =>
                 deps.instancedAreaManager.dispose(player, destination),
         },

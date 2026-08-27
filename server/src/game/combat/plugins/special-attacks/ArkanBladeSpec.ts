@@ -107,6 +107,7 @@ export class ArkanBladeSpec implements WeaponSpecialAttackScript {
         if (!(attacker instanceof PlayerState)) return;
         if (!(target instanceof PlayerState) && !(target instanceof NpcState)) return;
         if (Math.floor(damageCalculated) <= 0) return;
+        if (target instanceof NpcState && target.isImmuneToEffect("burn")) return;
 
         pendingBurns.push(
             Object.freeze({

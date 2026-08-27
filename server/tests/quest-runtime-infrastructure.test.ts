@@ -90,7 +90,10 @@ const instanceServices = {
             spawnedConfig = config;
             return { id: 700 };
         },
-        removeNpcsOwnedByPlayer: (playerId: number) => lifecycle.push(`npcs:${playerId}`),
+        removeNpc: (npcId: number) => {
+            lifecycle.push(`npc:${npcId}`);
+            return true;
+        },
     },
     movementService: {
         teleportToInstance: () => lifecycle.push("enter"),
@@ -104,7 +107,7 @@ const instanceServices = {
         },
     },
     groundItems: {
-        removeOwnedByPlayer: (playerId: number, worldViewId: number) => lifecycle.push(`items:${playerId}:${worldViewId}`),
+        removeByWorldView: (worldViewId: number) => lifecycle.push(`items:${worldViewId}`),
     },
 } as unknown as ServerServices;
 const instances = new InstancedAreaManager(instanceServices);
@@ -125,10 +128,58 @@ assert.deepEqual(lifecycle, [
     `register:${handle.worldViewId}`,
     "enter",
     "tasks",
-    `npcs:${player.id}`,
-    `items:${player.id}:${handle.worldViewId}`,
+    "tasks",
+    "npc:700",
+    `items:${handle.worldViewId}`,
     `remove:${handle.worldViewId}`,
     "exit:2509:3640:1",
+]);
+
+const partyLifecycle: string[] = [];
+const owner = { id: 100, worldViewId: -1, instanceNpcIds: new Set<number>() } as unknown as PlayerState;
+const member = { id: 101, worldViewId: -1, instanceNpcIds: new Set<number>() } as unknown as PlayerState;
+const partyServices = {
+    ...instanceServices,
+    pathService: {
+        registerWorldViewCollision: (id: number) => partyLifecycle.push(`register:${id}`),
+        removeWorldViewCollision: (id: number) => partyLifecycle.push(`remove:${id}`),
+    },
+    npcManager: {
+        spawnTransientNpc: () => ({ id: 701 }),
+        removeNpc: (id: number) => {
+            partyLifecycle.push(`npc:${id}`);
+            return true;
+        },
+    },
+    movementService: {
+        teleportToInstance: (joiningPlayer: PlayerState) => partyLifecycle.push(`enter:${joiningPlayer.id}`),
+        teleportPlayer: () => undefined,
+    },
+    scriptScheduler: { cancelOwner: () => 0 },
+    groundItems: { removeByWorldView: (id: number) => partyLifecycle.push(`items:${id}`) },
+} as unknown as ServerServices;
+const partyInstances = new InstancedAreaManager(partyServices);
+const party = partyInstances.create(owner, {
+    templateChunks: template,
+    destination: { x: 2515, y: 4631, level: 0 },
+    access: "party",
+    maxPlayers: 2,
+    npcs: [{ id: 4424, offsetX: 54, offsetY: 57, level: 0 }],
+});
+assert(party);
+assert.equal(partyInstances.join(member, party.id)?.worldViewId, party.worldViewId);
+assert.deepEqual(partyInstances.get(owner.id)?.memberPlayerIds, [owner.id, member.id]);
+assert.equal(partyInstances.dispose(owner), true);
+assert.equal(partyInstances.get(member.id)?.ownerPlayerId, member.id);
+assert(!partyLifecycle.includes(`remove:${party.worldViewId}`));
+assert.equal(partyInstances.dispose(member), true);
+assert.deepEqual(partyLifecycle, [
+    `register:${party.worldViewId}`,
+    `enter:${owner.id}`,
+    `enter:${member.id}`,
+    "npc:701",
+    `items:${party.worldViewId}`,
+    `remove:${party.worldViewId}`,
 ]);
 
 const registry = new ScriptRegistry();

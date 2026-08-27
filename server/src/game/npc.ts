@@ -1,6 +1,10 @@
 import { Actor } from "./actor";
 import { EntityType } from "./collision/EntityCollisionService";
 import type { AttackType } from "./combat/AttackType";
+import type {
+    NpcEffectImmunityProfile,
+    NpcEffectType,
+} from "./combat/NpcEffectImmunity";
 import {
     DEFAULT_DISEASE_INTERVAL_TICKS,
     DEFAULT_POISON_INTERVAL_TICKS,
@@ -154,6 +158,8 @@ export interface NpcSpawnConfig {
     ownerPlayerId?: number;
     /** Optional lifetime for transient NPCs. Non-positive values mean no expiry. */
     lifetimeTicks?: number;
+    /** Explicit per-spawn overrides applied after base and encounter immunities. */
+    immunities?: NpcEffectImmunityProfile;
 }
 
 export interface NpcFollowerState {
@@ -267,6 +273,7 @@ export class NpcState extends Actor {
     private followerState?: NpcFollowerState;
     worldViewId: number;
     readonly ownerPlayerId?: number;
+    private readonly effectImmunities: NpcEffectImmunityProfile;
 
     constructor(
         id: number,
@@ -301,6 +308,7 @@ export class NpcState extends Actor {
             combatProfile?: NpcCombatProfile;
             worldViewId?: number;
             ownerPlayerId?: number;
+            effectImmunities?: NpcEffectImmunityProfile;
         } = {},
     ) {
         super(id, spawn.x, spawn.y, spawn.level, size);
@@ -318,6 +326,7 @@ export class NpcState extends Actor {
         this.ownerPlayerId = Number.isFinite(options.ownerPlayerId)
             ? Math.trunc(options.ownerPlayerId as number)
             : undefined;
+        this.effectImmunities = Object.freeze({ ...(options.effectImmunities ?? {}) });
         // Allow wanderRadius=0 so spawns can explicitly opt out of roaming
         this.wanderRadius = Math.max(0, options.wanderRadius ?? DEFAULT_NPC_WANDER_RADIUS);
         const maxHp = Math.max(1, options.maxHitpoints ?? 10);
@@ -419,7 +428,12 @@ export class NpcState extends Actor {
      * Apply a freeze effect to this NPC.
      * Cannot be frozen while the absolute immunity deadline is active.
      */
-    applyFreeze(durationTicks: number, currentTick: number): boolean {
+    applyFreeze(
+        durationTicks: number,
+        currentTick: number,
+        effect: "freeze" | "bind" = "freeze",
+    ): boolean {
+        if (this.isImmuneToEffect(effect)) return false;
         const clock = Math.trunc(currentTick);
         if (
             clock <
@@ -459,10 +473,18 @@ export class NpcState extends Actor {
     }
 
     isFreezeImmune(currentTick: number): boolean {
-        return (
+        return this.isImmuneToEffect("freeze") || (
             Math.trunc(currentTick) <
             this.combatAttributes.get(CombatAttributes.FREEZE_IMMUNITY_UNTIL_CLOCK)
         );
+    }
+
+    isImmuneToEffect(effect: NpcEffectType): boolean {
+        return this.effectImmunities[effect] === true;
+    }
+
+    getEffectImmunities(): NpcEffectImmunityProfile {
+        return this.effectImmunities;
     }
 
     resetToSpawn(): void {
@@ -506,6 +528,7 @@ export class NpcState extends Actor {
     }
 
     drainCombatStat(stat: NpcCombatStat, amountRaw: number): number {
+        if (this.isImmuneToEffect("stat-drain")) return 0;
         if (!Number.isFinite(amountRaw) || amountRaw <= 0) return 0;
         const field = NPC_COMBAT_STAT_FIELD[stat];
         const current = Math.max(0, Math.floor(this.combat[field]));
@@ -516,6 +539,7 @@ export class NpcState extends Actor {
     }
 
     drainCombatStatByFraction(stat: NpcCombatStat, fractionRaw: number): number {
+        if (this.isImmuneToEffect("stat-drain")) return 0;
         if (!Number.isFinite(fractionRaw) || fractionRaw <= 0) return 0;
         const field = NPC_COMBAT_STAT_FIELD[stat];
         const current = Math.max(0, Math.floor(this.combat[field]));
@@ -942,7 +966,8 @@ export class NpcState extends Actor {
         potency: number,
         currentTick: number,
         interval: number = DEFAULT_POISON_INTERVAL_TICKS,
-    ): void {
+    ): boolean {
+        if (this.isImmuneToEffect("poison")) return false;
         const nextPotency = Math.max(1, Math.floor(potency));
         if (!this.poisonEffect || nextPotency > this.poisonEffect.potency) {
             this.poisonEffect = {
@@ -957,6 +982,7 @@ export class NpcState extends Actor {
                 currentTick + Math.max(1, interval),
             );
         }
+        return true;
     }
 
     curePoison(): void {
@@ -969,7 +995,8 @@ export class NpcState extends Actor {
         interval: number = DEFAULT_VENOM_INTERVAL_TICKS,
         ramp: number = 2,
         cap: number = 20,
-    ): void {
+    ): boolean {
+        if (this.isImmuneToEffect("venom")) return false;
         const nextStage = Math.max(1, Math.floor(stage));
         const effect = this.venomEffect;
         const effectiveRamp = Math.max(1, Math.floor(ramp));
@@ -987,6 +1014,7 @@ export class NpcState extends Actor {
             effect.ramp = effectiveRamp;
             effect.cap = effectiveCap;
         }
+        return true;
     }
 
     cureVenom(): void {
@@ -997,7 +1025,8 @@ export class NpcState extends Actor {
         potency: number,
         currentTick: number,
         interval: number = DEFAULT_DISEASE_INTERVAL_TICKS,
-    ): void {
+    ): boolean {
+        if (this.isImmuneToEffect("disease")) return false;
         const nextPotency = Math.max(1, Math.floor(potency));
         if (!this.diseaseEffect || nextPotency > this.diseaseEffect.potency) {
             this.diseaseEffect = {
@@ -1011,6 +1040,7 @@ export class NpcState extends Actor {
                 currentTick + Math.max(1, interval),
             );
         }
+        return true;
     }
 
     cureDisease(): void {
