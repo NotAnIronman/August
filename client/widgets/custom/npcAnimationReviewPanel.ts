@@ -17,8 +17,8 @@ registerUiPanel({
             height: 248,
             content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
             menuButtons: {
-                columns: 2,
-                rows: 4,
+                columns: 3,
+                rows: 3,
                 buttonHeight: 36,
                 gap: 4,
                 iconSize: 26,

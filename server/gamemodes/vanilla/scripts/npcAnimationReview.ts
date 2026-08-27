@@ -17,6 +17,10 @@ import { openUiPanel, sendUiFooterButton, sendUiMenuButtons } from "../uikit/pan
 const CANDIDATE_SOURCE = "OpenOSRS service-animations observed sequence data";
 const PREVIEW_LIFETIME_TICKS = 6_000;
 const PREVIEW_DISTANCE_TILES = 8;
+// The old combat-definitions file used this as the broad humanoid fallback.
+// A reviewed combat style should replace it, but a deliberately chosen primary
+// animation must never be silently replaced by a later style review.
+const GENERIC_HUMANOID_ATTACK_ANIMATION = 422;
 
 type CombatAnimationRole =
     | "attack"
@@ -51,6 +55,7 @@ const sessionsByPlayerId = new Map<number, ReviewSession>();
 const REVIEW_BUTTONS: readonly UiMenuButton[] = [
     { itemId: 4151, label: "Previous" },
     { itemId: 4151, label: "Next" },
+    { itemId: 4151, label: "Primary" },
     { itemId: 1305, label: "Melee" },
     { itemId: 861, label: "Ranged" },
     { itemId: 1381, label: "Magic" },
@@ -187,12 +192,13 @@ function saveConfirmedAnimation(
     } else {
         entry.anims[role] = sequenceId;
     }
-    // Keep existing one-style NPCs working immediately. Multi-style NPCs
-    // retain their explicit style ids; the legacy `attack` slot remains a
-    // backwards-compatible fallback until a combat context selects a style.
+    // A normal combat-style review should immediately repair a missing or
+    // generic live attack. Once a real primary has been saved, later style
+    // choices do not replace it; use the Primary button when that is intended.
     if (
         (role === "melee" || role === "ranged" || role === "magic") &&
-        entry.anims.attack === undefined
+        (entry.anims.attack === undefined ||
+            entry.anims.attack === GENERIC_HUMANOID_ATTACK_ANIMATION)
     ) {
         entry.anims.attack = sequenceId;
     }
@@ -389,8 +395,13 @@ export function registerNpcAnimationReviewCommands(
             actionId: "review_next",
             handle: ({ player }) => moveCandidate(player, 1),
         },
+        {
+            componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE + 2,
+            actionId: "review_save_attack",
+            handle: ({ player }) => savePanelRole(player, "attack"),
+        },
         ...(["melee", "ranged", "magic", "block", "death", "special"] as const).map((role, index) => ({
-            componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE + index + 2,
+            componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE + index + 3,
             actionId: `review_save_${role}`,
             handle: ({ player }: { player: PlayerState }) => savePanelRole(player, role),
         })),
