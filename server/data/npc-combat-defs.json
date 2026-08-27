@@ -32,6 +32,36 @@
         "death": 722
       }
     },
+    "239": {
+      "anims": {
+        "death": 92,
+        "block": 4638,
+        "melee": 80,
+        "attack": 80,
+        "magic": 84,
+        "specials": [
+          83,
+          81,
+          82
+        ]
+      }
+    },
+    "494": {
+      "anims": {
+        "block": 3990,
+        "magic": 3992,
+        "attack": 3992,
+        "death": 3993
+      }
+    },
+    "499": {
+      "anims": {
+        "death": 3849,
+        "block": 3848,
+        "ranged": 3847,
+        "attack": 3847
+      }
+    },
     "655": {
       "name": "Goblin",
       "anims": {
@@ -311,7 +341,7 @@
     "2205": {
       "name": "Commander Zilyana",
       "anims": {
-        "attack": 422,
+        "attack": 6967,
         "block": 6969,
         "death": 6968,
         "melee": 6967,
@@ -1886,6 +1916,15 @@
         "death": 512
       }
     },
+    "7286": {
+      "anims": {
+        "magic": 69,
+        "attack": 69,
+        "block": 4676,
+        "melee": 4680,
+        "death": 4624
+      }
+    },
     "7416": {
       "anims": {
         "block": 4651,
@@ -1893,6 +1932,28 @@
         "melee": 4666,
         "attack": 7183,
         "ranged": 7183
+      }
+    },
+    "7656": {
+      "anims": {
+        "attack": 64,
+        "block": 65,
+        "death": 67
+      }
+    },
+    "7657": {
+      "anims": {
+        "melee": 64,
+        "attack": 64,
+        "block": 65,
+        "death": 67
+      }
+    },
+    "7664": {
+      "anims": {
+        "attack": 64,
+        "block": 65,
+        "death": 67
       }
     },
     "7919": {
@@ -1939,6 +2000,14 @@
         "attack": 1793,
         "block": 1794,
         "death": 1795
+      }
+    },
+    "8713": {
+      "anims": {
+        "death": 8318,
+        "ranged": 4410,
+        "attack": 4410,
+        "melee": 8147
       }
     },
     "8986": {
