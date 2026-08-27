@@ -47,6 +47,7 @@ import { applyAutocastState, clearAutocastState } from "../game/combat/AutocastS
 import { CombatCategoryData } from "../game/combat/CombatCategoryData";
 import { PlayerDeathService } from "../game/death/PlayerDeathService";
 import { GameEventBus } from "../game/events/GameEventBus";
+import { EncounterManager } from "../game/encounters/EncounterManager";
 import { FollowerCombatManager } from "../game/followers/FollowerCombatManager";
 import { FollowerManager } from "../game/followers/FollowerManager";
 import type {
@@ -186,6 +187,16 @@ export class WSServer {
     private options: WSServerOptions;
     private players?: PlayerManager;
     private npcManager?: NpcManager;
+    private readonly encounterManager = new EncounterManager(
+        undefined,
+        {
+            removeNpc: (npcRuntimeId) => {
+                this.npcManager?.removeNpc(npcRuntimeId);
+            },
+        },
+        (npcTypeId, animation) =>
+            this.combatDataService?.resolveNpcEncounterAnimation(npcTypeId, animation),
+    );
     private objTypeLoader?: ObjTypeLoader;
     private locTypeLoader?: LocTypeLoader;
     private readonly gamemode: GamemodeDefinition;
@@ -418,6 +429,7 @@ export class WSServer {
             ["cacheEnv", () => self.cacheEnv],
             ["players", () => self.players],
             ["npcManager", () => self.npcManager],
+            ["encounterManager", () => self.encounterManager],
             ["npcTypeLoader", () => self.npcTypeLoader],
             ["locTypeLoader", () => self.locTypeLoader],
             ["objTypeLoader", () => self.objTypeLoader],
@@ -1094,8 +1106,11 @@ export class WSServer {
         }
         if (this.npcManager) {
             this.npcManager.setLifecycleHooks({
-                onRemove: (_npcId) => {},
-                onReset: (_npcId) => {},
+                onRemove: (npcId) => this.encounterManager.removeNpc(npcId),
+                onReset: (npcId) => {
+                    const npc = this.npcManager?.getById(npcId);
+                    if (npc) this.encounterManager.ensureForNpc(npc);
+                },
             });
             // RSMod parity: Wire up ground item spawner for delayed NPC death drops
             this.npcManager.setGroundItemSpawner((itemId, qty, tile, tick, opts, worldViewId) => {

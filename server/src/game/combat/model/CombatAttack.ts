@@ -17,7 +17,13 @@ export interface CombatAttackTraits {
     readonly type: AttackType;
     readonly style: CombatAttackStyle | null;
     readonly rangeTiles: number;
+    /** Optional distance the attacker keeps approaching toward, independent of attack reach. */
+    readonly preferredDistanceTiles?: number;
     readonly speedTicks: number;
+    /** Server-resolved NPC attack sequence override for this exact attack cycle. */
+    readonly animationId?: number;
+    /** Prevent unsafe generic animation fallback when an explicit named role is unresolved. */
+    readonly suppressDefaultNpcAnimation?: boolean;
     readonly weaponId?: number;
     readonly spellId?: number;
     readonly specialAttack?: boolean;

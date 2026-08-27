@@ -133,6 +133,14 @@ export interface NpcSpawnConfig {
     y: number;
     level: number;
     wanderRadius?: number;
+    /** Distance at which this NPC can automatically acquire a player target. */
+    aggressionRadius?: number;
+    aggressionToleranceTicks?: number;
+    aggressionSearchDelayTicks?: number;
+    /** Maximum distance from spawn while actively chasing. */
+    combatLeashRadius?: number;
+    /** Maximum target-to-spawn distance before the NPC disengages. */
+    retreatInteractionRange?: number;
     direction?: number;
     /** Optional override for transient/developer NPCs that must not auto-attack. */
     isAggressive?: boolean;
@@ -221,6 +229,8 @@ export class NpcState extends Actor {
      * RSMod uses npc.combatDef.aggroTargetDelay for this.
      */
     readonly aggressionSearchDelayTicks: number;
+    private readonly combatLeashRadius: number;
+    private readonly retreatInteractionRange: number;
     /**
      * Combat profile with all stats resolved. Source of truth for combat calculations.
      * Loaded at spawn time - no runtime lookups needed.
@@ -285,6 +295,8 @@ export class NpcState extends Actor {
             aggressionToleranceTicks?: number;
             /** Delay in ticks between aggro target searches. */
             aggressionSearchDelayTicks?: number;
+            combatLeashRadius?: number;
+            retreatInteractionRange?: number;
             /** Combat profile with all stats. If not provided, uses DEFAULT_NPC_COMBAT_PROFILE */
             combatProfile?: NpcCombatProfile;
             worldViewId?: number;
@@ -330,6 +342,16 @@ export class NpcState extends Actor {
         this.aggressionSearchDelayTicks = Math.max(
             1,
             Math.trunc(options.aggressionSearchDelayTicks ?? TARGET_SEARCH_INTERVAL),
+        );
+        this.combatLeashRadius = Math.max(
+            0,
+            Math.trunc(options.combatLeashRadius ?? DEFAULT_NPC_CHASE_LEASH_RADIUS),
+        );
+        this.retreatInteractionRange = Math.max(
+            0,
+            Math.trunc(
+                options.retreatInteractionRange ?? DEFAULT_NPC_RETREAT_INTERACTION_RANGE,
+            ),
         );
         // Combat levels are mutable during a fight (for specials such as the
         // dragon warhammer), so each NPC must own its profile rather than share
@@ -794,7 +816,7 @@ export class NpcState extends Actor {
      * Idle roam still uses wanderRadius separately.
      */
     getCombatLeashRadius(): number {
-        return DEFAULT_NPC_CHASE_LEASH_RADIUS;
+        return this.combatLeashRadius;
     }
 
     /**
@@ -802,7 +824,7 @@ export class NpcState extends Actor {
      * Hits from further out refuse chase / instant de-aggro.
      */
     getRetreatInteractionRange(): number {
-        return DEFAULT_NPC_RETREAT_INTERACTION_RANGE;
+        return this.retreatInteractionRange;
     }
 
     isTileOutsideCombatLeash(tileX: number, tileY: number): boolean {

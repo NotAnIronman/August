@@ -709,6 +709,7 @@ export class TickPhaseService {
     }
 
     runCombatPhase(frame: TickFrame): void {
+        this.svc.encounterManager?.setCurrentTick(frame.tick);
         const tickResult = this.getCombatTickEngine()?.processTick(frame.tick);
         this.processPendingManualCombatSpells(frame.tick);
         const hitProcessor = this.getCombatHitProcessor();
@@ -931,6 +932,7 @@ export class TickPhaseService {
             },
             resolveAttackTraits: (attacker, target) =>
                 this.resolveCombatAttackTraits(attacker, target),
+            onAttackPrepared: (attack) => this.svc.encounterManager?.onAttackPrepared(attack),
         });
         return this.combatTickEngine;
     }
@@ -968,6 +970,13 @@ export class TickPhaseService {
         target: CombatEntity,
     ): CombatAttackTraits | null {
         if (attacker instanceof NpcState) {
+            if (target instanceof PlayerState) {
+                const encounterTraits = this.svc.encounterManager?.resolveAttackTraits(
+                    attacker,
+                    target,
+                );
+                if (encounterTraits) return encounterTraits;
+            }
             const type = attacker.getAttackType() ?? attacker.combat.attackType;
             const rangeTiles =
                 type === AttackType.Magic

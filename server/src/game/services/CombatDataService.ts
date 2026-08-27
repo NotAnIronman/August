@@ -5,6 +5,7 @@ import type { NpcSoundType } from "../../audio/NpcSoundLookup";
 import { logger } from "../../utils/logger";
 import type { ServerServices } from "../ServerServices";
 import type { AttackType } from "../combat/AttackType";
+import type { EncounterAnimationReference } from "../encounters/EncounterTypes";
 import type { NpcCombatProfile, NpcState } from "../npc";
 import {
     type NpcCombatAnimations,
@@ -204,6 +205,31 @@ export class CombatDataService {
     }
 
     /**
+     * Resolves encounter animation roles from the canonical NPC combat data.
+     * Style roles prefer their explicit mapping and safely fall back to that
+     * NPC's generic attack animation. Specials never fall back by index.
+     */
+    resolveNpcEncounterAnimation(
+        typeId: number,
+        reference: EncounterAnimationReference,
+    ): number | undefined {
+        this.loadNpcCombatDefs();
+        const normalizedTypeId = Math.trunc(typeId);
+        const entry = this.npcCombatDefs?.[String(normalizedTypeId)];
+        if (typeof reference === "object") {
+            const animation = entry?.specials?.[reference.special];
+            return this.validAnimation(animation);
+        }
+        if (reference === "melee" || reference === "ranged" || reference === "magic") {
+            return this.validAnimation(entry?.[reference]) ?? this.validAnimation(entry?.attack);
+        }
+        const resolved = this.getNpcCombatAnimations(normalizedTypeId);
+        if (reference === "defence") return this.validAnimation(resolved.defence);
+        if (reference === "death") return this.validAnimation(resolved.death);
+        return this.validAnimation(resolved.attack);
+    }
+
+    /**
      * Special sequences are deliberately separate from normal combat styles.
      * A boss script chooses when one is appropriate; generic NPC combat must
      * never pick a charge-up or phase animation at random.
@@ -211,6 +237,12 @@ export class CombatDataService {
     getNpcSpecialAnimations(typeId: number): readonly number[] {
         this.loadNpcCombatDefs();
         return this.npcCombatDefs?.[String(Math.trunc(typeId))]?.specials ?? [];
+    }
+
+    private validAnimation(value: number | undefined): number | undefined {
+        return typeof value === "number" && Number.isFinite(value) && value > 0
+            ? Math.trunc(value)
+            : undefined;
     }
 
     resolveNpcCombatProfile(npc: NpcState): NpcCombatProfile {

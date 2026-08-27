@@ -102,6 +102,7 @@ import {
     type CombatHitEvaluator,
     createCombatHitEvaluator,
 } from "./CombatHitEvaluator";
+import { resolveNpcAttackAnimation } from "./NpcAttackAnimationResolver";
 import type { CombatRetaliationEngine } from "./CombatRetaliationEngine";
 import type { CombatEntity } from "./CombatTargetResolver";
 import {
@@ -1146,8 +1147,12 @@ export class CombatHitProcessor {
     ): void {
         if (context.attacker instanceof NpcState) {
             const definition = this.services.combatDataService.getNpcDefinition(context.attacker);
-            const attackAnimation = specialAttack?.attackAnimation ?? definition.animations.attack;
-            if (attackAnimation > 0) {
+            const attackAnimation = resolveNpcAttackAnimation({
+                traits: context.attack.traits,
+                specialAttackAnimation: specialAttack?.attackAnimation,
+                defaultAttackAnimation: definition.animations.attack,
+            });
+            if (attackAnimation !== undefined && attackAnimation > 0) {
                 this.services.combatEffectService.broadcastNpcSequence(
                     context.attacker,
                     attackAnimation,

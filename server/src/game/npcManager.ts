@@ -36,6 +36,7 @@ import {
 } from "./npc";
 import { MovementProcessor } from "./movement/engine/MovementProcessor";
 import { StatusEffectSystem } from "./systems/StatusEffectSystem";
+import { EncounterRegistry } from "./encounters/EncounterRegistry";
 
 export type NpcStatusEvent = {
     npcId: number;
@@ -169,6 +170,11 @@ type RawNpcSpawn = {
     y: number;
     level: number;
     wanderRadius?: number;
+    aggressionRadius?: number;
+    aggressionToleranceTicks?: number;
+    aggressionSearchDelayTicks?: number;
+    combatLeashRadius?: number;
+    retreatInteractionRange?: number;
     /** Movement direction index (0=SW,1=S,2=SE,3=W,4=E,5=NW,6=N,7=NE). */
     direction?: number;
     /** Optional HealthBarDefinition id (HIT_MASK) for this NPC spawn. */
@@ -306,6 +312,11 @@ export class NpcManager {
                     y: spawn.y,
                     level: spawn.level,
                     wanderRadius: spawn.wanderRadius,
+                    aggressionRadius: spawn.aggressionRadius,
+                    aggressionToleranceTicks: spawn.aggressionToleranceTicks,
+                    aggressionSearchDelayTicks: spawn.aggressionSearchDelayTicks,
+                    combatLeashRadius: spawn.combatLeashRadius,
+                    retreatInteractionRange: spawn.retreatInteractionRange,
                     direction: spawn.direction,
                     healthBarDefId:
                         spawn.healthBarDefId !== undefined ? spawn.healthBarDefId : undefined,
@@ -327,7 +338,11 @@ export class NpcManager {
         const walkSeqId = npcType.getWalkSeqId(this.basTypeLoader);
         const size = Math.max(1, npcType.size);
         const rotationSpeed = Math.max(1, npcType.rotationSpeed);
-        const wanderRadius = Math.max(0, spawn.wanderRadius ?? DEFAULT_NPC_WANDER_RADIUS);
+        const encounterMovement = EncounterRegistry.shared.findByNpcTypeId(spawn.id)?.movement;
+        const wanderRadius = Math.max(
+            0,
+            spawn.wanderRadius ?? encounterMovement?.wanderRadius ?? DEFAULT_NPC_WANDER_RADIUS,
+        );
         this.maxNpcSize = Math.max(this.maxNpcSize, size);
 
         const id = this.allocateNpcId();
@@ -344,10 +359,18 @@ export class NpcManager {
         const isAggressive =
             spawn.isAggressive ?? this.deriveIsAggressive(npcType, npcCombatStats);
         const aggressionRadius = isAggressive
-            ? this.deriveAggressionRadius(npcCombatStats, isAggressive)
+            ? (spawn.aggressionRadius ??
+              encounterMovement?.aggressionRadius ??
+              this.deriveAggressionRadius(npcCombatStats, isAggressive))
             : 0;
-        const aggressionToleranceTicks = this.deriveAggressionToleranceTicks(npcCombatStats);
-        const aggressionSearchDelayTicks = this.deriveAggressionSearchDelayTicks(npcCombatStats);
+        const aggressionToleranceTicks =
+            spawn.aggressionToleranceTicks ??
+            encounterMovement?.aggressionToleranceTicks ??
+            this.deriveAggressionToleranceTicks(npcCombatStats);
+        const aggressionSearchDelayTicks =
+            spawn.aggressionSearchDelayTicks ??
+            encounterMovement?.aggressionSearchDelayTicks ??
+            this.deriveAggressionSearchDelayTicks(npcCombatStats);
         // Load combat profile (stats, bonuses, species) - logged warning if missing
         const combatProfile = buildCombatProfile(npcType, npcCombatStats);
 
@@ -374,6 +397,10 @@ export class NpcManager {
                 aggressionRadius,
                 aggressionToleranceTicks,
                 aggressionSearchDelayTicks,
+                combatLeashRadius:
+                    spawn.combatLeashRadius ?? encounterMovement?.combatLeashRadius,
+                retreatInteractionRange:
+                    spawn.retreatInteractionRange ?? encounterMovement?.retreatInteractionRange,
                 worldViewId: spawn.worldViewId,
                 ownerPlayerId: spawn.ownerPlayerId,
             },

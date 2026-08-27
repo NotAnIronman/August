@@ -76,6 +76,7 @@ import type { SpellActionHandler } from "./actions/handlers/SpellActionHandler";
 import type { WidgetDialogHandler } from "./actions/handlers/WidgetDialogHandler";
 // ── Game – combat ───────────────────────────────────────────────────────────
 import type { CombatCategoryData } from "./combat/CombatCategoryData";
+import type { EncounterManager } from "./encounters/EncounterManager";
 // ── Game – death ────────────────────────────────────────────────────────────
 import type { PlayerDeathService } from "./death/PlayerDeathService";
 // ── Game – events ───────────────────────────────────────────────────────────
@@ -167,6 +168,7 @@ export interface ServerServices {
     // ── Core state managers ──────────────────────────────────────────────
     players?: PlayerManager;
     npcManager?: NpcManager;
+    encounterManager?: EncounterManager;
     readonly playerPersistence: PersistenceProvider;
 
     // ── Game services ────────────────────────────────────────────────────

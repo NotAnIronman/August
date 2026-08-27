@@ -12,6 +12,7 @@ import { AttackType } from "../AttackType";
 import type { CombatAttackTraits } from "../model/CombatAttack";
 import type { CombatEntityRef } from "../model/CombatEntityRef";
 import { CombatAttributes } from "../state/CombatAttributes";
+import { resolvePreferredDistanceTiles } from "./CombatPreferredDistance";
 import { type CombatRangeValidation, CombatRangeValidator } from "./CombatRangeValidator";
 import {
     type CombatEntity,
@@ -110,8 +111,28 @@ export class CombatInteractionProcessor {
         // ready and the attack manager may cast without an extra idle tick.
         const range = this.rangeValidator.validate(attacker, target, traits);
         if (range.valid) {
-            attacker.clearPath();
-            this.routes.delete(attacker);
+            const preferredDistance = this.preferredApproachDistance(attacker, traits);
+            const movementLocked =
+                currentMapClock <
+                Math.max(
+                    attacker.combatAttributes.get(CombatAttributes.FREEZE_UNTIL_CLOCK),
+                    attacker.combatAttributes.get(CombatAttributes.STUN_UNTIL_CLOCK),
+                );
+            if (
+                preferredDistance !== undefined &&
+                range.distanceTiles > preferredDistance &&
+                !movementLocked
+            ) {
+                // Attack reach and movement intent are deliberately separate. A boss can
+                // fire a ranged attack now while continuing to close to melee distance.
+                this.routeToward(attacker, target, targetReference, {
+                    ...traits,
+                    rangeTiles: preferredDistance,
+                });
+            } else {
+                attacker.clearPath();
+                this.routes.delete(attacker);
+            }
             return { status: "ready", target, traits, range };
         }
 
@@ -236,6 +257,15 @@ export class CombatInteractionProcessor {
             attackType: traits.type,
         });
         return true;
+    }
+
+    private preferredApproachDistance(
+        attacker: CombatEntity,
+        traits: CombatAttackTraits,
+    ): number | undefined {
+        // Player movement remains click-driven. This setting is encounter/NPC intent.
+        if (!(attacker instanceof NpcState)) return undefined;
+        return resolvePreferredDistanceTiles(traits);
     }
 
     private routePlayer(
