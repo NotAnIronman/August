@@ -38,6 +38,21 @@ export function handleLoginFormClick(host: LoginRendererHost, state: LoginState,
 
         const isConnecting = gameState === GameState.CONNECTING;
 
+        // This panel overlaps the login form's row Y coordinates, so it must be
+        // checked before the generic field-row hit areas below.
+        if (!isConnecting) {
+            for (let slot = 0; slot < 4; slot++) {
+                const bounds = getSavedAccountSlotBounds(host, slot);
+                if (
+                    state.savedAccountSlots[slot]?.username &&
+                    x >= bounds.x && x <= bounds.x + bounds.width &&
+                    y >= bounds.y && y <= bounds.y + bounds.height
+                ) {
+                    return { type: "select_saved_account", slot } as const;
+                }
+            }
+        }
+
         // Field clicks (updated Y offset: 201 + 15 + 15 + 10 = 241)
         const fieldBaseY = 201 + 15 + 15 + 10;
         if (y >= fieldBaseY - 12 && y < fieldBaseY + 3) {
@@ -50,17 +65,6 @@ export function handleLoginFormClick(host: LoginRendererHost, state: LoginState,
         // Don't process button/checkbox clicks when connecting
         if (isConnecting) {
             return undefined;
-        }
-
-        for (let slot = 0; slot < 4; slot++) {
-            const bounds = getSavedAccountSlotBounds(host, slot);
-            if (
-                state.savedAccountSlots[slot]?.username &&
-                x >= bounds.x && x <= bounds.x + bounds.width &&
-                y >= bounds.y && y <= bounds.y + bounds.height
-            ) {
-                return { type: "select_saved_account", slot } as const;
-            }
         }
 
         // Checkbox: Remember username
