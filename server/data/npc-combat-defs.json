@@ -2025,6 +2025,18 @@
         "death": 2707
       }
     },
+    "6609": {
+      "anims": {
+        "melee": 10012,
+        "attack": 10013,
+        "specials": [
+          10014,
+          10015
+        ],
+        "death": 10017,
+        "block": 10014
+      }
+    },
     "6610": {
       "anims": {
         "attack": 9989,
@@ -2154,8 +2166,8 @@
         "attack": 10692,
         "block": 424,
         "death": 10705,
-        "melee": 10692,
-        "ranged": 10694,
+        "melee": 10693,
+        "ranged": 10695,
         "magic": 10696,
         "specials": [
           10698,
@@ -2355,6 +2367,15 @@
         "block": 4657,
         "melee": 4658,
         "death": 4659
+      }
+    },
+    "8583": {
+      "anims": {
+        "ranged": 8224,
+        "attack": 8221,
+        "magic": 8223,
+        "death": 8225,
+        "melee": 8221
       }
     },
     "8700": {
@@ -2572,6 +2593,31 @@
         "death": 512
       }
     },
+    "11246": {
+      "anims": {
+        "melee": 9277,
+        "attack": 9277,
+        "magic": 9278,
+        "ranged": 9279,
+        "death": 9280,
+        "specials": [
+          9282
+        ]
+      }
+    },
+    "11278": {
+      "anims": {
+        "specials": [
+          9178
+        ],
+        "magic": 9189,
+        "attack": 9188,
+        "melee": 9180,
+        "ranged": 9182,
+        "block": 9185,
+        "death": 9184
+      }
+    },
     "11911": {
       "name": "Guard",
       "anims": {
@@ -2671,12 +2717,88 @@
         ]
       }
     },
+    "13011": {
+      "anims": {
+        "melee": 11001,
+        "attack": 11004,
+        "death": 11005,
+        "specials": [
+          10997,
+          11000
+        ]
+      }
+    },
+    "13012": {
+      "anims": {
+        "specials": [
+          11017
+        ],
+        "block": 11018,
+        "melee": 11022,
+        "attack": 11023,
+        "death": 11024
+      }
+    },
+    "13013": {
+      "anims": {
+        "melee": 10987,
+        "attack": 11004,
+        "death": 11005,
+        "specials": [
+          11000
+        ],
+        "block": 11008
+      }
+    },
     "13624": {
       "name": "Rat",
       "anims": {
         "attack": 2705,
         "block": 2706,
         "death": 2707
+      }
+    },
+    "13685": {
+      "anims": {
+        "specials": [
+          11530
+        ],
+        "magic": 11531,
+        "attack": 11531,
+        "block": 11533,
+        "death": 11534
+      }
+    },
+    "14147": {
+      "anims": {
+        "attack": 11973,
+        "death": 11985,
+        "specials": [
+          11975
+        ],
+        "melee": 11973,
+        "magic": 11979
+      }
+    },
+    "14779": {
+      "anims": {
+        "specials": [
+          12481,
+          12484
+        ],
+        "death": 12482,
+        "attack": 12483
+      }
+    },
+    "15628": {
+      "anims": {
+        "melee": 13783,
+        "attack": 13785,
+        "specials": [
+          13779
+        ],
+        "death": 13784,
+        "block": 13787
       }
     }
   },
