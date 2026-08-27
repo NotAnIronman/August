@@ -311,7 +311,7 @@ export class CombatEffectService {
         damageType: DamageType,
         maxHit?: number,
     ): { amount: number; style: number; hpCurrent: number; hpMax: number } | undefined {
-        if (npc.isPlayerFollower?.() === true) return undefined;
+        if (!npc.isCombatTargetable()) return undefined;
         if (npc.getHitpoints() <= 0 || npc.isDead(tick)) return undefined;
 
         const proposedDamage = Math.max(0, Math.trunc(damage));
@@ -353,7 +353,7 @@ export class CombatEffectService {
     // ── NPC Death ───────────────────────────────────────────────────
 
     handleNpcDeathOutsidePrimaryCombat(player: PlayerState, npc: NpcState, tick: number): void {
-        if (npc.isPlayerFollower?.() === true || npc.isDead(tick)) {
+        if (!npc.isCombatTargetable() || npc.isDead(tick)) {
             return;
         }
         // Defer to the canonical death pipeline: NPCs process fatal damage on

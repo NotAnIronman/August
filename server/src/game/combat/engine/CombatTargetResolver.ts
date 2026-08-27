@@ -43,7 +43,7 @@ export class CombatTargetResolver {
         if (entity instanceof PlayerState && !entity.canBeAttacked()) {
             return { valid: false, reason: "interaction_blocked" };
         }
-        if (entity instanceof NpcState && entity.isPlayerFollower()) {
+        if (entity instanceof NpcState && !entity.isCombatTargetable()) {
             return { valid: false, reason: "unattackable" };
         }
         return { valid: true, entity };

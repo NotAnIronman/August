@@ -370,6 +370,7 @@ export class NpcManager {
                 attackSpeed,
                 combatProfile,
                 isAggressive,
+                isUnattackable: spawn.isUnattackable,
                 aggressionRadius,
                 aggressionToleranceTicks,
                 aggressionSearchDelayTicks,

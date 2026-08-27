@@ -253,6 +253,10 @@ export function registerNpcAnimationReviewCommands(
                 level: player.level,
                 wanderRadius: 0,
                 isAggressive: false,
+                // Death candidates are visual previews. The dummy must never
+                // be killable, otherwise a normal combat death/respawn steals
+                // time from the review workflow.
+                isUnattackable: true,
                 worldViewId: player.worldViewId,
                 ownerPlayerId: player.id,
                 lifetimeTicks: PREVIEW_LIFETIME_TICKS,

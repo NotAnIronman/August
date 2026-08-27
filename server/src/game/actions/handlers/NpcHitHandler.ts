@@ -104,7 +104,7 @@ export class NpcHitHandler {
         if (npc.level !== player.level) {
             return { ok: false, reason: "different_plane" };
         }
-        if (npc.isPlayerFollower?.() === true) {
+        if (!npc.isCombatTargetable()) {
             return { ok: false, reason: "npc_unattackable" };
         }
 
