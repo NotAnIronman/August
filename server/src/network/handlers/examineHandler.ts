@@ -13,6 +13,7 @@ import {
 } from "../../game/interactions/ExamineText";
 import type { NpcState } from "../../game/npc";
 import type { PlayerState } from "../../game/player";
+import { resolveLocActions } from "../../../../client/common/world/LocActionOverrides";
 import { logger } from "../../utils/logger";
 import { loadVisibleLocTypeForPlayer } from "../../world/LocTransforms";
 
@@ -150,7 +151,7 @@ export function resolveLocActionByOpNum(
             ? loadVisibleLocTypeForPlayer(locTypeLoader, player, locId)
             : undefined;
         const def = (visible?.type ?? locTypeLoader?.load?.(locId)) as LocType | undefined;
-        const raw = Array.isArray(def?.actions) ? def.actions[idx] : undefined;
+        const raw = resolveLocActions(locId, def?.actions)[idx];
         if (!raw) return undefined;
         const normalized = raw.trim();
         return normalized.length > 0 ? normalized : undefined;

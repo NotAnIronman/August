@@ -54,6 +54,7 @@ export interface QuestInstanceHandle {
     readonly id: string;
     readonly playerId: number;
     readonly ownerPlayerId: number;
+    readonly ownerName: string;
     readonly definitionId?: string;
     readonly access: "solo" | "party";
     readonly maxPlayers: number;
@@ -70,6 +71,7 @@ interface InstanceRuntime {
     readonly id: string;
     readonly definitionId?: string;
     ownerPlayerId: number;
+    ownerName: string;
     readonly access: "solo" | "party";
     readonly maxPlayers: number;
     readonly joinInProgress: boolean;
@@ -80,6 +82,7 @@ interface InstanceRuntime {
     readonly templateChunks: number[][][];
     readonly exit?: { x: number; y: number; level: number };
     readonly memberPlayerIds: Set<number>;
+    readonly memberNames: Map<number, string>;
     readonly npcRuntimeIds: Set<number>;
     readonly locs: TemporaryLocChange[];
     started: boolean;
@@ -169,6 +172,7 @@ export class InstancedAreaManager {
             id: `instance-${this.nextInstanceId++}`,
             definitionId: spec.definitionId,
             ownerPlayerId: player.id,
+            ownerName: player.name || `Player ${player.id}`,
             access,
             maxPlayers,
             joinInProgress: spec.joinInProgress ?? true,
@@ -179,6 +183,7 @@ export class InstancedAreaManager {
             templateChunks: spec.templateChunks,
             exit: spec.exit,
             memberPlayerIds: new Set([player.id]),
+            memberNames: new Map([[player.id, player.name || `Player ${player.id}`]]),
             npcRuntimeIds: new Set(),
             locs: [],
             started: false,
@@ -266,6 +271,7 @@ export class InstancedAreaManager {
         if (current) this.dispose(player);
 
         runtime.memberPlayerIds.add(player.id);
+        runtime.memberNames.set(player.id, player.name || `Player ${player.id}`);
         this.instanceIdByPlayer.set(player.id, runtime.id);
         player.worldViewId = runtime.worldViewId;
         player.instanceNpcIds.clear();
@@ -291,10 +297,14 @@ export class InstancedAreaManager {
         player.instanceNpcIds.clear();
         player.worldViewId = -1;
         runtime.memberPlayerIds.delete(player.id);
+        runtime.memberNames.delete(player.id);
         this.instanceIdByPlayer.delete(player.id);
 
         if (runtime.ownerPlayerId === player.id && runtime.memberPlayerIds.size > 0) {
             runtime.ownerPlayerId = runtime.memberPlayerIds.values().next().value as number;
+            runtime.ownerName =
+                runtime.memberNames.get(runtime.ownerPlayerId) ??
+                `Player ${runtime.ownerPlayerId}`;
         }
 
         if (runtime.memberPlayerIds.size === 0) this.destroyRuntime(runtime);
@@ -329,6 +339,7 @@ export class InstancedAreaManager {
             id: runtime.id,
             playerId: runtime.ownerPlayerId,
             ownerPlayerId: runtime.ownerPlayerId,
+            ownerName: runtime.ownerName,
             definitionId: runtime.definitionId,
             access: runtime.access,
             maxPlayers: runtime.maxPlayers,

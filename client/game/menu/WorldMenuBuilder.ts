@@ -22,6 +22,7 @@ import {
     canTargetObject,
     canTargetPlayer,
 } from "../../widgets/WidgetFlags";
+import { resolveLocActions } from "../../common/world/LocActionOverrides";
 
 /**
  * Active spell state for menu building
@@ -151,8 +152,9 @@ export function buildLocMenuEntries(
     }
 
     // LOC actions from definition
-    for (let actionIdx = 0; actionIdx < locType.actions.length; actionIdx++) {
-        const option = locType.actions[actionIdx];
+    const locActions = resolveLocActions(locType.id, locType.actions);
+    for (let actionIdx = 0; actionIdx < locActions.length; actionIdx++) {
+        const option = locActions[actionIdx];
         if (!option) continue;
 
         actions.push({

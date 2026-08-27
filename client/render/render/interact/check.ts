@@ -32,6 +32,7 @@ import { createTextureArray } from "../../../picogl/PicoTexture";
 import { RS_TO_RADIANS } from "../../../rs/MathConstants";
 import { CollisionFlag } from "../../../common/CollisionFlag";
 import { isInWilderness } from "../../../common/world/Wilderness";
+import { resolveLocActions } from "../../../common/world/LocActionOverrides";
 import {
     getWorldLocChanges,
     getWorldLocSpawns,
@@ -917,8 +918,12 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                     }
 
                     // LOC actions inserted 4..0, then Examine.
+                    const locActions = resolveLocActions(
+                        interactId,
+                        resolvedLocType.actions,
+                    );
                     for (let actionIdx = 4; actionIdx >= 0; actionIdx--) {
-                        const option = resolvedLocType.actions?.[actionIdx];
+                        const option = locActions[actionIdx];
                         if (!option) continue;
                         menuEntries.push({
                             option,
