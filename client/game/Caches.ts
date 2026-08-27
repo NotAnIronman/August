@@ -381,7 +381,7 @@ async function loadCacheFilesSparse(
     };
 
     // Index files (all small): meta first to learn the index count.
-    report(0, 1, "Loading index");
+    report(0, 1, "Reading cache index");
     const metaData = await CacheFiles.fetchSingleIndex(
         cachePath,
         info.name,
@@ -407,6 +407,9 @@ async function loadCacheFilesSparse(
         }
     }
     const idxDatas = new Map<number, ArrayBuffer>();
+    let loadedIndexCount = 0;
+    const totalIndexFiles = indexIds.length + 1;
+    report(1, totalIndexFiles, `Loading cache index (1/${totalIndexFiles})`);
     await Promise.all(
         indexIds.map(async (id) => {
             const data = await CacheFiles.fetchSingleIndex(
@@ -419,6 +422,12 @@ async function loadCacheFilesSparse(
             if (data) {
                 idxDatas.set(id, data);
             }
+            loadedIndexCount++;
+            report(
+                loadedIndexCount + 1,
+                totalIndexFiles,
+                `Loading cache index (${loadedIndexCount + 1}/${totalIndexFiles})`,
+            );
         }),
     );
     if (idxDatas.size !== indexIds.length) {
@@ -483,9 +492,6 @@ async function loadCacheFilesSparse(
     }
     await persistence.writeManifest(dat2Version);
 
-    // Restore ranges fetched in previous sessions.
-    const restored = await persistence.restore((offset, bytes) => store.applyRange(offset, bytes));
-
     // Eager regions: reference tables (idx255 meta region) + every
     // non-deferred index. Deferred indices only need their reference tables.
     const deferred = new Set(getDeferredIndexIds(info));
@@ -510,7 +516,20 @@ async function loadCacheFilesSparse(
         regions.push({ start: region.startSector, end: region.endSector });
     }
 
-    const missing = subtractPresentSectors(mergeSectorRuns(regions), presence);
+    const eagerRegions = mergeSectorRuns(regions);
+    // Only hydrate data required to enter the game. Previously this restored
+    // every persisted animation/model/map range, which made startup time grow
+    // with every NPC and area the player had explored.
+    report(0, 1, "Restoring startup assets");
+    const restored = await persistence.restoreIntersecting(
+        eagerRegions.map((run) => ({
+            startByte: run.start * Sector.SIZE,
+            endByte: Math.min(run.end * Sector.SIZE, totalSize),
+        })),
+        (offset, bytes) => store.applyRange(offset, bytes),
+    );
+
+    const missing = subtractPresentSectors(eagerRegions, presence);
     let toFetch = 0;
     for (const run of missing) {
         toFetch += Math.min(run.end * Sector.SIZE, totalSize) - run.start * Sector.SIZE;

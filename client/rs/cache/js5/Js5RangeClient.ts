@@ -4,6 +4,12 @@ import { validatePartialContentResponse } from "./HttpRange";
 
 export type RangeFetchedListener = (byteOffset: number, bytes: Uint8Array) => void;
 
+/** Reads a previously persisted span without issuing an HTTP Range request. */
+export type PersistedRangeLoader = (
+    startByte: number,
+    endByte: number,
+) => Promise<{ byteOffset: number; bytes: Uint8Array } | undefined>;
+
 type PendingGroup = {
     span: GroupSpan;
     urgent: boolean;
@@ -43,6 +49,7 @@ export class Js5RangeClient {
         readonly dat2Url: string,
         readonly store: SparseMemoryStore,
         private readonly maxConcurrent: number = 6,
+        private readonly persistedRangeLoader?: PersistedRangeLoader,
     ) {
         store.onMiss = (span) => {
             this.requestSpan(span, true);
@@ -196,9 +203,14 @@ export class Js5RangeClient {
                 start = Math.min(start, group.span.startByte);
                 end = Math.max(end, group.span.startByte + group.span.byteLength);
             }
-            const bytes = await this.fetchRange(start, end - start);
-            this.store.applyRange(start, bytes);
-            this.notifyFetched(start, bytes);
+            const persisted = await this.persistedRangeLoader?.(start, end);
+            if (persisted) {
+                this.store.applyRange(persisted.byteOffset, persisted.bytes);
+            } else {
+                const bytes = await this.fetchRange(start, end - start);
+                this.store.applyRange(start, bytes);
+                this.notifyFetched(start, bytes);
+            }
             for (const group of batch) {
                 this.finishGroup(group);
             }

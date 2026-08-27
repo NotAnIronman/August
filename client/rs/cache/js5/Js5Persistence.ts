@@ -10,6 +10,20 @@ const FLUSH_DELAY_MS = 1500;
 
 type SectorRun = { start: number; end: number };
 
+export type PersistedRangeData = {
+    byteOffset: number;
+    bytes: Uint8Array;
+};
+
+export type ByteRange = {
+    startByte: number;
+    endByte: number;
+};
+
+type PersistedRange = ByteRange & {
+    key: string;
+};
+
 /**
  * Persists on-demand fetched dat2 ranges to the existing CacheStorage/IDB
  * layer so they are never re-downloaded. Entries mirror the resumable
@@ -23,6 +37,12 @@ export class Js5Persistence {
     private pendingRuns: SectorRun[] = [];
     private flushTimer: ReturnType<typeof setTimeout> | undefined;
     private flushChain: Promise<void> = Promise.resolve();
+    /**
+     * CacheStorage can enumerate the saved entries without reading their
+     * bodies. Keep that metadata in memory so a deferred group can be restored
+     * on demand instead of rebuilding every explored asset during startup.
+     */
+    private persistedRangeIndex: Promise<PersistedRange[]> | undefined;
 
     static async readManifest(
         cacheName: string,
@@ -91,38 +111,84 @@ export class Js5Persistence {
             }
         } catch (e) {
             console.warn("[js5] Failed clearing persisted ranges:", e);
+        } finally {
+            this.persistedRangeIndex = undefined;
         }
     }
 
-    /** Load all persisted ranges, applying each; returns total bytes restored. */
-    async restore(apply: (byteOffset: number, bytes: Uint8Array) => void): Promise<number> {
-        const cache = await this.cachePromise;
-        if (!cache.matchAll) {
+    /**
+     * Load only persisted entries which overlap the supplied byte ranges.
+     *
+     * Starting a session used to read every cached animation, model and map
+     * range here. That made startup time grow with playtime. Eager cache data
+     * is restored now; deferred ranges stay in CacheStorage until a loader
+     * asks for one through readPersistedRangeContaining().
+     */
+    async restoreIntersecting(
+        ranges: readonly ByteRange[],
+        apply: (byteOffset: number, bytes: Uint8Array) => void,
+    ): Promise<number> {
+        if (ranges.length === 0) {
             return 0;
         }
         let restored = 0;
         try {
-            const responses = await cache.matchAll(this.dat2Path + RANGE_SEGMENT, {
-                ignoreSearch: true,
-            });
-            for (const resp of responses) {
-                const startHeader = resp.headers.get(RANGE_START_HEADER);
-                if (startHeader === null) {
+            const cache = await this.cachePromise;
+            const persisted = await this.getPersistedRanges();
+            for (const range of persisted) {
+                if (!ranges.some((wanted) => range.startByte < wanted.endByte && wanted.startByte < range.endByte)) {
                     continue;
                 }
-                const byteOffset = Number(startHeader);
-                if (!Number.isInteger(byteOffset) || byteOffset < 0) {
+                const response = await cache.match(range.key);
+                if (!response) {
                     continue;
                 }
-                const bytes = new Uint8Array(await resp.arrayBuffer());
-                apply(byteOffset, bytes);
-                this.markPersisted(byteOffset, bytes.byteLength);
+                const bytes = new Uint8Array(await response.arrayBuffer());
+                if (bytes.byteLength === 0) {
+                    continue;
+                }
+                apply(range.startByte, bytes);
                 restored += bytes.byteLength;
             }
         } catch (e) {
-            console.warn("[js5] Failed restoring persisted ranges:", e);
+            console.warn("[js5] Failed restoring startup ranges:", e);
         }
         return restored;
+    }
+
+    /**
+     * Return a cached range that completely covers a requested cache span.
+     * The caller applies it to its own sparse buffer, allowing workers and the
+     * main thread to use the same persisted data without a full startup scan.
+     */
+    async readPersistedRangeContaining(
+        startByte: number,
+        endByte: number,
+    ): Promise<PersistedRangeData | undefined> {
+        const range = (await this.getPersistedRanges()).find(
+            (candidate) => candidate.startByte <= startByte && candidate.endByte >= endByte,
+        );
+        if (!range) {
+            return undefined;
+        }
+        const cache = await this.cachePromise;
+        const response = await cache.match(range.key);
+        if (!response) {
+            return undefined;
+        }
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (bytes.byteLength < endByte - range.startByte) {
+            return undefined;
+        }
+        return { byteOffset: range.startByte, bytes };
+    }
+
+    /** Backwards-compatible full restore for callers that genuinely need it. */
+    async restore(apply: (byteOffset: number, bytes: Uint8Array) => void): Promise<number> {
+        return this.restoreIntersecting(
+            [{ startByte: 0, endByte: this.buffer.byteLength }],
+            apply,
+        );
     }
 
     /** Queue a fetched byte range for persistence (write-behind, coalesced). */
@@ -247,6 +313,53 @@ export class Js5Persistence {
         } catch {}
         await cache.put(url, resp);
         this.markPersisted(startByte, endByte - startByte);
+        // Refresh lazily: the next lookup sees this entry without making each
+        // individual write wait for another CacheStorage enumeration.
+        this.persistedRangeIndex = undefined;
+    }
+
+    private async getPersistedRanges(): Promise<PersistedRange[]> {
+        if (!this.persistedRangeIndex) {
+            this.persistedRangeIndex = this.readPersistedRangeIndex();
+        }
+        return this.persistedRangeIndex;
+    }
+
+    private async readPersistedRangeIndex(): Promise<PersistedRange[]> {
+        const cache = await this.cachePromise;
+        if (!cache.matchAll) {
+            return [];
+        }
+        try {
+            const responses = await cache.matchAll(this.dat2Path + RANGE_SEGMENT, {
+                ignoreSearch: true,
+            });
+            const ranges: PersistedRange[] = [];
+            for (const response of responses) {
+                const key = response.headers.get(RANGE_KEY_HEADER);
+                const startByte = Number(response.headers.get(RANGE_START_HEADER));
+                const byteLength = Number(response.headers.get("Content-Length"));
+                if (
+                    !key ||
+                    !Number.isInteger(startByte) ||
+                    startByte < 0 ||
+                    !Number.isFinite(byteLength) ||
+                    byteLength <= 0
+                ) {
+                    continue;
+                }
+                const endByte = Math.min(startByte + byteLength, this.buffer.byteLength);
+                if (endByte <= startByte) {
+                    continue;
+                }
+                this.markPersisted(startByte, endByte - startByte);
+                ranges.push({ key, startByte, endByte });
+            }
+            return ranges;
+        } catch (e) {
+            console.warn("[js5] Failed indexing persisted ranges:", e);
+            return [];
+        }
     }
 
     private mergePendingRuns(): SectorRun[] {

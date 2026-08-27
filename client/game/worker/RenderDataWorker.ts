@@ -7,6 +7,7 @@ import { CacheSystem } from "../../rs/cache/CacheSystem";
 import { ConfigType } from "../../rs/cache/ConfigType";
 import { IndexType } from "../../rs/cache/IndexType";
 import { isGroupMissingError } from "../../rs/cache/js5/GroupMissingError";
+import { Js5Persistence } from "../../rs/cache/js5/Js5Persistence";
 import { Js5RangeClient } from "../../rs/cache/js5/Js5RangeClient";
 import { PresenceBitset } from "../../rs/cache/js5/PresenceBitset";
 import { SparseMemoryStore } from "../../rs/cache/store/SparseMemoryStore";
@@ -128,7 +129,19 @@ async function initWorker(cache: LoadedCache, npcInstances: NpcInstance[]): Prom
     if (cache.sparse) {
         const store = cacheSystem.getStore();
         if (store instanceof SparseMemoryStore) {
-            js5 = new Js5RangeClient(cache.sparse.dat2Url, store);
+            const dat2 = cache.files.files.get("main_file_cache.dat2");
+            const persistence = dat2
+                ? new Js5Persistence(cache.info.name, cache.sparse.dat2Url, dat2)
+                : undefined;
+            js5 = new Js5RangeClient(
+                cache.sparse.dat2Url,
+                store,
+                6,
+                persistence
+                    ? (startByte, endByte) =>
+                          persistence.readPersistedRangeContaining(startByte, endByte)
+                    : undefined,
+            );
         }
     }
 

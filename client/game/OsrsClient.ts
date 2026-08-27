@@ -6086,8 +6086,16 @@ export class OsrsClient {
         if (cache.sparse && presence) {
             const store = this.cacheSystem.getStore();
             if (store instanceof SparseMemoryStore) {
-                const js5 = new Js5RangeClient(cache.sparse.dat2Url, store);
                 const persistence = getSparsePersistence(cache);
+                const js5 = new Js5RangeClient(
+                    cache.sparse.dat2Url,
+                    store,
+                    6,
+                    persistence
+                        ? (startByte, endByte) =>
+                              persistence.readPersistedRangeContaining(startByte, endByte)
+                        : undefined,
+                );
                 if (persistence) {
                     js5.onFetched((byteOffset, bytes) =>
                         persistence.queue(byteOffset, bytes.byteLength),
