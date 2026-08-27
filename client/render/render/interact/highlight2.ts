@@ -378,7 +378,7 @@ export function buildNpcModelHighlightTriangles(host: WebGLOsrsRendererHost,
         ).height;
         baseY += RENDER_CONSTANTS.ACTOR_GROUND_CLEARANCE_MODEL_UNITS / 128.0;
         const wvId = npcEcs.getWorldViewId?.(ecsId) ?? -1;
-        if (wvId >= 0) {
+        if (wvId >= 0 && host.osrsClient.worldViewManager.getWorldView(wvId)) {
             const deckH = host.getWorldEntityDeckHeight(0, 0);
             baseY += deckH / 128.0;
         }

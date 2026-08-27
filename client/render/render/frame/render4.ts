@@ -261,7 +261,11 @@ export function renderOpaqueActorPass(host: WebGLOsrsRendererHost,
                         }
 
                         // NPCs assigned to a world entity skip the overworld pass
-                        if (ecs.getWorldViewId(id) >= 0) {
+                        const npcWorldViewId = ecs.getWorldViewId(id);
+                        const isWorldEntityNpc =
+                            npcWorldViewId >= 0 &&
+                            !!host.osrsClient.worldViewManager.getWorldView(npcWorldViewId);
+                        if (isWorldEntityNpc) {
                             weNpcIndices.push(j);
                             (drawCall as any).offsets[j] = 0;
                             (drawCall as any).numElements[j] = 0;
@@ -472,7 +476,10 @@ export function renderOpaqueActorPass(host: WebGLOsrsRendererHost,
                 dynDrawCall.uniform("u_timeLoaded", dyn.map.timeLoaded);
                 {
                     const dynWvId = host.osrsClient.npcEcs.getWorldViewId(dyn.ecsId);
-                    if (dynWvId >= 0) {
+                    if (
+                        dynWvId >= 0 &&
+                        host.osrsClient.worldViewManager.getWorldView(dynWvId)
+                    ) {
                         const dynDeckH = host.getWorldEntityDeckHeight(0, 0);
                         dynDrawCall.uniform("u_modelYOffset", host.getNpcModelYOffset(dynDeckH));
                         dynDrawCall.uniform(

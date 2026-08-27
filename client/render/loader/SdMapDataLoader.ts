@@ -1579,6 +1579,16 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
             const currentMapId = getMapSquareId(mapX, mapY);
             npcInstances = state.npcInstances.filter((instance) => {
                 if ((instance.level | 0) > maxPlane) return false;
+                if (isInstance) {
+                    const instanceBaseX = (instanceInput!.regionX - 6) * CHUNK_SIZE;
+                    const instanceBaseY = (instanceInput!.regionY - 6) * CHUNK_SIZE;
+                    return (
+                        instance.x >= instanceBaseX &&
+                        instance.x < instanceBaseX + INSTANCE_SIZE &&
+                        instance.y >= instanceBaseY &&
+                        instance.y < instanceBaseY + INSTANCE_SIZE
+                    );
+                }
                 const worldViewId = instance.worldViewId;
                 if (typeof worldViewId === "number" && worldViewId >= 0) {
                     const overlayMapX = 200 + (worldViewId | 0);

@@ -2269,7 +2269,10 @@ export class PlayerRenderer {
                     continue;
                 }
             } else {
-                if (worldViewId >= 0) {
+                if (
+                    worldViewId >= 0 &&
+                    this.renderer.osrsClient.worldViewManager.getWorldView(worldViewId)
+                ) {
                     continue;
                 }
                 if (

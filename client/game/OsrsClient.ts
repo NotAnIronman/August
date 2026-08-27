@@ -7071,6 +7071,9 @@ export class OsrsClient {
     ): number {
         const worldViewId = instance.worldViewId;
         if (typeof worldViewId === "number" && worldViewId >= 0) {
+            if (ClientState.inInstance) {
+                return getMapSquareId(ClientState.regionX >> 3, ClientState.regionY >> 3);
+            }
             const overlayMapX = 200 + (worldViewId | 0);
             const overlayMapY = 200 + (worldViewId | 0);
             return getMapSquareId(overlayMapX, overlayMapY);

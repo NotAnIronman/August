@@ -305,7 +305,11 @@ export function addUnbatchedNpcRenderData(host: WebGLOsrsRendererHost): void {
 
         for (const idRaw of ecs.getServerLinkedEcsIds()) {
             const ecsId = idRaw | 0;
-            if (batchedIds.has(ecsId) || (ecs.getWorldViewId(ecsId) | 0) >= 0) continue;
+            const worldViewId = ecs.getWorldViewId(ecsId) | 0;
+            const isWorldEntityNpc =
+                worldViewId >= 0 &&
+                !!host.osrsClient.worldViewManager.getWorldView(worldViewId);
+            if (batchedIds.has(ecsId) || isWorldEntityNpc) continue;
             if (!host.getEffectiveNpcType(ecs.getNpcTypeId(ecsId) | 0)) continue;
 
             const ownerMapX = ecs.getMapX(ecsId) | 0;

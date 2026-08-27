@@ -155,6 +155,7 @@ export class PlayerSkillSystem {
         private readonly isPrayerActive: (name: string) => boolean,
         private readonly setColorOverride: ColorOverrideCallback,
         gamemodeXpFn?: DefaultSkillXpResolver,
+        private readonly isDamagePrevented: () => boolean = () => false,
     ) {
         this.skills = createInitialSkills(gamemodeXpFn);
         this.skillTotal = computeTotalLevel(this.skills);
@@ -336,6 +337,9 @@ export class PlayerSkillSystem {
     applyHitpointsDamage(amount: number): { current: number; max: number } {
         if (!(amount > 0))
             return { current: this.status.hitpointsCurrent, max: this.getHitpointsMax() };
+        if (this.isDamagePrevented()) {
+            return { current: this.status.hitpointsCurrent, max: this.getHitpointsMax() };
+        }
         this.setHitpointsCurrent(this.status.hitpointsCurrent - amount);
         return { current: this.status.hitpointsCurrent, max: this.getHitpointsMax() };
     }

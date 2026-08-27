@@ -314,10 +314,14 @@ export function _ecsUpdatePlayerOccupancy(host: WebGLOsrsRendererHost, map: WebG
             const worldViewId = pe.getWorldViewId(i) | 0;
             let occMapX = map.mapX | 0;
             let occMapY = map.mapY | 0;
-            if (worldViewId >= 0) {
-                const overlayView = host.osrsClient.worldViewManager.getWorldView(worldViewId);
-                if (!overlayView || (overlayView.overlayMapId | 0) !== (map.id | 0)) continue;
+            const overlayView =
+                worldViewId >= 0
+                    ? host.osrsClient.worldViewManager.getWorldView(worldViewId)
+                    : undefined;
+            if (overlayView) {
+                if ((overlayView.overlayMapId | 0) !== (map.id | 0)) continue;
             } else {
+                if (worldViewId >= 0 && !host.instanceActive) continue;
                 const mapX = getMapIndexFromTile(tileX);
                 const mapY = getMapIndexFromTile(tileY);
                 if (mapX !== map.mapX || mapY !== map.mapY) continue;

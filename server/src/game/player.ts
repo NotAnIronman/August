@@ -17,6 +17,7 @@ import {
 import { CombatAttributes } from "./combat/state/CombatAttributes";
 import { CombatAttributeStore } from "./combat/state/CombatAttributeStore";
 import { DEFAULT_EQUIP_SLOT_COUNT, ensureEquipArrayOn, ensureEquipQtyArrayOn } from "./equipment";
+import { isDeveloperGodmodeEnabled } from "./dev/DeveloperFlags";
 import type { GamemodeDefinition } from "./gamemodes/GamemodeDefinition";
 import { LockState, LockStateChecks } from "./model/LockState";
 import { QueueTaskSet, TaskGenerator } from "./model/queue";
@@ -591,6 +592,7 @@ export class PlayerState extends Actor {
             this.gamemode.getDefaultSkillXp
                 ? (id) => this.gamemode.getDefaultSkillXp!(id)
                 : undefined,
+            () => isDeveloperGodmodeEnabled(this),
         );
         this.skillSystem.requestFullSkillSync();
         this.combat.styleCategory = 0;

@@ -299,19 +299,23 @@ export function shouldRenderNpcOwnershipFromMap(host: WebGLOsrsRendererHost, map
         if (worldViewId >= 0) {
             const worldView = host.osrsClient.worldViewManager.getWorldView(worldViewId);
             if (!worldView) {
-                return false;
-            }
-            if ((map.id | 0) === (worldView.overlayMapId | 0)) {
-                return true;
-            }
+                // Private map instances use world-view IDs for server isolation,
+                // but they render in the ordinary instance scene rather than a
+                // sailing/world-entity overlay map.
+                if (!host.instanceActive) return false;
+            } else {
+                if ((map.id | 0) === (worldView.overlayMapId | 0)) {
+                    return true;
+                }
 
-            const overlayMap = host.mapManager.mapSquares.get(worldView.overlayMapId) as
-                | WebGLMapSquare
-                | undefined;
-            if (overlayMap?.npcEntityIds?.indexOf(ecsId | 0) !== -1) {
-                for (let i = 0; i < host.mapManager.visibleMapCount; i++) {
-                    if (host.mapManager.visibleMaps[i] === overlayMap) {
-                        return false;
+                const overlayMap = host.mapManager.mapSquares.get(worldView.overlayMapId) as
+                    | WebGLMapSquare
+                    | undefined;
+                if (overlayMap?.npcEntityIds?.indexOf(ecsId | 0) !== -1) {
+                    for (let i = 0; i < host.mapManager.visibleMapCount; i++) {
+                        if (host.mapManager.visibleMaps[i] === overlayMap) {
+                            return false;
+                        }
                     }
                 }
             }

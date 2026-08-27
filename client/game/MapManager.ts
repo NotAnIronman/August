@@ -158,7 +158,18 @@ export class MapManager<T extends MapSquare> {
         this.invalidMapIds.clear();
         this.loadingMapIds.clear();
         this._lastUsed.clear();
+        // Force the next non-instance frame to rebuild and queue its complete
+        // streaming grid, even when the destination shares the same map square.
+        this.currentMapX = -1;
+        this.currentMapY = -1;
+        this.currentMapRadius = -1;
+        this.usingSceneBaseStreaming = false;
+        this.currentSceneBaseX = -1;
+        this.currentSceneBaseY = -1;
+        this.gridMapCount = 0;
+        this.gridMapIds.length = 0;
         this.gridMapIdSet.clear();
+        this.gridMapDistances.clear();
         this.gridMinMapX = -1;
         this.gridMaxMapX = -1;
         this.gridMinMapY = -1;
@@ -172,6 +183,9 @@ export class MapManager<T extends MapSquare> {
         this.currentExpandedMapLoading = 0;
         this.activeExpandedMapLoading = 0;
         this.gridTransitionPending = false;
+        this.transitionRenderMapIds.length = 0;
+        this.visibleMapCount = 0;
+        this.visibleMaps.length = 0;
         for (const map of this.mapSquares.values()) {
             map.delete();
             try {

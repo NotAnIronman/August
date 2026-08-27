@@ -13,6 +13,7 @@
 import { SkillId } from "../../../../client/rs/skill/skills";
 import type { NpcState } from "../npc";
 import type { PlayerState } from "../player";
+import { isDeveloperGodmodeEnabled } from "../dev/DeveloperFlags";
 import { AttackType } from "./AttackType";
 import {
     type AttackType as CombatXpAttackType,
@@ -382,6 +383,14 @@ export class CombatEffectApplicator {
             default: {
                 if (amount <= 0) {
                     return { style: HITMARK_BLOCK, amount: 0, hpCurrent: current, hpMax: max };
+                }
+                if (isDeveloperGodmodeEnabled(player)) {
+                    return {
+                        style: resolveDamageStyle(styleRaw, amount, maxHitRaw),
+                        amount,
+                        hpCurrent: current,
+                        hpMax: max,
+                    };
                 }
                 player.skillSystem.applyHitpointsDamage(amount);
                 const newCurrent = player.skillSystem.getHitpointsCurrent();

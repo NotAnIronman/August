@@ -10,12 +10,12 @@ import { EncounterRegistry, registerEncounter } from "../../src/game/encounters/
 const BANDOS_DOOR_LOC_ID = 26503;
 const BANDOS_DEFINITION_ID = "graardor-room";
 
-const INSTANCE_EXIT = Object.freeze({ x: 2872, y: 5355, level: 2 });
-const INSTANCE_ENTRANCE = Object.freeze({ x: 2875, y: 5355, level: 2 });
+const INSTANCE_EXIT = Object.freeze({ x: 2862, y: 5354, level: 2 });
+const INSTANCE_ENTRANCE = Object.freeze({ x: 2864, y: 5354, level: 2 });
 // InstancedAreaManager centers its 13x13-chunk view six chunks behind the
 // destination chunk. These values keep the copied room at its native world
 // coordinates while still assigning it a private world view.
-const INSTANCE_BASE = Object.freeze({ x: 2824, y: 5304 });
+const INSTANCE_BASE = Object.freeze({ x: 2816, y: 5304 });
 
 const BANDOS_NPCS = Object.freeze([
     Object.freeze({ id: 2215, offsetX: 2872 - INSTANCE_BASE.x, offsetY: 5358 - INSTANCE_BASE.y, level: 2 }),
@@ -114,7 +114,7 @@ function createBandosInstance(
             widthChunks: 5,
             heightChunks: 5,
             sourcePlanes: [2],
-            destinationChunkX: 3,
+            destinationChunkX: 4,
             destinationChunkY: 3,
         },
     ]);

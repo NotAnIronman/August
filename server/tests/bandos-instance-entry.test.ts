@@ -68,9 +68,9 @@ const testServices = {
     messaging: { sendGameMessage: () => undefined },
 };
 handlers.get("26503:enter solo")?.({ player: testPlayer, services: testServices } as never);
-assert.deepEqual(instanceSpec.destination, { x: 2875, y: 5355, level: 2 });
-assert.deepEqual(instanceSpec.exit, { x: 2872, y: 5355, level: 2 });
-assert.equal(copiedArea?.destinationChunkX, 3);
+assert.deepEqual(instanceSpec.destination, { x: 2864, y: 5354, level: 2 });
+assert.deepEqual(instanceSpec.exit, { x: 2862, y: 5354, level: 2 });
+assert.equal(copiedArea?.destinationChunkX, 4);
 assert.equal(copiedArea?.destinationChunkY, 3);
 const instanceBase = {
     x: ((instanceSpec.destination.x >> 3) - 6) * 8,

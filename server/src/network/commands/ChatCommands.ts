@@ -41,6 +41,7 @@ const BUILTIN_COMMAND_PERMISSIONS: Readonly<Record<string, PlayerPermission>> = 
     lunar: "developer",
     maxall: "developer",
     magic: "developer",
+    godmode: "developer",
     onehealth: "developer",
     quest: "developer",
     randomitem: "developer",

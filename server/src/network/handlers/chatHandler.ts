@@ -10,6 +10,10 @@ import { SpellbookName } from "../../data/spellWidgetLoader";
 import { getCollectionLogItems } from "../../game/collectionlog";
 import { clearAutocastState } from "../../game/combat/AutocastState";
 import { ALL_RUNE_ITEM_IDS, RUNE_IDS } from "../../game/data/RuneDataProvider";
+import {
+    isDeveloperGodmodeEnabled,
+    setDeveloperGodmodeEnabled,
+} from "../../game/dev/DeveloperFlags";
 import type { PlayerState } from "../../game/player";
 import type { BankingServices } from "../../game/scripts/serviceInterfaces";
 import { getSpellData } from "../../game/spells/SpellDataProvider";
@@ -975,6 +979,31 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                         targetPlayerIds: [sender.id],
                     });
                     logger.info(`[cmd] ::onehealth - Player ${sender.id} set Hitpoints to 1`);
+                } else if (root === "godmode") {
+                    const requestedState = parts[1];
+                    const currentlyEnabled = isDeveloperGodmodeEnabled(sender);
+                    const enabled =
+                        requestedState === "on"
+                            ? true
+                            : requestedState === "off"
+                              ? false
+                              : !currentlyEnabled;
+                    setDeveloperGodmodeEnabled(sender, enabled);
+                    if (enabled) {
+                        sender.skillSystem.setHitpointsCurrent(
+                            sender.skillSystem.getHitpointsMax(),
+                        );
+                    }
+                    services.queueChatMessage({
+                        messageType: "game",
+                        text: enabled
+                            ? "Developer godmode enabled. Hits show real damage without reducing your Hitpoints."
+                            : "Developer godmode disabled.",
+                        targetPlayerIds: [sender.id],
+                    });
+                    logger.info(
+                        `[cmd] ::godmode - Player ${sender.id} ${enabled ? "enabled" : "disabled"} developer godmode`,
+                    );
                 } else if (
                     root === SpellbookName.Standard ||
                     root === SpellbookName.Ancient ||
