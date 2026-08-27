@@ -43,6 +43,7 @@ function testDefinition(): EncounterDefinition {
                 type: AttackType.Ranged,
                 rangeTiles: 8,
                 speedTicks: 5,
+                maxHit: 35,
                 minDistance: 2,
                 cooldownTicks: 3,
                 preferredDistance: 1,
@@ -120,6 +121,7 @@ function testConditionalAndStickyAttackPlanning(): void {
     const far = runtime.planAttack({ tick: 10, targetId: 20, targetDistance: 6 });
     assert.equal(far?.definition.id, "ranged");
     assert.equal(far?.traits.type, AttackType.Ranged);
+    assert.equal(far?.traits.maxHitOverride, 35);
 
     // Moving toward the target must not reroll the reserved attack every tick.
     const whilePathing = runtime.planAttack({ tick: 11, targetId: 20, targetDistance: 1 });
@@ -192,6 +194,7 @@ function testManagerCombatBridgeAndCleanup(): void {
     const rangedTraits = manager.resolveAttackTraits(npc, target);
     assert.equal(rangedTraits?.type, AttackType.Ranged);
     assert.equal(rangedTraits?.preferredDistanceTiles, 1);
+    assert.equal(rangedTraits?.maxHitOverride, 35);
     assert.equal(rangedTraits?.animationId, 7018);
     assert.equal(rangedTraits?.suppressDefaultNpcAnimation, true);
     assert.equal(

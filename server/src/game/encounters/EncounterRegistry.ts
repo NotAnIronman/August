@@ -59,6 +59,12 @@ export class EncounterRegistry {
                 throw new Error(`Attack '${attack.id}' must have positive range and speed.`);
             }
             if (
+                attack.maxHit !== undefined &&
+                (!Number.isInteger(attack.maxHit) || attack.maxHit < 0)
+            ) {
+                throw new Error(`Attack '${attack.id}' max hit must be a non-negative integer.`);
+            }
+            if (
                 attack.preferredDistance !== undefined &&
                 (!(attack.preferredDistance >= 1) || attack.preferredDistance > attack.rangeTiles)
             ) {

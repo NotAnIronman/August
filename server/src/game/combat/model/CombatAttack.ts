@@ -20,6 +20,8 @@ export interface CombatAttackTraits {
     /** Optional distance the attacker keeps approaching toward, independent of attack reach. */
     readonly preferredDistanceTiles?: number;
     readonly speedTicks: number;
+    /** Per-attack NPC maximum hit, used by multi-style encounter definitions. */
+    readonly maxHitOverride?: number;
     /** Server-resolved NPC attack sequence override for this exact attack cycle. */
     readonly animationId?: number;
     /** Prevent unsafe generic animation fallback when an explicit named role is unresolved. */

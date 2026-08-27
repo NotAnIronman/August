@@ -139,6 +139,7 @@ export class MovementService {
         }
 
         if (forceRebuild) {
+            this.resetNpcSyncForRegionChange(player);
             const socket = this.services.players?.getSocketByPlayerId(player.id);
             if (socket) {
                 const payload = buildRebuildNormalPayload(
@@ -198,6 +199,8 @@ export class MovementService {
             return;
         }
 
+        this.resetNpcSyncForRegionChange(player);
+
         const regionX = x >> 3;
         const regionY = y >> 3;
 
@@ -230,6 +233,20 @@ export class MovementService {
             }
         }
         this.services.locationService.replayTemporaryLocsForPlayer(player);
+    }
+
+    private resetNpcSyncForRegionChange(player: PlayerState): void {
+        const socket = this.services.players?.getSocketByPlayerId(player.id);
+        if (socket) {
+            const session = this.services.npcSyncSessions.get(socket);
+            if (session) {
+                session.npcIndices.length = 0;
+                session.lastTargetIndex.clear();
+            }
+        }
+        player.visibleNpcIds.clear();
+        player.lastNpcHealthBarScaled.clear();
+        this.services.pendingNpcPackets.delete(player.id);
     }
 
     requestTeleportAction(

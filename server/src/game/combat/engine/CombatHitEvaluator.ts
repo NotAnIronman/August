@@ -708,13 +708,17 @@ export class CombatHitEvaluator {
 
     private buildNpcAttackProfile(attack: CombatAttack, npc: NpcState): AttackProfile {
         const profile = npc.combat;
+        const maxHit = Math.max(
+            0,
+            Math.trunc(attack.traits.maxHitOverride ?? profile.maxHit),
+        );
         switch (attack.traits.type) {
             case AttackType.Ranged:
                 return {
                     effectiveAttack:
                         Math.max(0, Math.trunc(profile.rangedLevel)) + NPC_EFFECTIVE_LEVEL_BONUS,
                     attackBonus: this.clampBonus(profile.rangedBonus),
-                    maxHit: Math.max(0, Math.trunc(profile.maxHit)),
+                    maxHit,
                     meleeBonusIndex: 1,
                 };
             case AttackType.Magic:
@@ -722,7 +726,7 @@ export class CombatHitEvaluator {
                     effectiveAttack:
                         Math.max(0, Math.trunc(profile.magicLevel)) + NPC_EFFECTIVE_LEVEL_BONUS,
                     attackBonus: this.clampBonus(profile.magicBonus),
-                    maxHit: Math.max(0, Math.trunc(profile.maxHit)),
+                    maxHit,
                     meleeBonusIndex: 1,
                 };
             case AttackType.Melee:
@@ -731,7 +735,7 @@ export class CombatHitEvaluator {
                     effectiveAttack:
                         Math.max(0, Math.trunc(profile.attackLevel)) + NPC_EFFECTIVE_LEVEL_BONUS,
                     attackBonus: this.clampBonus(profile.attackBonus),
-                    maxHit: Math.max(0, Math.trunc(profile.maxHit)),
+                    maxHit,
                     meleeBonusIndex: 1,
                 };
         }

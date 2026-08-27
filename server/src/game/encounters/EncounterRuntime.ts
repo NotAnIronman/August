@@ -96,6 +96,10 @@ export class EncounterRuntime {
                     ? undefined
                     : Math.max(1, Math.trunc(selected.preferredDistance)),
             speedTicks: Math.max(1, Math.trunc(selected.speedTicks)),
+            maxHitOverride:
+                selected.maxHit === undefined
+                    ? undefined
+                    : Math.max(0, Math.trunc(selected.maxHit)),
             specialAttack: selected.special,
         });
         this.lifecycle = "engaged";

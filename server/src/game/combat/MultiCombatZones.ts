@@ -87,7 +87,8 @@ const MULTI_COMBAT_ZONES: CombatZone[] = [
         minY: 5248,
         maxX: 2943,
         maxY: 5375,
-        plane: 0,
+        // God Wars spans multiple vertical planes, including boss rooms on plane 2.
+        plane: -1,
         isMultiCombat: true,
         name: "God Wars Dungeon",
     },
@@ -323,7 +324,7 @@ export class MultiCombatSystem {
         // First check rectangle zones
         for (const zone of MULTI_COMBAT_ZONES) {
             if (
-                zone.plane === plane &&
+                (zone.plane === -1 || zone.plane === plane) &&
                 x >= zone.minX &&
                 x <= zone.maxX &&
                 y >= zone.minY &&

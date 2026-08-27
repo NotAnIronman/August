@@ -727,7 +727,7 @@ export abstract class Actor {
         this.movementQueue.teleported = true;
         this.positionCorrectionFlag = false;
         this.resetPathInternal(this.tileX, this.tileY);
-        logger.info(`[Actor] Teleported to tile (${tileX}, ${tileY}, ${this.level})`);
+        logger.debug(`[Actor] Teleported to tile (${tileX}, ${tileY}, ${this.level})`);
     }
 
     wasTeleported(): boolean {

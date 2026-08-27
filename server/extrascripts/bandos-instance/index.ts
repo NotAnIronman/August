@@ -4,13 +4,18 @@ import type {
     LocInteractionEvent,
     ScriptServices,
 } from "../../src/game/scripts/types";
+import { AttackType } from "../../src/game/combat/AttackType";
+import { EncounterRegistry, registerEncounter } from "../../src/game/encounters/EncounterRegistry";
 
 const BANDOS_DOOR_LOC_ID = 26503;
 const BANDOS_DEFINITION_ID = "graardor-room";
 
-const INSTANCE_EXIT = Object.freeze({ x: 2851, y: 5333, level: 2 });
-const INSTANCE_ENTRANCE = Object.freeze({ x: 2851, y: 5335, level: 2 });
-const INSTANCE_BASE = Object.freeze({ x: 2800, y: 5280 });
+const INSTANCE_EXIT = Object.freeze({ x: 2872, y: 5355, level: 2 });
+const INSTANCE_ENTRANCE = Object.freeze({ x: 2875, y: 5355, level: 2 });
+// InstancedAreaManager centers its 13x13-chunk view six chunks behind the
+// destination chunk. These values keep the copied room at its native world
+// coordinates while still assigning it a private world view.
+const INSTANCE_BASE = Object.freeze({ x: 2824, y: 5304 });
 
 const BANDOS_NPCS = Object.freeze([
     Object.freeze({ id: 2215, offsetX: 2872 - INSTANCE_BASE.x, offsetY: 5358 - INSTANCE_BASE.y, level: 2 }),
@@ -18,6 +23,75 @@ const BANDOS_NPCS = Object.freeze([
     Object.freeze({ id: 2217, offsetX: 2872 - INSTANCE_BASE.x, offsetY: 5352 - INSTANCE_BASE.y, level: 2 }),
     Object.freeze({ id: 2218, offsetX: 2868 - INSTANCE_BASE.x, offsetY: 5362 - INSTANCE_BASE.y, level: 2 }),
 ]);
+
+function registerBandosEncounters(): void {
+    if (!EncounterRegistry.shared.get("general-graardor")) {
+        registerEncounter({
+            id: "general-graardor",
+            npcTypeIds: [2215],
+            movement: {
+                wanderRadius: 10,
+                aggressionRadius: 15,
+                combatLeashRadius: 30,
+                retreatInteractionRange: 40,
+            },
+            immunities: { poison: true, venom: true },
+            attacks: [
+                {
+                    id: "melee",
+                    type: AttackType.Melee,
+                    rangeTiles: 1,
+                    maxDistance: 1,
+                    preferredDistance: 1,
+                    speedTicks: 6,
+                    maxHit: 60,
+                    weight: 2,
+                    animation: "attack",
+                },
+                {
+                    id: "ranged",
+                    type: AttackType.Ranged,
+                    rangeTiles: 15,
+                    preferredDistance: 1,
+                    speedTicks: 6,
+                    maxHit: 35,
+                    weight: 1,
+                    animationId: 7021,
+                },
+            ],
+        });
+    }
+    const minions = [
+        { id: "strongstack", npcTypeId: 2216, type: AttackType.Melee, range: 1, maxHit: 15 },
+        { id: "steelwill", npcTypeId: 2217, type: AttackType.Magic, range: 10, maxHit: 15 },
+        { id: "grimspike", npcTypeId: 2218, type: AttackType.Ranged, range: 10, maxHit: 21 },
+    ] as const;
+    for (const minion of minions) {
+        const encounterId = `bandos-${minion.id}`;
+        if (EncounterRegistry.shared.get(encounterId)) continue;
+        registerEncounter({
+            id: encounterId,
+            npcTypeIds: [minion.npcTypeId],
+            movement: {
+                wanderRadius: 8,
+                aggressionRadius: 15,
+                combatLeashRadius: 30,
+                retreatInteractionRange: 40,
+            },
+            attacks: [
+                {
+                    id: minion.id,
+                    type: minion.type,
+                    rangeTiles: minion.range,
+                    preferredDistance: minion.type === AttackType.Melee ? 1 : minion.range,
+                    speedTicks: 5,
+                    maxHit: minion.maxHit,
+                    animation: "attack",
+                },
+            ],
+        });
+    }
+}
 
 function isBandosInstance(player: PlayerState, services: ScriptServices): boolean {
     return services.instances.get(player.id)?.definitionId === BANDOS_DEFINITION_ID;
@@ -40,8 +114,8 @@ function createBandosInstance(
             widthChunks: 5,
             heightChunks: 5,
             sourcePlanes: [2],
-            destinationChunkX: 6,
-            destinationChunkY: 6,
+            destinationChunkX: 3,
+            destinationChunkY: 3,
         },
     ]);
     const room = services.instances.create(player, {
@@ -129,6 +203,7 @@ function handlePeek({ player, services }: LocInteractionEvent): void {
 }
 
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
+    registerBandosEncounters();
     registry.registerLocInteraction(BANDOS_DOOR_LOC_ID, ({ player, services }) => {
         showEntryOptions(player, services);
     }, "open");

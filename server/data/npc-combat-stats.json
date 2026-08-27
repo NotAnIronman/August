@@ -998,6 +998,66 @@
       "boss": true,
       "multiAttack": true
     },
+    "2216": {
+      "name": "Sergeant Strongstack",
+      "combatLevel": 141,
+      "hitpoints": 128,
+      "attackLevel": 124,
+      "strengthLevel": 118,
+      "defenceLevel": 125,
+      "magicLevel": 50,
+      "rangedLevel": 50,
+      "attackSpeed": 5,
+      "attackType": "melee",
+      "attackStyle": "crush",
+      "maxHit": 15,
+      "attackBonus": 14,
+      "aggressive": true,
+      "aggressiveRadius": 10,
+      "species": [
+        "goblin",
+        "bandosian"
+      ]
+    },
+    "2217": {
+      "name": "Sergeant Steelwill",
+      "combatLevel": 142,
+      "hitpoints": 127,
+      "attackLevel": 80,
+      "strengthLevel": 80,
+      "defenceLevel": 150,
+      "magicLevel": 150,
+      "rangedLevel": 1,
+      "attackSpeed": 5,
+      "attackType": "magic",
+      "maxHit": 15,
+      "aggressive": true,
+      "aggressiveRadius": 10,
+      "species": [
+        "goblin",
+        "bandosian"
+      ]
+    },
+    "2218": {
+      "name": "Sergeant Grimspike",
+      "combatLevel": 142,
+      "hitpoints": 146,
+      "attackLevel": 80,
+      "strengthLevel": 80,
+      "defenceLevel": 132,
+      "magicLevel": 50,
+      "rangedLevel": 150,
+      "attackSpeed": 5,
+      "attackType": "ranged",
+      "maxHit": 21,
+      "rangedBonus": 20,
+      "aggressive": true,
+      "aggressiveRadius": 10,
+      "species": [
+        "goblin",
+        "bandosian"
+      ]
+    },
     "2265": {
       "name": "Dagannoth Rex",
       "combatLevel": 303,

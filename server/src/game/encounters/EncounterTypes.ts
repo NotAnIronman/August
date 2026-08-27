@@ -50,6 +50,7 @@ export interface EncounterAttackDefinition {
     /** Where the NPC tries to stand; it may still attack from range while approaching. */
     readonly preferredDistance?: number;
     readonly speedTicks: number;
+    readonly maxHit?: number;
     readonly weight?: number;
     readonly priority?: number;
     readonly cooldownTicks?: number;

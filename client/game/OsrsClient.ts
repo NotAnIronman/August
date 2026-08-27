@@ -3483,6 +3483,7 @@ export class OsrsClient {
                         console.log(
                             `[OsrsClient] REBUILD_REGION received: regionX=${payload.regionX} regionY=${payload.regionY} regions=${payload.mapRegions.length}`,
                         );
+                        this.resetNpcsForRegionRebuild();
                         ClientState.inInstance = true;
                         ClientState.instanceTemplateChunks = payload.templateChunks;
                         if (this.renderer && "loadInstanceScene" in this.renderer) {
@@ -3504,6 +3505,7 @@ export class OsrsClient {
                         console.log(
                             `[OsrsClient] REBUILD_NORMAL received: regionX=${payload.regionX} regionY=${payload.regionY} regions=${payload.mapRegions.length}`,
                         );
+                        this.resetNpcsForRegionRebuild();
                         ClientState.inInstance = false;
                         ClientState.instanceTemplateChunks = null;
                         if (this.renderer && "clearInstance" in this.renderer) {
@@ -7815,6 +7817,17 @@ export class OsrsClient {
                 this.worldViewManager.removePlayerFromWorldView(entityIndex, localEcsIdx);
             }
         }
+    }
+
+    /** Clear NPC-local state before the server starts a fresh region sync. */
+    private resetNpcsForRegionRebuild(): void {
+        this.npcEcs?.reset?.();
+        this.npcUpdateDecoder?.reset?.();
+        this.lastNpcDecodeBase = undefined;
+        this.npcInstances.clearLocal();
+        ClientState.npcs.fill(null);
+        (this.renderer as any)?.npcHealthBars?.clear?.();
+        (this.renderer as any)?.npcHitsplats?.clear?.();
     }
 
     /**
