@@ -48,6 +48,8 @@ type ReviewSession = {
     candidates: number[];
     candidateIndex: number;
     selectedSequenceId?: number;
+    /** Invalidates the reset callback from an older candidate preview. */
+    playbackGeneration: number;
 };
 
 const sessionsByPlayerId = new Map<number, ReviewSession>();
@@ -126,6 +128,28 @@ function getPreviewNpc(
     return npc;
 }
 
+/** Returns this cache sequence's visual duration in server ticks. */
+function getPreviewSequenceDurationTicks(services: ScriptServices, sequenceId: number): number {
+    try {
+        const sequence = services.data.getSeqTypeLoader()?.load(sequenceId);
+        if (!sequence) return 1;
+        if (sequence.isSkeletalSeq()) {
+            return Math.max(1, Math.ceil(Math.max(1, sequence.getSkeletalDuration?.() ?? 1) / 30));
+        }
+        const frameLengths = sequence.frameLengths;
+        if (!frameLengths?.length) return 1;
+        const cycles = frameLengths.reduce(
+            (total, length, index) => total + (
+                index === frameLengths.length - 1 && length >= 200 ? 0 : Math.max(1, length)
+            ),
+            0,
+        );
+        return Math.max(1, Math.ceil(cycles / 30));
+    } catch {
+        return 1;
+    }
+}
+
 function playCandidate(
     services: ScriptServices,
     playerId: number,
@@ -138,6 +162,13 @@ function playCandidate(
     }
 
     services.npc.queueNpcSeq(npc, sequenceId);
+    const playbackGeneration = ++session.playbackGeneration;
+    services.scheduler.after(getPreviewSequenceDurationTicks(services, sequenceId) + 1, () => {
+        // A stale callback must not cancel a candidate selected after this one.
+        if (sessionsByPlayerId.get(playerId) !== session || session.playbackGeneration !== playbackGeneration) return;
+        const current = getPreviewNpc(services, playerId, session);
+        if (current) current.stopAnimation();
+    });
     return `NPC ${session.npcTypeId}: playing sequence ${sequenceId}.`;
 }
 
@@ -270,6 +301,7 @@ export function registerNpcAnimationReviewCommands(
                 candidates,
                 candidateIndex: 0,
                 selectedSequenceId: candidates[0],
+                playbackGeneration: 0,
             };
             sessionsByPlayerId.set(player.id, session);
             const sequenceId = candidates[0];
@@ -277,7 +309,7 @@ export function registerNpcAnimationReviewCommands(
             if (sequenceId === undefined) {
                 return `Reviewing NPC ${requestedNpcId}: it has no ${CANDIDATE_SOURCE} candidates. Use ::npcreview play <sequence id> to test one manually.`;
             }
-            services.npc.queueNpcSeq(preview, sequenceId);
+            playCandidate(services, player.id, session, sequenceId);
             return `Reviewing NPC ${requestedNpcId}: candidate 1/${candidates.length} is ${sequenceId}. Use ::npcreview next.`;
         }
 

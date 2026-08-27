@@ -508,6 +508,13 @@ export interface DataLoaderFacade {
     getLocDefinition(locId: number): Record<string, unknown> | undefined;
     getLocTypeLoader(): { load(id: number): unknown } | undefined;
     getNpcTypeLoader(): { load(id: number): unknown } | undefined;
+    getSeqTypeLoader(): {
+        load(id: number): {
+            isSkeletalSeq(): boolean;
+            getSkeletalDuration?(): number;
+            frameLengths?: number[];
+        } | undefined;
+    } | undefined;
     getItemDefinition(itemId: number): ItemDefinition | undefined;
     loadItemDefinitions(): ItemDefinition[];
 }

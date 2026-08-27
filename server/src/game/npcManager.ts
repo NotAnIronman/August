@@ -674,7 +674,8 @@ export class NpcManager {
     ): boolean {
         const id = npcId;
         if (id <= 0) return false;
-        if (!this.npcs.has(id)) return false;
+        const npc = this.npcs.get(id);
+        if (!npc || npc.isUnattackable) return false;
         const despawnAt = Math.max(0, despawnTick);
         const respawnAt = Math.max(0, respawnTick);
         const existing = this.pendingDeaths.get(id);
@@ -700,7 +701,8 @@ export class NpcManager {
 
     /** Schedule deferred death processing for an NPC that just took a fatal hit. */
     scheduleDeathProcessing(npcId: number, killerPlayerId: number, deathTick: number): boolean {
-        if (npcId <= 0 || !this.npcs.has(npcId)) return false;
+        const npc = this.npcs.get(npcId);
+        if (npcId <= 0 || !npc || npc.isUnattackable) return false;
         if (this.pendingDeathProcessing.has(npcId)) return true;
         this.pendingDeathProcessing.set(npcId, {
             killerPlayerId,

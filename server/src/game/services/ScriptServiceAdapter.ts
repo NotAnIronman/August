@@ -516,6 +516,7 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             getLocDefinition: (id) => deps.dataLoaders.getLocDefinition(id),
             getLocTypeLoader: () => deps.dataLoaders.getLocTypeLoader(),
             getNpcTypeLoader: () => deps.dataLoaders.getNpcTypeLoader(),
+            getSeqTypeLoader: () => deps.dataLoaders.getSeqTypeLoader(),
             getItemDefinition: (itemId) => getItemDefinition(itemId),
             loadItemDefinitions: () => loadItemDefinitions(),
         },

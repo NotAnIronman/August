@@ -532,6 +532,11 @@ export class NpcState extends Actor {
     }
 
     markDeadUntil(despawnTick: number, currentTick: number): void {
+        // Presentation-only NPCs (the animation reviewer) must be able to
+        // play a death *sequence* without becoming a dead game entity. This
+        // is the final state-transition boundary, so it remains safe even if
+        // a future combat path bypasses a higher-level targetability check.
+        if (this.isUnattackable) return;
         const until = Math.max(0, despawnTick);
         this.deadUntilTick = until;
         this.hitpoints = 0;
@@ -889,7 +894,10 @@ export class NpcState extends Actor {
     }
 
     applyDamage(amount: number): { current: number; max: number } {
-        if (this.deadUntilTick > 0) {
+        // Do not rely only on interaction handlers for developer/presentation
+        // NPCs: delayed hits, splash damage and future mechanics all converge
+        // here. Queued animation sequences are unaffected by this guard.
+        if (this.isUnattackable || this.deadUntilTick > 0) {
             return { current: this.hitpoints, max: this.maxHitpoints };
         }
         if (amount > 0) {
