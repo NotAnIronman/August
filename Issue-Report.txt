@@ -1,0 +1,149 @@
+[GameStateMachine] LOGIN_SCREEN -> CONNECTING
+login.ts:98 [ws] Socket not open, reconnecting before login...
+init.ts:94 [ws] connected to ws://localhost:43594
+authTick.ts:6 [ws] welcome tickMs=600 serverTime=1163560697
+authTick.ts:20 [ws] login_response success=true
+OsrsClientApp.tsx:370 [OsrsClientApp] Login successful, sending handshake
+inboundWorld.ts:293 [varp] Follower index set to -1
+OsrsClientApp.tsx:389 [OsrsClientApp] Handshake received, player logged in: August
+GameStateMachine.ts:136 [GameStateMachine] CONNECTING -> LOADING_GAME
+LoadingTracker.ts:101 [LoadingTracker] Requirement complete: handshake (1/2)
+OsrsClient.ts:6482 [inventory] server update {kind: 'snapshot', slots: Array(28)}
+OsrsClient.ts:6559 [inventory] snapshot post-update (28) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+inboundWorld.ts:284 [varp] Player attack option set to 0
+inboundWorld.ts:289 [varp] NPC attack option set to 0
+inboundWorld.ts:296 [varp] Combat target player index set to -1
+inboundWorld.ts:342 [runClientScript] executing script 626 with args: []
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_root', groupId: 161}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_root', groupId: 161}
+OsrsClient.ts:2211 [OsrsClient] Server setting root interface 161
+OsrsClient.ts:2228 [OsrsClient] Set varc 170 (display mode) = 0
+OsrsClient.ts:2234 [OsrsClient] Set varc 171 (selected tab) = 3 (inventory)
+WidgetManager.ts:1387 [WidgetManager] Found Viewport Widget: 10551387 (Group 161)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551392, groupId: 162, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551392, groupId: 162, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 162 into widget 10551392 (0xa10060)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551305, groupId: 163, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551305, groupId: 163, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 163 into widget 10551305 (0xa10009)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551329, groupId: 160, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551329, groupId: 160, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 160 into widget 10551329 (0xa10021)
+OsrsClient.ts:2277 [OsrsClient] Setting varbit 12986 = 0
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 10485761, fromSlot: 0, toSlot: 0, flags: 1}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 10485761, fromSlot: 0, toSlot: 0, flags: 1}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'run_script', scriptId: 4717, args: Array(1), varps: undefined, varbits: undefined}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'run_script', scriptId: 4717, args: Array(1), varps: undefined, varbits: undefined}
+OsrsClient.ts:2620 [OsrsClient] run_script: scriptId=4717, args= [534]
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'run_script', scriptId: 4722, args: Array(1), varps: undefined, varbits: undefined}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'run_script', scriptId: 4722, args: Array(1), varps: undefined, varbits: undefined}
+OsrsClient.ts:2620 [OsrsClient] run_script: scriptId=4722, args= [534]
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551303, groupId: 122, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551303, groupId: 122, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 122 into widget 10551303 (0xa10007)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551302, groupId: 651, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551302, groupId: 651, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 651 into widget 10551302 (0xa10006)
+OsrsClient.ts:3931 [post_script] Running script 5929 on widget 10551302
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551372, groupId: 593, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551372, groupId: 593, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 593 into widget 10551372 (0xa1004c)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551373, groupId: 320, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551373, groupId: 320, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 320 into widget 10551373 (0xa1004d)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551374, groupId: 629, type: 1, varps: {…}, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551374, groupId: 629, type: 1, varps: {…}, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 629 into widget 10551374 (0xa1004e)
+OsrsClient.ts:2271 [OsrsClient] Setting varp 1141 = 0
+OsrsClient.ts:2277 [OsrsClient] Setting varbit 8168 = 0
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 41222187, groupId: 712, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 41222187, groupId: 712, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 712 into widget 41222187 (0x275002b)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'run_script', scriptId: 3970, args: Array(3), varps: undefined, varbits: undefined}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'run_script', scriptId: 3970, args: Array(3), varps: undefined, varbits: undefined}
+OsrsClient.ts:2620 [OsrsClient] run_script: scriptId=3970, args= (3) [46661634, 46661635, 4119]
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'run_script', scriptId: 3954, args: Array(3), varps: undefined, varbits: undefined}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'run_script', scriptId: 3954, args: Array(3), varps: undefined, varbits: undefined}
+OsrsClient.ts:2620 [OsrsClient] run_script: scriptId=3954, args= (3) [46661634, 46661635, 126]
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 46661635, fromSlot: 6, toSlot: 6, flags: 6}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 46661635, fromSlot: 6, toSlot: 6, flags: 6}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 46661635, fromSlot: 7, toSlot: 7, flags: 2}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 46661635, fromSlot: 7, toSlot: 7, flags: 2}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551375, groupId: 149, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551375, groupId: 149, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 149 into widget 10551375 (0xa1004f)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551376, groupId: 387, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551376, groupId: 387, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 387 into widget 10551376 (0xa10050)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551377, groupId: 541, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551377, groupId: 541, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 541 into widget 10551377 (0xa10051)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551378, groupId: 218, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551378, groupId: 218, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 218 into widget 10551378 (0xa10052)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551379, groupId: 7, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551379, groupId: 7, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 7 into widget 10551379 (0xa10053)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551380, groupId: 109, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551380, groupId: 109, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 109 into widget 10551380 (0xa10054)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551381, groupId: 429, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551381, groupId: 429, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 429 into widget 10551381 (0xa10055)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551382, groupId: 182, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551382, groupId: 182, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 182 into widget 10551382 (0xa10056)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551383, groupId: 116, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551383, groupId: 116, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 116 into widget 10551383 (0xa10057)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551384, groupId: 216, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551384, groupId: 216, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 216 into widget 10551384 (0xa10058)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551385, groupId: 239, type: 1, varps: undefined, …}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551385, groupId: 239, type: 1, varps: undefined, …}
+OsrsClient.ts:2260 [OsrsClient] Server opening sub-interface: group 239 into widget 10551385 (0xa10059)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 15663115, fromSlot: 0, toSlot: 834, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 15663115, fromSlot: 0, toSlot: 834, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags', uid: 15663108, flags: 60}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags', uid: 15663108, flags: 60}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'run_script', scriptId: 876, args: Array(4), varps: undefined, varbits: undefined}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'run_script', scriptId: 876, args: Array(4), varps: undefined, varbits: undefined}
+OsrsClient.ts:2620 [OsrsClient] run_script: scriptId=876, args= (4) [0, 0, 'August', 'August']
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 9764864, fromSlot: 0, toSlot: 27, flags: 1181694}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 9764864, fromSlot: 0, toSlot: 27, flags: 1181694}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 35455018, fromSlot: 0, toSlot: 4, flags: 2}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 35455018, fromSlot: 0, toSlot: 4, flags: 2}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362447, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362447, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362448, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362448, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362449, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362449, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362450, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362450, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362451, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362451, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362452, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362452, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362453, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362453, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362454, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362454, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362455, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362455, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362456, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362456, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 25362457, fromSlot: 65535, toSlot: 65535, flags: 62}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 25362457, fromSlot: 65535, toSlot: 65535, flags: 62}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 26148871, fromSlot: 0, toSlot: 255, flags: 126}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 26148871, fromSlot: 0, toSlot: 255, flags: 126}
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_flags_range', uid: 14155778, fromSlot: 0, toSlot: 55, flags: 6}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'set_flags_range', uid: 14155778, fromSlot: 0, toSlot: 55, flags: 6}
+inboundWorld.ts:342 [runClientScript] executing script 4716 with args: (2) [100, 534]
+inboundWorld.ts:342 [runClientScript] executing script 4721 with args: (2) [50, 534]
+inboundWorld.ts:342 [runClientScript] executing script 3932 with args: []
+inboundWorld.ts:342 [runClientScript] executing script 3932 with args: []
+ui-input.ts:105 [ui-input] unchanged input processed because targets changed count=1 targets=77 targetVersion=67 prevTargetVersion=66 mouse=926,457 clickMode2=0 clickMode3=0
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'run_script', scriptId: 3970, args: Array(3), varps: undefined, varbits: undefined}
+OsrsClient.ts:2170 [OsrsClient] widget event {action: 'run_script', scriptId: 3970, args: Array(3), varps: undefined, varbits: undefined}
+OsrsClient.ts:2620 [OsrsClient] run_script: scriptId=3970, args= (3) [46661634, 46661635, 4120]

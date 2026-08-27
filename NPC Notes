@@ -65,9 +65,9 @@ Torag the Corrupted - 1676 ✅
 
 Verac the Defiled - 1677 ✅
 
-Gemstone Crab - 14779
+Gemstone Crab - 14779 ✅
 
-Scurrius - 7221 / 7222
+Scurrius - 7221 / 7222 ✅
 
 Giant Mole - 5779 ✅
 
@@ -81,11 +81,11 @@ Dagannoth Prime	- 2266 ✅
 
 Sarachnis - 8713 ✅
 
-Blood Moon - 13011
+Blood Moon - 13011 ✅
 
-Blue Moon - 13013
+Blue Moon - 13013 ✅
 
-Eclipse Moon - 13012
+Eclipse Moon - 13012 ✅
 
 Kalphite Queen - 963/965 ✅
 
@@ -101,7 +101,7 @@ The Hueycoatl - 14009
 
 Corporeal Beast	- 319 ✅
 
-Nex - 11278
+Nex - 11278 ✅
 
 Chaos Fanatic - 6619 ✅
 
@@ -113,19 +113,19 @@ King Black Dragon - 239 ✅
 
 Chaos Elemental	- 2054 ✅
 
-Revenant maledictus - 11246
+Revenant maledictus - 11246 ✅
 
 Vet'ion	- 6611/6612
 
 Venenatis - 6610 ✅
 
-Callisto - 6609 
+Callisto - 6609 ✅
 
-Demonic Brutus	- 15628 / 15629
+Demonic Brutus	- 15628 / 15629 ✅
 
 Obor - 7416 ✅
 
-Amoxliatl - 13685
+Amoxliatl - 13685 ✅
 
 Royal Titans :
 Eldric - 14147 / 14149
@@ -236,11 +236,22 @@ Tumeken's Warden - 11747 / 11749 / 11756-11758 / 11760 / 11762 / 11764
 
 Elidinis' Warden - 11746 / 11748 / 11753-11755 / 11759 / 11761 / 11763
 
+Objectsa to fix:
+26461 - Need hammer to go through door ; Add hammering animation, and then teleport player to location 2850 5333 2
 
-Historical animation research:
-- Full human-readable candidate lists: NPC Animation Batches.md
-- Machine-readable source report: server/data/reports/unresolved-npc-historical-animation-batches.json
-- ::npcreview now loads these historical candidates automatically for the listed NPC IDs.
-- Candidate order is newly-added sequences first, then modified legacy sequences, then the old observed candidates.
-- Do not add a checkmark until the animations have been visually reviewed and mapped to roles.
+NPCs to fix :
+3138
+3133
+2235
+2244
+2243
+2242
+2241
+2240
+2239
+2234
+2233
+
+
+
 
