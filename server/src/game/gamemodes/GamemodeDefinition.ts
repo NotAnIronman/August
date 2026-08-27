@@ -178,6 +178,8 @@ export interface GamemodeDefinition {
     // === Drops ===
     getDropRateMultiplier(player: PlayerState | undefined): number;
     transformDropItemId(npcTypeId: number, itemId: number, player: PlayerState | undefined): number;
+    /** Whether this player is currently eligible for a specific rolled item. */
+    canReceiveDrop?(npcTypeId: number, itemId: number, player: PlayerState | undefined): boolean;
     /** Override or provide a custom drop table for an NPC type. */
     getDropTable?(npcTypeId: number): import("../drops/types").NpcDropTableDefinition | undefined;
     /** Provide additional drops beyond the base table. */

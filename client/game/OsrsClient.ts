@@ -2155,6 +2155,11 @@ export class OsrsClient {
             onWorldViewAssignment: (ecsIndex, worldViewId) => {
                 if (worldViewId >= 0) {
                     this.worldViewManager.addPlayerToWorldView(worldViewId, ecsIndex);
+                    // Instance NPC geometry deliberately waits for this assignment
+                    // so it can never admit public-world NPCs at copied coordinates.
+                    if (this.npcInstances?.mapsPendingReload.size > 0) {
+                        this.npcInstances.scheduleFlush();
+                    }
                 }
             },
         });

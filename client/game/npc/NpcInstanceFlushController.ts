@@ -218,6 +218,13 @@ export class NpcInstanceFlushController {
             const controlledWorldViewId = isPrivateInstanceMap
                 ? (renderer.getControlledPlayerWorldViewId?.() ?? -1) | 0
                 : -1;
+            if (isPrivateInstanceMap && controlledWorldViewId < 0) {
+                // Never build an unfiltered instance mesh while player sync is
+                // still assigning the private view. Retrying is preferable to
+                // baking public NPCs at the copied source coordinates.
+                remaining.add(mapId);
+                continue;
+            }
             const geometryContext = isPrivateInstanceMap
                 ? {
                       baseTileX: map.getRenderBaseTileX(),
@@ -296,6 +303,7 @@ export class NpcInstanceFlushController {
             for (const mapId of remaining) {
                 this.mapsPendingReload.add(mapId);
             }
+            if (remaining.size > 0) this.scheduleFlushFallback();
         }
     }
 }

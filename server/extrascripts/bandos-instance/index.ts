@@ -6,9 +6,22 @@ import type {
 } from "../../src/game/scripts/types";
 import { AttackType } from "../../src/game/combat/AttackType";
 import { EncounterRegistry, registerEncounter } from "../../src/game/encounters/EncounterRegistry";
+import { SkillId } from "../../../client/rs/skill/skills";
+import { PRAYER_RECHARGE_SOUND_ID } from "../../../client/rs/prayer/prayers";
+import { BaseComponentUids } from "../../src/widgets/viewport/ViewportEnumService";
 
 const BANDOS_DOOR_LOC_ID = 26503;
+const BANDOS_ALTAR_LOC_ID = 26366;
 const BANDOS_DEFINITION_ID = "graardor-room";
+const BOSS_HEALTH_BAR_GROUP_ID = 303;
+const VARP_BOSS_HEALTH_NPC = 1683;
+const VARBIT_BOSS_HEALTH_CURRENT = 6099;
+const VARBIT_BOSS_HEALTH_MAXIMUM = 6100;
+const VARBIT_BOSS_HEALTH_DISABLED = 12389;
+const BANDOS_ALTAR_COOLDOWN_TICKS = 500;
+const lastBandosAltarUse = new WeakMap<PlayerState, number>();
+const activeBandosPlayers = new Set<PlayerState>();
+const lastBossHealthState = new WeakMap<PlayerState, string>();
 
 const INSTANCE_EXIT = Object.freeze({ x: 2862, y: 5354, level: 2 });
 const INSTANCE_ENTRANCE = Object.freeze({ x: 2864, y: 5354, level: 2 });
@@ -97,6 +110,86 @@ function isBandosInstance(player: PlayerState, services: ScriptServices): boolea
     return services.instances.get(player.id)?.definitionId === BANDOS_DEFINITION_ID;
 }
 
+function openBossHealthBar(player: PlayerState, services: ScriptServices): void {
+    activeBandosPlayers.add(player);
+    player.varps.setVarpValue(VARP_BOSS_HEALTH_NPC, 2215);
+    player.varps.setVarbitValue(VARBIT_BOSS_HEALTH_DISABLED, 0);
+    services.variables.sendVarp(player, VARP_BOSS_HEALTH_NPC, 2215);
+    services.variables.sendVarbit(player, VARBIT_BOSS_HEALTH_DISABLED, 0);
+    services.dialog.openSubInterface(
+        player,
+        BaseComponentUids.HPBAR_HUD,
+        BOSS_HEALTH_BAR_GROUP_ID,
+        1,
+        { modal: false },
+    );
+}
+
+function closeBossHealthBar(player: PlayerState, services: ScriptServices): void {
+    activeBandosPlayers.delete(player);
+    lastBossHealthState.delete(player);
+    player.varps.setVarpValue(VARP_BOSS_HEALTH_NPC, -1);
+    services.variables.sendVarp(player, VARP_BOSS_HEALTH_NPC, -1);
+    services.dialog.closeSubInterface(
+        player,
+        BaseComponentUids.HPBAR_HUD,
+        BOSS_HEALTH_BAR_GROUP_ID,
+    );
+}
+
+function syncBossHealthBars(services: ScriptServices): void {
+    for (const player of activeBandosPlayers) {
+        if (!isBandosInstance(player, services)) {
+            closeBossHealthBar(player, services);
+            continue;
+        }
+        const boss = services.npc.findNearbyNpc(player, 2215, 40);
+        const current = Math.max(0, boss?.getHitpoints() ?? 0);
+        const maximum = Math.max(1, boss?.getMaxHitpoints() ?? 1);
+        const stateKey = `${current}:${maximum}`;
+        if (lastBossHealthState.get(player) === stateKey) continue;
+        lastBossHealthState.set(player, stateKey);
+        player.varps.setVarbitValue(VARBIT_BOSS_HEALTH_CURRENT, current);
+        player.varps.setVarbitValue(VARBIT_BOSS_HEALTH_MAXIMUM, maximum);
+        services.variables.sendVarbit(player, VARBIT_BOSS_HEALTH_CURRENT, current);
+        services.variables.sendVarbit(player, VARBIT_BOSS_HEALTH_MAXIMUM, maximum);
+    }
+}
+
+function formatCooldown(ticks: number): string {
+    const seconds = Math.max(1, Math.ceil((ticks * 600) / 1000));
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds % 60;
+    if (minutes <= 0) return `${seconds} second${seconds === 1 ? "" : "s"}`;
+    if (remainder === 0) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+    return `${minutes}:${remainder.toString().padStart(2, "0")}`;
+}
+
+function prayAtBandosAltar({ player, services, tick }: LocInteractionEvent): void {
+    if (!isBandosInstance(player, services)) return;
+    const readyTick = (lastBandosAltarUse.get(player) ?? -Infinity) + BANDOS_ALTAR_COOLDOWN_TICKS;
+    if (tick < readyTick) {
+        services.messaging.sendGameMessage(
+            player,
+            `The gods have already blessed you recently. Wait ${formatCooldown(readyTick - tick)} and try again.`,
+        );
+        return;
+    }
+
+    const prayer = player.skillSystem.getSkill(SkillId.Prayer);
+    const current = Math.max(0, prayer.baseLevel + prayer.boost);
+    if (current >= prayer.baseLevel) {
+        services.messaging.sendGameMessage(player, "You already have full Prayer points.");
+        return;
+    }
+    services.animation.playPlayerSeq(player, 645);
+    player.skillSystem.setSkillBoost(SkillId.Prayer, prayer.baseLevel);
+    player.prayer.resetDrainAccumulator();
+    services.sound.sendSound(player, PRAYER_RECHARGE_SOUND_ID);
+    services.messaging.sendGameMessage(player, "The gods bless you, restoring your Prayer points.");
+    lastBandosAltarUse.set(player, tick);
+}
+
 function createBandosInstance(
     player: PlayerState,
     services: ScriptServices,
@@ -135,10 +228,12 @@ function createBandosInstance(
         return;
     }
     services.instances.markStarted(room.id);
+    openBossHealthBar(player, services);
 }
 
 function showEntryOptions(player: PlayerState, services: ScriptServices): void {
     if (isBandosInstance(player, services)) {
+        closeBossHealthBar(player, services);
         services.instances.leave(player, INSTANCE_EXIT);
         return;
     }
@@ -180,6 +275,8 @@ function showJoinOptions(player: PlayerState, services: ScriptServices): void {
             const room = visibleRooms[choice];
             if (!room || !services.instances.join(player, room.id)) {
                 services.messaging.sendGameMessage(player, "That party is no longer available.");
+            } else {
+                openBossHealthBar(player, services);
             }
         },
     });
@@ -219,4 +316,6 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerLocInteraction(BANDOS_DOOR_LOC_ID, ({ player, services }) => {
         showJoinOptions(player, services);
     }, "join party");
+    registry.registerLocInteraction(BANDOS_ALTAR_LOC_ID, prayAtBandosAltar, "pray-at");
+    registry.registerTickHandler(({ services }) => syncBossHealthBars(services));
 }

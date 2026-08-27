@@ -75,6 +75,12 @@ export type DropContext = {
     recipients: DropRecipient[];
     worldViewId?: number;
     transformItemId?: (npcTypeId: number, itemId: number, recipient: DropRecipient) => number;
+    /** Gamemode/content eligibility checked before an entry participates in a roll. */
+    canReceiveItem?: (
+        npcTypeId: number,
+        itemId: number,
+        recipient: DropRecipient,
+    ) => boolean;
     /** Gamemode-provided drop table override (bypasses NpcDropRegistry). */
     tableOverride?: NpcDropTableDefinition;
 };

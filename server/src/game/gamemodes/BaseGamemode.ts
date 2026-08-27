@@ -81,6 +81,14 @@ export abstract class BaseGamemode implements GamemodeDefinition {
         return itemId;
     }
 
+    canReceiveDrop(
+        _npcTypeId: number,
+        _itemId: number,
+        _player: PlayerState | undefined,
+    ): boolean {
+        return true;
+    }
+
     // === Player Rules ===
 
     canInteract(_player: PlayerState): boolean {

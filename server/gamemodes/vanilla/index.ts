@@ -43,9 +43,14 @@ import { registerSmithingBarModalHandler } from "./modals/smithingBarModalHandle
 import { registerWidgetCloseHandlers } from "./modals/widgetCloseHandlers";
 import { registerWidgetOpenHandlers } from "./modals/widgetOpenHandlers";
 import { registerNpcDialogueHandlers } from "./npcs";
-import { getQuestDefinitionByKey, normalizeQuestKey, registerQuestHandlers } from "./quests";
+import {
+    getQuestDefinition,
+    getQuestDefinitionByKey,
+    normalizeQuestKey,
+    registerQuestHandlers,
+} from "./quests";
 import { VANILLA_QUEST_LIST_GROUPS } from "./questCatalog";
-import { getQuestStage, setQuestStage } from "./quests/QuestService";
+import { getQuestStage, isQuestComplete, setQuestStage } from "./quests/QuestService";
 import { registerVanillaCommandHandlers } from "./scripts/commands";
 import { registerAlKharidBorderHandlers } from "./scripts/content/alKharidBorder";
 import { registerDraynorAreaHandlers } from "./scripts/content/areas/draynor";
@@ -104,6 +109,42 @@ export class VanillaGamemode extends BaseGamemode {
     private serverServices: GamemodeServerServices | undefined;
     private scriptServices: ScriptServices | undefined;
     private npcDropViewer: NpcDropViewer | undefined;
+
+    private static readonly FROZEN_KEY_PIECE_VARIANTS = new Map<number, readonly number[]>([
+        [26358, [26358, 26359]],
+        [26359, [26358, 26359]],
+        [26360, [26360, 26361]],
+        [26361, [26360, 26361]],
+        [26362, [26362, 26363]],
+        [26363, [26362, 26363]],
+        [26364, [26364, 26365]],
+        [26365, [26364, 26365]],
+    ]);
+
+    override canReceiveDrop(
+        _npcTypeId: number,
+        itemId: number,
+        player: PlayerState | undefined,
+    ): boolean {
+        const variants = VanillaGamemode.FROZEN_KEY_PIECE_VARIANTS.get(itemId);
+        if (!variants) return true;
+        if (!player) return false;
+
+        const ownsPiece = variants.some(
+            (variantId) =>
+                player.items.hasItem(variantId) ||
+                player.bank
+                    .getBankEntries()
+                    .some((entry) => entry.itemId === variantId && entry.quantity > 0),
+        );
+        if (ownsPiece) return false;
+
+        // Frozen Door is not authored in every gamemode revision. Once its
+        // quest definition is registered, this automatically observes the
+        // canonical completion stage instead of duplicating a varbit here.
+        const frozenDoor = getQuestDefinition("The Frozen Door");
+        return !frozenDoor || !isQuestComplete(player, frozenDoor);
+    }
 
     getLootDistributionConfig(npcTypeId: number): NpcLootConfig | undefined {
         return NPC_LOOT_CONFIGS.get(npcTypeId);

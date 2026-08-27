@@ -2536,30 +2536,54 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                         height: maskH,
                     });
 
-                    // Draw 3x3 grid of map tiles
-                    // Each tile is 64 tiles = 256 minimap pixels at 4px/tile
+                    // Ordinary maps use a 3x3 grid of 64-tile rasters. An
+                    // instance is one expanded raster (currently 104 tiles),
+                    // positioned from its render base rather than mapX*64.
                     const TILE_SIZE = 256;
                     const playerOffsetX = (localTileX + subTileX) * 4;
                     const playerOffsetY = (localTileY + subTileY) * 4;
 
-                    for (let mx = 0; mx < 3; mx++) {
-                        for (let my = 0; my < 3; my++) {
-                            const mapX = cameraMapX - 1 + mx;
-                            const mapY = cameraMapY - 1 + my;
-                            const url = osrsClient.getMinimapImageUrl?.(mapX, mapY, playerLevel);
-                            if (!url) continue;
+                    const instanceLayout = (
+                        osrsClient.renderer as {
+                            getInstanceMinimapLayout?: () => {
+                                mapX: number;
+                                mapY: number;
+                                baseTileX: number;
+                                baseTileY: number;
+                                tileSpan: number;
+                            } | undefined;
+                        } | undefined
+                    )?.getInstanceMinimapLayout?.();
+                    if (instanceLayout && instanceLayout.tileSpan > 0) {
+                        const url = osrsClient.getMinimapImageUrl?.(
+                            instanceLayout.mapX,
+                            instanceLayout.mapY,
+                            playerLevel,
+                        );
+                        const tileTex = url ? tc.getTextureFromUrl(url) : undefined;
+                        if (tileTex) {
+                            const rasterSize = instanceLayout.tileSpan * 4;
+                            minimapRenderer.drawTile(
+                                tileTex,
+                                (instanceLayout.baseTileX - worldX) * 4,
+                                (worldY - (instanceLayout.baseTileY + instanceLayout.tileSpan)) * 4,
+                                rasterSize,
+                            );
+                        }
+                    } else {
+                        for (let mx = 0; mx < 3; mx++) {
+                            for (let my = 0; my < 3; my++) {
+                                const mapX = cameraMapX - 1 + mx;
+                                const mapY = cameraMapY - 1 + my;
+                                const url = osrsClient.getMinimapImageUrl?.(mapX, mapY, playerLevel);
+                                if (!url) continue;
 
-                            // Get or trigger load of minimap tile texture
-                            const tileTex = tc.getTextureFromUrl(url);
-                            if (!tileTex) continue;
-
-                            // Position relative to player (in minimap pixels)
-                            // mx=0 is west, mx=2 is east; my=0 is south, my=2 is north
-                            // Formula derived from original: tileY = 512 - my*256 + offsetY - ROTATION_CENTER
-                            const relX = (mx - 1) * TILE_SIZE - playerOffsetX;
-                            const relY = -my * TILE_SIZE + playerOffsetY;
-
-                            minimapRenderer.drawTile(tileTex, relX, relY, TILE_SIZE);
+                                const tileTex = tc.getTextureFromUrl(url);
+                                if (!tileTex) continue;
+                                const relX = (mx - 1) * TILE_SIZE - playerOffsetX;
+                                const relY = -my * TILE_SIZE + playerOffsetY;
+                                minimapRenderer.drawTile(tileTex, relX, relY, TILE_SIZE);
+                            }
                         }
                     }
 
@@ -2572,35 +2596,53 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                               ) => Array<{ localX: number; localY: number; spriteId: number }>;
                           }
                         | undefined;
-                    for (let mx = 0; mx < 3; mx++) {
-                        for (let my = 0; my < 3; my++) {
-                            const mapX = cameraMapX - 1 + mx;
-                            const mapY = cameraMapY - 1 + my;
-                            const icons = minimapIconProvider?.getMinimapIcons?.(
-                                mapX,
-                                mapY,
-                                playerLevel,
+                    const iconGrid = instanceLayout
+                        ? [
+                              {
+                                  mapX: instanceLayout.mapX,
+                                  mapY: instanceLayout.mapY,
+                                  baseTileX: instanceLayout.baseTileX,
+                                  baseTileY: instanceLayout.baseTileY,
+                              },
+                          ]
+                        : Array.from({ length: 9 }, (_, index) => {
+                              const mx = Math.floor(index / 3);
+                              const my = index % 3;
+                              const mapX = cameraMapX - 1 + mx;
+                              const mapY = cameraMapY - 1 + my;
+                              return {
+                                  mapX,
+                                  mapY,
+                                  baseTileX: mapX * 64,
+                                  baseTileY: mapY * 64,
+                              };
+                          });
+                    for (const iconTile of iconGrid) {
+                        const { mapX, mapY, baseTileX, baseTileY } = iconTile;
+                        const icons = minimapIconProvider?.getMinimapIcons?.(
+                            mapX,
+                            mapY,
+                            playerLevel,
+                        );
+                        if (!icons || icons.length === 0) continue;
+
+                        for (const icon of icons) {
+                            const iconTex = tc.getBySpriteId(icon.spriteId | 0);
+                            if (!iconTex) continue;
+
+                            const iconWorldX = baseTileX + (icon.localX | 0) + 0.5;
+                            const iconWorldY = baseTileY + (icon.localY | 0) + 0.5;
+                            const iconScreen = minimapRenderer.relativeToScreen(
+                                (iconWorldX - worldX) * 4,
+                                (worldY - iconWorldY) * 4,
                             );
-                            if (!icons || icons.length === 0) continue;
-
-                            for (const icon of icons) {
-                                const iconTex = tc.getBySpriteId(icon.spriteId | 0);
-                                if (!iconTex) continue;
-
-                                const iconWorldX = mapX * 64 + (icon.localX | 0) + 0.5;
-                                const iconWorldY = mapY * 64 + (icon.localY | 0) + 0.5;
-                                const iconScreen = minimapRenderer.relativeToScreen(
-                                    (iconWorldX - worldX) * 4,
-                                    (worldY - iconWorldY) * 4,
-                                );
-                                minimapRenderer.drawOverlay(
-                                    iconTex,
-                                    iconScreen.x,
-                                    iconScreen.y,
-                                    iconTex.w * minimapRenderScale,
-                                    iconTex.h * minimapRenderScale,
-                                );
-                            }
+                            minimapRenderer.drawOverlay(
+                                iconTex,
+                                iconScreen.x,
+                                iconScreen.y,
+                                iconTex.w * minimapRenderScale,
+                                iconTex.h * minimapRenderScale,
+                            );
                         }
                     }
 

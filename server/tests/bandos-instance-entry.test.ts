@@ -4,7 +4,11 @@ import { resolveLocActions } from "../../client/common/world/LocActionOverrides"
 import { AttackType } from "../src/game/combat/AttackType";
 import { EncounterRegistry } from "../src/game/encounters/EncounterRegistry";
 import { getNpcCombatProfile } from "../src/data/npcCombatStats";
-import type { IScriptRegistry, LocInteractionHandler } from "../src/game/scripts/types";
+import type {
+    IScriptRegistry,
+    LocInteractionHandler,
+    TickHandler,
+} from "../src/game/scripts/types";
 import { register } from "../extrascripts/bandos-instance";
 
 assert.deepEqual(resolveLocActions(26503, ["Open", "Peek"]), [
@@ -17,9 +21,14 @@ assert.deepEqual(resolveLocActions(26503, ["Open", "Peek"]), [
 assert.deepEqual(resolveLocActions(1, ["Open"]), ["Open"]);
 
 const handlers = new Map<string, LocInteractionHandler>();
+let tickHandler: TickHandler | undefined;
 const registry = {
     registerLocInteraction: (locId: number, handler: LocInteractionHandler, action?: string) => {
         handlers.set(`${locId}:${action}`, handler);
+        return { unregister() {} };
+    },
+    registerTickHandler: (handler: TickHandler) => {
+        tickHandler = handler;
         return { unregister() {} };
     },
 } as unknown as IScriptRegistry;
@@ -31,6 +40,7 @@ assert.deepEqual([...handlers.keys()], [
     "26503:enter solo",
     "26503:enter party",
     "26503:join party",
+    "26366:pray-at",
 ]);
 
 const graardor = EncounterRegistry.shared.findByNpcTypeId(2215);
@@ -51,7 +61,14 @@ assert.equal(getNpcCombatProfile(2218)?.rangedLevel, 150);
 
 let copiedArea: Record<string, number> | undefined;
 let instanceSpec: any;
-const testPlayer = { id: 42 } as never;
+let openedBossHealthBar: { targetUid: number; groupId: number } | undefined;
+const testPlayer = {
+    id: 42,
+    varps: {
+        setVarpValue: () => undefined,
+        setVarbitValue: () => undefined,
+    },
+} as never;
 const testServices = {
     instances: {
         get: () => undefined,
@@ -66,8 +83,23 @@ const testServices = {
         markStarted: () => true,
     },
     messaging: { sendGameMessage: () => undefined },
+    variables: {
+        sendVarp: () => undefined,
+        sendVarbit: () => undefined,
+    },
+    dialog: {
+        openSubInterface: (
+            _player: unknown,
+            targetUid: number,
+            groupId: number,
+        ) => {
+            openedBossHealthBar = { targetUid, groupId };
+        },
+    },
 };
 handlers.get("26503:enter solo")?.({ player: testPlayer, services: testServices } as never);
+assert.deepEqual(openedBossHealthBar, { targetUid: (161 << 16) | 44, groupId: 303 });
+assert.ok(tickHandler);
 assert.deepEqual(instanceSpec.destination, { x: 2864, y: 5354, level: 2 });
 assert.deepEqual(instanceSpec.exit, { x: 2862, y: 5354, level: 2 });
 assert.equal(copiedArea?.destinationChunkX, 4);
@@ -90,5 +122,47 @@ assert.deepEqual(
         { id: 2218, x: 2868, y: 5362 },
     ],
 );
+
+const altarMessages: string[] = [];
+let prayerBoostTarget = -1;
+let prayerReset = false;
+let prayerAnimation = -1;
+let prayerSound = -1;
+const altarPlayer = {
+    id: 77,
+    skillSystem: {
+        getSkill: () => ({ baseLevel: 70, boost: -30 }),
+        setSkillBoost: (_skillId: number, target: number) => {
+            prayerBoostTarget = target;
+        },
+    },
+    prayer: { resetDrainAccumulator: () => (prayerReset = true) },
+};
+const altarServices = {
+    instances: { get: () => ({ definitionId: "graardor-room" }) },
+    messaging: {
+        sendGameMessage: (_player: unknown, message: string) => altarMessages.push(message),
+    },
+    animation: {
+        playPlayerSeq: (_player: unknown, sequence: number) => (prayerAnimation = sequence),
+    },
+    sound: { sendSound: (_player: unknown, sound: number) => (prayerSound = sound) },
+};
+handlers.get("26366:pray-at")?.({
+    player: altarPlayer,
+    services: altarServices,
+    tick: 100,
+} as never);
+assert.equal(prayerBoostTarget, 70);
+assert.equal(prayerReset, true);
+assert.equal(prayerAnimation, 645);
+assert.ok(prayerSound >= 0);
+
+handlers.get("26366:pray-at")?.({
+    player: altarPlayer,
+    services: altarServices,
+    tick: 101,
+} as never);
+assert.match(altarMessages.at(-1) ?? "", /already blessed you recently/i);
 
 console.log("bandos instance entry tests passed");

@@ -242,7 +242,12 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
             mapX: playerMapX,
             mapY: playerMapY,
             maxLevel: Math.max(0, Math.min(Scene.MAX_LEVELS - 1, host.maxLevel | 0)),
-            loadNpcs: host.loadNpcs,
+            // REBUILD_REGION can arrive before the local-player sync assigns its
+            // private world view. Baking NPCs at that point admits the public
+            // overworld spawns at the copied coordinates, leaving frozen,
+            // unlinked meshes behind. Start with terrain only; the normal NPC
+            // instance flush builds the private geometry once the view id exists.
+            loadNpcs: host.loadNpcs && controlledWorldViewId >= 0,
             smoothTerrain: host.smoothTerrain,
             minimizeDrawCalls: !host.hasMultiDraw,
             loadedTextureIds: host.loadedTextureIds,

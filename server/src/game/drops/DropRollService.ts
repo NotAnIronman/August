@@ -55,6 +55,12 @@ function resolveEntryProbability(
     context: DropContext,
     recipient: DropRecipient,
 ): number {
+    if (
+        context.canReceiveItem &&
+        !context.canReceiveItem(context.npcTypeId, entry.itemId, recipient)
+    ) {
+        return 0;
+    }
     if (!matchesCondition(entry.condition, context, recipient)) return 0;
     const probability =
         entry.altProbability !== undefined &&
@@ -164,6 +170,12 @@ export class DropRollService {
         out: PendingNpcDrop[],
     ): void {
         for (const entry of table.always) {
+            if (
+                context.canReceiveItem &&
+                !context.canReceiveItem(context.npcTypeId, entry.itemId, recipient)
+            ) {
+                continue;
+            }
             out.push(toPendingDrop(context, recipient, entry.itemId, rollQuantity(entry)));
         }
         for (const pool of table.pools) {

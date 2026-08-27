@@ -549,6 +549,11 @@ export class CombatEffectService {
                 itemId: number,
                 recipient: { player?: PlayerState },
             ) => gamemode.transformDropItemId(npcTypeId, itemId, recipient.player),
+            canReceiveItem: (
+                npcTypeId: number,
+                itemId: number,
+                recipient: { player?: PlayerState },
+            ) => gamemode.canReceiveDrop?.(npcTypeId, itemId, recipient.player) ?? true,
             tableOverride: gamemode.getDropTable?.(npc.typeId),
         });
     }

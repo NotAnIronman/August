@@ -1479,6 +1479,30 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
         return render.clearInstance(this);
     }
 
+    /** Coordinate metadata for the single, expanded minimap raster used by instances. */
+    getInstanceMinimapLayout():
+        | {
+              mapX: number;
+              mapY: number;
+              baseTileX: number;
+              baseTileY: number;
+              tileSpan: number;
+          }
+        | undefined {
+        if (!this.instanceActive) return undefined;
+        const mapX = ((this.instanceRegionX * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+        const mapY = ((this.instanceRegionY * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+        const map = this.mapManager.getMap(mapX, mapY);
+        if (!map) return undefined;
+        return {
+            mapX,
+            mapY,
+            baseTileX: map.getRenderBaseTileX(),
+            baseTileY: map.getRenderBaseTileY(),
+            tileSpan: map.getLocalTileSpan(),
+        };
+    }
+
     async loadWorldEntityScene(
         entityIndex: number,
         templateChunks: number[][][],
