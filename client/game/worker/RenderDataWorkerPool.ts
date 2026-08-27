@@ -4,7 +4,10 @@ import { WorkerDescriptor } from "threads/dist/master/pool-types";
 import { ObservablePromise } from "threads/dist/observable-promise";
 
 import { LoadedCache } from "../Caches";
-import { NpcGeometryData } from "../../render/loader/NpcGeometryData";
+import {
+    NpcGeometryData,
+    type NpcGeometryLoadContext,
+} from "../../render/loader/NpcGeometryData";
 import type { NpcInstance } from "../../render/npc/NpcRenderTemplate";
 import { RenderDataLoader } from "./RenderDataLoader";
 import type { RenderDataWorker } from "./RenderDataWorker";
@@ -68,6 +71,7 @@ export class RenderDataWorkerPool {
         mapY: number,
         maxLevel: number,
         loadedTextureIds: number[],
+        context?: NpcGeometryLoadContext,
     ): QueuedTask<RenderDataWorkerThread, NpcGeometryData> {
         return this.pool.queue(
             (w) =>
@@ -76,6 +80,7 @@ export class RenderDataWorkerPool {
                     mapY,
                     maxLevel,
                     loadedTextureIds,
+                    context,
                 ) as ObservablePromise<NpcGeometryData>,
         );
     }

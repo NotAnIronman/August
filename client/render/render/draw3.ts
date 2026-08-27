@@ -47,7 +47,7 @@ import { NpcDrawPriority, NpcType } from "../../rs/config/npctype/NpcType";
 import { PlayerAppearance } from "../../rs/config/player/PlayerAppearance";
 import { PlayerModelLoader } from "../../rs/config/player/PlayerModelLoader";
 import { decodeInteractionIndex } from "../../rs/interaction/InteractionIndex";
-import { getMapIndexFromTile, getMapPlaneId, getMapSquareId } from "../../rs/map/MapFileIndex";
+import { getMapIndexFromTile, getMapPlaneId } from "../../rs/map/MapFileIndex";
 import { Model } from "../../rs/model/Model";
 import { ModelData } from "../../rs/model/ModelData";
 import { Scene } from "../../rs/scene/Scene";
@@ -118,6 +118,7 @@ import {
     createActorHitsplatState,
 } from "../../game/actor/ActorOverlayState";
 import type { ClientGroundItemStack, GroundItemOverlayEntry } from "../../game/data/ground/GroundItemStore";
+import { decodeGroundItemMapId, getGroundItemMapId } from "../ground/GroundItemMapKey";
 import { NpcEcs } from "../../game/ecs/NpcEcs";
 import type { PlayerAnimKey } from "../../game/ecs/PlayerEcs";
 import { GameState, LoginIndex } from "../../game/login";
@@ -207,7 +208,7 @@ export function updateGroundItemMeshes(host: WebGLOsrsRendererHost, stacks: Clie
                 const mapX = tileX >> 6;
                 const mapY = tileY >> 6;
                 if (mapX < 0 || mapY < 0) continue;
-                mapId = getMapSquareId(mapX, mapY);
+                mapId = getGroundItemMapId(tileX, tileY);
             }
 
             const clone: ClientGroundItemStack = {
@@ -235,9 +236,7 @@ export function updateGroundItemMeshes(host: WebGLOsrsRendererHost, stacks: Clie
                     host.groundItemStackHashes.delete(key);
                 }
 
-                const mapX = key >> 16;
-                let mapY = key & 0xffff;
-                if (mapY & 0x8000) mapY = mapY - 0x10000;
+                const { mapX, mapY } = decodeGroundItemMapId(key);
                 const map = host.mapManager.getMap(mapX, mapY) as WebGLMapSquare | undefined;
                 if (map) {
                     if (host.rebuildGroundItemsForMap(map, next)) {

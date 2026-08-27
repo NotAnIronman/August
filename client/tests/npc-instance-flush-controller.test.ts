@@ -23,19 +23,23 @@ async function staleAppearanceRefreshIsNeverApplied(): Promise<void> {
     const firstGeometry = deferred<any>();
     const instanceSnapshots: number[] = [];
     const appliedGeometry: number[] = [];
+    const geometryContexts: any[] = [];
     let latestTypeId = -1;
     let geometryCalls = 0;
 
     const map = {
+        getRenderBaseTileX: () => 48,
+        getRenderBaseTileY: () => 112,
+        getLocalTileSpan: () => 104,
         refreshNpcGeometry: (...args: any[]) => {
             appliedGeometry.push(args.at(-1).appearanceVersion);
         },
     };
     const mapManager = {
-        currentMapX: 1,
-        currentMapY: 2,
+        currentMapX: -1,
+        currentMapY: -1,
         worldEntityMapIds: new Set<number>(),
-        isMapInCurrentGrid: () => true,
+        isMapInCurrentGrid: () => false,
         getMap: () => map,
         loadMap: () => undefined,
     };
@@ -44,7 +48,8 @@ async function staleAppearanceRefreshIsNeverApplied(): Promise<void> {
             latestTypeId = instances[0]?.typeId ?? -1;
             instanceSnapshots.push(latestTypeId);
         },
-        queueNpcGeometry: () => {
+        queueNpcGeometry: (...args: any[]) => {
+            geometryContexts.push(args[4]);
             geometryCalls++;
             if (geometryCalls === 1) return firstGeometry.promise;
             return Promise.resolve({
@@ -69,6 +74,8 @@ async function staleAppearanceRefreshIsNeverApplied(): Promise<void> {
         maxLevel: 3,
         loadedTextureIds: new Set<number>(),
         updateTextureArray: () => undefined,
+        instanceActive: true,
+        getControlledPlayerWorldViewId: () => 4000,
     };
     const controller = new NpcInstanceFlushController({
         getRenderer: () => renderer,
@@ -104,6 +111,10 @@ async function staleAppearanceRefreshIsNeverApplied(): Promise<void> {
 
     assert.deepEqual(instanceSnapshots, [1, 2]);
     assert.deepEqual(appliedGeometry, [2]);
+    assert.deepEqual(geometryContexts, [
+        { baseTileX: 48, baseTileY: 112, tileSpan: 104, worldViewId: 4000 },
+        { baseTileX: 48, baseTileY: 112, tileSpan: 104, worldViewId: 4000 },
+    ]);
     assert.equal(controller.mapsPendingReload.size, 0);
 }
 
@@ -114,6 +125,8 @@ function serverSpawnRendersBeforeMapBatchRefresh(): void {
         npcEntityIds: [] as number[],
         drawCallNpc: undefined,
         getLocalTileSpan: () => 64,
+        getRenderBaseTileX: () => 50 * 64,
+        getRenderBaseTileY: () => 50 * 64,
     };
     const existingMap = {
         mapX: 51,
@@ -121,6 +134,8 @@ function serverSpawnRendersBeforeMapBatchRefresh(): void {
         npcEntityIds: [2, 3],
         drawCallNpc: {},
         getLocalTileSpan: () => 64,
+        getRenderBaseTileX: () => 51 * 64,
+        getRenderBaseTileY: () => 50 * 64,
     };
     const mapByNpc = new Map<number, any>([
         [1, unbatchedMap],
@@ -135,6 +150,8 @@ function serverSpawnRendersBeforeMapBatchRefresh(): void {
         getMapY: (id: number) => mapByNpc.get(id).mapY,
         getLocalXForMap: (id: number) => 64 + id * 128,
         getLocalYForMap: (id: number) => 192 + id * 128,
+        getWorldX: (id: number) => mapByNpc.get(id).mapX * 8192 + 64 + id * 128,
+        getWorldY: (id: number) => mapByNpc.get(id).mapY * 8192 + 192 + id * 128,
         getLevel: () => 0,
         getRotation: () => 0,
         getServerId: (id: number) => 500 + id,

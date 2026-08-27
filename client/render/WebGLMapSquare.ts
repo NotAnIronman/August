@@ -24,6 +24,7 @@ import type { GroundItemGeometryBuildData } from "./ground/GroundItemMeshBuilder
 import { NpcGeometryData } from "./loader/NpcGeometryData";
 import { type LocGeometryData, SdMapData } from "./loader/SdMapData";
 import { LocAnimated } from "./loc/LocAnimated";
+import { resolveNpcOwnerPlacement } from "./npc/NpcOwnerPlacement";
 
 const FRAME_RENDER_DELAY = 0;
 
@@ -79,68 +80,6 @@ function deleteMapSquareResource(
 ): void {
     if (!resource) return;
     runMapSquareAction(mapX, mapY, label, () => resource.delete());
-}
-
-function getWorldEntityOverlayMapId(worldViewId: number): number {
-    const overlayMapX = 200 + (worldViewId | 0);
-    const overlayMapY = 200 + (worldViewId | 0);
-    return getMapSquareId(overlayMapX, overlayMapY);
-}
-
-function resolveNpcOwnerPlacement(
-    currentMapId: number,
-    currentMapX: number,
-    currentMapY: number,
-    renderBaseTileX: number,
-    renderBaseTileY: number,
-    tileX: number,
-    tileY: number,
-    size: number,
-    worldViewId?: number,
-): {
-    mapX: number;
-    mapY: number;
-    tileX: number;
-    tileY: number;
-    startX: number;
-    startY: number;
-    usesOverlayWorldView: boolean;
-} {
-    const normalizedWorldViewId =
-        typeof worldViewId === "number" && worldViewId >= 0 ? worldViewId | 0 : -1;
-    const overlayMapId =
-        normalizedWorldViewId >= 0 ? getWorldEntityOverlayMapId(normalizedWorldViewId) : -1;
-    const usesOverlayWorldView = normalizedWorldViewId >= 0 && (currentMapId | 0) === overlayMapId;
-
-    if (usesOverlayWorldView) {
-        const worldTileX = (renderBaseTileX + (tileX | 0)) | 0;
-        const worldTileY = (renderBaseTileY + (tileY | 0)) | 0;
-        const mapX = getMapIndexFromTile(worldTileX);
-        const mapY = getMapIndexFromTile(worldTileY);
-        const localTileX = worldTileX & (Scene.MAP_SQUARE_SIZE - 1);
-        const localTileY = worldTileY & (Scene.MAP_SQUARE_SIZE - 1);
-        return {
-            mapX,
-            mapY,
-            tileX: localTileX,
-            tileY: localTileY,
-            startX: (localTileX * 128 + (size | 0) * 64) | 0,
-            startY: (localTileY * 128 + (size | 0) * 64) | 0,
-            usesOverlayWorldView: true,
-        };
-    }
-
-    const localTileX = tileX | 0;
-    const localTileY = tileY | 0;
-    return {
-        mapX: currentMapX | 0,
-        mapY: currentMapY | 0,
-        tileX: localTileX,
-        tileY: localTileY,
-        startX: (localTileX * 128 + (size | 0) * 64) | 0,
-        startY: (localTileY * 128 + (size | 0) * 64) | 0,
-        usesOverlayWorldView: false,
-    };
 }
 
 type DoorGeometryResources = {

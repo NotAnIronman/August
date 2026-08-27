@@ -237,6 +237,7 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
 
         const extraLocs = host.getInstanceExtraLocs(playerMapX, playerMapY);
 
+        const controlledWorldViewId = host.getControlledPlayerWorldViewId();
         const input: SdMapLoaderInput = {
             mapX: playerMapX,
             mapY: playerMapY,
@@ -245,7 +246,12 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
             smoothTerrain: host.smoothTerrain,
             minimizeDrawCalls: !host.hasMultiDraw,
             loadedTextureIds: host.loadedTextureIds,
-            instance: { templateChunks, regionX, regionY },
+            instance: {
+                templateChunks,
+                regionX,
+                regionY,
+                ...(controlledWorldViewId >= 0 ? { worldViewId: controlledWorldViewId } : {}),
+            },
             locOverrides: host.locOverrides,
             terrainOverrides: host.terrainOverrides,
             extraLocs,

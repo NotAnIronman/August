@@ -58,6 +58,8 @@ export type SdMapLoaderInput = {
         templateChunks: number[][][];
         regionX: number;
         regionY: number;
+        /** Private server view to include when NPCs share native world coordinates. */
+        worldViewId?: number;
     };
 
     /**

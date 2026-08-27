@@ -36,7 +36,10 @@ import { SpriteLoader } from "../../rs/sprite/SpriteLoader";
 import { TextureLoader } from "../../rs/texture/TextureLoader";
 import { Hasher } from "../../common/utils/Hasher";
 import { LoadedCache } from "../Caches";
-import { NpcGeometryData } from "../../render/loader/NpcGeometryData";
+import {
+    NpcGeometryData,
+    type NpcGeometryLoadContext,
+} from "../../render/loader/NpcGeometryData";
 import { SdMapDataLoader } from "../../render/loader/SdMapDataLoader";
 import type { NpcInstance } from "../../render/npc/NpcRenderTemplate";
 import { RenderDataLoader, renderDataLoaderSerializer } from "./RenderDataLoader";
@@ -332,6 +335,7 @@ const worker = {
         mapY: number,
         maxLevel: number,
         loadedTextureIds: number[],
+        context?: NpcGeometryLoadContext,
     ): Promise<TransferDescriptor<NpcGeometryData>> {
         const workerState = await workerStatePromise;
         if (!workerState) {
@@ -344,6 +348,7 @@ const worker = {
                 mapY,
                 maxLevel,
                 loadedTextureIds: new Set(loadedTextureIds),
+                ...context,
             }),
         );
 

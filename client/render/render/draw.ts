@@ -200,7 +200,6 @@ export function addNpcRenderData(host: WebGLOsrsRendererHost, map: WebGLMapSquar
         if (host.unifiedActorData) {
             const ids: number[] = map.npcEntityIds as any;
             const ecs = host.osrsClient.npcEcs;
-            const overlayView = host.osrsClient.worldViewManager.getWorldViewByOverlayMapId(map.id);
             const renderBaseTileX = map.getRenderBaseTileX();
             const renderBaseTileY = map.getRenderBaseTileY();
             const mapTileSpan = map.getLocalTileSpan();
@@ -235,19 +234,11 @@ export function addNpcRenderData(host: WebGLOsrsRendererHost, map: WebGLMapSquar
                     host.actorRenderData[offset + 7] = 0;
                     continue;
                 }
-                const npcWorldViewId = ecs.getWorldViewId(id) | 0;
-                let npcX: number;
-                let npcY: number;
-                if (overlayView && (npcWorldViewId | 0) === (overlayView.id | 0)) {
-                    npcX = (ecs.getWorldX(id) - renderBaseTileX * 128) | 0;
-                    npcY = (ecs.getWorldY(id) - renderBaseTileY * 128) | 0;
-                } else {
-                    // NPC geometry ownership can lag one map refresh behind ECS ownership while an NPC
-                    // crosses a 64x64 map-square boundary. Convert from world space back into the
-                    // currently drawn map so the existing draw batch remains stable until refresh.
-                    npcX = ecs.getLocalXForMap(id, map.mapX);
-                    npcY = ecs.getLocalYForMap(id, map.mapY);
-                }
+                // Actor coordinates are owned by a synthetic map-square ID, while
+                // instance meshes can begin on any 8-tile chunk. Always convert
+                // through world space into this mesh's actual render origin.
+                const npcX = (ecs.getWorldX(id) - renderBaseTileX * 128) | 0;
+                const npcY = (ecs.getWorldY(id) - renderBaseTileY * 128) | 0;
                 const localTileX = clamp((npcX >> 7) | 0, 0, Math.max(0, mapTileSpan - 1));
                 const localTileY = clamp((npcY >> 7) | 0, 0, Math.max(0, mapTileSpan - 1));
                 const renderPlane = resolveHeightSamplePlaneForLocal(
@@ -336,8 +327,8 @@ export function addUnbatchedNpcRenderData(host: WebGLOsrsRendererHost): void {
             }
 
             const offset = dataOffset * 8;
-            const npcX = ecs.getLocalXForMap(ecsId, map.mapX) | 0;
-            const npcY = ecs.getLocalYForMap(ecsId, map.mapY) | 0;
+            const npcX = (ecs.getWorldX(ecsId) - map.getRenderBaseTileX() * 128) | 0;
+            const npcY = (ecs.getWorldY(ecsId) - map.getRenderBaseTileY() * 128) | 0;
             const mapTileSpan = map.getLocalTileSpan();
             const localTileX = clamp((npcX >> 7) | 0, 0, Math.max(0, mapTileSpan - 1));
             const localTileY = clamp((npcY >> 7) | 0, 0, Math.max(0, mapTileSpan - 1));

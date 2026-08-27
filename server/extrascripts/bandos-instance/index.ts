@@ -112,7 +112,9 @@ function createBandosInstance(
             sourceBaseX: 2848,
             sourceBaseY: 5328,
             widthChunks: 5,
-            heightChunks: 5,
+            // Include the northern altar and complete back wall. Five chunks
+            // ended at Y=5367 and clipped the top of the native room.
+            heightChunks: 7,
             sourcePlanes: [2],
             destinationChunkX: 4,
             destinationChunkY: 3,

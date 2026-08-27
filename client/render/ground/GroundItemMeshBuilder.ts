@@ -1,7 +1,6 @@
 import { vec3 } from "gl-matrix";
 
 import { ObjModelLoader } from "../../rs/config/objtype/ObjModelLoader";
-import { Scene } from "../../rs/scene/Scene";
 import { TextureLoader } from "../../rs/texture/TextureLoader";
 import type { ClientGroundItemStack } from "../../game/data/ground/GroundItemStore";
 import { resolveHeightSamplePlaneForLocal } from "../../game/scene/PlaneResolver";
@@ -108,14 +107,15 @@ export function buildGroundItemGeometry(
     }
 
     const sceneBuf = new SceneBuffer(textureLoader, textureIdIndexMap, filtered.length * 64);
-    const mapBaseX = map.mapX * Scene.MAP_SQUARE_SIZE;
-    const mapBaseY = map.mapY * Scene.MAP_SQUARE_SIZE;
+    const mapBaseX = map.getRenderBaseTileX();
+    const mapBaseY = map.getRenderBaseTileY();
+    const mapTileSpan = map.getLocalTileSpan();
 
     for (const stack of filtered) {
         const localX = (stack.tile.x | 0) - mapBaseX;
         const localY = (stack.tile.y | 0) - mapBaseY;
-        if (localX < 0 || localX >= Scene.MAP_SQUARE_SIZE) continue;
-        if (localY < 0 || localY >= Scene.MAP_SQUARE_SIZE) continue;
+        if (localX < 0 || localX >= mapTileSpan) continue;
+        if (localY < 0 || localY >= mapTileSpan) continue;
 
         const model = objModelLoader.getModel(stack.itemId | 0, stack.quantity | 0);
         if (!model) continue;

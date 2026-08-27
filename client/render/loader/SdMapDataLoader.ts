@@ -46,7 +46,7 @@ import type {
     NpcRenderTemplate,
 } from "../npc/NpcRenderTemplate";
 import { isKnownWaterTextureId } from "../water/WaterTextureIds";
-import { NpcGeometryData } from "./NpcGeometryData";
+import { NpcGeometryData, type NpcGeometryLoadContext } from "./NpcGeometryData";
 import { type LocGeometryData, type MinimapIcon, SdMapData } from "./SdMapData";
 import { SdMapLoaderInput } from "./SdMapLoaderInput";
 
@@ -1582,6 +1582,12 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
                 if (isInstance) {
                     const instanceBaseX = (instanceInput!.regionX - 6) * CHUNK_SIZE;
                     const instanceBaseY = (instanceInput!.regionY - 6) * CHUNK_SIZE;
+                    if (
+                        Number.isFinite(instanceInput!.worldViewId) &&
+                        (instance.worldViewId ?? -1) !== (instanceInput!.worldViewId as number)
+                    ) {
+                        return false;
+                    }
                     return (
                         instance.x >= instanceBaseX &&
                         instance.x < instanceBaseX + INSTANCE_SIZE &&
@@ -2291,12 +2297,16 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
             mapY,
             maxLevel,
             loadedTextureIds,
+            baseTileX,
+            baseTileY,
+            tileSpan,
+            worldViewId,
         }: {
             mapX: number;
             mapY: number;
             maxLevel: number;
             loadedTextureIds: Set<number>;
-        },
+        } & NpcGeometryLoadContext,
     ): Promise<RenderDataResult<NpcGeometryData>> {
         this.init();
 
@@ -2313,11 +2323,33 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
 
         const borderSize = 6;
         const maxPlane = Math.max(0, maxLevel | 0);
+        const geometryBaseX = Number.isFinite(baseTileX)
+            ? Math.trunc(baseTileX as number)
+            : mapX * Scene.MAP_SQUARE_SIZE;
+        const geometryBaseY = Number.isFinite(baseTileY)
+            ? Math.trunc(baseTileY as number)
+            : mapY * Scene.MAP_SQUARE_SIZE;
+        const geometrySpan = Math.max(
+            1,
+            Number.isFinite(tileSpan) ? Math.trunc(tileSpan as number) : Scene.MAP_SQUARE_SIZE,
+        );
+        const targetWorldViewId = Number.isFinite(worldViewId)
+            ? Math.trunc(worldViewId as number)
+            : undefined;
         const npcInstances = state.npcInstances.filter((instance) => {
             if ((instance.level | 0) > maxPlane) return false;
-            const npcMapX = getMapIndexFromTile(instance.x);
-            const npcMapY = getMapIndexFromTile(instance.y);
-            return npcMapX === mapX && npcMapY === mapY;
+            if (
+                targetWorldViewId !== undefined &&
+                (instance.worldViewId ?? -1) !== targetWorldViewId
+            ) {
+                return false;
+            }
+            return (
+                instance.x >= geometryBaseX &&
+                instance.x < geometryBaseX + geometrySpan &&
+                instance.y >= geometryBaseY &&
+                instance.y < geometryBaseY + geometrySpan
+            );
         });
 
         const { npcSceneBuf, npcs } = buildNpcGeometry(
@@ -2326,8 +2358,8 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
             textureLoader,
             textureIdIndexMap,
             npcInstances,
-            mapX * Scene.MAP_SQUARE_SIZE,
-            mapY * Scene.MAP_SQUARE_SIZE,
+            geometryBaseX,
+            geometryBaseY,
         );
 
         const vertices = npcSceneBuf.vertexBuf.byteArray();

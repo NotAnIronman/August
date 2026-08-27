@@ -172,7 +172,9 @@ export class NpcInstanceFlushController {
             !!renderer.sceneUniformBuffer;
         const mapManager = renderer?.mapManager as MapManager<any> | undefined;
         const mapManagerReady =
-            !!mapManager && (mapManager.currentMapX | 0) >= 0 && (mapManager.currentMapY | 0) >= 0;
+            !!mapManager &&
+            (renderer.instanceActive ||
+                ((mapManager.currentMapX | 0) >= 0 && (mapManager.currentMapY | 0) >= 0));
 
         if (!rendererReady || !mapManagerReady) {
             for (const mapId of pending) this.mapsPendingReload.add(mapId);
@@ -196,7 +198,12 @@ export class NpcInstanceFlushController {
             const mapY = mapId & 0xff;
 
             const isWorldEntityOverlay = mapManager.worldEntityMapIds.has(mapId);
-            if (!isWorldEntityOverlay && !mapManager.isMapInCurrentGrid(mapX, mapY)) {
+            const isPrivateInstanceMap = renderer.instanceActive && !isWorldEntityOverlay;
+            if (
+                !isWorldEntityOverlay &&
+                !isPrivateInstanceMap &&
+                !mapManager.isMapInCurrentGrid(mapX, mapY)
+            ) {
                 remaining.add(mapId);
                 continue;
             }
@@ -208,6 +215,18 @@ export class NpcInstanceFlushController {
                 continue;
             }
 
+            const controlledWorldViewId = isPrivateInstanceMap
+                ? (renderer.getControlledPlayerWorldViewId?.() ?? -1) | 0
+                : -1;
+            const geometryContext = isPrivateInstanceMap
+                ? {
+                      baseTileX: map.getRenderBaseTileX(),
+                      baseTileY: map.getRenderBaseTileY(),
+                      tileSpan: map.getLocalTileSpan(),
+                      ...(controlledWorldViewId >= 0 ? { worldViewId: controlledWorldViewId } : {}),
+                  }
+                : undefined;
+
             geometryPromises.push(
                 (async () => {
                     try {
@@ -216,6 +235,7 @@ export class NpcInstanceFlushController {
                             mapY,
                             renderer.maxLevel ?? 3,
                             Array.from(renderer.loadedTextureIds ?? []),
+                            geometryContext,
                         );
                         if (!npcGeometry) return { mapId, status: "retry" as const };
 
