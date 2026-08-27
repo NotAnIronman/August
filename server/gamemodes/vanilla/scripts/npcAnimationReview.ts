@@ -16,6 +16,7 @@ import { openUiPanel, sendUiFooterButton, sendUiMenuButtons } from "../uikit/pan
  */
 const CANDIDATE_SOURCE = "OpenOSRS service-animations observed sequence data";
 const PREVIEW_LIFETIME_TICKS = 6_000;
+const PREVIEW_DISTANCE_TILES = 8;
 
 type CombatAnimationRole =
     | "attack"
@@ -241,10 +242,11 @@ export function registerNpcAnimationReviewCommands(
 
             const preview = services.npc.spawnNpc({
                 id: requestedNpcId,
-                x: player.tileX + 1,
+                x: player.tileX + PREVIEW_DISTANCE_TILES,
                 y: player.tileY,
                 level: player.level,
                 wanderRadius: 0,
+                isAggressive: false,
                 worldViewId: player.worldViewId,
                 ownerPlayerId: player.id,
                 lifetimeTicks: PREVIEW_LIFETIME_TICKS,

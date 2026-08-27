@@ -339,9 +339,13 @@ export class NpcManager {
         const combatLevel = npcType.combatLevel ?? -1;
         // Attack speed is stored in cache param 14
         const attackSpeed = this.deriveAttackSpeed(npcType, npcCombatStats);
-        // Prefer server-authored combat stats for aggression metadata when present.
-        const isAggressive = this.deriveIsAggressive(npcType, npcCombatStats);
-        const aggressionRadius = this.deriveAggressionRadius(npcCombatStats, isAggressive);
+        // Preview/quest spawns may explicitly opt out of aggression. Normal
+        // map spawns still derive their behavior from data as before.
+        const isAggressive =
+            spawn.isAggressive ?? this.deriveIsAggressive(npcType, npcCombatStats);
+        const aggressionRadius = isAggressive
+            ? this.deriveAggressionRadius(npcCombatStats, isAggressive)
+            : 0;
         const aggressionToleranceTicks = this.deriveAggressionToleranceTicks(npcCombatStats);
         const aggressionSearchDelayTicks = this.deriveAggressionSearchDelayTicks(npcCombatStats);
         // Load combat profile (stats, bonuses, species) - logged warning if missing

@@ -11,20 +11,23 @@ registerUiPanel({
     groupId: NPC_ANIMATION_REVIEW_PANEL_GROUP_ID,
     build: () =>
         buildUiPanel(NPC_ANIMATION_REVIEW_PANEL_GROUP_ID, {
-            width: 520,
-            height: 390,
+            // Keep the test NPC visible behind the panel. This is a compact
+            // developer palette, not a full-screen game interface.
+            width: 360,
+            height: 248,
             content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
             menuButtons: {
                 columns: 2,
                 rows: 4,
-                buttonHeight: 58,
-                gap: 8,
-                iconSize: 36,
+                buttonHeight: 36,
+                gap: 4,
+                iconSize: 26,
                 maxHeightFraction: 0.78,
-                maxWidthFraction: 0.82,
+                maxWidthFraction: 0.9,
                 backgroundAsset: "cache.sprite.293.0",
                 backgroundHoverAsset: "cache.sprite.294.0",
             },
             footerButton: true,
+            inputCapture: false,
         }),
 });

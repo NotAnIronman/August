@@ -134,6 +134,8 @@ export interface NpcSpawnConfig {
     level: number;
     wanderRadius?: number;
     direction?: number;
+    /** Optional override for transient/developer NPCs that must not auto-attack. */
+    isAggressive?: boolean;
     /** Server-authored HealthBarDefinition id (HIT_MASK). Defaults to 0. */
     healthBarDefId?: number;
     /** World view this NPC belongs to. -1 is the top-level world. */
