@@ -121,7 +121,7 @@ Venenatis - 6610 ✅
 
 Callisto - 6609 
 
-Demonic Brutus	- 15628
+Demonic Brutus	- 15628 / 15629
 
 Obor - 7416 ✅
 
@@ -133,106 +133,114 @@ Branda - 12596 / 14148
 
 Doom of Mokhaiotl - 14707
 
-Mad Angel - 16305 / Not in server
+Mad Angel - 16305-16312 / 16314-16315 / Not in August cache revision 237
 
-Zulrah	- 
+Zulrah	- 2042 / 2043 / 2044 (all three forms reviewed below) ✅
 Serpentine - 2042 ✅
 Magma - 2043 ✅
 Tanzanite - 2044 ✅
 
 Vorkath	- 8061 ✅
 
-Phantom Muspah	- 
+Phantom Muspah	- 12077 / 12078 / 12079 / 12080 / 12082
 Melee - 12078
 Ranged - 12077
 Teleporting - 12082
 Shield - 12079
 
-Maggot King - 15741 / Not in server
+Maggot King - 15742 / Not in August cache revision 237
 
-Phosani's Nightmare - 9416 thru 9424
+Phosani's Nightmare - 9416 thru 9424 (11153-11155 are later variants)
 
 Yama - 14176
 
-Duke Sucellus - 12191
+Duke Sucellus - 12191 thru 12196 (12166 / 12167 auxiliary forms)
 
-The Leviathan - 12214
+The Leviathan - 12214 / 12215 / 12219
 
-The Whisperer - 12204
+The Whisperer - 12204 thru 12207
 
-Vardorvis - 12223
+Vardorvis - 12223 / 12224 / 12228 (12425 / 12426 auxiliary forms)
 
-The Mimic	
+The Mimic - 8633 (7979 is the challenge NPC)
 
-Hespori	
+Hespori - 8583 (11192 is a later variant)
 
-Skotizo	
+Skotizo - 7286
 
-Shellbane gryphon	
+Shellbane gryphon - 14860 / 15010
 
-Grotesque Guardians	
+Grotesque Guardians - Dawn: 7850 / 7852 / 7853 / 7884 / 7885; Dusk: 7849 / 7851 / 7854 / 7855 / 7882-7889
 
-Abyssal Sire	
+Abyssal Sire - 5886 thru 5891 / 5908
 
-Kraken	
+Kraken - 494
 
-Cerberus	
+Cerberus - 5862 / 5863 / 5866
 
-Araxxor	
+Araxxor - 13668 (13669 is the defeated/harvest form)
 
-Thermonuclear smoke devil	
+Thermonuclear smoke devil - 499
 
-Alchemical Hydra	
+Alchemical Hydra - 8615 thru 8622 / 8634
 
-Crystalline Hunllef	
+Crystalline Hunllef - 9021 thru 9024
 
-Corrupted Hunllef	
+Corrupted Hunllef - 9035 thru 9038
 
-TzTok-Jad	
+TzTok-Jad - 3127
 
-TzKal-Zuk	
+TzKal-Zuk - 7706
 
-Sol Heredit	
+Sol Heredit - 12821 / 12827
 
-Tempoross	
+Tempoross - 10572 / 10574 / 10575
 
-Wintertodt	
+Wintertodt - Not an NPC; the encounter is driven by environment/objects
 
-Zalcano	
+Zalcano - 9049 / 9050
 
-Tekton	
+Tekton - 7540 / 7541 / 7542 / 7545
 
-Vanguard	
+Vanguard - 7525 thru 7529
 
-Vespula	
+Vespula - 7530 / 7531 / 7532
 
-Vasa Nistirio	
+Vasa Nistirio - 7566 / 7567
 
-Muttadile	
+Muttadile - 7561 / 7562 / 7563
 
-Great Olm	
+Great Olm - 7551 / 7554; right claws 7550 / 7553; left claws 7552 / 7555
 
-The Maiden of Sugadinti	
+The Maiden of Sugadinti - 8360 thru 8365
 
-Pestilent Bloat	
+Pestilent Bloat - 8359
 
-Nylocas Vasilias	
+Nylocas Vasilias - 8354 thru 8357
 
-Sotetseg	
+Sotetseg - 8387 / 8388
 
-Xarpus	
+Xarpus - 8338 thru 8341
 
-Verzik Vitur	
+Verzik Vitur - 8370 thru 8375
 
-Akkha	
+Akkha - 11789 thru 11796
 
-Ba-Ba	
+Ba-Ba - 11778 / 11779 / 11780
 
-Kephri	
+Kephri - 11719 thru 11722
 
-Zebak	
+Zebak - 11730 / 11732 / 11733
 
-Tumeken's Warden	
+Tumeken's Warden - 11747 / 11749 / 11756-11758 / 11760 / 11762 / 11764
 
-Elidinis' Warden	
+Elidinis' Warden - 11746 / 11748 / 11753-11755 / 11759 / 11761 / 11763
+
+
+Historical animation research:
+- Full human-readable candidate lists: NPC Animation Batches.md
+- Machine-readable source report: server/data/reports/unresolved-npc-historical-animation-batches.json
+- ::npcreview now loads these historical candidates automatically for the listed NPC IDs.
+- Candidate order is newly-added sequences first, then modified legacy sequences, then the old observed candidates.
+- Do not add a checkmark until the animations have been visually reviewed and mapped to roles.
 

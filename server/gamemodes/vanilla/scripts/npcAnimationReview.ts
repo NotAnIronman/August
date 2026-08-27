@@ -14,7 +14,7 @@ import { openUiPanel, sendUiFooterButton, sendUiMenuButtons } from "../uikit/pan
  * They are observations, not labelled combat roles: never load them as live
  * combat definitions without reviewing them in-game first.
  */
-const CANDIDATE_SOURCE = "OpenOSRS service-animations observed sequence data";
+const CANDIDATE_SOURCE = "historical cache + OpenOSRS observed sequence data";
 const PREVIEW_LIFETIME_TICKS = 6_000;
 const PREVIEW_DISTANCE_TILES = 8;
 // The old combat-definitions file used this as the broad humanoid fallback.
@@ -85,30 +85,107 @@ function parseSequenceId(value: string | undefined): number | undefined {
     return Number.isFinite(id) && id >= 0 ? id : undefined;
 }
 
-function readCandidates(npcTypeId: number): number[] {
+function readCandidateArray(value: unknown): number[] {
+    if (!Array.isArray(value)) return [];
+    const seen = new Set<number>();
+    return value.filter((candidate): candidate is number => {
+        if (
+            typeof candidate !== "number" ||
+            !Number.isInteger(candidate) ||
+            candidate < 0 ||
+            seen.has(candidate)
+        ) {
+            return false;
+        }
+        seen.add(candidate);
+        return true;
+    });
+}
+
+function readObservedCandidates(npcTypeId: number): number[] {
     try {
         const raw = JSON.parse(
             fs.readFileSync(resolveDataPath("npc-animation-candidates.json"), "utf8"),
         ) as Record<string, unknown>;
-        const values = raw[String(npcTypeId)];
-        if (!Array.isArray(values)) return [];
-
-        const seen = new Set<number>();
-        return values.filter((value): value is number => {
-            if (
-                typeof value !== "number" ||
-                !Number.isInteger(value) ||
-                value < 0 ||
-                seen.has(value)
-            ) {
-                return false;
-            }
-            seen.add(value);
-            return true;
-        });
+        return readCandidateArray(raw[String(npcTypeId)]);
     } catch {
         return [];
     }
+}
+
+type HistoricalCandidateReport = {
+    targets?: Array<{
+        suppliedNpcIds?: unknown;
+        sequenceWindow?: unknown;
+        rankedAugustNewCandidates?: unknown;
+        rankedAugustModifiedCandidates?: unknown;
+    }>;
+    windows?: Record<
+        string,
+        {
+            augustNewCandidates?: unknown;
+            augustModifiedCandidates?: unknown;
+        }
+    >;
+};
+
+let historicalReportCache:
+    | { path: string; modifiedAtMs: number; report: HistoricalCandidateReport }
+    | undefined;
+
+function loadHistoricalCandidateReport(): HistoricalCandidateReport {
+    const reportPath = resolveDataPath(
+        "reports/unresolved-npc-historical-animation-batches.json",
+    );
+    const modifiedAtMs = fs.statSync(reportPath).mtimeMs;
+    if (
+        historicalReportCache?.path === reportPath &&
+        historicalReportCache.modifiedAtMs === modifiedAtMs
+    ) {
+        return historicalReportCache.report;
+    }
+    const report = JSON.parse(
+        fs.readFileSync(reportPath, "utf8"),
+    ) as HistoricalCandidateReport;
+    historicalReportCache = { path: reportPath, modifiedAtMs, report };
+    return report;
+}
+
+function readHistoricalCandidates(npcTypeId: number): number[] {
+    try {
+        const report = loadHistoricalCandidateReport();
+        const target = report.targets?.find(
+            (entry) =>
+                readCandidateArray(entry.suppliedNpcIds).includes(npcTypeId) &&
+                typeof entry.sequenceWindow === "string",
+        );
+        if (!target || typeof target.sequenceWindow !== "string") return [];
+        const targetRanked = [
+            ...readCandidateArray(target.rankedAugustNewCandidates),
+            ...readCandidateArray(target.rankedAugustModifiedCandidates),
+        ];
+        if (targetRanked.length > 0) return targetRanked;
+        const window = report.windows?.[target.sequenceWindow];
+        if (!window) return [];
+        return [
+            ...readCandidateArray(window.augustNewCandidates),
+            ...readCandidateArray(window.augustModifiedCandidates),
+        ];
+    } catch {
+        return [];
+    }
+}
+
+function readCandidates(npcTypeId: number): number[] {
+    const seen = new Set<number>();
+    return [
+        ...readHistoricalCandidates(npcTypeId),
+        ...readObservedCandidates(npcTypeId),
+    ].filter((candidate) => {
+        if (seen.has(candidate)) return false;
+        seen.add(candidate);
+        return true;
+    });
 }
 
 function getPreviewNpc(
