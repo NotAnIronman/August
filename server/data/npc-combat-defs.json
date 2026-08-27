@@ -1,6 +1,14 @@
 {
   "$comment": "NPC combat definitions - server-side only. Client loads animations dynamically.",
   "npcs": {
+    "1": {
+      "anims": {
+        "melee": 6012,
+        "attack": 6012,
+        "block": 6013,
+        "death": 6014
+      }
+    },
     "73": {
       "name": "Skeleton",
       "anims": {
@@ -44,6 +52,40 @@
           81,
           82
         ]
+      }
+    },
+    "406": {
+      "anims": {
+        "block": 1504,
+        "attack": 227,
+        "death": 228
+      }
+    },
+    "410": {
+      "anims": {
+        "block": 1514,
+        "attack": 1512,
+        "death": 1513
+      }
+    },
+    "421": {
+      "anims": {
+        "block": 1565,
+        "attack": 1567,
+        "death": 1568
+      }
+    },
+    "468": {
+      "anims": {
+        "block": 2983,
+        "melee": 2989,
+        "attack": 2989,
+        "magic": 2985,
+        "ranged": 2988,
+        "specials": [
+          2986
+        ],
+        "death": 2987
       }
     },
     "494": {
@@ -166,6 +208,19 @@
         "death": 6190
       }
     },
+    "963": {
+      "anims": {
+        "magic": 1172,
+        "attack": 6241,
+        "ranged": 6240,
+        "melee": 6241,
+        "block": 6232,
+        "specials": [
+          1185
+        ],
+        "death": 6242
+      }
+    },
     "1020": {
       "name": "Rat",
       "anims": {
@@ -258,6 +313,25 @@
         "attack": 5338,
         "block": 5337,
         "death": 5336
+      }
+    },
+    "1539": {
+      "anims": {
+        "melee": 2067,
+        "attack": 2067
+      }
+    },
+    "1672": {
+      "anims": {
+        "block": 2079,
+        "magic": 1163,
+        "attack": 1164,
+        "death": 836
+      }
+    },
+    "1675": {
+      "anims": {
+        "death": 836
       }
     },
     "1679": {
@@ -776,6 +850,38 @@
         "attack": 4933,
         "block": 4934,
         "death": 4935
+      }
+    },
+    "2918": {
+      "anims": {
+        "magic": 6722,
+        "attack": 80,
+        "specials": [
+          81
+        ],
+        "melee": 80,
+        "block": 89,
+        "death": 92
+      }
+    },
+    "2919": {
+      "anims": {
+        "magic": 6722,
+        "attack": 80,
+        "melee": 80,
+        "block": 89,
+        "specials": [
+          81
+        ],
+        "death": 92
+      }
+    },
+    "2920": {
+      "anims": {
+        "block": 3238,
+        "melee": 2067,
+        "attack": 2067,
+        "death": 836
       }
     },
     "3014": {
@@ -1876,17 +1982,31 @@
     "7221": {
       "name": "Scurrius",
       "anims": {
-        "attack": 422,
+        "attack": 10693,
         "block": 424,
-        "death": 10705
+        "death": 10705,
+        "melee": 10692,
+        "ranged": 10695,
+        "magic": 10696,
+        "specials": [
+          10698,
+          10700
+        ]
       }
     },
     "7222": {
       "name": "Scurrius",
       "anims": {
-        "attack": 422,
+        "attack": 10692,
         "block": 424,
-        "death": 10705
+        "death": 10705,
+        "melee": 10692,
+        "ranged": 10694,
+        "magic": 10696,
+        "specials": [
+          10698,
+          10700
+        ]
       }
     },
     "7223": {
@@ -1903,6 +2023,84 @@
         "attack": 4933,
         "block": 4934,
         "death": 4935
+      }
+    },
+    "7241": {
+      "anims": {
+        "specials": [
+          2309
+        ],
+        "melee": 1537,
+        "attack": 1537,
+        "death": 1538
+      }
+    },
+    "7256": {
+      "anims": {
+        "melee": 6562,
+        "attack": 6562,
+        "block": 6566,
+        "death": 6576
+      }
+    },
+    "7263": {
+      "anims": {
+        "block": 5533,
+        "melee": 5532,
+        "attack": 5532,
+        "death": 5534
+      }
+    },
+    "7265": {
+      "anims": {
+        "block": 5489,
+        "melee": 5485,
+        "attack": 5485,
+        "death": 5491
+      }
+    },
+    "7273": {
+      "anims": {
+        "block": 89,
+        "magic": 6722,
+        "attack": 80,
+        "specials": [
+          81
+        ],
+        "death": 92,
+        "melee": 80
+      }
+    },
+    "7274": {
+      "anims": {
+        "magic": 6722,
+        "attack": 80,
+        "specials": [
+          81
+        ],
+        "block": 89,
+        "death": 92,
+        "melee": 80
+      }
+    },
+    "7275": {
+      "anims": {
+        "magic": 6722,
+        "attack": 80,
+        "specials": [
+          81
+        ],
+        "block": 89,
+        "death": 92,
+        "melee": 80
+      }
+    },
+    "7276": {
+      "anims": {
+        "melee": 1552,
+        "attack": 1552,
+        "block": 1550,
+        "death": 1553
       }
     },
     "7281": {
@@ -1976,6 +2174,15 @@
       },
       "sounds": {
         "death": 512
+      }
+    },
+    "8195": {
+      "anims": {
+        "magic": 7173,
+        "attack": 4658,
+        "block": 4657,
+        "melee": 4658,
+        "death": 4659
       }
     },
     "8700": {
@@ -2279,6 +2486,17 @@
         "attack": 433,
         "block": 434,
         "death": 836
+      }
+    },
+    "11998": {
+      "anims": {
+        "melee": 9991,
+        "attack": 9989,
+        "block": 9990,
+        "death": 9992,
+        "specials": [
+          9993
+        ]
       }
     },
     "13624": {
