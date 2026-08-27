@@ -53,13 +53,10 @@ function buildImportedLookup(): ImportedLookup {
     // level variant would make a perfectly valid table look ambiguous.
     const byNameAndCombat = new Map<string, Map<string, NpcDropTable>>();
     for (const entry of loadMonstersCompleteDefinitions()) {
-        // Wiki-imported pages are only allowed into runtime once every parsed
-        // item/rate row is cache-backed. A partial table is more dangerous
-        // than an absent one: it can silently create incorrect drops.
-        if (entry.source === "wiki" && entry.incomplete) continue;
-        // The bootstrap reference marks many otherwise-usable rows as incomplete.
-        // Keep them available until a manual override replaces them.
-        if (entry.duplicate) continue;
+        // Retain verified rows from a current Wiki page even if a few unusual
+        // items or shared tables still need a later import pass. The record is
+        // exact to this cache NPC ID, which is safer than falling back to an
+        // older name-only table or showing no baseline table at all.
         const table = resolveDropTable(entry.table);
         if (!table) continue;
         const nameKey = normalizeName(entry.name);
@@ -68,6 +65,10 @@ function buildImportedLookup(): ImportedLookup {
         if (entry.npcTypeId !== undefined && !byNpcTypeId.has(entry.npcTypeId)) {
             byNpcTypeId.set(entry.npcTypeId, { name: entry.name, table });
         }
+        // Duplicate legacy rows are still useful for an exact NPC ID: get()
+        // validates the live cache name before accepting them. Keep them out
+        // of name-based fallback, where a duplicate would be ambiguous.
+        if (entry.duplicate) continue;
         if (!exact.has(combatKey)) exact.set(combatKey, table);
         const bucket = byNameAndCombat.get(nameKey) ?? new Map<string, NpcDropTable>();
         if (!bucket.has(combatKey)) bucket.set(combatKey, table);

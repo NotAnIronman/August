@@ -31,6 +31,7 @@ type WikiDropSnapshot = {
         npcTypeId?: number;
         name?: string;
         source?: "wiki";
+        incomplete?: boolean;
         table?: ImportedMonsterDefinition["table"];
     }>;
 };
@@ -110,7 +111,11 @@ function toEntry(drop: RawMonsterDrop): NpcDropEntryDefinition | undefined {
     return {
         itemId: drop.id ?? -1,
         quantity: drop.quantity ?? "1",
-        rarity: (drop.rarity ?? 0) * Math.max(1, drop.rolls ?? 1),
+        // `rolls` is the source table's roll count, not a probability
+        // multiplier. Multiplying it made a 31% drop with three rolls appear
+        // as a 94% (1/1) drop. Legacy records retain their per-roll rate;
+        // current Wiki imports preserve a shared pool roll count explicitly.
+        rarity: drop.rarity ?? 0,
     };
 }
 
@@ -250,6 +255,7 @@ function loadWikiSnapshotDefinitions(sourcePath: string): ImportedMonsterDefinit
                 npcTypeId,
                 name,
                 source: "wiki",
+                incomplete: record.incomplete === true,
                 table: normalizeWikiDropTable(record.table),
             };
         })
@@ -263,15 +269,27 @@ function loadWikiSnapshotDefinitions(sourcePath: string): ImportedMonsterDefinit
  * one death. Only the labelled tertiary table is an independent roll.
  */
 function normalizeWikiDropTable(table: NpcDropTableDefinition): NpcDropTableDefinition {
-    const weightedEntries = (table.pools ?? [])
-        .filter((pool) => pool.kind === "weighted")
-        .flatMap((pool) => pool.entries);
+    const weightedPools = (table.pools ?? []).filter((pool) => pool.kind === "weighted");
+    const weightedEntries = weightedPools.flatMap((pool) => pool.entries);
+    const weightedRollCounts = new Set(weightedPools.map((pool) => Math.max(1, pool.rolls ?? 1)));
+    // Most tables, such as Zulrah's, declare one roll count for every normal
+    // subheading. Preserve it so the roll service performs the same number of
+    // main-table rolls. Mixed counts need a later special-table rule, so keep
+    // one roll rather than inventing extra loot rolls.
+    const weightedRolls = weightedRollCounts.size === 1 ? [...weightedRollCounts][0] : 1;
     const independentPools = (table.pools ?? []).filter((pool) => pool.kind === "independent");
     return {
         always: table.always,
         pools: [
             ...(weightedEntries.length > 0
-                ? [{ kind: "weighted" as const, category: "main" as const, entries: weightedEntries }]
+                ? [
+                      {
+                          kind: "weighted" as const,
+                          category: "main" as const,
+                          rolls: weightedRolls,
+                          entries: weightedEntries,
+                      },
+                  ]
                 : []),
             ...independentPools,
         ],
