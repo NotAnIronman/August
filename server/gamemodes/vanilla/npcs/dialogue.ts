@@ -14,6 +14,7 @@ import {
     type PlayerDialogueStep,
     choose,
     option,
+    pooled,
     run,
     sayNpc,
     sayPlayer,
@@ -32,7 +33,7 @@ export type {
     PlayerDialogueStep,
 };
 
-export { choose, option, run, sayNpc, sayPlayer, startConversation };
+export { choose, option, pooled, run, sayNpc, sayPlayer, startConversation };
 
 export type BankOpenMode = "bank" | "collect";
 

@@ -279,7 +279,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerDoorHandlers(registry, services);
         registerBoatTravelHandlers(registry);
         // Specific Talk-to scripts before the global fallback.
-        registerNpcDialogueHandlers(registry);
+        registerNpcDialogueHandlers(registry, services);
         registerLumbridgeAreaHandlers(registry);
         registerWizardTowerAreaHandlers(registry);
         registerFaladorAreaHandlers(registry);

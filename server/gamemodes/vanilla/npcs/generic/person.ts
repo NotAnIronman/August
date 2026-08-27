@@ -4,6 +4,7 @@ import {
     choose,
     giveItems,
     option,
+    pooled,
     sayNpc,
     sayPlayer,
 } from "../dialogue";
@@ -101,8 +102,10 @@ function personDialogue(event: NpcInteractionEvent): void {
         return;
     }
 
-    const branch = RANDOM_REPLIES[Math.floor(Math.random() * RANDOM_REPLIES.length)]!;
-    startNpcConversation(event, [sayPlayer("Hello, how's it going?"), ...branch]);
+    startNpcConversation(event, [
+        sayPlayer("Hello, how's it going?"),
+        pooled(RANDOM_REPLIES),
+    ]);
 }
 
 /**

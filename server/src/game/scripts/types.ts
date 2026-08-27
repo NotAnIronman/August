@@ -685,4 +685,6 @@ export interface ScriptServices extends GatheringServices {
     // see wsServer.ts initServiceWiring. Powers ::editdialogue/::setdialogue
     // and the ::dev Dialogue Editor tab.
     dialogueOverrideStore?: import("../dialogue/DialogueOverrideStore").DialogueOverrideStore;
+    /** Trusted handlers callable from persisted dialogue `invoke` actions. */
+    dialogueActions?: import("../dialogue/DialogueActionRegistry").DialogueActionRegistry;
 }

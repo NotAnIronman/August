@@ -17,6 +17,7 @@ export type { DialogueExec, DialogueOption } from "../quests/dialogue";
 export {
     choose,
     option,
+    pooled,
     run,
     sayNpc,
     sayPlayer,

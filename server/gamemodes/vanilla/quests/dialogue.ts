@@ -35,6 +35,8 @@ export type NpcDialogueStep = {
 export type PlayerDialogueStep = { player: string[]; animationId?: number };
 export type OptionsDialogueStep = { options: DialogueOption[]; title?: string };
 export type ExecDialogueStep = { exec: DialogueExec };
+export type PooledDialogueEntry = { steps: DialogueStep[]; weight?: number };
+export type PooledDialogueStep = { pool: PooledDialogueEntry[] };
 export type ItemDialogueStep = {
     item: { itemId: number; quantity?: number; title?: string; lines: string[] };
 };
@@ -54,6 +56,7 @@ export type DialogueStep =
     | PlayerDialogueStep
     | OptionsDialogueStep
     | ExecDialogueStep
+    | PooledDialogueStep
     | ItemDialogueStep
     | DoubleItemDialogueStep;
 
@@ -84,6 +87,22 @@ export function sayPlayer(
 /** Run a typed side-effect mid-conversation (open shop/bank, grant items, …). */
 export function run(exec: DialogueExec): ExecDialogueStep {
     return { exec };
+}
+
+/** Select one conversation at runtime; weights default to 1. */
+export function pooled(
+    conversations: readonly (readonly DialogueStep[] | PooledDialogueEntry)[],
+): PooledDialogueStep {
+    return {
+        pool: conversations.map((entry) =>
+            Array.isArray(entry)
+                ? { steps: [...entry] }
+                : {
+                    steps: [...(entry as PooledDialogueEntry).steps],
+                    weight: (entry as PooledDialogueEntry).weight,
+                },
+        ),
+    };
 }
 
 /** A single option-menu entry. */
@@ -156,6 +175,25 @@ function playSteps(ctx: DialogueContext, steps: DialogueStep[]): void {
         return;
     }
     const rest = steps.slice(1);
+
+    if ("pool" in step) {
+        const totalWeight = step.pool.reduce((sum, entry) => sum + (entry.weight ?? 1), 0);
+        if (step.pool.length === 0 || totalWeight <= 0) {
+            playSteps(ctx, rest);
+            return;
+        }
+        let cursor = Math.random() * totalWeight;
+        let selected = step.pool[step.pool.length - 1]!;
+        for (const entry of step.pool) {
+            cursor -= entry.weight ?? 1;
+            if (cursor < 0) {
+                selected = entry;
+                break;
+            }
+        }
+        playSteps(ctx, [...selected.steps, ...rest]);
+        return;
+    }
 
     if ("exec" in step) {
         step.exec(ctx);

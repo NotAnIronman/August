@@ -8,8 +8,10 @@ import type { PlayerState } from "../player";
 import type { ScriptServices } from "../scripts/types";
 import {
     compareDialogueValues,
+    selectWeightedDialoguePoolEntry,
     type DialogueCondition,
     type DialogueOption,
+    type DialoguePoolEntry,
     type DialogueStep,
     type DialogueTree,
 } from "./DialogueTree";
@@ -76,6 +78,18 @@ function visibleOptions(
     );
 }
 
+export function selectDialoguePoolEntry(
+    services: ScriptServices,
+    player: PlayerState,
+    entries: readonly DialoguePoolEntry[],
+    random: () => number = Math.random,
+): DialoguePoolEntry | undefined {
+    const eligible = entries.filter(
+        (entry) => !entry.condition || evaluateDialogueCondition(services, player, entry.condition),
+    );
+    return selectWeightedDialoguePoolEntry(eligible, random);
+}
+
 /**
  * Plays a DialogueTree for one player. Each "line" step opens a dialog and
  * waits for Continue before moving to the next step; each "options" step
@@ -133,8 +147,42 @@ function playSteps(
             services.quests?.setStage(player, step.action.questKey, step.action.value);
         } else if (step.action.type === "giveItem") {
             services.inventory.addItemToInventory(player, step.action.itemId, step.action.quantity);
+        } else if (step.action.type === "invoke") {
+            try {
+                const result = services.dialogueActions?.invoke(step.action.key, {
+                    player,
+                    services,
+                    npcId: npc.npcId,
+                    npcName: npc.npcName,
+                    args: step.action.args ?? {},
+                });
+                if (!services.dialogueActions) {
+                    throw new Error("dialogue action registry is not available");
+                }
+                if (result === "stop") {
+                    onFinished?.();
+                    return;
+                }
+            } catch (error) {
+                services.system.logger.warn?.(
+                    `[dialogue] action '${step.action.key}' failed for npc=${npc.npcId}`,
+                    error,
+                );
+                onFinished?.();
+                return;
+            }
         }
         next();
+        return;
+    }
+
+    if (step.kind === "pool") {
+        const picked = selectDialoguePoolEntry(services, player, step.entries);
+        if (!picked) {
+            next();
+            return;
+        }
+        playSteps(dialog, services, player, npc, picked.steps, 0, next);
         return;
     }
 
@@ -155,7 +203,7 @@ function playSteps(
                 next();
                 return;
             }
-            playSteps(dialog, services, player, npc, picked.steps, 0, onFinished);
+            playSteps(dialog, services, player, npc, picked.steps, 0, next);
         },
     };
     dialog.openDialogOptions(player, request);

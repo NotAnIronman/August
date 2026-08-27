@@ -1,0 +1,592 @@
+{
+  "format": "august-wiki-dialogue-draft-v1",
+  "source": {
+    "pageTitle": "Transcript:Man",
+    "displayTitle": "Dialogue for Man",
+    "revisionId": 15279962,
+    "url": "https://oldschool.runescape.wiki/w/Transcript:Man",
+    "retrievedAt": "2026-08-27T13:22:07.595Z"
+  },
+  "notice": "Draft generated from an OSRS Wiki transcript. Review unresolved hooks and verify dialogue in-game before promoting it to runtime content. Transcript text is copied from Old School RuneScape and attributed by the source page.",
+  "sections": [
+    {
+      "heading": "Standard dialogue",
+      "status": "needs-review",
+      "tree": {
+        "steps": [
+          {
+            "kind": "pool",
+            "entries": [
+              {
+                "id": "Dialogue 1",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Not too bad, but I'm a little worried about the increase of goblins these days."
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Don't worry, I'll kill them."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 2",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "How can I help you?"
+                    ]
+                  },
+                  {
+                    "kind": "options",
+                    "options": [
+                      {
+                        "label": "Do you want to trade?",
+                        "steps": [
+                          {
+                            "kind": "line",
+                            "speaker": "player",
+                            "text": [
+                              "Do you want to trade?"
+                            ]
+                          },
+                          {
+                            "kind": "line",
+                            "speaker": "npc",
+                            "text": [
+                              "No, I have nothing I wish to get rid of. If you want to do some trading, there are plenty of shops and market stalls around though."
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "label": "I'm in search of a quest.",
+                        "steps": [
+                          {
+                            "kind": "line",
+                            "speaker": "player",
+                            "text": [
+                              "I'm in search of a quest."
+                            ]
+                          },
+                          {
+                            "kind": "line",
+                            "speaker": "npc",
+                            "text": [
+                              "I'm sorry I can't help you there."
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "label": "I'm in search of enemies to kill.",
+                        "steps": [
+                          {
+                            "kind": "line",
+                            "speaker": "player",
+                            "text": [
+                              "I'm in search of enemies to kill."
+                            ]
+                          },
+                          {
+                            "kind": "line",
+                            "speaker": "npc",
+                            "text": [
+                              "I've heard there are many fearsome creatures that dwell under the ground..."
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 3",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Get out of my way, I'm in a hurry!"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 4",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "I'm fine, how are you?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Very well thank you."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 5",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Hello there! Nice weather we've been having."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 6",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "I'm very well thank you."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 7",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Who are you?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "I'm a bold adventurer."
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Ah, a very noble profession."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 8",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Do I know you? I'm in a hurry!"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 9",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "I think we need a new king. The one we've got isn't very good."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 10",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Not too bad thanks."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 11",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Are you asking for a fight?"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 12",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "I'm busy right now."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 13",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Hello."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 14",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "None of your business."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 15",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Do you wish to trade?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "No, I have nothing I wish to get rid of. If you want to do some trading, there are plenty of shops and market stalls around though."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 16",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "I'm in search of a quest."
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "I'm sorry I can't help you there."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 17",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "I'm in search of enemies to kill."
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "I've heard there are many fearsome creatures that dwell under the ground..."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 18",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "No I don't have any spare change."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 19",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "I'm a little worried - I've heard there's lots of people going about, killing citizens at random."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 20",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "No, I don't want to buy anything!"
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 21",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "That is classified information."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 22",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Have this flyer..."
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "Dialogue 23",
+                "steps": [
+                  {
+                    "kind": "line",
+                    "speaker": "player",
+                    "text": [
+                      "Hello, how's it going?"
+                    ]
+                  },
+                  {
+                    "kind": "line",
+                    "speaker": "npc",
+                    "text": [
+                      "Yo, wassup!"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "speakers": [
+        "Man",
+        "Player"
+      ],
+      "unresolved": [
+        {
+          "path": "Standard dialogue > pool 11",
+          "kind": "action",
+          "text": "The man attacks the player",
+          "wikitext": "** {{qact|The man attacks the player}}"
+        },
+        {
+          "path": "Standard dialogue > pool 22",
+          "kind": "action",
+          "text": "receives: a flyer",
+          "wikitext": "** {{tact|receives=a flyer}}"
+        }
+      ]
+    }
+  ]
+}

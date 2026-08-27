@@ -32,12 +32,13 @@
     "import-equipment-reference": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/import-osrs-equipment-reference.ts",
     "audit-equipment-data": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/audit-equipment-data.ts",
     "sync-wiki-skill-guides": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/sync-wiki-skill-guides.ts",
+    "import-wiki-dialogue": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/import-wiki-dialogue.ts",
     "ensure-cache": "tsx scripts/ensure-cache.ts --server",
     "merge-wiki-examine": "tsx scripts/merge-wiki-examine.ts",
     "scrape-loc-examine": "tsx scripts/scrape-loc-examine.ts",
     "diagnose-loc-html": "tsx scripts/diagnose-loc-html.ts",
     "fill-blank-examine": "tsx scripts/fill-blank-examine.ts",
-    "test": "tsx tests/authentication.test.ts && tsx tests/friends-chat.test.ts && tsx tests/achievement-diary-persistence.test.ts && tsx tests/dialogue-editor.test.ts"
+    "test": "tsx tests/authentication.test.ts && tsx tests/friends-chat.test.ts && tsx tests/achievement-diary-persistence.test.ts && tsx tests/dialogue-editor.test.ts && tsx tests/dialogue-system.test.ts"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.8",

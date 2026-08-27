@@ -254,13 +254,39 @@ function renderSteps(
             const a = step.action;
             const desc = a.type === "setQuestStage"
                 ? `set quest '${a.questKey}' to stage ${a.value}`
-                : `give item ${a.itemId}${a.quantity > 1 ? ` x${a.quantity}` : ""}`;
+                : a.type === "giveItem"
+                  ? `give item ${a.itemId}${a.quantity > 1 ? ` x${a.quantity}` : ""}`
+                  : `invoke '${a.key}'${a.args ? ` ${JSON.stringify(a.args)}` : ""}`;
             out.push({
                 kind: "text",
                 text: `${indent}${selected ? "\u25b8 " : ""}${label}.) [Action: ${desc}]`,
                 style: { color: "9fd3ff", bold: selected },
             });
             pathsOut.push(label);
+        } else if (step.kind === "pool") {
+            counter += 1;
+            const label = prefix + counter;
+            const selected = label === selectedPath;
+            out.push({
+                kind: "text",
+                text: `${indent}${selected ? "\u25b8 " : ""}${label}.) [Random pool: ${step.entries.length} conversations]`,
+                style: { color: "c8a7ff", bold: selected },
+            });
+            pathsOut.push(label);
+            for (let i = 0; i < step.entries.length; i++) {
+                const entry = step.entries[i];
+                const firstLine = entry.steps.find((candidate) => candidate.kind === "line");
+                const preview = firstLine?.kind === "line"
+                    ? firstLine.text.join(" / ")
+                    : `${entry.steps.length} step${entry.steps.length === 1 ? "" : "s"}`;
+                const entryIndent = "-".repeat((depth + 1) * 2) + " ";
+                out.push({
+                    kind: "text",
+                    text: `${entryIndent}${entry.id ?? `Variant ${i + 1}`}${entry.weight && entry.weight !== 1 ? ` (weight ${entry.weight})` : ""}: ${preview}`,
+                    style: { color: "8d7ba8" },
+                });
+                pathsOut.push(undefined);
+            }
         } else {
             const eff = counter === 0 ? 1 : counter;
             for (let i = 0; i < step.options.length; i++) {

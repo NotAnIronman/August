@@ -33,6 +33,7 @@ import {
     WidgetDialogHandler,
 } from "../game/actions";
 import { loadCollectionLogItems } from "../game/collectionlog";
+import { DialogueActionRegistry } from "../game/dialogue/DialogueActionRegistry";
 import { DialogueOverrideStore } from "../game/dialogue/DialogueOverrideStore";
 import { runDialogueTree } from "../game/dialogue/DialogueTreeRunner";
 import { getSqliteDatabase } from "../game/state/SqliteDatabase";
@@ -1022,6 +1023,10 @@ export class WSServer {
             this.effectDispatcher = new EffectDispatcher(this.svc);
             // Initialize WidgetDialogHandler
             this.widgetDialogHandler = new WidgetDialogHandler(this.svc);
+            // Persisted dialogue can name trusted gamemode actions without
+            // storing executable code in SQLite. Gamemode initialization runs
+            // after this method, so content modules can register handlers.
+            this.scriptRuntime.getServices().dialogueActions = new DialogueActionRegistry();
             // Developer-edited dialogue overrides (::editdialogue). Takes priority
             // over the gamemode's own Talk-to handler when a tree exists for an NPC id.
             this.dialogueOverrideStore = new DialogueOverrideStore(
