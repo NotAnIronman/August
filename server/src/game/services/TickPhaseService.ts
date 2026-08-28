@@ -1362,6 +1362,9 @@ export class TickPhaseService {
                             payload: {
                                 loopCycle: frame.tick,
                                 large: built.large,
+                                anchorX: player.tileX,
+                                anchorY: player.tileY,
+                                anchorLevel: player.level,
                                 packet: Array.from(built.packet),
                             },
                         }),

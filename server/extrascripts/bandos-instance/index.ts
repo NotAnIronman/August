@@ -8,11 +8,12 @@ import { AttackType } from "../../src/game/combat/AttackType";
 import { EncounterRegistry, registerEncounter } from "../../src/game/encounters/EncounterRegistry";
 import { SkillId } from "../../../client/rs/skill/skills";
 import { PRAYER_RECHARGE_SOUND_ID } from "../../../client/rs/prayer/prayers";
-import { BaseComponentUids } from "../../src/widgets/viewport/ViewportEnumService";
 
 const BANDOS_DOOR_LOC_ID = 26503;
+const BANDOS_STRONGHOLD_DOOR_LOC_ID = 26461;
 const BANDOS_ALTAR_LOC_ID = 26366;
 const BANDOS_DEFINITION_ID = "graardor-room";
+const HPBAR_HUD_COMPONENT_UID = (161 << 16) | 44;
 const BOSS_HEALTH_BAR_GROUP_ID = 303;
 const BOSS_HEALTH_BAR_CONTAINER_CHILD_ID = 5;
 const BOSS_HEALTH_BAR_WRAPPER_CHILD_ID = 6;
@@ -26,6 +27,71 @@ const BANDOS_ALTAR_COOLDOWN_TICKS = 500;
 const lastBandosAltarUse = new WeakMap<PlayerState, number>();
 const activeBandosPlayers = new Set<PlayerState>();
 const lastBossHealthState = new WeakMap<PlayerState, string>();
+const BANDOS_STRONGHOLD_OUTSIDE = Object.freeze({ x: 2851, y: 5333, level: 2 });
+const BANDOS_STRONGHOLD_INSIDE = Object.freeze({ x: 2850, y: 5333, level: 2 });
+const BANDOS_DOOR_HAMMERING_SEQ = 898;
+
+function isBandosDoorHammer(itemId: number, services: ScriptServices): boolean {
+    const item = services.data.getItemDefinition(itemId);
+    if (!item || item.noted) return false;
+    const name = item.name.trim().toLowerCase();
+    return (
+        name === "hammer" ||
+        name === "imcando hammer" ||
+        name === "torag's hammers" ||
+        name === "elder maul" ||
+        name.endsWith(" warhammer") ||
+        item.weaponInterface === "WARHAMMER"
+    );
+}
+
+function openBandosStrongholdDoor({ player, services }: LocInteractionEvent): void {
+    const entering = player.tileX >= BANDOS_STRONGHOLD_OUTSIDE.x;
+    if (!entering) {
+        services.movement.teleportPlayer(
+            player,
+            BANDOS_STRONGHOLD_OUTSIDE.x,
+            BANDOS_STRONGHOLD_OUTSIDE.y,
+            BANDOS_STRONGHOLD_OUTSIDE.level,
+        );
+        return;
+    }
+
+    const hammer = services.inventory
+        .getInventoryItems(player)
+        .find((entry) => isBandosDoorHammer(entry.itemId, services));
+    if (!hammer) {
+        services.messaging.sendGameMessage(
+            player,
+            "You need a hammer to bang the gong and enter the Bandos Stronghold.",
+        );
+        return;
+    }
+
+    player.faceTile(BANDOS_STRONGHOLD_INSIDE.x, BANDOS_STRONGHOLD_INSIDE.y);
+    services.animation.playPlayerSeq(player, BANDOS_DOOR_HAMMERING_SEQ);
+    services.scheduler.after(
+        2,
+        () => {
+            if (
+                player.level !== BANDOS_STRONGHOLD_OUTSIDE.level ||
+                Math.max(
+                    Math.abs(player.tileX - BANDOS_STRONGHOLD_OUTSIDE.x),
+                    Math.abs(player.tileY - BANDOS_STRONGHOLD_OUTSIDE.y),
+                ) > 1
+            ) {
+                return;
+            }
+            services.movement.teleportPlayer(
+                player,
+                BANDOS_STRONGHOLD_INSIDE.x,
+                BANDOS_STRONGHOLD_INSIDE.y,
+                BANDOS_STRONGHOLD_INSIDE.level,
+            );
+        },
+        { kind: "player", id: player.id },
+    );
+}
 
 function bossHealthWidgetUid(childId: number): number {
     return (BOSS_HEALTH_BAR_GROUP_ID << 16) | childId;
@@ -126,7 +192,7 @@ function openBossHealthBar(player: PlayerState, services: ScriptServices): void 
     services.variables.sendVarbit(player, VARBIT_BOSS_HEALTH_DISABLED, 0);
     services.dialog.openSubInterface(
         player,
-        BaseComponentUids.HPBAR_HUD,
+        HPBAR_HUD_COMPONENT_UID,
         BOSS_HEALTH_BAR_GROUP_ID,
         1,
         { modal: false },
@@ -158,7 +224,7 @@ function closeBossHealthBar(player: PlayerState, services: ScriptServices): void
     services.variables.sendVarp(player, VARP_BOSS_HEALTH_NPC, -1);
     services.dialog.closeSubInterface(
         player,
-        BaseComponentUids.HPBAR_HUD,
+        HPBAR_HUD_COMPONENT_UID,
         BOSS_HEALTH_BAR_GROUP_ID,
     );
 }
@@ -340,6 +406,11 @@ function handlePeek({ player, services }: LocInteractionEvent): void {
 
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     registerBandosEncounters();
+    registry.registerLocInteraction(
+        BANDOS_STRONGHOLD_DOOR_LOC_ID,
+        openBandosStrongholdDoor,
+        "open",
+    );
     registry.registerLocInteraction(BANDOS_DOOR_LOC_ID, ({ player, services }) => {
         showEntryOptions(player, services);
     }, "open");

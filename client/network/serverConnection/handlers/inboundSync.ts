@@ -220,6 +220,15 @@ export function handleInboundSync(msg: any): boolean {
             const payload = msg.payload as any;
             const loopCycle = Number(payload?.loopCycle) | 0;
             const large = payload?.large === true;
+            const anchorX = Number.isFinite(Number(payload?.anchorX))
+                ? Number(payload.anchorX) | 0
+                : undefined;
+            const anchorY = Number.isFinite(Number(payload?.anchorY))
+                ? Number(payload.anchorY) | 0
+                : undefined;
+            const anchorLevel = Number.isFinite(Number(payload?.anchorLevel))
+                ? Number(payload.anchorLevel) | 0
+                : undefined;
             let buffer: Uint8Array;
             const pkt = payload?.packet;
             if (pkt instanceof Uint8Array) {
@@ -233,7 +242,7 @@ export function handleInboundSync(msg: any): boolean {
             if (!buffer || buffer.length === 0) return true;
             for (const cb of state.npcInfoListeners) {
                 try {
-                    cb({ loopCycle, large, packet: buffer });
+                    cb({ loopCycle, large, anchorX, anchorY, anchorLevel, packet: buffer });
                 } catch (err) {
                     console.warn("npc_info listener error", err);
                 }

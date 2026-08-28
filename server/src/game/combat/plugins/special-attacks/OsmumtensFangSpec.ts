@@ -33,7 +33,8 @@ function createFangAttackPlan(
         damageMultiplier: 1,
         minimumDamageMultiplier: FANG_MINIMUM_DAMAGE_MULTIPLIER,
         maximumDamageMultiplier: specialAttack ? 1 : FANG_NORMAL_MAXIMUM_DAMAGE_MULTIPLIER,
-        accuracyRollCount: isFangStabStyle(attacker) ? 2 : 1,
+        accuracyModel: isFangStabStyle(attacker) ? "fang" : "standard",
+        accuracyRollCount: 1,
     });
 }
 

@@ -655,11 +655,14 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
         case ServerPacketId.NPC_INFO: {
             const loopCycle = reader.readInt();
             const large = reader.readBoolean();
+            const anchorX = reader.readShort();
+            const anchorY = reader.readShort();
+            const anchorLevel = reader.readByte();
             const packetLen = reader.readShort();
             const packet = reader.readBytes(packetLen);
             return {
                 type: "npc_info",
-                payload: { loopCycle, large, packet },
+                payload: { loopCycle, large, anchorX, anchorY, anchorLevel, packet },
             };
         }
 

@@ -54,6 +54,8 @@ export interface WeaponSpecialAttackTraitOverrides {
     /** Replaces this swing's next-attack delay after special energy is consumed. */
     readonly attackSpeedTicks?: number;
     readonly accuracyMultiplier?: number;
+    /** Replaces the ordinary one-attack-roll accuracy formula. */
+    readonly accuracyModel?: "standard" | "fang";
     /** Applies each accuracy multiplier in order and floors after every stage. */
     readonly accuracyMultiplierStages?: readonly number[];
     readonly damageMultiplier?: number;

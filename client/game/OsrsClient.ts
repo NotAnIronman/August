@@ -7035,9 +7035,19 @@ export class OsrsClient {
             }
         }
 
-        const decodeBase = localState
-            ? { tileX: localState.tileX, tileY: localState.tileY, level: localState.level }
-            : this.lastNpcDecodeBase; // use last known base regardless of localId
+        const hasPacketAnchor =
+            Number.isFinite(payload.anchorX) &&
+            Number.isFinite(payload.anchorY) &&
+            Number.isFinite(payload.anchorLevel);
+        const decodeBase = hasPacketAnchor
+            ? {
+                  tileX: Number(payload.anchorX) | 0,
+                  tileY: Number(payload.anchorY) | 0,
+                  level: Number(payload.anchorLevel) | 0,
+              }
+            : localState
+              ? { tileX: localState.tileX, tileY: localState.tileY, level: localState.level }
+              : this.lastNpcDecodeBase;
         if (!decodeBase) return;
         this.lastNpcDecodeBase = {
             tileX: decodeBase.tileX | 0,

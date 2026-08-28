@@ -1114,7 +1114,20 @@ export class WSServer {
             });
             // RSMod parity: Wire up ground item spawner for delayed NPC death drops
             this.npcManager.setGroundItemSpawner((itemId, qty, tile, tick, opts, worldViewId) => {
-                this.groundItems.spawn(itemId, qty, tile, tick, opts, worldViewId ?? -1);
+                const spawned = this.groundItems.spawn(
+                    itemId,
+                    qty,
+                    tile,
+                    tick,
+                    opts,
+                    worldViewId ?? -1,
+                );
+                // Collection-log credit belongs to the assigned monster-drop
+                // owner at creation time, never to whoever eventually picks it up.
+                if (spawned && opts?.isMonsterDrop && opts.ownerId !== undefined) {
+                    const owner = this.players?.getById(opts.ownerId);
+                    if (owner) this.collectionLogService?.trackCollectionLogItem(owner, itemId);
+                }
             });
         }
 

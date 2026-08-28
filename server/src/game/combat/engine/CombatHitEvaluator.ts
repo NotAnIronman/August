@@ -21,6 +21,7 @@ import {
     HIT_CHANCE_SCALE,
     calculateAttackRoll,
     calculateDefenceRoll,
+    calculateFangHitChance,
     calculateHitChance,
     rollAccuracy,
 } from "../formulas/Accuracy";
@@ -348,7 +349,9 @@ export class CombatHitEvaluator {
             ? HIT_CHANCE_SCALE
             : usesFixedAccuracyRoll
               ? this.calculateFixedAttackRollHitChance(resolvedAttackRoll, defenceRoll)
-              : calculateHitChance(attackRoll, defenceRoll);
+              : special.accuracyModel === "fang"
+                ? calculateFangHitChance(attackRoll, defenceRoll)
+                : calculateHitChance(attackRoll, defenceRoll);
         const accuracyRollCount = Math.max(1, Math.trunc(special.accuracyRollCount ?? 1));
         const guaranteedAccuracyRolls = special.guaranteedHit
             ? accuracyRollCount

@@ -931,6 +931,7 @@ export class CombatHitProcessor {
             hitCount: overrides?.hitCount ?? profileSpecial?.hitCount ?? 1,
             accuracyMultiplier:
                 overrides?.accuracyMultiplier ?? profileSpecial?.accuracyMultiplier ?? 1,
+            accuracyModel: overrides?.accuracyModel ?? profileSpecial?.accuracyModel,
             accuracyMultiplierStages:
                 overrides?.accuracyMultiplierStages ?? profileSpecial?.accuracyMultiplierStages,
             damageMultiplier: overrides?.damageMultiplier ?? profileSpecial?.damageMultiplier ?? 1,

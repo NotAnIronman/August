@@ -27,7 +27,14 @@ export type BankServerUpdate =
     | { kind: "snapshot"; capacity: number; slots: BankSlotMessage[] }
     | { kind: "slot"; slot: BankSlotMessage };
 
-export type NpcInfoPayload = { loopCycle: number; large: boolean; packet: Uint8Array };
+export type NpcInfoPayload = {
+    loopCycle: number;
+    large: boolean;
+    anchorX?: number;
+    anchorY?: number;
+    anchorLevel?: number;
+    packet: Uint8Array;
+};
 
 export type ShopStockEntryMessage = {
     slot: number;

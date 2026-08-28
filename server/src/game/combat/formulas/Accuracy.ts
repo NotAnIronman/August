@@ -61,6 +61,22 @@ export function calculateHitChance(attackRoll: number, defenceRoll: number): num
     return Math.round(result * HIT_CHANCE_SCALE);
 }
 
+/**
+ * Osmumten's fang accuracy outside the Tombs of Amascut. The fang rolls the
+ * attack roll twice and keeps the better result while the target rolls its
+ * defence once; this closed form is not equivalent to rerolling two ordinary
+ * hit checks.
+ */
+export function calculateFangHitChance(attackRoll: number, defenceRoll: number): number {
+    const attack = Math.max(0, combatInteger(attackRoll));
+    const defence = Math.max(0, combatInteger(defenceRoll));
+    const probability =
+        attack >= defence
+            ? 1 - ((defence + 2) * (2 * defence + 3)) / (6 * (attack + 1) ** 2)
+            : (attack * (4 * attack + 5)) / (6 * (attack + 1) * (defence + 1));
+    return Math.max(0, Math.min(HIT_CHANCE_SCALE, Math.round(probability * HIT_CHANCE_SCALE)));
+}
+
 /** RSMod succeeds only when hitChance is strictly greater than the random roll. */
 export function isSuccessfulHit(hitChance: number, randomRoll: number): boolean {
     const chance = combatInteger(hitChance);

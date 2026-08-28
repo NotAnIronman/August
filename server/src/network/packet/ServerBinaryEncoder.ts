@@ -346,10 +346,22 @@ export class ServerBinaryEncoder {
         return this.buffer.toPacket(ServerPacketId.PLAYER_SYNC);
     }
 
-    encodeNpcInfo(loopCycle: number, large: boolean, packet: Uint8Array): Uint8Array {
+    encodeNpcInfo(
+        loopCycle: number,
+        large: boolean,
+        anchorX: number,
+        anchorY: number,
+        anchorLevel: number,
+        packet: Uint8Array,
+    ): Uint8Array {
         this.buffer.reset();
         this.buffer.writeInt(loopCycle);
         this.buffer.writeBoolean(large);
+        // NPC additions are delta-encoded from this exact player tile. Carry
+        // the anchor so a same-tick step/teleport cannot shift every new NPC.
+        this.buffer.writeShort(anchorX);
+        this.buffer.writeShort(anchorY);
+        this.buffer.writeByte(anchorLevel);
         this.buffer.writeShort(packet.length);
         this.buffer.writeBytes(packet, 0, packet.length);
         return this.buffer.toPacket(ServerPacketId.NPC_INFO);

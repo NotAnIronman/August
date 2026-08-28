@@ -498,7 +498,14 @@ export type ServerToClient =
     | { type: "trade"; payload: TradeServerPayload }
     | {
           type: "npc_info";
-          payload: { loopCycle: number; large: boolean; packet: string | number[] };
+          payload: {
+              loopCycle: number;
+              large: boolean;
+              anchorX: number;
+              anchorY: number;
+              anchorLevel: number;
+              packet: string | number[];
+          };
       }
     | {
           type: "chat";
@@ -875,7 +882,14 @@ function encodeMessageToBinaryDirect(msg: ServerToClient): Uint8Array {
             } else {
                 throw new Error("npc_info packet missing payload");
             }
-            return serverEncoder.encodeNpcInfo(payload.loopCycle, !!payload.large, packet);
+            return serverEncoder.encodeNpcInfo(
+                payload.loopCycle,
+                !!payload.large,
+                payload.anchorX,
+                payload.anchorY,
+                payload.anchorLevel,
+                packet,
+            );
         }
 
         case "inventory":

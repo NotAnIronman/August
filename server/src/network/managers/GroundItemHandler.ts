@@ -652,9 +652,6 @@ export class GroundItemHandler {
             this.svc.soundService.sendSound(player, 2582),
         );
 
-        // Track for collection log (sends "new item" notification only for new collection log items)
-        this.svc.collectionLogService.trackCollectionLogItem(player, itemId);
-
         // Force ground item update for this player
         this.svc.playerGroundSerial.delete(player.id);
 

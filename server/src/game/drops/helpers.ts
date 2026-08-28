@@ -1,4 +1,4 @@
-import { loadItemDefinitions } from "../../data/items";
+import { getItemDefinition, loadItemDefinitions } from "../../data/items";
 import type {
     DropConditionDefinition,
     DropQuantity,
@@ -143,8 +143,20 @@ export function resolveDropCondition(
 }
 
 export function resolveDropEntry(def: NpcDropEntryDefinition): NpcDropEntry | undefined {
-    const itemId = resolveItemId(def);
-    if (!(itemId && itemId > 0)) return undefined;
+    const baseItemId = resolveItemId(def);
+    if (!(baseItemId && baseItemId > 0)) return undefined;
+    const quantityRequestsNote =
+        typeof def.quantity === "string" && /\(\s*noted\s*\)/i.test(def.quantity);
+    let itemId = baseItemId;
+    if (quantityRequestsNote) {
+        const base = getItemDefinition(baseItemId);
+        const note = base && base.noteId > 0 ? getItemDefinition(base.noteId) : undefined;
+        // Cache links are bidirectional for some item families, so validate
+        // both the note flag and visible name before changing the drop id.
+        if (note?.noted === true && normalizeName(note.name) === normalizeName(base?.name)) {
+            itemId = note.id;
+        }
+    }
     return {
         itemId,
         quantity: parseQuantity(def.quantity),

@@ -35,6 +35,7 @@ const registry = {
 register(registry, {} as never);
 
 assert.deepEqual([...handlers.keys()], [
+    "26461:open",
     "26503:open",
     "26503:peek",
     "26503:enter solo",
@@ -43,6 +44,52 @@ assert.deepEqual([...handlers.keys()], [
     "26366:pray",
     "26366:pray-at",
 ]);
+
+const doorTeleports: Array<{ x: number; y: number; level: number }> = [];
+const doorMessages: string[] = [];
+let doorAnimation = -1;
+let scheduledDoorAction: (() => void) | undefined;
+const doorPlayer = {
+    id: 88,
+    tileX: 2851,
+    tileY: 5333,
+    level: 2,
+    faceTile: () => undefined,
+};
+const doorItems: Array<{ itemId: number }> = [];
+const doorServices = {
+    data: {
+        getItemDefinition: (itemId: number) =>
+            itemId === 2347 ? { id: 2347, name: "Hammer", noted: false } : undefined,
+    },
+    inventory: { getInventoryItems: () => doorItems },
+    messaging: {
+        sendGameMessage: (_player: unknown, message: string) => doorMessages.push(message),
+    },
+    movement: {
+        teleportPlayer: (_player: unknown, x: number, y: number, level: number) =>
+            doorTeleports.push({ x, y, level }),
+    },
+    animation: {
+        playPlayerSeq: (_player: unknown, sequence: number) => (doorAnimation = sequence),
+    },
+    scheduler: { after: (_ticks: number, action: () => void) => (scheduledDoorAction = action) },
+};
+handlers.get("26461:open")?.({ player: doorPlayer, services: doorServices } as never);
+assert.match(doorMessages.at(-1) ?? "", /need a hammer/i);
+assert.equal(doorTeleports.length, 0);
+
+doorItems.push({ itemId: 2347 });
+handlers.get("26461:open")?.({ player: doorPlayer, services: doorServices } as never);
+assert.equal(doorAnimation, 898);
+assert.ok(scheduledDoorAction);
+scheduledDoorAction?.();
+assert.deepEqual(doorTeleports.at(-1), { x: 2850, y: 5333, level: 2 });
+
+doorPlayer.tileX = 2850;
+doorItems.length = 0;
+handlers.get("26461:open")?.({ player: doorPlayer, services: doorServices } as never);
+assert.deepEqual(doorTeleports.at(-1), { x: 2851, y: 5333, level: 2 });
 
 const graardor = EncounterRegistry.shared.findByNpcTypeId(2215);
 assert.equal(graardor?.id, "general-graardor");
