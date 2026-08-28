@@ -1460,8 +1460,17 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
         regionY: number,
         playerMapX: number,
         playerMapY: number,
-    ): Promise<void> {
-        return render.doInstanceSceneBuild(this, templateChunks, regionX, regionY, playerMapX, playerMapY);
+        replaceExistingMaps: boolean = false,
+    ): Promise<boolean> {
+        return render.doInstanceSceneBuild(
+            this,
+            templateChunks,
+            regionX,
+            regionY,
+            playerMapX,
+            playerMapY,
+            replaceExistingMaps,
+        );
     }
 
     public getInstanceExtraLocs(

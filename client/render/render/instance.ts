@@ -198,6 +198,17 @@ export async function loadInstanceScene(host: WebGLOsrsRendererHost,
 
         if (!host.osrsClient.loadedCache) return;
 
+        // Keep the current scene usable until the replacement has actually
+        // finished building. If a worker/settings race rejects the new scene,
+        // restoring these fields lets normal rendering continue instead of
+        // stranding the client in a cleared white void.
+        const previousInstanceState = {
+            active: host.instanceActive,
+            templateChunks: host.instanceTemplateChunks,
+            regionX: host.instanceRegionX,
+            regionY: host.instanceRegionY,
+        };
+
         // Suppress normal map streaming while the instance is active
         host.instanceActive = true;
         host.instanceTemplateChunks = templateChunks;
@@ -213,10 +224,29 @@ export async function loadInstanceScene(host: WebGLOsrsRendererHost,
             `[WebGLOsrsRenderer] Loading instance scene at map (${playerMapX}, ${playerMapY}) from region (${regionX}, ${regionY})...`,
         );
 
-        // Clear existing maps so the instance scene is the only one rendered
-        host.mapManager.clearMaps();
-
-        await host.doInstanceSceneBuild(templateChunks, regionX, regionY, playerMapX, playerMapY);
+        try {
+            const loaded = await host.doInstanceSceneBuild(
+                templateChunks,
+                regionX,
+                regionY,
+                playerMapX,
+                playerMapY,
+                true,
+            );
+            if (!loaded) {
+                throw new Error("instance scene loader returned no valid map data");
+            }
+        } catch (error) {
+            host.instanceActive = previousInstanceState.active;
+            host.instanceTemplateChunks = previousInstanceState.templateChunks;
+            host.instanceRegionX = previousInstanceState.regionX;
+            host.instanceRegionY = previousInstanceState.regionY;
+            console.error(
+                "[WebGLOsrsRenderer] Instance scene build failed; preserving the previous scene",
+                error,
+            );
+            return;
+        }
 
         // LOC_ADD_CHANGE packets arrive after REBUILD_REGION on the same socket.
         // By now they are stored in addedLocs. Schedule a deferred rebuild to
@@ -233,7 +263,8 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
         regionY: number,
         playerMapX: number,
         playerMapY: number,
-    ): Promise<void> {
+        replaceExistingMaps: boolean = false,
+    ): Promise<boolean> {
 
         const extraLocs = host.getInstanceExtraLocs(playerMapX, playerMapY);
 
@@ -268,7 +299,7 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
             SdMapDataLoader
         >(host.dataLoader, input);
 
-        if (mapData) {
+        if (mapData && host.isValidMapData(mapData)) {
             console.log(
                 `[WebGLOsrsRenderer] Instance scene loaded: vertices=${
                     mapData.vertices?.length ?? 0
@@ -276,6 +307,13 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
                     mapData.mapY
                 } border=${mapData.borderSize} extraLocs=${extraLocs?.length ?? 0}`,
             );
+            // The initial transition is transactional: only discard the old
+            // scene after its replacement is built and accepted. Deferred loc
+            // rebuilds leave the current instance visible until their payload
+            // is applied.
+            if (replaceExistingMaps) {
+                host.mapManager.clearMaps();
+            }
             // Clear any in-flight normal map loads that arrived during the async instance build
             host.mapsToLoad.clear();
             host.pendingStreamMapsByGeneration.clear();
@@ -283,8 +321,20 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
             host.mapsToLoad.push(mapData);
             // Register the map in MapManager so it isn't pruned
             host.mapManager.loadingMapIds.add(getMapSquareId(playerMapX, playerMapY));
+            return true;
         } else {
-            console.warn("[WebGLOsrsRenderer] Instance scene load returned no data");
+            console.warn(
+                "[WebGLOsrsRenderer] Instance scene load returned no valid data",
+                mapData
+                    ? {
+                          mapX: mapData.mapX,
+                          mapY: mapData.mapY,
+                          loadNpcs: mapData.loadNpcs,
+                          expectedLoadNpcs: host.loadNpcs,
+                      }
+                    : undefined,
+            );
+            return false;
         }
     
 }

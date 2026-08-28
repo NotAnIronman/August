@@ -407,9 +407,22 @@ export function loadMap(host: WebGLOsrsRendererHost,
 
 export function isValidMapData(host: WebGLOsrsRendererHost, mapData: SdMapData): boolean {
 
+        const expectedInstanceMapX =
+            ((host.instanceRegionX * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+        const expectedInstanceMapY =
+            ((host.instanceRegionY * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+        const isTerrainOnlyInstancePayload =
+            host.instanceActive &&
+            host.loadNpcs &&
+            !mapData.loadNpcs &&
+            mapData.mapX === expectedInstanceMapX &&
+            mapData.mapY === expectedInstanceMapY &&
+            mapData.renderPosX != null &&
+            mapData.renderPosY != null;
+
         return (
             mapData.cacheName === host.osrsClient.loadedCache?.info?.name &&
-            mapData.loadNpcs === host.loadNpcs &&
+            (mapData.loadNpcs === host.loadNpcs || isTerrainOnlyInstancePayload) &&
             mapData.smoothTerrain === host.smoothTerrain
         );
     
