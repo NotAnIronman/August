@@ -6,6 +6,11 @@ import type { ProjectileLaunch } from "../common/projectiles/ProjectileLaunch";
 import { buildSelectedSpellPayload } from "../common/spells/selectedSpellPayload";
 import type { QuestListWidgetGroup } from "../common/ui/questList";
 import {
+    BOSS_HEALTH_BAR_GROUP_ID,
+    BossHealthBarComponent,
+    bossHealthBarUid,
+} from "../common/ui/bossHealthBar";
+import {
     INTERFACE_ACHIEVEMENT_DIARY_ID,
     INTERFACE_QUEST_LIST_ID,
     SIDE_JOURNAL_GROUP_ID,
@@ -2304,6 +2309,23 @@ export class OsrsClient {
                         payload.groupId,
                         payload.type,
                     );
+                    if ((payload.groupId | 0) === BOSS_HEALTH_BAR_GROUP_ID) {
+                        // The stock top-level script normally reveals these
+                        // cache widgets during its own bootstrap. Instances can
+                        // open after that bootstrap, so explicitly reveal the
+                        // native group and its health container on every mount.
+                        for (const component of [
+                            BossHealthBarComponent.Root,
+                            BossHealthBarComponent.Health,
+                            BossHealthBarComponent.Name,
+                        ]) {
+                            const widget = this.widgetManager.getWidgetByUid(bossHealthBarUid(component));
+                            if (!widget) continue;
+                            widget.hidden = false;
+                            widget.isHidden = false;
+                            this.widgetManager.invalidateWidget(widget, "boss-health-bar-open");
+                        }
+                    }
                     this.applyKnownMissingBackgroundFix(payload.groupId);
                     this.cs2Vm.clearHandlerCaches();
                     markWidgetsLoaded();
@@ -3386,6 +3408,12 @@ export class OsrsClient {
                         this.resetNpcsForRegionRebuild();
                         ClientState.inInstance = true;
                         ClientState.instanceTemplateChunks = payload.templateChunks;
+                        // NPC geometry is keyed by the rebuilt scene's map square.
+                        // Keep the authoritative chunk origin alongside the template;
+                        // leaving the previous (-1) origin here routes initial NPC
+                        // meshes to the wrong map until a later respawn rebuild.
+                        ClientState.regionX = payload.regionX | 0;
+                        ClientState.regionY = payload.regionY | 0;
                         if (this.renderer && "loadInstanceScene" in this.renderer) {
                             (this.renderer as any).loadInstanceScene(
                                 payload.templateChunks,
@@ -3408,6 +3436,8 @@ export class OsrsClient {
                         this.resetNpcsForRegionRebuild();
                         ClientState.inInstance = false;
                         ClientState.instanceTemplateChunks = null;
+                        ClientState.regionX = payload.regionX | 0;
+                        ClientState.regionY = payload.regionY | 0;
                         if (this.renderer && "clearInstance" in this.renderer) {
                             (this.renderer as any).clearInstance();
                         }

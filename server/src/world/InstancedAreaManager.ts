@@ -14,6 +14,7 @@ import { EncounterRegistry } from "../game/encounters/EncounterRegistry";
 import type { EncounterDefinition } from "../game/encounters/EncounterTypes";
 import type { NpcSpawnConfig } from "../game/npc";
 import type { PlayerState } from "../game/player";
+import type { InstanceGraveLocation } from "../game/state/PlayerInstanceGraveState";
 import type { TemporaryLocChange } from "../game/services/LocationService";
 import { SailingWorldView } from "../game/sailing/SailingWorldView";
 
@@ -48,6 +49,8 @@ export interface QuestInstanceSpec {
     npcs?: readonly QuestInstanceNpc[];
     locs?: readonly QuestInstanceLoc[];
     exit?: { x: number; y: number; level: number };
+    /** Persistent reclaim point for deaths which occur in this instance. */
+    grave?: InstanceGraveLocation;
     /** Stable content identifier, such as "graardor-room". */
     definitionId?: string;
     /** Solo is the backwards-compatible default. Party instances accept joins. */
@@ -72,6 +75,7 @@ export interface QuestInstanceHandle {
     readonly baseX: number;
     readonly baseY: number;
     readonly exit?: { x: number; y: number; level: number };
+    readonly grave?: InstanceGraveLocation;
 }
 
 interface InstanceRuntime {
@@ -88,6 +92,7 @@ interface InstanceRuntime {
     readonly destination: { x: number; y: number; level: number };
     readonly templateChunks: number[][][];
     readonly exit?: { x: number; y: number; level: number };
+    readonly grave?: InstanceGraveLocation;
     readonly memberPlayerIds: Set<number>;
     readonly memberNames: Map<number, string>;
     readonly npcRuntimeIds: Set<number>;
@@ -205,6 +210,7 @@ export class InstancedAreaManager {
             destination: { ...spec.destination },
             templateChunks: spec.templateChunks,
             exit: spec.exit,
+            grave: spec.grave ? { ...spec.grave, tile: { ...spec.grave.tile } } : undefined,
             memberPlayerIds: new Set([player.id]),
             memberNames: new Map([[player.id, player.name || `Player ${player.id}`]]),
             npcRuntimeIds: new Set(),
@@ -433,6 +439,7 @@ export class InstancedAreaManager {
             baseX: runtime.baseX,
             baseY: runtime.baseY,
             exit: runtime.exit,
+            grave: runtime.grave ? { ...runtime.grave, tile: { ...runtime.grave.tile } } : undefined,
         });
     }
 

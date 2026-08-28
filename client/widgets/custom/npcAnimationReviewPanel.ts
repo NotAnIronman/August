@@ -30,20 +30,23 @@ registerUiPanel({
                 backgroundHoverAsset: "cache.sprite.294.0",
             },
             footerButton: true,
-            search: { placeholder: "NPC ID — Enter to load", width: 200 },
+            search: { placeholder: "NPC ID or special name — Enter", width: 200 },
             inputCapture: false,
         }),
     searchController: createSearchController(
         NPC_ANIMATION_REVIEW_PANEL_GROUP_ID,
-        "NPC ID — Enter to load",
+        "NPC ID or special name — Enter",
         () => {},
         (query) => {
             const npcId = query.trim();
             // Keep client input deliberately narrow. The server's existing
             // ::npcreview command remains the authority for cache validation
             // and for replacing the prior private preview NPC.
-            if (!/^\d+$/.test(npcId)) return;
-            sendChat(`::npcreview ${npcId}`);
+            if (/^\d+$/.test(npcId)) {
+                sendChat(`::npcreview ${npcId}`);
+                return;
+            }
+            if (npcId.length > 0) sendChat(`::npcreview special ${npcId}`);
         },
         8,
     ),

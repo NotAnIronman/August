@@ -90,6 +90,11 @@ function openBandosStrongholdDoor({ player, services }: LocInteractionEvent): vo
 
 const INSTANCE_EXIT = Object.freeze({ x: 2862, y: 5354, level: 2 });
 const INSTANCE_ENTRANCE = Object.freeze({ x: 2864, y: 5354, level: 2 });
+const INSTANCE_GRAVE = Object.freeze({
+    locId: INSTANCE_GRAVE_RECLAIM_LOC_ID,
+    tile: { x: INSTANCE_GRAVE_RECLAIM_TILE.x, y: INSTANCE_GRAVE_RECLAIM_TILE.y },
+    level: INSTANCE_GRAVE_RECLAIM_TILE.level,
+});
 // InstancedAreaManager centers its 13x13-chunk view six chunks behind the
 // destination chunk. These values keep the copied room at its native world
 // coordinates while still assigning it a private world view.
@@ -247,6 +252,7 @@ function createBandosInstance(
         templateChunks,
         destination: INSTANCE_ENTRANCE,
         exit: INSTANCE_EXIT,
+        grave: INSTANCE_GRAVE,
         npcs: BANDOS_NPCS,
     });
     if (!room) {

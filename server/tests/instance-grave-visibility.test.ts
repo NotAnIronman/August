@@ -82,6 +82,13 @@ assert.equal(
 player.instanceGrave.reclaim((_itemId, quantity) => quantity);
 
 const overflowGrave = new PlayerInstanceGraveState();
+const stackCountGrave = new PlayerInstanceGraveState();
+stackCountGrave.store([{ itemId: 995, quantity: 63_878 }]);
+assert.equal(
+    stackCountGrave.reclaim((_itemId, quantity) => quantity).reclaimed,
+    1,
+    "a coin stack is reclaimed and reported as one stored grave entry",
+);
 overflowGrave.store([{ itemId: 995, quantity: 2_147_483_647 }]);
 overflowGrave.deposit([{ itemId: 995, quantity: 2 }]);
 assert.deepEqual(

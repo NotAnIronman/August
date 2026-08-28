@@ -141,6 +141,7 @@ export class PlayerDeathService {
         }).calculate(player, wasSkulled, hadProtectItem);
 
         // Create immutable death context
+        const instance = this.svc.instancedAreaManager?.get(player.id);
         const context: DeathContext = Object.freeze({
             player,
             deathType,
@@ -152,8 +153,8 @@ export class PlayerDeathService {
             // Instance teardown, disconnect cleanup, and the six-tick death
             // animation can race. Classification must reflect the moment of
             // death, not whichever manager entry happens to exist later.
-            wasInInstance:
-                this.svc.instancedAreaManager?.get(player.id) !== undefined,
+            wasInInstance: instance !== undefined,
+            instanceGraveLocation: instance?.grave,
             killer: options?.killer ? new WeakRef(options.killer) : undefined,
             itemProtection,
         });
@@ -375,6 +376,7 @@ export class PlayerDeathService {
             player.instanceGrave.deposit(
                 itemProtection.lost.map((item) => ({ itemId: item.itemId, quantity: item.quantity })),
                 INSTANCE_GRAVE_RECLAIM_COST,
+                context.instanceGraveLocation,
             );
             syncInstanceGravePresentation(this.svc.locationService, player);
         }

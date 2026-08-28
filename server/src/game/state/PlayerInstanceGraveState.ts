@@ -5,10 +5,18 @@ export interface InstanceGraveItem {
     quantity: number;
 }
 
+/** The owner-scoped world location used to render and reclaim this grave. */
+export interface InstanceGraveLocation {
+    locId: number;
+    tile: { x: number; y: number };
+    level: number;
+}
+
 export interface InstanceGraveSnapshot {
     items?: InstanceGraveItem[];
     /** Reserved for configurable reclaim fees; free until a fee is configured. */
     reclaimCost?: number;
+    location?: InstanceGraveLocation;
 }
 
 /** Persistent item storage for deaths in instanced encounters. */
@@ -16,6 +24,7 @@ export class PlayerInstanceGraveState implements PersistentSubState<InstanceGrav
     private static readonly MAX_STACK_QUANTITY = 2_147_483_647;
     private items: InstanceGraveItem[] = [];
     private reclaimCost = 0;
+    private location: InstanceGraveLocation | undefined;
 
     hasItems(): boolean {
         return this.items.length > 0;
@@ -32,6 +41,14 @@ export class PlayerInstanceGraveState implements PersistentSubState<InstanceGrav
 
     getItemCount(): number {
         return this.items.length;
+    }
+
+    getLocation(): InstanceGraveLocation | undefined {
+        return this.location && {
+            locId: this.location.locId,
+            tile: { ...this.location.tile },
+            level: this.location.level,
+        };
     }
 
     private chunkItems(items: readonly InstanceGraveItem[]): InstanceGraveItem[] {
@@ -62,15 +79,18 @@ export class PlayerInstanceGraveState implements PersistentSubState<InstanceGrav
         );
     }
 
-    store(items: readonly InstanceGraveItem[], reclaimCost = 0): void {
+    store(items: readonly InstanceGraveItem[], reclaimCost = 0, location?: InstanceGraveLocation): void {
         this.items = this.chunkItems(items);
         this.reclaimCost = Math.max(0, Math.trunc(reclaimCost));
+        this.location = location ? normalizeLocation(location) : undefined;
     }
 
     /** Add another instanced death without discarding an unreclaimed grave. */
-    deposit(items: readonly InstanceGraveItem[], reclaimCost = 0): void {
+    deposit(items: readonly InstanceGraveItem[], reclaimCost = 0, location?: InstanceGraveLocation): void {
+        const wasEmpty = !this.hasItems();
         this.items = this.chunkItems([...this.items, ...items]);
         this.reclaimCost = Math.max(this.reclaimCost, Math.max(0, Math.trunc(reclaimCost)));
+        if (wasEmpty && this.hasItems()) this.location = location ? normalizeLocation(location) : undefined;
     }
 
     reclaim(addItem: (itemId: number, quantity: number) => number): {
@@ -83,11 +103,14 @@ export class PlayerInstanceGraveState implements PersistentSubState<InstanceGrav
         const remaining: InstanceGraveItem[] = [];
         for (const item of this.items) {
             const added = Math.max(0, Math.min(item.quantity, Math.trunc(addItem(item.itemId, item.quantity))));
-            reclaimed += added;
+            if (added > 0) reclaimed++;
             if (added < item.quantity) remaining.push({ itemId: item.itemId, quantity: item.quantity - added });
         }
         this.items = remaining;
-        if (remaining.length === 0) this.reclaimCost = 0;
+        if (remaining.length === 0) {
+            this.reclaimCost = 0;
+            this.location = undefined;
+        }
         return { reclaimed, remaining: remaining.length, reclaimCost };
     }
 
@@ -96,11 +119,21 @@ export class PlayerInstanceGraveState implements PersistentSubState<InstanceGrav
         return {
             items: this.items.map((item) => ({ ...item })),
             ...(this.reclaimCost > 0 ? { reclaimCost: this.reclaimCost } : {}),
+            ...(this.location ? { location: this.getLocation() } : {}),
         };
     }
 
     deserialize(data: InstanceGraveSnapshot | undefined): void {
         this.items = this.chunkItems(Array.isArray(data?.items) ? data.items : []);
         this.reclaimCost = Math.max(0, Math.trunc(data?.reclaimCost ?? 0));
+        this.location = data?.location ? normalizeLocation(data.location) : undefined;
     }
+}
+
+function normalizeLocation(location: InstanceGraveLocation): InstanceGraveLocation {
+    return {
+        locId: Math.max(1, Math.trunc(location.locId)),
+        tile: { x: Math.trunc(location.tile.x), y: Math.trunc(location.tile.y) },
+        level: Math.max(0, Math.trunc(location.level)),
+    };
 }

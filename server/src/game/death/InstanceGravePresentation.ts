@@ -1,8 +1,17 @@
 import type { PlayerState } from "../player";
 import type { LocationService } from "../services/LocationService";
+import type { InstanceGraveLocation } from "../state/PlayerInstanceGraveState";
 
 export const INSTANCE_GRAVE_RECLAIM_LOC_ID = 9359;
 export const INSTANCE_GRAVE_RECLAIM_TILE = Object.freeze({ x: 2858, y: 5354, level: 2 });
+const DEFAULT_INSTANCE_GRAVE_LOCATION: InstanceGraveLocation = {
+    locId: INSTANCE_GRAVE_RECLAIM_LOC_ID,
+    // Preserve the legacy tile object for older graves and existing location
+    // callers; LocationService only reads x/y while the historical level stays
+    // available to code that treats this exported constant as a full location.
+    tile: INSTANCE_GRAVE_RECLAIM_TILE,
+    level: INSTANCE_GRAVE_RECLAIM_TILE.level,
+};
 /** One policy switch for future paid reclaim; zero preserves the current free flow. */
 export const INSTANCE_GRAVE_RECLAIM_COST = 0;
 
@@ -30,16 +39,17 @@ export function isAuthorizedInstanceGraveInteraction(
     player: PlayerState,
     target: InstanceGraveInteractionTarget,
 ): boolean {
+    const grave = player.instanceGrave?.getLocation() ?? DEFAULT_INSTANCE_GRAVE_LOCATION;
     return (
-        target.locId === INSTANCE_GRAVE_RECLAIM_LOC_ID &&
-        target.tile.x === INSTANCE_GRAVE_RECLAIM_TILE.x &&
-        target.tile.y === INSTANCE_GRAVE_RECLAIM_TILE.y &&
-        target.level === INSTANCE_GRAVE_RECLAIM_TILE.level &&
+        target.locId === grave.locId &&
+        target.tile.x === grave.tile.x &&
+        target.tile.y === grave.tile.y &&
+        target.level === grave.level &&
         location.hasTemporaryLocVisibleToPlayer(
             player,
-            INSTANCE_GRAVE_RECLAIM_LOC_ID,
-            INSTANCE_GRAVE_RECLAIM_TILE,
-            INSTANCE_GRAVE_RECLAIM_TILE.level,
+            grave.locId,
+            grave.tile,
+            grave.level,
         )
     );
 }
@@ -54,13 +64,14 @@ export function syncInstanceGravePresentation(
     player: PlayerState,
 ): void {
     const scope = { worldViewId: -1, ownerPlayerId: player.id };
+    const grave = player.instanceGrave.getLocation() ?? DEFAULT_INSTANCE_GRAVE_LOCATION;
     if (player.instanceGrave.hasItems()) {
         location.replaceTemporaryLoc(
             scope,
             0,
-            INSTANCE_GRAVE_RECLAIM_LOC_ID,
-            INSTANCE_GRAVE_RECLAIM_TILE,
-            INSTANCE_GRAVE_RECLAIM_TILE.level,
+            grave.locId,
+            grave.tile,
+            grave.level,
             {
                 newShape: INSTANCE_GRAVE_LOC_SHAPE,
                 newRotation: INSTANCE_GRAVE_LOC_ROTATION,
@@ -72,8 +83,8 @@ export function syncInstanceGravePresentation(
     location.clearTemporaryLoc(
         scope,
         0,
-        INSTANCE_GRAVE_RECLAIM_TILE,
-        INSTANCE_GRAVE_RECLAIM_TILE.level,
+        grave.tile,
+        grave.level,
         INSTANCE_GRAVE_LOC_SHAPE,
     );
 }

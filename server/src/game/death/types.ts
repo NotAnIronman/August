@@ -7,6 +7,7 @@ import type { ItemDefinition } from "../../data/items";
 import type { PathService } from "../../pathfinding/PathService";
 import type { GroundItemManager } from "../items/GroundItemManager";
 import type { PlayerState } from "../player";
+import type { InstanceGraveLocation } from "../state/PlayerInstanceGraveState";
 
 /**
  * Death type determines item loss rules and respawn behavior
@@ -94,6 +95,8 @@ export interface DeathContext {
     readonly deathTick: number;
     /** Whether the player occupied a private instance when death was queued. */
     readonly wasInInstance: boolean;
+    /** Reclaim location captured before the instance is torn down. */
+    readonly instanceGraveLocation?: InstanceGraveLocation;
     /** Optional killer reference (WeakRef to prevent memory leaks) */
     readonly killer?: WeakRef<PlayerState>;
     /** Item protection calculation result */

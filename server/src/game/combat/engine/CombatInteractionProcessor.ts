@@ -174,6 +174,31 @@ export class CombatInteractionProcessor {
             return { status: "moving", target, traits, range };
         }
 
+        if (
+            attacker instanceof NpcState &&
+            target instanceof PlayerState &&
+            this.yieldPlayerToReciprocalMeleeNpc(
+                attacker,
+                target,
+                currentMapClock,
+                range.overlapping,
+                traits,
+                resolveTraits,
+            )
+        ) {
+            // Combat actors are processed independently, so the NPC may learn
+            // about the reciprocal engagement after the player has already
+            // planned a route this tick. Enforce the same single route owner
+            // from this direction as well; otherwise both paths survive and
+            // repeatedly walk through one another.
+            const moving = this.routeToward(attacker, target, targetReference, traits);
+            if (moving) {
+                target.clearPath();
+                this.routes.delete(target);
+                return { status: "moving", target, traits, range };
+            }
+        }
+
         const moving = this.routeToward(attacker, target, targetReference, traits);
         return {
             status: moving ? "moving" : "unreachable",
@@ -314,6 +339,30 @@ export class CombatInteractionProcessor {
             return false;
         }
         return this.routeToward(npc, player, npcTarget, npcTraits);
+    }
+
+    private yieldPlayerToReciprocalMeleeNpc(
+        npc: NpcState,
+        player: PlayerState,
+        currentMapClock: number,
+        overlapping: boolean,
+        npcTraits: CombatAttackTraits,
+        resolveTraits: CombatAttackTraitsResolver,
+    ): boolean {
+        if (npcTraits.type !== AttackType.Melee || npcTraits.rangeTiles > 1) return false;
+        if (overlapping && npc.size > 1) return false;
+        if (npc.isRecoveringToSpawn()) return false;
+        if (
+            currentMapClock <
+            Math.max(
+                npc.combatAttributes.get(CombatAttributes.FREEZE_UNTIL_CLOCK),
+                npc.combatAttributes.get(CombatAttributes.STUN_UNTIL_CLOCK),
+            )
+        ) return false;
+        const playerTarget = player.combatAttributes.get(CombatAttributes.COMBAT_TARGET);
+        if (playerTarget?.type !== "npc" || playerTarget.id !== npc.id) return false;
+        const playerTraits = resolveTraits(player, npc);
+        return !!playerTraits && playerTraits.type === AttackType.Melee && playerTraits.rangeTiles <= 1;
     }
 
     private preferredApproachDistance(
