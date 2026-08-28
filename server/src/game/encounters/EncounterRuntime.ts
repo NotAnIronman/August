@@ -62,7 +62,15 @@ export class EncounterRuntime {
         targetDistance: number;
     }): PlannedEncounterAttack | undefined {
         if (this.lifecycle === "dead" || this.lifecycle === "disposed") return undefined;
-        if (this.plannedAttack?.targetId === input.targetId) return this.plannedAttack;
+        if (this.plannedAttack?.targetId === input.targetId) {
+            // Keep an attack reserved while the NPC closes to its preferred
+            // distance, but do not let a now-impossible short-range attack pin
+            // the NPC in pursuit forever. Hybrid bosses must be allowed to
+            // re-plan as soon as their target leaves that attack's max range.
+            const maximumDistance =
+                this.plannedAttack.definition.maxDistance ?? Number.POSITIVE_INFINITY;
+            if (input.targetDistance <= maximumDistance) return this.plannedAttack;
+        }
         this.plannedAttack = undefined;
 
         const context = this.createContext(input);

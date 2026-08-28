@@ -40,6 +40,7 @@ assert.deepEqual([...handlers.keys()], [
     "26503:enter solo",
     "26503:enter party",
     "26503:join party",
+    "26366:pray",
     "26366:pray-at",
 ]);
 
@@ -55,13 +56,26 @@ assert.deepEqual(
 assert.equal(EncounterRegistry.shared.findByNpcTypeId(2216)?.attacks[0]?.type, AttackType.Melee);
 assert.equal(EncounterRegistry.shared.findByNpcTypeId(2217)?.attacks[0]?.type, AttackType.Magic);
 assert.equal(EncounterRegistry.shared.findByNpcTypeId(2218)?.attacks[0]?.type, AttackType.Ranged);
+assert.equal(getNpcCombatProfile(2215)?.hitpoints, 255);
+assert.equal(getNpcCombatProfile(2215)?.attackBonus, 120);
+assert.equal(getNpcCombatProfile(2215)?.rangedBonus, 100);
+assert.deepEqual(getNpcCombatProfile(2215)?.bonuses, {
+    stab: 90,
+    slash: 90,
+    crush: 90,
+    magic: 298,
+    ranged: 90,
+});
 assert.equal(getNpcCombatProfile(2216)?.attackLevel, 124);
+assert.equal(getNpcCombatProfile(2216)?.attackBonus, 0);
+assert.equal(getNpcCombatProfile(2216)?.strengthBonus, 14);
 assert.equal(getNpcCombatProfile(2217)?.magicLevel, 150);
 assert.equal(getNpcCombatProfile(2218)?.rangedLevel, 150);
 
 let copiedArea: Record<string, number> | undefined;
 let instanceSpec: any;
 let openedBossHealthBar: { targetUid: number; groupId: number } | undefined;
+const bossHealthWidgetEvents: Array<Record<string, unknown>> = [];
 const testPlayer = {
     id: 42,
     varps: {
@@ -88,6 +102,9 @@ const testServices = {
         sendVarbit: () => undefined,
     },
     dialog: {
+        queueWidgetEvent: (_playerId: number, event: Record<string, unknown>) => {
+            bossHealthWidgetEvents.push(event);
+        },
         openSubInterface: (
             _player: unknown,
             targetUid: number,
@@ -99,6 +116,16 @@ const testServices = {
 };
 handlers.get("26503:enter solo")?.({ player: testPlayer, services: testServices } as never);
 assert.deepEqual(openedBossHealthBar, { targetUid: (161 << 16) | 44, groupId: 303 });
+assert.ok(
+    bossHealthWidgetEvents.some(
+        (event) => event.action === "set_hidden" && event.uid === (303 << 16 | 5),
+    ),
+);
+assert.ok(
+    bossHealthWidgetEvents.some(
+        (event) => event.action === "set_text" && event.uid === (303 << 16 | 11),
+    ),
+);
 assert.ok(tickHandler);
 assert.deepEqual(instanceSpec.destination, { x: 2864, y: 5354, level: 2 });
 assert.deepEqual(instanceSpec.exit, { x: 2862, y: 5354, level: 2 });
@@ -148,7 +175,7 @@ const altarServices = {
     },
     sound: { sendSound: (_player: unknown, sound: number) => (prayerSound = sound) },
 };
-handlers.get("26366:pray-at")?.({
+handlers.get("26366:pray")?.({
     player: altarPlayer,
     services: altarServices,
     tick: 100,
@@ -158,7 +185,7 @@ assert.equal(prayerReset, true);
 assert.equal(prayerAnimation, 645);
 assert.ok(prayerSound >= 0);
 
-handlers.get("26366:pray-at")?.({
+handlers.get("26366:pray")?.({
     player: altarPlayer,
     services: altarServices,
     tick: 101,

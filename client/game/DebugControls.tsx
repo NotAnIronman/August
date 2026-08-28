@@ -102,12 +102,6 @@ export const DebugControls = memo(
                     case "F1":
                         setHideUi((v) => !v);
                         break;
-                    case "F2":
-                        setCameraRunning((v) => !v);
-                        break;
-                    case "F3":
-                        addPoint();
-                        break;
                     case "F4":
                         removeLastPoint();
                         break;
@@ -119,7 +113,7 @@ export const DebugControls = memo(
             return () => {
                 document.removeEventListener("keydown", handleKeyDown);
             };
-        }, [addPoint, osrsClient, removeLastPoint, setHideUi]);
+        }, [removeLastPoint, setHideUi]);
 
         useEffect(() => {
             setPointControls(
@@ -204,7 +198,7 @@ export const DebugControls = memo(
         }
 
         const recordSchema: Schema = {
-            "Add point (F3)": button(() => addPoint()),
+            "Add camera point": button(() => addPoint()),
             "Delete last point (F4)": button(() => removeLastPoint()),
             Length: {
                 value: animationDuration,
@@ -216,11 +210,11 @@ export const DebugControls = memo(
         };
 
         if (isCameraRunning) {
-            const buttonName = "Stop (F2)";
+            const buttonName = "Stop camera path";
             recordSchema[buttonName] = button(() => setCameraRunning(false));
             recordSchema[buttonName].order = -1;
         } else {
-            const buttonName = "Start (F2)";
+            const buttonName = "Start camera path";
             recordSchema[buttonName] = button(() => setCameraRunning(true));
             recordSchema[buttonName].order = -1;
         }

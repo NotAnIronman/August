@@ -1035,8 +1035,8 @@ export class NpcManager {
                 const movementFrozen = interceptFrozenCombatMovement(npc, currentTick);
                 if (!movementFrozen && this.queueOverlapEscape(npc, getNearbyPlayers)) {
                     // A player can briefly stack on an NPC because their paths
-                    // are synchronized independently. Normal 1x1 NPCs recover
-                    // on the next game tick instead of waiting for idle roam.
+                    // are synchronized independently. Every NPC footprint
+                    // recovers one step per tick instead of becoming safespotted.
                 } else if (!movementFrozen && shouldRecoverToSpawn) {
                     if (combatTargetId !== undefined) {
                         npc.disengageCombat();
@@ -1305,10 +1305,9 @@ export class NpcManager {
     }
 
     /**
-     * A server-side escape step for a 1x1 NPC beneath a player. This preserves
-     * its combat target; CombatTickEngine can resume ordinary pursuit on the
-     * following tick. Larger NPCs and player followers deliberately keep their
-     * footprint, matching their different overlap rules.
+     * Move an NPC's south-west footprint anchor one tile toward the nearest
+     * edge whenever a player is standing inside that footprint. The combat
+     * target is preserved so ordinary pursuit and attacks resume immediately.
      */
     private queueOverlapEscape(
         npc: NpcState,
@@ -1323,7 +1322,6 @@ export class NpcManager {
     ): boolean {
         if (
             !getNearbyPlayers ||
-            npc.size !== 1 ||
             npc.isPlayerFollower() ||
             npc.hasPath() ||
             npc.isDead(this.currentTick)
@@ -1331,26 +1329,55 @@ export class NpcManager {
             return false;
         }
 
-        const overlappingPlayer = getNearbyPlayers(npc.tileX, npc.tileY, npc.level, 0).find(
+        const size = Math.max(1, Math.trunc(npc.size));
+        const maxX = npc.tileX + size - 1;
+        const maxY = npc.tileY + size - 1;
+        const overlappingPlayer = getNearbyPlayers(
+            npc.tileX,
+            npc.tileY,
+            npc.level,
+            size - 1,
+        ).find(
             (player) =>
                 player.level === npc.level &&
-                player.x === npc.tileX &&
-                player.y === npc.tileY,
+                player.x >= npc.tileX &&
+                player.x <= maxX &&
+                player.y >= npc.tileY &&
+                player.y <= maxY,
         );
         if (!overlappingPlayer) return false;
 
-        // Use a fixed priority so the result is deterministic rather than
-        // visibly jittering as two actors try to resolve the same tile.
+        // Prefer the shortest route that moves the whole footprint off the
+        // player's tile. Stable tie-breaking prevents visible jitter.
         const candidates = [
-            { x: npc.tileX + 1, y: npc.tileY },
-            { x: npc.tileX, y: npc.tileY + 1 },
-            { x: npc.tileX - 1, y: npc.tileY },
-            { x: npc.tileX, y: npc.tileY - 1 },
-            { x: npc.tileX + 1, y: npc.tileY + 1 },
-            { x: npc.tileX - 1, y: npc.tileY + 1 },
-            { x: npc.tileX - 1, y: npc.tileY - 1 },
-            { x: npc.tileX + 1, y: npc.tileY - 1 },
-        ];
+            {
+                x: npc.tileX + 1,
+                y: npc.tileY,
+                distance: overlappingPlayer.x - npc.tileX + 1,
+                priority: 0,
+            },
+            {
+                x: npc.tileX,
+                y: npc.tileY + 1,
+                distance: overlappingPlayer.y - npc.tileY + 1,
+                priority: 1,
+            },
+            {
+                x: npc.tileX - 1,
+                y: npc.tileY,
+                distance: maxX - overlappingPlayer.x + 1,
+                priority: 2,
+            },
+            {
+                x: npc.tileX,
+                y: npc.tileY - 1,
+                distance: maxY - overlappingPlayer.y + 1,
+                priority: 3,
+            },
+        ].sort(
+            (first, second) =>
+                first.distance - second.distance || first.priority - second.priority,
+        );
         for (const candidate of candidates) {
             if (
                 this.pathService.canNpcStep(
@@ -1359,7 +1386,7 @@ export class NpcManager {
                     npc.size,
                 )
             ) {
-                npc.setPath([candidate], false);
+                npc.setPath([{ x: candidate.x, y: candidate.y }], false);
                 return true;
             }
         }

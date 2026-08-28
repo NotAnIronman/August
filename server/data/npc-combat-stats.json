@@ -981,6 +981,9 @@
       "attackType": "melee",
       "attackStyle": "crush",
       "maxHit": 60,
+      "attackBonus": 120,
+      "strengthBonus": 43,
+      "rangedBonus": 100,
       "aggressive": true,
       "aggressiveRadius": 10,
       "size": 4,
@@ -988,8 +991,8 @@
         "stab": 90,
         "slash": 90,
         "crush": 90,
-        "magic": -10,
-        "ranged": 200
+        "magic": 298,
+        "ranged": 90
       },
       "species": [
         "ork",
@@ -1011,7 +1014,8 @@
       "attackType": "melee",
       "attackStyle": "crush",
       "maxHit": 15,
-      "attackBonus": 14,
+      "attackBonus": 0,
+      "strengthBonus": 14,
       "aggressive": true,
       "aggressiveRadius": 10,
       "species": [
@@ -1031,6 +1035,7 @@
       "attackSpeed": 5,
       "attackType": "magic",
       "maxHit": 15,
+      "strengthBonus": 6,
       "aggressive": true,
       "aggressiveRadius": 10,
       "species": [

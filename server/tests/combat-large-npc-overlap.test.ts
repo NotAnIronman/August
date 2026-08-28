@@ -1,5 +1,5 @@
 /**
- * Regression coverage for RSMod's under-target combat movement rule.
+ * Regression coverage for footprint-aware under-target combat movement.
  *
  * Run with: npx tsx tests/combat-large-npc-overlap.test.ts
  */
@@ -78,16 +78,15 @@ const engine = new CombatTickEngine({
 });
 
 const overlapTick = engine.processTick(100);
-assert.equal(overlapTick.statuses.get("moving"), 1);
-assert.equal(overlapTick.statuses.get("unreachable"), 1);
+assert.equal(overlapTick.statuses.get("moving"), 2);
 assert.equal(player.hasPath(), true, "the attacking player should route out of the NPC footprint");
-assert.equal(dragon.hasPath(), false, "a large NPC must hold while its overlapping target is busy");
-assert.equal(npcPathCalls, 0, "the NPC must not compete with the player's escape route");
+assert.equal(dragon.hasPath(), true, "a large NPC must also path out from under its target");
+assert.equal(npcPathCalls, 1, "overlap must not suppress the NPC's combat route");
 
 player.teleport(3199, 3200, 0);
 const adjacentTick = engine.processTick(101);
 assert.equal(adjacentTick.statuses.get("ready"), 2);
 assert.equal(adjacentTick.preparedAttacks.length, 2);
-assert.equal(npcPathCalls, 0);
+assert.equal(npcPathCalls, 1);
 
 console.log("large NPC overlap combat regression test passed");

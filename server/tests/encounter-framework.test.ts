@@ -133,6 +133,13 @@ function testConditionalAndStickyAttackPlanning(): void {
         runtime.planAttack({ tick: 12, targetId: 20, targetDistance: 1 })?.definition.id,
         "melee",
     );
+
+    // A reserved melee attack cannot remain sticky after its target runs out
+    // of range; a hybrid NPC must immediately re-plan to its ranged option.
+    assert.equal(
+        runtime.planAttack({ tick: 15, targetId: 20, targetDistance: 6 })?.definition.id,
+        "ranged",
+    );
 }
 
 function testThresholdsPhasesAndSharedFormHealth(): void {

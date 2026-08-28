@@ -330,14 +330,6 @@ export class CombatInteractionProcessor {
         traits: CombatAttackTraits,
     ): boolean {
         if (attacker.isRecoveringToSpawn()) return false;
-        const targetIsBusy =
-            target instanceof PlayerState &&
-            target.combatAttributes.get(CombatAttributes.COMBAT_TARGET) !== null;
-        // RSMod: an NPC under a busy player skips movement so their routes do not compete.
-        if (targetIsBusy && this.rangeValidator.isOverlapping(attacker, target)) {
-            attacker.clearPath();
-            return false;
-        }
 
         const destination =
             traits.type === AttackType.Melee && traits.rangeTiles <= 1
