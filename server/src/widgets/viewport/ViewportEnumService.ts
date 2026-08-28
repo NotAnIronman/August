@@ -100,11 +100,19 @@ export const BaseComponentUids = {
  */
 export class ViewportEnumService {
     private mobileMapping: Map<number, number>;
+    private fixedMapping: Map<number, number>;
+    private resizableMapping: Map<number, number>;
+    private resizableListMapping: Map<number, number>;
+    private fullscreenMapping: Map<number, number>;
     private enumLoader: EnumTypeLoader;
 
     constructor(enumTypeLoader: EnumTypeLoader) {
         this.enumLoader = enumTypeLoader;
         this.mobileMapping = this.loadEnumAsMap(ViewportEnumIds.MOBILE);
+        this.fixedMapping = this.loadEnumAsMap(ViewportEnumIds.FIXED);
+        this.resizableMapping = this.loadEnumAsMap(ViewportEnumIds.RESIZABLE);
+        this.resizableListMapping = this.loadEnumAsMap(ViewportEnumIds.RESIZABLE_LIST);
+        this.fullscreenMapping = this.loadEnumAsMap(ViewportEnumIds.FULLSCREEN);
 
         // Log loaded mapping count for debugging
         logger.info(
@@ -132,12 +140,17 @@ export class ViewportEnumService {
      * @returns Component UID for the specified display mode
      */
     getComponent(baseUid: number, displayMode: DisplayMode): number {
-        if (displayMode === DisplayMode.MOBILE) {
-            return this.getMobileComponent(baseUid);
-        }
-        // Desktop modes use the base 161 UIDs directly
-        // (Fixed mode 548 shares the same relative positions)
-        return baseUid;
+        const mapping =
+            displayMode === DisplayMode.FIXED
+                ? this.fixedMapping
+                : displayMode === DisplayMode.RESIZABLE_LIST
+                  ? this.resizableListMapping
+                  : displayMode === DisplayMode.FULLSCREEN
+                    ? this.fullscreenMapping
+                    : displayMode === DisplayMode.MOBILE
+                      ? this.mobileMapping
+                      : this.resizableMapping;
+        return mapping.get(baseUid) ?? baseUid;
     }
 
     /**
@@ -215,6 +228,10 @@ export class ViewportEnumService {
      */
     reload(): void {
         this.mobileMapping = this.loadEnumAsMap(ViewportEnumIds.MOBILE);
+        this.fixedMapping = this.loadEnumAsMap(ViewportEnumIds.FIXED);
+        this.resizableMapping = this.loadEnumAsMap(ViewportEnumIds.RESIZABLE);
+        this.resizableListMapping = this.loadEnumAsMap(ViewportEnumIds.RESIZABLE_LIST);
+        this.fullscreenMapping = this.loadEnumAsMap(ViewportEnumIds.FULLSCREEN);
         logger.info(
             `[ViewportEnumService] Reloaded enum ${ViewportEnumIds.MOBILE} with ${this.mobileMapping.size} mappings`,
         );

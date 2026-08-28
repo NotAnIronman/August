@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 
 import { resolveLocActions } from "../../client/common/world/LocActionOverrides";
+import {
+    BOSS_HEALTH_BAR_GROUP_ID,
+    BossHealthBarComponent,
+    bossHealthBarUid,
+} from "../../client/common/ui/bossHealthBar";
 import { AttackType } from "../src/game/combat/AttackType";
 import { EncounterRegistry } from "../src/game/encounters/EncounterRegistry";
 import { getNpcCombatProfile } from "../src/data/npcCombatStats";
@@ -162,15 +167,30 @@ const testServices = {
     },
 };
 handlers.get("26503:enter solo")?.({ player: testPlayer, services: testServices } as never);
-assert.deepEqual(openedBossHealthBar, { targetUid: (161 << 16) | 44, groupId: 303 });
+assert.deepEqual(openedBossHealthBar, {
+    targetUid: (161 << 16) | 44,
+    groupId: BOSS_HEALTH_BAR_GROUP_ID,
+});
 assert.ok(
     bossHealthWidgetEvents.some(
-        (event) => event.action === "set_hidden" && event.uid === (303 << 16 | 5),
+        (event) =>
+            event.action === "set_hidden" &&
+            event.uid === (161 << 16 | 44) &&
+            event.hidden === false,
     ),
 );
 assert.ok(
     bossHealthWidgetEvents.some(
-        (event) => event.action === "set_text" && event.uid === (303 << 16 | 11),
+        (event) =>
+            event.action === "set_hidden" &&
+            event.uid === bossHealthBarUid(BossHealthBarComponent.SegmentStart),
+    ),
+);
+assert.ok(
+    bossHealthWidgetEvents.some(
+        (event) =>
+            event.action === "set_text" &&
+            event.uid === bossHealthBarUid(BossHealthBarComponent.Name),
     ),
 );
 assert.ok(tickHandler);

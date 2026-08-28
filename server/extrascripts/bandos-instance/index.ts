@@ -6,6 +6,11 @@ import type {
 } from "../../src/game/scripts/types";
 import { AttackType } from "../../src/game/combat/AttackType";
 import { EncounterRegistry, registerEncounter } from "../../src/game/encounters/EncounterRegistry";
+import {
+    closeBossHealthBar as closeEncounterHealthBar,
+    openBossHealthBar as openEncounterHealthBar,
+    updateBossHealthBar as updateEncounterHealthBar,
+} from "../../src/game/encounters/BossHealthBar";
 import { SkillId } from "../../../client/rs/skill/skills";
 import { PRAYER_RECHARGE_SOUND_ID } from "../../../client/rs/prayer/prayers";
 
@@ -13,16 +18,6 @@ const BANDOS_DOOR_LOC_ID = 26503;
 const BANDOS_STRONGHOLD_DOOR_LOC_ID = 26461;
 const BANDOS_ALTAR_LOC_ID = 26366;
 const BANDOS_DEFINITION_ID = "graardor-room";
-const HPBAR_HUD_COMPONENT_UID = (161 << 16) | 44;
-const BOSS_HEALTH_BAR_GROUP_ID = 303;
-const BOSS_HEALTH_BAR_CONTAINER_CHILD_ID = 5;
-const BOSS_HEALTH_BAR_WRAPPER_CHILD_ID = 6;
-const BOSS_HEALTH_BAR_NAME_CHILD_ID = 11;
-const BOSS_HEALTH_BAR_TEXT_CHILD_ID = 20;
-const VARP_BOSS_HEALTH_NPC = 1683;
-const VARBIT_BOSS_HEALTH_CURRENT = 6099;
-const VARBIT_BOSS_HEALTH_MAXIMUM = 6100;
-const VARBIT_BOSS_HEALTH_DISABLED = 12389;
 const BANDOS_ALTAR_COOLDOWN_TICKS = 500;
 const lastBandosAltarUse = new WeakMap<PlayerState, number>();
 const activeBandosPlayers = new Set<PlayerState>();
@@ -91,10 +86,6 @@ function openBandosStrongholdDoor({ player, services }: LocInteractionEvent): vo
         },
         { kind: "player", id: player.id },
     );
-}
-
-function bossHealthWidgetUid(childId: number): number {
-    return (BOSS_HEALTH_BAR_GROUP_ID << 16) | childId;
 }
 
 const INSTANCE_EXIT = Object.freeze({ x: 2862, y: 5354, level: 2 });
@@ -186,47 +177,17 @@ function isBandosInstance(player: PlayerState, services: ScriptServices): boolea
 
 function openBossHealthBar(player: PlayerState, services: ScriptServices): void {
     activeBandosPlayers.add(player);
-    player.varps.setVarpValue(VARP_BOSS_HEALTH_NPC, 2215);
-    player.varps.setVarbitValue(VARBIT_BOSS_HEALTH_DISABLED, 0);
-    services.variables.sendVarp(player, VARP_BOSS_HEALTH_NPC, 2215);
-    services.variables.sendVarbit(player, VARBIT_BOSS_HEALTH_DISABLED, 0);
-    services.dialog.openSubInterface(
-        player,
-        HPBAR_HUD_COMPONENT_UID,
-        BOSS_HEALTH_BAR_GROUP_ID,
-        1,
-        { modal: false },
-    );
-    // Group 303 is the native modern boss-health HUD. The main-game client
-    // normally unhides and labels it from CS2; seed those static children here
-    // because August does not run the full main-game HUD bootstrap sequence.
-    for (const childId of [
-        BOSS_HEALTH_BAR_CONTAINER_CHILD_ID,
-        BOSS_HEALTH_BAR_WRAPPER_CHILD_ID,
-    ]) {
-        services.dialog.queueWidgetEvent?.(player.id, {
-            action: "set_hidden",
-            uid: bossHealthWidgetUid(childId),
-            hidden: false,
-        });
-    }
-    services.dialog.queueWidgetEvent?.(player.id, {
-        action: "set_text",
-        uid: bossHealthWidgetUid(BOSS_HEALTH_BAR_NAME_CHILD_ID),
-        text: "General Graardor",
+    openEncounterHealthBar(player, services, {
+        name: "General Graardor",
+        current: 255,
+        maximum: 255,
     });
 }
 
 function closeBossHealthBar(player: PlayerState, services: ScriptServices): void {
     activeBandosPlayers.delete(player);
     lastBossHealthState.delete(player);
-    player.varps.setVarpValue(VARP_BOSS_HEALTH_NPC, -1);
-    services.variables.sendVarp(player, VARP_BOSS_HEALTH_NPC, -1);
-    services.dialog.closeSubInterface(
-        player,
-        HPBAR_HUD_COMPONENT_UID,
-        BOSS_HEALTH_BAR_GROUP_ID,
-    );
+    closeEncounterHealthBar(player, services);
 }
 
 function syncBossHealthBars(services: ScriptServices): void {
@@ -241,20 +202,10 @@ function syncBossHealthBars(services: ScriptServices): void {
         const stateKey = `${current}:${maximum}`;
         if (lastBossHealthState.get(player) === stateKey) continue;
         lastBossHealthState.set(player, stateKey);
-        player.varps.setVarbitValue(VARBIT_BOSS_HEALTH_CURRENT, current);
-        player.varps.setVarbitValue(VARBIT_BOSS_HEALTH_MAXIMUM, maximum);
-        services.variables.sendVarbit(player, VARBIT_BOSS_HEALTH_CURRENT, current);
-        services.variables.sendVarbit(player, VARBIT_BOSS_HEALTH_MAXIMUM, maximum);
-        const percentage = Math.max(0, Math.min(100, (current / maximum) * 100));
-        services.dialog.queueWidgetEvent?.(player.id, {
-            action: "set_text",
-            uid: bossHealthWidgetUid(BOSS_HEALTH_BAR_NAME_CHILD_ID),
-            text: "General Graardor",
-        });
-        services.dialog.queueWidgetEvent?.(player.id, {
-            action: "set_text",
-            uid: bossHealthWidgetUid(BOSS_HEALTH_BAR_TEXT_CHILD_ID),
-            text: `${current} / ${maximum} (${percentage.toFixed(1)}%)`,
+        updateEncounterHealthBar(player, services, {
+            name: "General Graardor",
+            current,
+            maximum,
         });
     }
 }

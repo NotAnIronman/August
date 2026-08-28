@@ -266,6 +266,14 @@ export function getViewportTrackerFrontUid(displayMode: DisplayMode): number {
     return baseUid;
 }
 
+/** Returns the cache-defined HUD mount reserved for encounter health bars. */
+export function getBossHealthBarHudUid(displayMode: DisplayMode): number {
+    if (viewportEnumService) {
+        return viewportEnumService.getComponent(BaseComponentUids.HPBAR_HUD, displayMode);
+    }
+    return (getRootInterfaceId(displayMode) << 16) | (BaseComponentUids.HPBAR_HUD & 0xffff);
+}
+
 /**
  * Get a stable full-screen overlay container UID for mounting global overlays that must cover
  * the entire gameframe (e.g., tutorial highlights).
