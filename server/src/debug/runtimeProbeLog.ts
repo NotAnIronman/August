@@ -1,20 +1,9 @@
 import fs from "fs";
 import path from "path";
 
-function resolveLogPath(): string {
-    // `server start` runs with server/ as cwd, while maintenance tooling is
-    // commonly launched from the repository root. Avoid relying on __dirname
-    // so this works under both tsx/CJS and future ESM launchers.
-    const candidates = [
-        path.resolve(process.cwd(), "server", "data"),
-        path.resolve(process.cwd(), "data"),
-        typeof __dirname === "string" ? path.resolve(__dirname, "../../data") : "",
-    ];
-    const directory = candidates.find((candidate) => candidate && fs.existsSync(candidate)) ?? candidates[1];
-    return path.join(directory, "runtime-probe.log");
-}
+import { serverPath } from "../paths";
 
-const LOG_PATH = resolveLogPath();
+const LOG_PATH = serverPath("logs", "runtime-probe.log");
 const MAX_LOG_BYTES = 256 * 1024;
 const MAX_EVENT_LENGTH = 80;
 const MAX_TEXT_LENGTH = 320;
@@ -48,7 +37,7 @@ function trimLogIfNeeded(): void {
     }
 }
 
-/** Appends a bounded JSON line to a Git-visible project file. */
+/** Appends a bounded JSON line to the ignored local diagnostics directory. */
 export function appendRuntimeProbe(
     event: string,
     details: Record<string, unknown> = {},

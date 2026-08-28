@@ -24,7 +24,7 @@ function createHarness(full = false) {
         },
     } as unknown as PlayerState;
     const services = {
-        data: { getObjType: () => ({ stackable: 0 }) },
+        data: { getObjType: () => ({ stackability: 0 }) },
         inventory: {
             getInventoryItems: () => inventory,
             addItemToInventory: (_player: PlayerState, itemId: number, quantity: number) => {

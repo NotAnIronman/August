@@ -27,7 +27,6 @@ export interface BinaryHandlerExtServices extends MessageHandlerServices {
     getScriptRuntime: () => ScriptRuntime;
     getCs2ModalManager: () => Cs2ModalManager;
     getWidgetDialogHandler: () => WidgetDialogHandler;
-    getObjType: (itemId: number) => InventoryActionDef | undefined;
     handleInventoryUseOnMessage: (ws: WebSocket, payload: Record<string, unknown>) => void;
 }
 

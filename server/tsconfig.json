@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ES2021",
-    "lib": ["ES2021"],
+    "target": "ES2022",
+    "lib": ["ES2022"],
     "module": "CommonJS",
     "moduleResolution": "Node",
     "ignoreDeprecations": "6.0",
@@ -18,7 +18,9 @@
     "src/**/*",
     "data/**/*",
     "../client/rs/**/*",
-    "../client/common/**/*"
+    "../client/common/**/*",
+    "../client/*.d.ts",
+    "../client/game/types/**/*.d.ts"
   ],
   "exclude": [
     "../client/rs/cs2/**/*",

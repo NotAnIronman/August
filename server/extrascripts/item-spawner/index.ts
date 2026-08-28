@@ -176,7 +176,9 @@ function spawnInventoryItem(
 ): { requested: number; completed: number; itemName: string } {
     const result = services.inventory.addItemToInventory(player, itemId, 1);
     services.inventory.snapshotInventory(player);
-    const itemName = services.data.getObjType?.(itemId)?.name?.trim() || `Item ${itemId}`;
+    const rawItemName = services.data.getObjType?.(itemId)?.name;
+    const itemName =
+        (typeof rawItemName === "string" ? rawItemName.trim() : "") || `Item ${itemId}`;
     return {
         requested: 1,
         completed: result.added >= 1 ? 1 : 0,

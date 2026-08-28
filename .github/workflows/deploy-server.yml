@@ -5,7 +5,7 @@ on:
         branches: [main]
         paths:
             - 'server/**'
-            - 'src/**'
+            - 'client/**'
             - 'scripts/**'
             - 'package.json'
             - 'yarn.lock'

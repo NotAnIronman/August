@@ -5,8 +5,8 @@ export interface FiremakingLogDefinition {
     name: string;
     level: number;
     xp: number;
-    burnTicks?: { min: number; max: number };
-    fireObjectId?: number;
+    burnTicks: { min: number; max: number };
+    fireObjectId: number;
 }
 
 const DEFAULT_FIRE_OBJECT_ID = 26185;

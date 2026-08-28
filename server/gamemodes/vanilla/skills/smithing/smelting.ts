@@ -43,7 +43,7 @@ function buildSmeltInterfaceFailure(
     services: ScriptServices,
 ): ActionExecutionResult {
     const result = buildSkillFailure(player, message, reason);
-    services.production?.updateSmeltingInterface(player);
+    services.production?.updateSmeltingInterface?.(player);
     return result;
 }
 
@@ -182,7 +182,7 @@ export function executeSmeltAction(ctx: ScriptActionHandlerContext): ActionExecu
         }
     }
 
-    services.production?.updateSmeltingInterface(player);
+    services.production?.updateSmeltingInterface?.(player);
     return { ok: true, cooldownTicks: delay, groups: ["skill.smelt"], effects };
 }
 
@@ -306,7 +306,7 @@ export function registerSmeltingInteractions(registry: IScriptRegistry, services
         registry.registerItemOnLoc(oreItemId, ANY_LOC_ID, (event) => {
             const locDef = services.data.getLocDefinition(event.target.locId);
             if (!locDef) return;
-            const actions = locDef.ops ?? [];
+            const actions = locDef.actions ?? [];
             if (!actions.some((a: string) => a?.toLowerCase() === "smelt")) return;
             const match = SMELTING_RECIPES.find((r) =>
                 r.inputs.some((i) => i.itemId === event.source.itemId),

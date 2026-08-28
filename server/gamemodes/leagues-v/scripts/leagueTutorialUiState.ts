@@ -57,6 +57,7 @@ type LeagueTutorialUiPlayer = LeagueWsUiPlayer & {
                 modal?: boolean;
                 varps?: Record<number, number>;
                 varbits?: Record<number, number>;
+                postScripts?: Array<{ scriptId: number; args: (number | string)[] }>;
             },
         ) => void;
     };

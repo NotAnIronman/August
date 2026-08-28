@@ -12,7 +12,6 @@ import {
     VARBIT_XPDROPS_ENABLED,
     VARP_SIDE_JOURNAL_STATE,
 } from "../../../client/common/vars";
-import { DIARY_VARBITS } from "../../data/diaryVarbits";
 import { getItemDefinition } from "../data/items";
 import type { ServerServices } from "../game/ServerServices";
 import type { PlayerState } from "../game/player";
@@ -409,11 +408,9 @@ export class LoginHandshakeService {
                 }
 
                 // Apply gamemode login varbits (diary unlocks, xp drops, etc.)
-                const loginVarbits = this.svc.gamemode.getLoginVarbits?.(p);
-                if (loginVarbits) {
-                    for (const [varbitId, value] of loginVarbits) {
-                        p.varps.setVarbitValue(varbitId, value);
-                    }
+                const loginVarbits = this.svc.gamemode.getLoginVarbits?.(p) ?? [];
+                for (const [varbitId, value] of loginVarbits) {
+                    p.varps.setVarbitValue(varbitId, value);
                 }
 
                 const handshakeAppearance = p.appearance;
@@ -477,7 +474,7 @@ export class LoginHandshakeService {
                     ),
                 );
 
-                for (const [varbitId, value] of DIARY_VARBITS) {
+                for (const [varbitId, value] of loginVarbits) {
                     this.svc.networkLayer.withDirectSendBypass("varbit", () =>
                         this.svc.networkLayer.sendWithGuard(
                             ws,

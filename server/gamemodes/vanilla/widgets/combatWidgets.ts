@@ -138,16 +138,17 @@ function tryActivateInstantUtilitySpecial(
     currentTick: number,
     services: ScriptServices,
 ): boolean {
+    const markerCarrier = player as unknown as Record<string, number | undefined>;
     const rockKnockerSeqId = getRockKnockerSpecialSequence(weaponObjId);
     const fishstabberSeqId = getFishstabberSpecialSequence(weaponObjId);
     const lumberUpSeqId = getLumberUpSpecialSequence(weaponObjId);
     if (!rockKnockerSeqId && !fishstabberSeqId && !lumberUpSeqId) {
         return false;
     }
-    if (wasInstantUtilitySpecialHandledAtTick(player, currentTick)) {
+    if (wasInstantUtilitySpecialHandledAtTick(markerCarrier, currentTick)) {
         return true;
     }
-    markInstantUtilitySpecialHandledAtTick(player, currentTick);
+    markInstantUtilitySpecialHandledAtTick(markerCarrier, currentTick);
 
     const currentEnergy = player.specEnergy.getUnits();
     if (currentEnergy < 100) {

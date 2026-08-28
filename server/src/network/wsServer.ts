@@ -22,7 +22,6 @@ import { NpcSoundLookup } from "../audio/NpcSoundLookup";
 import { config } from "../config";
 import { getItemDefinition } from "../data/items";
 import { populateLocEffectsFromLoader } from "../data/locEffects";
-import { GameContext } from "../game/GameContext";
 import type { ServerServices } from "../game/ServerServices";
 import {
     ActionScheduler,
@@ -235,7 +234,6 @@ export class WSServer {
     private messageRouter!: MessageRouter;
 
     // Extracted services (Phase 1)
-    private gameContext!: GameContext;
     private dataLoaderService!: DataLoaderService;
     private authService!: AuthenticationService;
     private networkLayer!: PlayerNetworkLayer;
@@ -682,7 +680,7 @@ export class WSServer {
         this.dataLoaderService = new DataLoaderService(env);
         this.networkLayer = new PlayerNetworkLayer();
         // AuthService created below after we know players is set up
-        // GameContext created below after all Phase 1 services are ready
+        // Phase 1 services are initialized below after core dependencies are ready.
 
         this.cacheFactory = undefined;
         try {
@@ -1150,24 +1148,7 @@ export class WSServer {
                     (process.env.ALLOW_LEGACY_ACCOUNT_CLAIM ?? "false").toLowerCase() === "true",
             },
         );
-        this.gameContext = new GameContext({
-            ticker: opts.ticker,
-            gamemode: this.gamemode,
-            npcManager: this.npcManager,
-            pathService: opts.pathService,
-            mapService: opts.mapService,
-            cacheEnv: this.cacheEnv,
-            dataLoaders: this.dataLoaderService,
-            auth: this.authService,
-            network: this.networkLayer,
-        });
-        if (this.players) {
-            this.gameContext.setPlayers(this.players);
-            // movementService.players wired in deferred block below
-        }
-        logger.info(
-            "[services] Phase 1 services initialized (GameContext, DataLoaders, Auth, Network)",
-        );
+        logger.info("[services] Phase 1 services initialized (DataLoaders, Auth, Network)");
 
         // --- Phase 2: Initialize core game services ---
         this.variableService = new VariableService(this.svc);

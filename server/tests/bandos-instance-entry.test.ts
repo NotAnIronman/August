@@ -37,7 +37,15 @@ const registry = {
         return { unregister() {} };
     },
 } as unknown as IScriptRegistry;
-register(registry, {} as never);
+let graveLocRegistration: unknown[] | undefined;
+register(registry, {
+    location: {
+        replaceTemporaryLoc: (...args: unknown[]) => {
+            graveLocRegistration = args;
+            return {};
+        },
+    },
+} as never);
 
 assert.deepEqual([...handlers.keys()], [
     "26461:open",
@@ -48,6 +56,15 @@ assert.deepEqual([...handlers.keys()], [
     "26503:join party",
     "26366:pray",
     "26366:pray-at",
+    "9359:read",
+]);
+assert.deepEqual(graveLocRegistration, [
+    { worldViewId: -1 },
+    0,
+    9359,
+    { x: 2858, y: 5354, level: 2 },
+    2,
+    { newShape: 10, newRotation: 0 },
 ]);
 
 const doorTeleports: Array<{ x: number; y: number; level: number }> = [];
@@ -127,6 +144,7 @@ assert.equal(getNpcCombatProfile(2218)?.rangedLevel, 150);
 let copiedArea: Record<string, number> | undefined;
 let instanceSpec: any;
 let openedBossHealthBar: { targetUid: number; groupId: number } | undefined;
+let scheduledBossHealthBarRemount: { ticks: number; owner: unknown } | undefined;
 const bossHealthWidgetEvents: Array<Record<string, unknown>> = [];
 const testPlayer = {
     id: 42,
@@ -149,6 +167,11 @@ const testServices = {
         markStarted: () => true,
     },
     messaging: { sendGameMessage: () => undefined },
+    scheduler: {
+        after: (ticks: number, _action: () => void, owner: unknown) => {
+            scheduledBossHealthBarRemount = { ticks, owner };
+        },
+    },
     variables: {
         sendVarp: () => undefined,
         sendVarbit: () => undefined,
@@ -170,6 +193,10 @@ handlers.get("26503:enter solo")?.({ player: testPlayer, services: testServices 
 assert.deepEqual(openedBossHealthBar, {
     targetUid: (161 << 16) | 44,
     groupId: BOSS_HEALTH_BAR_GROUP_ID,
+});
+assert.deepEqual(scheduledBossHealthBarRemount, {
+    ticks: 3,
+    owner: { kind: "player", id: 42 },
 });
 assert.ok(
     bossHealthWidgetEvents.some(

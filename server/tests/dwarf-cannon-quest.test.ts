@@ -101,7 +101,7 @@ function createHarness() {
             getSkill: () => ({ baseLevel: 99, boost: 0 }),
             addSkillXp: (_player: unknown, skillId: number, amount: number) => xp.set(skillId, (xp.get(skillId) ?? 0) + amount),
         },
-        data: { getObjType: (itemId: number) => ({ stackable: itemId === ITEM.coins ? 1 : 0 }) },
+        data: { getObjType: (itemId: number) => ({ stackability: itemId === ITEM.coins ? 1 : 0 }) },
         movement: {
             teleportPlayer: (_player: unknown, x: number, y: number, level: number) => {
                 teleports.push({ x, y, level });

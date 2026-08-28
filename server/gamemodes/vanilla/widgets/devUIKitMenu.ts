@@ -230,17 +230,17 @@ export function registerDevUIKitMenu(
     });
 
     // ::Rename <archiveId>:<frame> <common name>
-    // e.g. ::Rename 169:0 Minimap.Compass-dial
-    // Writes to client/common/uikit/spriteNames.json, which the sprite
+    // e.g. ::Rename 169:0 minimap.compass-rose
+    // Writes to client/public/spriteNames.json, which the sprite
     // gallery (and eventually other UIKit tooling) reads by common name.
     registry.registerCommand("rename", ({ args }) => {
         const ref = parseSpriteRef(args[0] ?? "");
         const name = args[1];
         if (!ref || !name) {
-            return "Usage: ::Rename <archiveId>:<frame> <common-name>, e.g. ::Rename 169:0 Minimap.Compass-dial";
+            return "Usage: ::Rename <archiveId>:<frame> <common-name>, e.g. ::Rename 169:0 minimap.compass-rose";
         }
         if (!isValidSpriteCommonName(name)) {
-            return "Common names must be letters/numbers/./-/_ only (e.g. Minimap.Compass-dial), max 80 chars.";
+            return "Common names must be letters/numbers/./-/_ only (e.g. minimap.compass-rose), max 80 chars.";
         }
         const result = setSpriteName(ref.archiveId, ref.frame, name);
         if (!result.ok) {

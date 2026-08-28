@@ -41,7 +41,7 @@ export function createScrollController(
     groupId: number,
     rowKind: UiRowKind,
     rowHeight: number,
-    rowCapacity = ComponentIds.MAX_ROWS,
+    rowCapacity: number = ComponentIds.MAX_ROWS,
 ): UiScrollController {
     const SCROLLBAR_UID = packUid(groupId, ComponentIds.SCROLLBAR);
     const TRACK_UID = packUid(groupId, ComponentIds.SCROLLBAR_TRACK);
@@ -129,6 +129,7 @@ export function createScrollController(
         if (!content) return;
 
         widgetManager.ensureLayout(content);
+        const renderedContent = content as typeof content & { _absWidth?: number };
 
         const rowCount = computeVisibleRowCount(widgetManager);
         const viewportHeight = Math.max(0, content.height | 0);
@@ -155,7 +156,7 @@ export function createScrollController(
             widget.isHidden = true;
         }
         const scrollbarX = ((content._absX ?? content.x ?? 0) +
-            (content._absWidth ?? content.width ?? 0)) | 0;
+            (renderedContent._absWidth ?? content.width ?? 0)) | 0;
         const scrollbarY = (content._absY ?? content.y ?? 0) | 0;
         const scrollbarHeight = viewportHeight;
         const scrollbarWidth = Math.max(1, scrollbar?.width ?? 16);
@@ -194,7 +195,10 @@ export function createScrollController(
         const hitStack = frame.collectFromAllRoots(mx, my);
         const contentX = (content._absX ?? content.x ?? 0) | 0;
         const contentY = (content._absY ?? content.y ?? 0) | 0;
-        const contentWidth = Math.max(0, (content._absWidth ?? content.width ?? 0) | 0);
+        const contentWidth = Math.max(
+            0,
+            (renderedContent._absWidth ?? content.width ?? 0) | 0,
+        );
         const isWithinContentBounds =
             mx >= contentX && mx < contentX + contentWidth &&
             my >= contentY && my < contentY + viewportHeight;

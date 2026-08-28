@@ -32,7 +32,11 @@ import type { ScriptServices } from "../../../src/game/scripts/types";
  *  every custom panel built since. */
 const SCRIPT_STEELBORDER = 227;
 
-function assertCapacity(kind: "tabs" | "rows" | "controls", count: number, maximum: number): void {
+function assertCapacity(
+    kind: "tabs" | "rows" | "controls" | "info-column rows" | "menu buttons",
+    count: number,
+    maximum: number,
+): void {
     if (count > maximum) {
         throw new RangeError(`UIKit ${kind} capacity exceeded: ${count} requested, maximum ${maximum}`);
     }
@@ -366,8 +370,8 @@ export function sendUiControls(
     services: ScriptServices,
     playerId: number,
     groupId: number,
-    controls: readonly UiControl[],
-    controlCapacity = ComponentIds.MAX_CONTROLS,
+    controls: readonly (UiControl | undefined)[],
+    controlCapacity: number = ComponentIds.MAX_CONTROLS,
 ): void {
     const capacity = Math.max(1, Math.min(ComponentIds.MAX_CONTROLS, controlCapacity | 0));
     assertCapacity("controls", controls.length, capacity);

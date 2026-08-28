@@ -46,7 +46,7 @@ export function registerDoorHandlers(registry: IScriptRegistry, services: Script
                 // Play door/gate sound
                 // Check if loc is a gate by looking up its definition
                 const locDef = services.data.getLocDefinition(event.locId);
-                const locName = (locDef?.name ?? "").toLowerCase();
+                const locName = typeof locDef?.name === "string" ? locDef.name.toLowerCase() : "";
                 const isGate = locName.includes("gate");
                 const soundId = isGate ? GATE_SOUND : DOOR_SOUND;
 

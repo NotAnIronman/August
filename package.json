@@ -2,14 +2,23 @@
   "name": "xrsps",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "yarn@1.22.22",
   "engines": {
     "node": ">=22.16.0"
   },
   "scripts": {
-    "setup": "yarn install --frozen-lockfile && yarn --cwd server install --frozen-lockfile && yarn --cwd client install --frozen-lockfile && yarn --cwd server ensure-cache && yarn --cwd server build-collision",
-    "start": "yarn concurrently --kill-others --names server,client \"yarn --cwd server start\" \"yarn --cwd client start\"",
+    "setup": "yarn install --frozen-lockfile && yarn --cwd server install --frozen-lockfile && yarn --cwd client install --frozen-lockfile && yarn --cwd docs install --frozen-lockfile && yarn --cwd server ensure-cache && yarn --cwd server build-collision",
+    "start": "yarn concurrently --kill-others --names server,client \"yarn server\" \"yarn client\"",
+    "start:vanilla": "yarn concurrently --kill-others --names world-1,client \"yarn --cwd server start\" \"yarn --cwd client start\"",
     "server": "yarn --cwd server ensure-cache && yarn concurrently --kill-others --names world-1,world-2 \"yarn --cwd server start:world --world=1\" \"yarn --cwd server start:world --world=2\"",
-    "client": "yarn --cwd client start"
+    "client": "yarn --cwd client start",
+    "check": "yarn typecheck && yarn test && yarn docs:build",
+    "typecheck": "yarn --cwd server typecheck && yarn --cwd client typecheck",
+    "typecheck:all": "yarn --cwd server typecheck:all && yarn --cwd client typecheck:all",
+    "test": "yarn --cwd server test && yarn --cwd client test",
+    "test:all": "yarn --cwd server test:all && yarn --cwd client test:all",
+    "test:cache": "yarn --cwd server test:cache && yarn --cwd client test:cache",
+    "docs:build": "yarn --cwd docs build"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

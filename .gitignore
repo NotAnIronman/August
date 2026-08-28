@@ -4,6 +4,7 @@
 /node_modules
 /client/node_modules
 /server/node_modules
+/.pnpm-store
 /.pnp
 .pnp.js
 
@@ -44,6 +45,7 @@ FEATURE_PROMPT.txt
 .tmp
 server/node_modules/.vite/vitest
 logs
+/server/logs/
 .claude
 *.jar
 references/deobfuscator/.gradle-user-home
@@ -56,6 +58,7 @@ public/map-images
 # runtime data, not a local reference artifact. Other reference exports stay
 # ignored.
 references/*
+!references/README.md
 !references/npc-drops-wiki.json
 mcp
 AGENTS.md

@@ -5,7 +5,7 @@ type LocTransformStateReader = {
     };
 };
 
-type TransformableLocDefinition = {
+export type TransformableLocDefinition = {
     id?: number;
     transforms?: number[];
     transformVarbit?: number;

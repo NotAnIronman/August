@@ -71,6 +71,7 @@ import type {
     ScriptGroundItem,
     ScriptServices,
 } from "../scripts/types";
+import type { FollowerServiceFacade } from "../scripts/serviceInterfaces";
 import { triggerLocEffect } from "../scripts/utils/locEffects";
 import { RuneValidator } from "../spells/RuneValidator";
 import type { PersistenceProvider } from "../state/PersistenceProvider";
@@ -346,7 +347,7 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             openSmithingBarModal: undefined,
             getBarTypeByItemId: (_itemId) => undefined,
         },
-        get followers() {
+        get followers(): FollowerServiceFacade | undefined {
             return deps.followerManager
                 ? {
                   summonFollowerFromItem: (player, itemId, npcTypeId) => {

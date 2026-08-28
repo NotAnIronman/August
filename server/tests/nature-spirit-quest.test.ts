@@ -87,7 +87,7 @@ const services = {
         addSkillXp: (_player: unknown, skillId: number, amount: number) => xp.set(skillId, (xp.get(skillId) ?? 0) + amount),
         getSkill: () => ({ baseLevel: 99, boost: 0 }),
     },
-    data: { getObjType: (itemId: number) => ({ stackable: itemId === ITEM.druidPouch ? 1 : 0 }) },
+    data: { getObjType: (itemId: number) => ({ stackability: itemId === ITEM.druidPouch ? 1 : 0 }) },
     npc: {
         findNearbyNpc: (_player: unknown, typeId: number) => activeNpcs.find((npc) => npc.typeId === typeId),
         spawnNpc: (config: { id: number; x: number; y: number; level: number }) => {

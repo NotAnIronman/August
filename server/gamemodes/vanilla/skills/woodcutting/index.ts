@@ -16,6 +16,7 @@ import {
 } from "../gatheringPrecheck";
 import {
     type HatchetDefinition,
+    type WoodcuttingTreeDefinition,
     buildWoodcuttingLocMap,
     getWoodcuttingTreeById,
     getWoodcuttingTreeFromMap,
@@ -56,7 +57,7 @@ function executeWoodcutAction(ctx: ScriptActionHandlerContext): ActionExecutionR
     const treeId = data.treeId;
     const tree =
         (treeId ? getWoodcuttingTreeById(treeId) : undefined) ??
-        services.getWoodcuttingTree?.(locId);
+        (services.getWoodcuttingTree?.(locId) as WoodcuttingTreeDefinition | undefined);
 
     if (!tree) {
         return failGatheringPrecheck(player, services, "You can't chop that tree.");
@@ -299,7 +300,9 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     }
     for (const action of WOODCUT_ACTIONS) {
         registry.registerLocAction(action, (event) => {
-            const tree = services.getWoodcuttingTree?.(event.locId);
+            const tree = services.getWoodcuttingTree?.(event.locId) as
+                | WoodcuttingTreeDefinition
+                | undefined;
             if (!tree) return;
             const delay = 0;
             const result = services.combat.requestAction(

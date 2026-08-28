@@ -27,7 +27,7 @@ function buildSmithingInterfaceFailure(
     services: ScriptServices,
 ): ActionExecutionResult {
     const result = buildSkillFailure(player, message, reason);
-    services.production?.updateSmithingInterface(player);
+    services.production?.updateSmithingInterface?.(player);
     return result;
 }
 
@@ -149,7 +149,7 @@ export function executeSmithAction(ctx: ScriptActionHandlerContext): ActionExecu
         }
     }
 
-    services.production?.updateSmithingInterface(player);
+    services.production?.updateSmithingInterface?.(player);
     return {
         ok: true,
         cooldownTicks: recipe.delayTicks !== undefined ? Math.max(1, recipe.delayTicks) : 4,
@@ -190,7 +190,7 @@ export function registerSmithingInteractions(registry: IScriptRegistry, services
         registry.registerItemOnLoc(barItemId, ANY_LOC_ID, (event) => {
             const locDef = services.data.getLocDefinition(event.target.locId);
             if (!locDef) return;
-            const actions = locDef.ops ?? [];
+            const actions = locDef.actions ?? [];
             if (!actions.some((a: string) => a?.toLowerCase() === "smith")) return;
             openForge(event.player, event.source.itemId);
         });

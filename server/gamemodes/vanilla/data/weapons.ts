@@ -6347,6 +6347,19 @@ function appendGeneratedCombatWeaponEntries(): void {
 
 appendGeneratedCombatWeaponEntries();
 
+/** Item ID map historically exposed by the provider; duplicate IDs are last-wins. */
+export const weaponDataMap: ReadonlyMap<number, WeaponDataEntry> = new Map(
+    weaponDataEntries.map((entry) => [entry.itemId, entry]),
+);
+
+/** Preserve getWeaponData's historical Array.find (first-wins) behavior. */
+const firstWeaponDataByItemId = new Map<number, WeaponDataEntry>();
+for (const entry of weaponDataEntries) {
+    if (!firstWeaponDataByItemId.has(entry.itemId)) {
+        firstWeaponDataByItemId.set(entry.itemId, entry);
+    }
+}
+
 // ====================================================================================
 // HELPER FUNCTIONS
 // ====================================================================================
@@ -6356,7 +6369,7 @@ appendGeneratedCombatWeaponEntries();
  * Returns undefined if not found.
  */
 export function getWeaponData(itemId: number): WeaponDataEntry | undefined {
-    return weaponDataEntries.find((entry) => entry.itemId === itemId);
+    return firstWeaponDataByItemId.get(itemId);
 }
 
 /**
@@ -6575,13 +6588,6 @@ export function getAttackSequences(itemId: number): { 0: number; 1: number; 2: n
     const category = weapon?.combatCategory ?? CombatCategory.UNARMED;
     return getDefaultAttackSequences(category);
 }
-
-/**
- * Build a map of item ID to weapon data for fast lookups.
- */
-export const weaponDataMap: Map<number, WeaponDataEntry> = new Map(
-    weaponDataEntries.map((entry) => [entry.itemId, entry]),
-);
 
 // ====================================================================================
 // COMBAT STYLE HELPER FUNCTIONS

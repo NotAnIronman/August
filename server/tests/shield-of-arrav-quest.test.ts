@@ -112,7 +112,7 @@ const services = {
         },
         snapshotInventory: () => undefined,
     },
-    data: { getObjType: (itemId: number) => ({ stackable: [ITEM.coins, ITEM.phoenixCertificateHalf, ITEM.blackArmCertificateHalf].includes(itemId) ? 1 : 0 }) },
+    data: { getObjType: (itemId: number) => ({ stackability: [ITEM.coins, ITEM.phoenixCertificateHalf, ITEM.blackArmCertificateHalf].includes(itemId) ? 1 : 0 }) },
     skills: { getSkill: () => ({ baseLevel: 99, boost: 0 }), addSkillXp: () => undefined },
     groundItems: {
         spawn: (itemId: number, quantity: number, _tile: unknown, options: { ownerId?: number }) => {

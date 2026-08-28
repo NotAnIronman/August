@@ -414,7 +414,7 @@ export function registerAlKharidBorderHandlers(
     };
 
     const closeGate = (crossing: PendingGateCrossing, tick: number): void => {
-        const closeResult = services.location.doorManager.toggleExplicitGate({
+        const closeResult = services.location.doorManager?.toggleExplicitGate({
             x: crossing.southOpenTile.x,
             y: crossing.southOpenTile.y,
             level: GATE_LEVEL,
@@ -475,7 +475,7 @@ export function registerAlKharidBorderHandlers(
             return { ok: false, reason: "coins" };
         }
 
-        const toggleResult = services.location.doorManager.toggleExplicitGate({
+        const toggleResult = services.location.doorManager?.toggleExplicitGate({
             x: part.tile.x,
             y: part.tile.y,
             level: GATE_LEVEL,

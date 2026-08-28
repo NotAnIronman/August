@@ -1,12 +1,12 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-    title: 'XRSPS',
-    description: 'Build gamemodes and extrascripts for OSRS in the browser',
+    title: 'August',
+    description: 'August OSRS-parity client and server documentation',
     base: '/',
     head: [
-        ['meta', { property: 'og:title', content: 'XRSPS' }],
-        ['meta', { property: 'og:description', content: 'Build gamemodes and extrascripts for OSRS in the browser' }],
+        ['meta', { property: 'og:title', content: 'August' }],
+        ['meta', { property: 'og:description', content: 'August OSRS-parity client and server documentation' }],
         ['meta', { name: 'theme-color', content: '#4a9eff' }],
     ],
     themeConfig: {
@@ -28,8 +28,13 @@ export default defineConfig({
                 text: 'Documentation',
                 items: [
                     { text: 'Architecture', link: '/ARCHITECTURE' },
+                    { text: 'Project Map', link: '/PROJECT_MAP' },
                     { text: 'Gamemodes', link: '/gamemodes' },
                     { text: 'Extrascripts', link: '/extrascripts' },
+                    { text: 'Hosting', link: '/hosting' },
+                    { text: 'OSRS Parity', link: '/OSRS_PARITY_CHECKLIST' },
+                    { text: 'Refactor Audit', link: '/REFACTOR_AUDIT' },
+                    { text: 'Cleanup Roadmap', link: '/CLEANUP_ROADMAP' },
                 ],
             },
         ],

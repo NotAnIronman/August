@@ -228,7 +228,7 @@ export const TaskConditions = {
     /**
      * Wait for a return value to be set.
      */
-    waitReturnValue(task: QueueTask): SuspendCondition {
+    waitReturnValue<TContext>(task: QueueTask<TContext>): SuspendCondition {
         task.awaitingReturnValue = true;
         return new PredicateCondition(() => task.requestReturnValue !== null);
     },

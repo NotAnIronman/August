@@ -25,14 +25,7 @@ type ExtraRoutedMessage =
     | { type: "login"; payload: { username?: string; password?: string; revision?: number } }
     | { type: "smithing_make"; payload: { recipeId?: string; mode?: string } }
     | { type: "smithing_mode"; payload: { mode?: number; custom?: number } }
-    | { type: "bank_deposit_item"; payload: unknown }
-    | {
-          type: "debug";
-          payload:
-              | { kind: "set_var"; value?: number; varbit?: number; varp?: number }
-              | { kind: "runtime_probe"; event?: unknown; details?: unknown }
-              | { kind: "raw"; raw: string };
-      };
+    | { type: "bank_deposit_item"; payload: unknown };
 
 export type RoutedMessage = ClientToServer | ExtraRoutedMessage;
 export type RoutedMessageType = RoutedMessage["type"];

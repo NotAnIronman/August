@@ -1,5 +1,13 @@
 import type { PrayerName } from "../../../../client/rs/prayer/prayers";
 import type { DbRepository } from "../../../../client/rs/config/db/DbRepository";
+import type { EnumTypeLoader } from "../../../../client/rs/config/enumtype/EnumTypeLoader";
+import type { IdkTypeLoader } from "../../../../client/rs/config/idktype/IdkTypeLoader";
+import type { LocType } from "../../../../client/rs/config/loctype/LocType";
+import type { LocTypeLoader } from "../../../../client/rs/config/loctype/LocTypeLoader";
+import type { NpcTypeLoader } from "../../../../client/rs/config/npctype/NpcTypeLoader";
+import type { ObjType } from "../../../../client/rs/config/objtype/ObjType";
+import type { SeqTypeLoader } from "../../../../client/rs/config/seqtype/SeqTypeLoader";
+import type { StructTypeLoader } from "../../../../client/rs/config/structtype/StructTypeLoader";
 import type { ProjectileLaunch } from "../../../../client/common/projectiles/ProjectileLaunch";
 import type { ItemDefinition } from "../../data/items";
 import type { PathService } from "../../pathfinding/PathService";
@@ -14,6 +22,7 @@ import type {
     GatePair,
 } from "../../world/DoorDefinitions";
 import type { DoorStateManager } from "../../world/DoorStateManager";
+import type { TransformableLocDefinition } from "../../world/LocTransforms";
 import type { ActionRequest } from "../actions";
 import type { Actor } from "../actor";
 import type { AmmoDataProvider } from "../combat/AmmoDataProvider";
@@ -259,9 +268,9 @@ export interface ShoppingServices {
 export interface GatheringServices {
     gathering?: GatheringSystemManager;
     stopGatheringInteraction?: (player: PlayerState) => void;
-    getWoodcuttingTree?: (locId: number) => Record<string, unknown> | undefined;
-    getMiningRock?: (locId: number) => Record<string, unknown> | undefined;
-    getFishingSpot?: (npcTypeId: number) => Record<string, unknown> | undefined;
+    getWoodcuttingTree?: (locId: number) => unknown;
+    getMiningRock?: (locId: number) => unknown;
+    getFishingSpot?: (npcTypeId: number) => unknown;
     isFiremakingTileBlocked?: (tile: { x: number; y: number }, level: number) => boolean;
     lightFire?: (params: {
         tile: { x: number; y: number };
@@ -501,20 +510,14 @@ export type { SkillBoltEnchantActionData } from "../actions/skillActionPayloads"
 
 export interface DataLoaderFacade {
     getDbRepository(): DbRepository | undefined;
-    getEnumTypeLoader(): { load(id: number): unknown } | undefined;
-    getStructTypeLoader(): { load(id: number): unknown } | undefined;
-    getIdkTypeLoader(): { load(id: number): unknown } | undefined;
-    getObjType(id: number): Record<string, unknown> | undefined;
-    getLocDefinition(locId: number): Record<string, unknown> | undefined;
-    getLocTypeLoader(): { load(id: number): unknown } | undefined;
-    getNpcTypeLoader(): { load(id: number): unknown } | undefined;
-    getSeqTypeLoader(): {
-        load(id: number): {
-            isSkeletalSeq(): boolean;
-            getSkeletalDuration?(): number;
-            frameLengths?: number[];
-        } | undefined;
-    } | undefined;
+    getEnumTypeLoader(): EnumTypeLoader | undefined;
+    getStructTypeLoader(): StructTypeLoader | undefined;
+    getIdkTypeLoader(): IdkTypeLoader | undefined;
+    getObjType(id: number): ObjType | undefined;
+    getLocDefinition(locId: number): LocType | undefined;
+    getLocTypeLoader(): LocTypeLoader | undefined;
+    getNpcTypeLoader(): NpcTypeLoader | undefined;
+    getSeqTypeLoader(): SeqTypeLoader | undefined;
     getItemDefinition(itemId: number): ItemDefinition | undefined;
     loadItemDefinitions(): ItemDefinition[];
 }
@@ -791,7 +794,7 @@ export interface LocationFacade {
     doorManager?: DoorStateManager;
     resolveLocTransformId(
         player: PlayerState,
-        locDef: Record<string, unknown> | undefined,
+        locDef: TransformableLocDefinition | undefined,
     ): number | undefined;
     emitLocChange(
         oldId: number,

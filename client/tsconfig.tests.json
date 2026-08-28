@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "isolatedModules": false
+  },
+  "include": [
+    "tests/**/*.ts",
+    "react-app-env.d.ts",
+    "import-json.d.ts",
+    "java-random.d.ts",
+    "picogl.d.ts",
+    "shaders.d.ts",
+    "game/types/globals.d.ts"
+  ],
+  "exclude": ["build", "node_modules"]
+}

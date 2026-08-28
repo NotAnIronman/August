@@ -130,7 +130,7 @@ const services = {
     },
     viewport: { getMainmodalUid: () => 0 },
     movement: { teleportPlayer: () => teleports++ },
-    data: { getObjType: () => ({ stackable: 1 }) },
+    data: { getObjType: () => ({ stackability: 1 }) },
     skills: { addSkillXp: () => undefined },
     sound: { sendJingle: () => undefined },
     system: { logger: { info: () => undefined, error: () => undefined } },

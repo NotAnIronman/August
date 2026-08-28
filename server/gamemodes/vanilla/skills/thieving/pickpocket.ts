@@ -3,6 +3,7 @@ import { LockState } from "../../../../src/game/model/LockState";
 import type { PlayerState } from "../../../../src/game/player";
 import type {
     IScriptRegistry,
+    ItemOnItemEvent,
     NpcInteractionEvent,
     ScriptActionHandlerContext,
     ScriptServices,
@@ -1001,7 +1002,7 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     // Coin pouch: "Open" and "Open-all" item actions
     for (const pouchId of COIN_POUCH_IDS) {
         const openHandler = (
-            event: import("../../../src/game/scripts/types").ItemOnItemEvent,
+            event: ItemOnItemEvent,
             openAll: boolean,
         ) => {
             const { player, source, services } = event;

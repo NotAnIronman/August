@@ -283,6 +283,8 @@ export interface MessageHandlerServices {
               wearPos?: number;
               wearPos2?: number;
               wearPos3?: number;
+              inventoryActions?: Array<string | null | undefined>;
+              subops?: Array<Array<string | null | undefined> | null | undefined> | null;
           }
         | undefined;
     gamemodeServices: Record<string, unknown>;

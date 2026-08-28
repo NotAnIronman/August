@@ -26,8 +26,8 @@ function sanitize(value: unknown, depth: number = 0): ProbeValue {
 
 /**
  * Mirrors a focused browser diagnostic into the project through the connected
- * game server. The server persists it in server/data/runtime-probe.log, which
- * stays visible to GitHub Desktop without requiring console copy/paste.
+ * game server. The server persists it in the ignored local file
+ * server/logs/runtime-probe.log for direct inspection without console copy/paste.
  */
 export function reportRuntimeProbe(event: string, details: Record<string, unknown> = {}): void {
     const payload = {

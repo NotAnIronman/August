@@ -4,6 +4,7 @@ import type { PlayerState } from "../../../../src/game/player";
 import type {
     IScriptRegistry,
     ScriptActionHandlerContext,
+    ScriptInventoryEntry,
     ScriptServices,
 } from "../../../../src/game/scripts/types";
 import {
@@ -27,7 +28,7 @@ interface SkillTanActionData {
 }
 
 const computeTanningBatchCount = (
-    entries: { itemId: number; quantity: number }[],
+    entries: ScriptInventoryEntry[],
     recipe: TanningRecipe,
 ): number => {
     const total = countItem(entries, recipe.inputItemId);

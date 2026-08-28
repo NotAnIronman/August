@@ -1,0 +1,30 @@
+name: Validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+          cache: yarn
+          cache-dependency-path: |
+            yarn.lock
+            server/yarn.lock
+            client/yarn.lock
+            docs/yarn.lock
+      - name: Install dependencies
+        run: |
+          yarn install --frozen-lockfile
+          yarn --cwd server install --frozen-lockfile
+          yarn --cwd client install --frozen-lockfile
+          yarn --cwd docs install --frozen-lockfile
+      - name: Validate source and safe tests
+        run: yarn check

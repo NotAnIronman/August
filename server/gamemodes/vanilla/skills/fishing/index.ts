@@ -8,6 +8,7 @@ import {
     type ScriptServices,
 } from "../../../../src/game/scripts/types";
 import {
+    type FishingSpotDefinition,
     type FishingToolDefinition,
     type FishingToolId,
     buildFishingSpotMap,
@@ -112,7 +113,7 @@ function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
 
     const spot =
         (priorSpotId ? getFishingSpotById(priorSpotId) : undefined) ??
-        services.getFishingSpot?.(npc.typeId);
+        (services.getFishingSpot?.(npc.typeId) as FishingSpotDefinition | undefined);
     if (!spot) {
         return failFishingPrecheck(player, services, "You can't fish here.");
     }
@@ -365,7 +366,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
 }
 
 function handleFishingAction(option: string, event: NpcInteractionEvent, services: ScriptServices) {
-    const spot = services.getFishingSpot?.(event.npc.typeId);
+    const spot = services.getFishingSpot?.(event.npc.typeId) as FishingSpotDefinition | undefined;
     if (!spot) {
         services.messaging.sendGameMessage(event.player, "Nothing interesting happens.");
         return;

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/**/*.ts",
+    "data/**/*.ts",
+    "gamemodes/**/*.ts",
+    "extrascripts/**/*.ts",
+    "../client/rs/**/*.ts",
+    "../client/common/**/*.ts",
+    "../client/*.d.ts",
+    "../client/game/types/**/*.d.ts"
+  ]
+}

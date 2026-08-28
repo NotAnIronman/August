@@ -6,7 +6,7 @@ import type { CookingHeatSource } from "./cookingData";
 export type SkillSurfaceKind = "smith" | "cook" | "tan" | "smelt";
 
 export type InventoryEntry = ScriptInventoryEntry;
-export type RequestActionFn = NonNullable<ScriptServices["requestAction"]>;
+export type RequestActionFn = ScriptServices["combat"]["requestAction"];
 export type SendMessageFn = (player: PlayerState, text: string) => void;
 export type SkillDialogChoice<T> = {
     recipe: T;

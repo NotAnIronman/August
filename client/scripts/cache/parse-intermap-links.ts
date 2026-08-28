@@ -18,9 +18,9 @@ const __dirname = path.dirname(__filename);
 
 const SCRIPT_PATH = path.resolve(
     __dirname,
-    "../../references/cs2-scripts/scripts/[proc,script1705].cs2",
+    "../../../references/cs2-scripts/scripts/[proc,script1705].cs2",
 );
-const OUTPUT_PATH = path.resolve(__dirname, "../../server/data/intermap-links.json");
+const OUTPUT_PATH = path.resolve(__dirname, "../../../server/data/intermap-links.json");
 
 interface Coord {
     x: number;

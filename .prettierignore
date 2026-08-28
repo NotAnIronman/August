@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.js
 
@@ -10,6 +11,14 @@
 
 # production
 /build
+/client/build
+
+# Generated/runtime data and caches
+/caches
+/server/cache
+/server/data/**/*.json
+/references
+/.tmp
 
 # misc
 .DS_Store

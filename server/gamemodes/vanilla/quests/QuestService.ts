@@ -249,9 +249,7 @@ function canReceiveQuestItemRewards(
     );
     for (const reward of rewards) {
         const definition = services.data.getObjType(reward.itemId);
-        const stackable =
-            Number(definition?.stackability ?? 0) === 1 ||
-            Number(definition?.stackable ?? 0) === 1;
+        const stackable = Number(definition?.stackability ?? 0) === 1;
         const requiredSlots = stackable && presentStacks.has(reward.itemId) ? 0 : stackable ? 1 : reward.quantity;
         if (requiredSlots > freeSlots) return false;
         freeSlots -= requiredSlots;

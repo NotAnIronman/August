@@ -1,6 +1,6 @@
 # Architecture
 
-XRSPS is a full-stack OSRS emulation engine. The client runs in the browser with React and WebGL. The server runs on Node.js with WebSocket networking. Both are written in TypeScript and share the same OSRS cache.
+August is an OSRS-parity game built on the XRSPS full-stack emulation engine. The client runs in the browser with React and WebGL. The server runs on Node.js with WebSocket networking. Both are written in TypeScript and share the same OSRS cache. Existing `@xrsps/*` names identify the inherited engine packages.
 
 ## Project Layout
 
@@ -36,6 +36,8 @@ docs/                   # @xrsps/docs — VitePress documentation
 ```
 
 Use `yarn setup` and `yarn start` from the repository root for local development. Package-specific commands can still be run from their package directory.
+
+For a task-oriented index of the repository, see the [Project Map](PROJECT_MAP.md).
 
 Shared protocol/cache code lives in `client/common` and `client/rs`; the server TypeScript project includes those paths.
 

@@ -124,7 +124,7 @@ const services = {
         addSkillXp: (_player: unknown, skillId: number, amount: number) =>
             xp.set(skillId, (xp.get(skillId) ?? 0) + amount),
     },
-    data: { getObjType: () => ({ stackable: 0 }) },
+    data: { getObjType: () => ({ stackability: 0 }) },
     dialog: {
         getInterfaceService: () => ({ getCurrentChatboxModal: () => undefined }),
         openDialog: (_player: unknown, spec: { onContinue?: () => void }) => spec.onContinue?.(),

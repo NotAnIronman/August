@@ -15,7 +15,7 @@ import {
     resetProviderRegistry,
 } from "../../src/game/providers/ProviderRegistry";
 import type { IScriptRegistry, ScriptServices } from "../../src/game/scripts/types";
-import { encodeMessage } from "../../src/network/messages";
+import { encodeMessage, type BankServerUpdate } from "../../src/network/messages";
 import { VanillaUiController } from "./VanillaUiController";
 import { BankingManager, registerBankInterfaceHooks, registerBankingHandlers } from "./banking";
 import type { BankingProviderServices } from "./banking/BankingProvider";
@@ -391,7 +391,7 @@ export class VanillaGamemode extends BaseGamemode {
         ss.registerSnapshotEncoder(
             "bank",
             (_playerId, payload) => ({
-                message: encodeMessage({ type: "bank", payload }),
+                message: encodeMessage({ type: "bank", payload: payload as BankServerUpdate }),
                 context: "bank_snapshot",
             }),
             (playerId, _payload) => {
