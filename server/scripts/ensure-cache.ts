@@ -229,7 +229,7 @@ function writeCachesJson(target: string, entry: OpenRS2CacheEntry): void {
  * wrong cache.  The validated target's own info.json is sufficient to repair
  * the manifest without another download.
  */
-function refreshCacheManifestFromDisk(target: string, cacheDir: string): void {
+function refreshCacheManifestFromDisk(target: string, cacheDir: string): boolean {
     const infoPath = path.join(cacheDir, "info.json");
     try {
         const entry = JSON.parse(fs.readFileSync(infoPath, "utf8")) as OpenRS2CacheEntry;
@@ -238,10 +238,17 @@ function refreshCacheManifestFromDisk(target: string, cacheDir: string): void {
         }
         writeCachesJson(target, entry);
         console.log(`[CacheDownloader] Cache manifest set to "${target}"`);
+        return true;
     } catch (error) {
-        throw new Error(
-            `Validated cache '${target}' has unreadable metadata at ${infoPath}: ${String(error)}`,
+        // A cache can be replaced by another startup process after the caller
+        // validates it but before this manifest refresh reads info.json. Treat
+        // that short-lived or interrupted state as invalid so ensureCache can
+        // safely acquire the download lock and publish a fully validated
+        // replacement; never leave the whole server unable to start.
+        console.warn(
+            `[CacheDownloader] Cache metadata is unreadable at ${infoPath}; refreshing the cache: ${String(error)}`,
         );
+        return false;
     }
 }
 
@@ -255,9 +262,10 @@ async function ensureCache(): Promise<void> {
     if (isCacheValid(cacheDir) && cacheMatchesRevision(cacheDir, revision)) {
         // Keep subsequent cache consumers (item sync, NPC tools, world boot)
         // locked to target.txt even when this directory already existed.
-        refreshCacheManifestFromDisk(target, cacheDir);
-        console.log("[CacheDownloader] Cache is present and valid");
-        return;
+        if (refreshCacheManifestFromDisk(target, cacheDir)) {
+            console.log("[CacheDownloader] Cache is present and valid");
+            return;
+        }
     }
 
     if (isCacheValid(cacheDir)) {
@@ -272,9 +280,10 @@ async function ensureCache(): Promise<void> {
     while (!ownership) {
         await waitForLock();
         if (isCacheValid(cacheDir) && cacheMatchesRevision(cacheDir, revision)) {
-            console.log("[CacheDownloader] Cache is now available (downloaded by another process)");
-            refreshCacheManifestFromDisk(target, cacheDir);
-            return;
+            if (refreshCacheManifestFromDisk(target, cacheDir)) {
+                console.log("[CacheDownloader] Cache is now available (downloaded by another process)");
+                return;
+            }
         }
         ownership = tryAcquireCacheLock(CACHE_LOCK_OPTIONS);
     }
