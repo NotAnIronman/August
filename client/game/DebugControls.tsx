@@ -19,6 +19,7 @@ import {
 } from "./GameRenderers";
 import { OsrsClient } from "./OsrsClient";
 import { profiler } from "../render/PerformanceProfiler";
+import { getClientPreference, setClientPreference } from "./preferences/ClientPreferences";
 
 interface OsrsClientControlsProps {
     renderer: GameRenderer;
@@ -432,6 +433,12 @@ export const DebugControls = memo(
                             value: profiler.verbose,
                             onChange: (v: boolean) => {
                                 profiler.verbose = !!v;
+                            },
+                        },
+                        "Typed Damage Hitsplats": {
+                            value: getClientPreference("typedDamageHitsplats"),
+                            onChange: (v: boolean) => {
+                                setClientPreference("typedDamageHitsplats", !!v);
                             },
                         },
                         ...rendererSchema,

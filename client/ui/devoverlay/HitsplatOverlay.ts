@@ -293,10 +293,7 @@ export class HitsplatOverlay implements Overlay {
                     quadVerts[10] = lx + lw;
                     quadVerts[11] = ly;
                     // Apply fade alpha
-                    this.tint[0] = 1.0;
-                    this.tint[1] = 1.0;
-                    this.tint[2] = 1.0;
-                    this.tint[3] = animAlpha;
+                    this.setTint(entry.backgroundTint, animAlpha);
                     this.positions!.data(quadVerts);
                     this.drawCall!.uniform("u_screenSize", this.screenSize)
                         .uniform("u_centerWorld", centerWorld)
@@ -325,8 +322,7 @@ export class HitsplatOverlay implements Overlay {
                         quadVerts[10] = x + w;
                         quadVerts[11] = ly;
                         // Apply fade alpha
-                        this.tint[0] = this.tint[1] = this.tint[2] = 1.0;
-                        this.tint[3] = animAlpha;
+                        this.setTint(entry.backgroundTint, animAlpha);
                         this.positions!.data(quadVerts);
                         this.drawCall!.uniform("u_screenSize", this.screenSize)
                             .uniform("u_centerWorld", centerWorld)
@@ -349,8 +345,7 @@ export class HitsplatOverlay implements Overlay {
                     quadVerts[10] = rx + rw;
                     quadVerts[11] = ly;
                     // Apply fade alpha
-                    this.tint[0] = this.tint[1] = this.tint[2] = 1.0;
-                    this.tint[3] = animAlpha;
+                    this.setTint(entry.backgroundTint, animAlpha);
                     this.positions!.data(quadVerts);
                     this.drawCall!.uniform("u_screenSize", this.screenSize)
                         .uniform("u_centerWorld", centerWorld)
@@ -376,10 +371,7 @@ export class HitsplatOverlay implements Overlay {
                     quadVerts[10] = x + w;
                     quadVerts[11] = y;
                     // Apply fade alpha
-                    this.tint[0] = 1.0;
-                    this.tint[1] = 1.0;
-                    this.tint[2] = 1.0;
-                    this.tint[3] = animAlpha;
+                    this.setTint(entry.backgroundTint, animAlpha);
                     this.positions!.data(quadVerts);
                     this.drawCall!.uniform("u_screenSize", this.screenSize)
                         .uniform("u_centerWorld", centerWorld)
@@ -582,6 +574,14 @@ export class HitsplatOverlay implements Overlay {
         const spriteKey = this.getSpriteKeyForEntry(entry);
         if (!spriteKey) return undefined;
         return this.ensureSpriteTexture(spriteKey);
+    }
+
+    private setTint(color: number | undefined, alpha: number): void {
+        const rgb = color === undefined ? 0xffffff : color >>> 0;
+        this.tint[0] = ((rgb >>> 16) & 0xff) / 255;
+        this.tint[1] = ((rgb >>> 8) & 0xff) / 255;
+        this.tint[2] = (rgb & 0xff) / 255;
+        this.tint[3] = alpha;
     }
 
     private getSpriteKeyForEntry(entry: HitsplatEntry): string | undefined {

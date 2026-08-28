@@ -31,6 +31,8 @@ import { flushPackets } from "../../../network/packet";
 import { createTextureArray } from "../../../picogl/PicoTexture";
 import { RS_TO_RADIANS } from "../../../rs/MathConstants";
 import { CollisionFlag } from "../../../common/CollisionFlag";
+import { resolveTypedHitsplatAppearance } from "../../../game/combat/TypedHitsplatAppearance";
+import { getClientPreference } from "../../../game/preferences/ClientPreferences";
 import { isInWilderness } from "../../../common/world/Wilderness";
 import {
     getWorldLocChanges,
@@ -190,6 +192,17 @@ import { KNOWN_WATER_TEXTURE_IDS } from "../../water/WaterTextureIds";
 import type { WebGLOsrsRendererHost } from "../hostInterface";
 import { RENDER_CONSTANTS } from "../constants";
 
+function applyHitsplatAppearance(
+    entry: HitsplatEntry,
+    rawStyle: number,
+    typedDamageEnabled: boolean,
+): void {
+    const appearance = resolveTypedHitsplatAppearance(rawStyle, typedDamageEnabled);
+    entry.style = appearance.style;
+    entry.color = appearance.textColor;
+    entry.backgroundTint = appearance.backgroundTint;
+}
+
 export function render(host: WebGLOsrsRendererHost, time: number, deltaTime: number, resized: boolean): void {
 
         profiler.startFrame();
@@ -218,6 +231,7 @@ export function render(host: WebGLOsrsRendererHost, time: number, deltaTime: num
 
         const onLoginScreen = host.osrsClient.isOnLoginScreen();
         const loggedIn = host.osrsClient.isLoggedIn();
+        const typedDamageHitsplats = getClientPreference("typedDamageHitsplats");
         const loginLikeState = !loggedIn;
         // When transitioning from login→gameplay, re-sync overlay scales. The first-frame sync
         // runs during login state (renderScaleX≈1) but gameplay uses a different scale formula.
@@ -876,10 +890,13 @@ export function render(host: WebGLOsrsRendererHost, time: number, deltaTime: num
                         entry.heightOffsetTiles = hitsplatOffset;
                         entry.damage = state.hitSplatValues[slot] | 0;
                         entry.count = 1;
-                        entry.color = undefined;
                         entry.scale = RENDER_CONSTANTS.HITSPLAT_PLAYER_SCALE;
                         entry.variant = slot & 3;
-                        entry.style = state.hitSplatTypes[slot] | 0;
+                        applyHitsplatAppearance(
+                            entry,
+                            state.hitSplatTypes[slot] | 0,
+                            typedDamageHitsplats,
+                        );
                         entry.type2 = state.hitSplatTypes2[slot] | 0;
                         entry.damage2 = state.hitSplatValues2[slot] | 0;
                         entry.animProgress = animProgress;
@@ -1068,10 +1085,13 @@ export function render(host: WebGLOsrsRendererHost, time: number, deltaTime: num
                             entry.heightOffsetTiles = hitsplatOffset;
                             entry.damage = state.hitSplatValues[slot] | 0;
                             entry.count = 1;
-                            entry.color = undefined;
                             entry.scale = RENDER_CONSTANTS.HITSPLAT_PLAYER_SCALE;
                             entry.variant = slot & 3;
-                            entry.style = state.hitSplatTypes[slot] | 0;
+                            applyHitsplatAppearance(
+                                entry,
+                                state.hitSplatTypes[slot] | 0,
+                                typedDamageHitsplats,
+                            );
                             entry.type2 = state.hitSplatTypes2[slot] | 0;
                             entry.damage2 = state.hitSplatValues2[slot] | 0;
                             entry.animProgress = animProgress;
@@ -1208,10 +1228,13 @@ export function render(host: WebGLOsrsRendererHost, time: number, deltaTime: num
                                 entry.heightOffsetTiles = hitsplatOffset;
                                 entry.damage = state.hitSplatValues[slot] | 0;
                                 entry.count = 1;
-                                entry.color = undefined;
                                 entry.scale = RENDER_CONSTANTS.HITSPLAT_NPC_SCALE;
                                 entry.variant = slot & 3;
-                                entry.style = state.hitSplatTypes[slot] | 0;
+                                applyHitsplatAppearance(
+                                    entry,
+                                    state.hitSplatTypes[slot] | 0,
+                                    typedDamageHitsplats,
+                                );
                                 entry.type2 = state.hitSplatTypes2[slot] | 0;
                                 entry.damage2 = state.hitSplatValues2[slot] | 0;
                                 entry.animProgress = animProgress;

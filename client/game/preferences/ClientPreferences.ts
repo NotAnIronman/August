@@ -35,6 +35,8 @@ export type ClientPreferences = {
      * in-game with the F4 hotkey.
      */
     invertCameraDragX: boolean;
+    /** Color successful damage hitsplats by melee, magic, or ranged source. */
+    typedDamageHitsplats: boolean;
 };
 
 const DEFAULTS: ClientPreferences = {
@@ -43,6 +45,7 @@ const DEFAULTS: ClientPreferences = {
     iosInstallHintDismissed: false,
     installPromptDismissed: false,
     invertCameraDragX: true,
+    typedDamageHitsplats: true,
 };
 
 let cache: ClientPreferences | undefined;
@@ -73,6 +76,9 @@ function normalize(raw: Partial<ClientPreferences> | undefined): ClientPreferenc
         ),
         lastServer: normalizeLastServer(raw?.lastServer),
         invertCameraDragX: Boolean(raw?.invertCameraDragX ?? DEFAULTS.invertCameraDragX),
+        typedDamageHitsplats: Boolean(
+            raw?.typedDamageHitsplats ?? DEFAULTS.typedDamageHitsplats,
+        ),
     };
 }
 

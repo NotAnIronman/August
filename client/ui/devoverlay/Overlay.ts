@@ -28,6 +28,8 @@ export interface HitsplatEntry {
     count?: number;
     /** Optional tint override for text (0xRRGGBB). */
     color?: number;
+    /** Optional tint override for the primary hitsplat background (0xRRGGBB). */
+    backgroundTint?: number;
     /** Optional per-entry scale multiplier. */
     scale?: number;
     /** Variant used to rotate default offset pattern. */

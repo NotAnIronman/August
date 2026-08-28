@@ -1,10 +1,12 @@
 import type { TickFrame } from "../../../network/wsServerTypes";
+import { resolveTypedHitsplatStyle } from "../../../../../client/common/combat/TypedHitsplatStyles";
 import { NpcState } from "../../npc";
 import { PlayerState } from "../../player";
 import type { AttackType } from "../AttackType";
 import type { EnchantedBoltEffect } from "../AmmoSystem";
 import { combatEffectApplicator } from "../CombatEffectApplicator";
 import { HITMARK_BLOCK, HITMARK_DAMAGE, HITMARK_POISON } from "../HitEffects";
+import { OSRS_HITSPLAT_DAMAGE_MAX_ME } from "../OsrsHitsplatIds";
 import type { CombatAttack } from "../model/CombatAttack";
 import { type CombatEntityRef, CombatEntityType } from "../model/CombatEntityRef";
 import { CombatAttributes } from "../state/CombatAttributes";
@@ -176,11 +178,24 @@ export class DeferredHitQueue {
             });
             applied.push(hit);
 
+            // Attack type is already resolved by the combat engine. Preserve all
+            // gameplay styles, misses, and status splats; only successful normal
+            // damage received by players gets a semantic presentation style.
+            const displayStyle =
+                target instanceof PlayerState &&
+                result.amount > 0 &&
+                pending.hitsplatType === DeferredHitsplatType.Normal
+                    ? (resolveTypedHitsplatStyle(
+                          pending.attackType,
+                          result.style === OSRS_HITSPLAT_DAMAGE_MAX_ME,
+                      ) ?? result.style)
+                    : result.style;
+
             frame.hitsplats.push({
                 targetType: target instanceof PlayerState ? "player" : "npc",
                 targetId: target.id,
                 damage: result.amount,
-                style: result.style,
+                style: displayStyle,
                 sourceType: pending.source.type === CombatEntityType.Player ? "player" : "npc",
                 sourcePlayerId:
                     pending.source.type === CombatEntityType.Player ? pending.source.id : undefined,

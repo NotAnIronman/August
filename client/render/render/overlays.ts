@@ -195,6 +195,7 @@ export function acquireHitsplatEntry(host: WebGLOsrsRendererHost, ): HitsplatEnt
         const entry = host.hitsplatPool.pop() ?? { worldX: 0, worldZ: 0, plane: 0 };
         entry.style = undefined;
         entry.spriteName = undefined;
+        entry.backgroundTint = undefined;
         entry.type2 = undefined;
         entry.damage2 = undefined;
         return entry;
@@ -301,6 +302,7 @@ export function resetHitsplatOutput(host: WebGLOsrsRendererHost, ): void {
         for (const entry of host.hitsplatOutput) {
             entry.style = undefined;
             entry.spriteName = undefined;
+            entry.backgroundTint = undefined;
             host.hitsplatPool.push(entry);
         }
         host.hitsplatOutput.length = 0;
