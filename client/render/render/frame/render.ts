@@ -1599,23 +1599,38 @@ export function render(host: WebGLOsrsRendererHost, time: number, deltaTime: num
                     console.warn(
                         `[WebGLOsrsRenderer] mapsToLoad rejected: mapX=${pendingMap.mapX} mapY=${pendingMap.mapY} cacheName=${pendingMap.cacheName} loadNpcs=${pendingMap.loadNpcs} smooth=${pendingMap.smoothTerrain}`,
                     );
+                    if (pendingMap.instanceSceneGeneration !== undefined) {
+                        host.failInstanceSceneCommit(
+                            pendingMap,
+                            new Error("current instance scene payload failed commit validation"),
+                        );
+                    }
                     continue;
                 }
                 console.log(
                     `[WebGLOsrsRenderer] mapsToLoad applying: mapX=${pendingMap.mapX} mapY=${pendingMap.mapY} verts=${pendingMap.vertices?.length}`,
                 );
                 mapApplyCount++;
-                host.loadMap(
-                    host.mainProgram,
-                    host.mainAlphaProgram,
-                    host.npcProgram,
-                    host.textureArray,
-                    host.textureMaterials,
-                    host.waterTextures,
-                    host.sceneUniformBuffer,
-                    pendingMap,
-                    host.skipMapFadeIn ? -1.0 : timeSec,
-                );
+                try {
+                    host.loadMap(
+                        host.mainProgram,
+                        host.mainAlphaProgram,
+                        host.npcProgram,
+                        host.textureArray,
+                        host.textureMaterials,
+                        host.waterTextures,
+                        host.sceneUniformBuffer,
+                        pendingMap,
+                        host.skipMapFadeIn ? -1.0 : timeSec,
+                    );
+                } catch (error) {
+                    if (pendingMap.instanceSceneGeneration !== undefined) {
+                        host.failInstanceSceneCommit(pendingMap, error);
+                        continue;
+                    }
+                    throw error;
+                }
+                host.markInstanceSceneCommitted(pendingMap);
 
                 // Configure world entity overlay maps: set interactionPlane + deck height
                 for (const [entityIndex, overlay] of host.worldEntityOverlays) {

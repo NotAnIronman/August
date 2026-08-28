@@ -204,6 +204,15 @@ export function onLocDel(host: WebGLOsrsRendererHost, tile: { x: number; y: numb
                 matchType: shape as LocModelType,
             });
 
+            if (host.instanceActive) {
+                // Instance geometry is an expanded transformed scene, not the
+                // ordinary map square identified by this world tile. Rebuild
+                // from the updated deletion snapshot through the coalesced
+                // instance transaction instead of applying overworld loc data.
+                host.scheduleInstanceLocRebuild();
+                return;
+            }
+
             const mapX = Math.floor(tile.x / 64);
             const mapY = Math.floor(tile.y / 64);
             // LOC_DEL does not carry an object id. Resolve it from the current

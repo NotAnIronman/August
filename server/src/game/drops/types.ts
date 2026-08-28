@@ -10,7 +10,13 @@ export type DropQuantity = {
 };
 
 export type DropConditionDefinition = {
+    /** The defeated monster must be in a Wilderness drop area. */
     wildernessOnly?: boolean;
+    /** The recipient must be physically inside a Wilderness drop area. */
+    recipientWildernessOnly?: boolean;
+    wildernessGodWarsDungeonOnly?: boolean;
+    slayerTaskOnly?: boolean;
+    requiredSlayerMaster?: string;
     minimumQuestPoints?: number;
     requiredAnyEquippedItemIds?: number[];
 };
@@ -24,11 +30,31 @@ export type NpcDropEntryDefinition = {
     condition?: DropConditionDefinition;
     altCondition?: DropConditionDefinition;
     dropBoostEligible?: boolean;
+    /** Entries with the same id are one weighted outcome and are awarded together. */
+    outcomeId?: string;
 };
 
 export type NpcDropPoolDefinition = {
     kind: "weighted" | "independent";
-    category: "main" | "tertiary" | "weapons_armour" | "runes_ammo" | "coins" | "other";
+    category:
+        | "main"
+        | "pre_roll"
+        | "unique"
+        | "secondary"
+        | "tertiary"
+        | "shared"
+        | "weapons_armour"
+        | "runes_ammo"
+        | "coins"
+        | "other";
+    /** Weighted pools with the same id and roll count are one exclusive table. */
+    rollGroupId?: string;
+    /**
+     * Weighted stages with the same chain id are attempted in ascending order.
+     * A successful stage short-circuits the later stages for that roll cycle.
+     */
+    rollChainId?: string;
+    rollChainOrder?: number;
     rolls?: number;
     entries: NpcDropEntryDefinition[];
 };
@@ -46,11 +72,28 @@ export type NpcDropEntry = {
     condition?: DropConditionDefinition;
     altCondition?: DropConditionDefinition;
     dropBoostEligible: boolean;
+    /** Entries with the same id are one weighted outcome and are awarded together. */
+    outcomeId?: string;
 };
 
 export type NpcDropPool = {
     kind: "weighted" | "independent";
-    category: "main" | "tertiary" | "weapons_armour" | "runes_ammo" | "coins" | "other";
+    category:
+        | "main"
+        | "pre_roll"
+        | "unique"
+        | "secondary"
+        | "tertiary"
+        | "shared"
+        | "weapons_armour"
+        | "runes_ammo"
+        | "coins"
+        | "other";
+    /** Weighted pools with the same id and roll count are one exclusive table. */
+    rollGroupId?: string;
+    /** See NpcDropPoolDefinition.rollChainId. */
+    rollChainId?: string;
+    rollChainOrder?: number;
     rolls: number;
     entries: NpcDropEntry[];
     nothingProbability: number;
@@ -64,6 +107,8 @@ export type NpcDropTable = {
 export type DropRecipient = {
     ownerId?: number;
     player?: PlayerState;
+    /** The recipient's position at the instant the NPC death is resolved. */
+    tile?: { x: number; y: number; level: number };
     dropRateMultiplier: number;
 };
 

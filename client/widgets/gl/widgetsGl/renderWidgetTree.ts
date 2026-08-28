@@ -10,6 +10,7 @@ import {
     drawWrappedTextGL as UI_drawWrappedTextGL,
 } from "../../../widgets/components/TextRenderer";
 import { runCs1 } from "../../../widgets/cs1/runCs1";
+import { resolvePlayerModelPresentation } from "../../../widgets/model/playerModelPresentation";
 import {
     collectWidgetsAtPointAcrossRoots as UI_collectWidgetsAtPointAcrossRoots,
     deriveMenuEntriesForWidget as UI_deriveMenuEntriesForWidget,
@@ -3356,19 +3357,30 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             const rawSeqId = (cs1Result ? w.sequenceId2 : w.sequenceId) ?? -1;
             let sequenceId =
                 typeof rawSeqId === "number" && rawSeqId >= 0 ? rawSeqId | 0 : undefined;
-            // contentType=328 (modelType=5, modelId=1) renders via
-            // localPlayer.getModelInternal() which bakes in the live idle animation.
-            // Inject the local player's movement sequence so the widget model animates.
+            // contentType=328 renders the local player. Gather its idle and
+            // movement states before applying widget-specific presentation.
             let liveMovementFrame: number | undefined;
-            if (sequenceId === undefined && ((w.contentType ?? 0) | 0) === 328) {
+            let movementSequenceId: number | undefined;
+            let idleSequenceId: number | undefined;
+            let movementFrame: number | undefined;
+            if (((w.contentType ?? 0) | 0) === 328) {
                 try {
                     const ac = osrsClient?.playerAnimController;
                     const sid = osrsClient?.controlledPlayerServerId;
-                    if (ac && typeof sid === "number" && sid >= 0) {
-                        const ms = ac.getMovementSequenceState(sid);
+                    const playerEcs = osrsClient?.playerEcs;
+                    if (typeof sid === "number" && sid >= 0) {
+                        const playerIndex = playerEcs?.getIndexForServerId?.(sid);
+                        const idle =
+                            playerIndex !== undefined
+                                ? playerEcs?.getAnimSeq?.(playerIndex, "idle")
+                                : undefined;
+                        if (typeof idle === "number" && idle >= 0) {
+                            idleSequenceId = idle | 0;
+                        }
+                        const ms = ac?.getMovementSequenceState?.(sid);
                         if (ms && (ms.seqId | 0) >= 0) {
-                            sequenceId = ms.seqId | 0;
-                            liveMovementFrame = ms.frame | 0;
+                            movementSequenceId = ms.seqId | 0;
+                            movementFrame = ms.frame | 0;
                         }
                     }
                 } catch {}
@@ -3378,6 +3390,23 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             let offX = (w.modelOffsetX ?? 0) | 0;
             let offY = (w.modelOffsetY ?? 0) | 0;
             const ortho = !!w.modelOrthog;
+
+            const playerPresentation = resolvePlayerModelPresentation({
+                groupId:
+                    typeof w.groupId === "number"
+                        ? w.groupId | 0
+                        : ((w.uid >>> 16) & 0xffff) | 0,
+                contentType: (w.contentType ?? 0) | 0,
+                configuredSequenceId: sequenceId,
+                configuredZoom: zoom,
+                modelFrame: (w.modelFrame ?? 0) | 0,
+                idleSequenceId,
+                movementSequenceId,
+                movementFrame,
+            });
+            sequenceId = playerPresentation.sequenceId;
+            liveMovementFrame = playerPresentation.sequenceFrame;
+            zoom = playerPresentation.zoom;
 
             // Chathead widgets are special: the cache's generic model angles
             // describe its old placeholder model, not the NPC/player head

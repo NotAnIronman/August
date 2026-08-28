@@ -33,7 +33,7 @@
     "sync-missing-cache-items": "tsx scripts/sync-missing-cache-items.ts",
     "sync-equipment-data": "yarn ensure-cache && yarn sync-missing-cache-items && yarn sync-equipment-requirements && yarn import-equipment-reference && yarn audit-equipment-data",
     "sync-equipment-requirements": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/sync-osrs-equipment-requirements.ts",
-    "sync-npc-drops": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/sync-osrs-npc-drops.ts",
+    "sync-npc-drops": "node --use-system-ca --import tsx scripts/sync-osrs-npc-drops.ts",
     "ensure-npc-drops": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/sync-osrs-npc-drops.ts --if-missing",
     "import-equipment-reference": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/import-osrs-equipment-reference.ts",
     "audit-equipment-data": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs scripts/audit-equipment-data.ts",

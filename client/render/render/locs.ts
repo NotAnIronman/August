@@ -322,6 +322,16 @@ export function onLocChange(host: WebGLOsrsRendererHost,
                 });
             }
 
+            if (host.instanceActive) {
+                // The resident instance is one expanded, transformed scene.
+                // Loading a normal 64x64 loc payload here can partially apply
+                // untransformed overworld geometry over it. Rebuild from the
+                // updated locSpawns/locOverrides snapshot transactionally.
+                host.scheduleInstanceLocRebuild();
+                console.log("Refreshing active instance via loc scene rebuild");
+                return;
+            }
+
             // Moving locs can cross map-square boundaries (e.g., edge gates).
             // Reload both affected map squares so moved geometry can appear on the new side.
             const oldMapX = Math.floor(oldTile.x / 64);

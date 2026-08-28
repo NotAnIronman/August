@@ -53,9 +53,11 @@ player.setCombatTarget(dragon);
 dragon.engageCombat(player.id, 100, { tileX: player.tileX, tileY: player.tileY });
 
 let npcPathCalls = 0;
+let playerPathCalls = 0;
 const pathService = {
     edgeHasWallBetween: () => false,
     findPathSteps: (_request: unknown, options: { routeStrategy: unknown }) => {
+        playerPathCalls++;
         const strategy = options.routeStrategy as {
             hasArrived: (x: number, y: number, level: number, size: number) => boolean;
         };
@@ -81,12 +83,14 @@ const overlapTick = engine.processTick(100);
 assert.equal(overlapTick.statuses.get("moving"), 2);
 assert.equal(player.hasPath(), true, "the attacking player should route out of the NPC footprint");
 assert.equal(dragon.hasPath(), true, "a large NPC must also path out from under its target");
+assert.equal(playerPathCalls, 1, "large-footprint overlap must preserve the player's escape route");
 assert.equal(npcPathCalls, 1, "overlap must not suppress the NPC's combat route");
 
 player.teleport(3199, 3200, 0);
 const adjacentTick = engine.processTick(101);
 assert.equal(adjacentTick.statuses.get("ready"), 2);
 assert.equal(adjacentTick.preparedAttacks.length, 2);
+assert.equal(playerPathCalls, 1);
 assert.equal(npcPathCalls, 1);
 
 console.log("large NPC overlap combat regression test passed");

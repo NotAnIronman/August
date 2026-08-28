@@ -881,13 +881,19 @@ export class NpcEcs {
         if (sy > 0) return 1024; // N
         return 0; // S
     }
+    private updateOccupancyFromLocalCenter(id: number, x: number, y: number): void {
+        // Actor fine coordinates point at the model centre. Occupancy and
+        // interaction routing use the south-west tile of the NPC footprint,
+        // so subtract the size-dependent centre offset before converting.
+        const centerOffset = (Math.max(1, this.size[id] | 0) << 6) | 0;
+        this.occTileX[id] = (((x | 0) - centerOffset) >> 7) & 63;
+        this.occTileY[id] = (((y | 0) - centerOffset) >> 7) & 63;
+        this.occPlane[id] = this.level[id] & 3;
+    }
     setXY(id: number, x: number, y: number): void {
         this.x[id] = x | 0;
         this.y[id] = y | 0;
-        // Keep occupancy telemetry aligned with movement updates.
-        this.occTileX[id] = ((x | 0) >> 7) & 63;
-        this.occTileY[id] = ((y | 0) >> 7) & 63;
-        this.occPlane[id] = this.level[id] & 3;
+        this.updateOccupancyFromLocalCenter(id, x, y);
     }
     setLevel(id: number, level: number): void {
         this.level[id] = (level | 0) & 3;
@@ -1161,12 +1167,7 @@ export class NpcEcs {
             this.stepQueueY[off + i] = (this.stepQueueY[off + i] + deltaY) | 0;
         }
 
-        // Maintain world-space occupancy tile after rebasing local coordinates.
-        const worldX = (nextBaseX + (this.x[id] | 0)) | 0;
-        const worldY = (nextBaseY + (this.y[id] | 0)) | 0;
-        this.occTileX[id] = (worldX >> 7) & 63;
-        this.occTileY[id] = (worldY >> 7) & 63;
-        this.occPlane[id] = this.level[id] & 3;
+        this.updateOccupancyFromLocalCenter(id, this.x[id], this.y[id]);
 
         this.setMapSquare(id, nextMapX, nextMapY);
     }

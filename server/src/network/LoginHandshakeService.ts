@@ -14,6 +14,7 @@ import {
 } from "../../../client/common/vars";
 import { getItemDefinition } from "../data/items";
 import type { ServerServices } from "../game/ServerServices";
+import { syncInstanceGravePresentation } from "../game/death/InstanceGravePresentation";
 import type { PlayerState } from "../game/player";
 import { buildPlayerSaveKey, normalizePlayerAccountName } from "../game/state/PlayerSessionKeys";
 import { logger } from "../utils/logger";
@@ -796,6 +797,7 @@ export class LoginHandshakeService {
                     }
                 }
 
+                syncInstanceGravePresentation(this.svc.locationService, p);
                 this.svc.locationService.maybeReplayDynamicLocState(ws, p, true);
 
                 this.svc.eventBus.emit("player:login", { player: p });
@@ -1056,6 +1058,28 @@ export class LoginHandshakeService {
                 const player = this.svc.players?.get(ws);
                 const id = player?.id;
                 if (player) {
+                    const saveKey = player.__saveKey ?? buildPlayerSaveKey(player.name, player.id);
+                    // A disconnect cannot bypass the item-loss transaction.
+                    // Complete it while the instance and its immutable death
+                    // context still exist, before either persistence or
+                    // instance disposal can observe pre-death inventory.
+                    if (id !== undefined) {
+                        const completedDeath =
+                            this.svc.playerDeathService?.forceCompleteDeath(id) === true;
+                        if (completedDeath) {
+                            try {
+                                // A recently-hit player enters the orphan path below, where
+                                // the ordinary disconnect save is intentionally deferred.
+                                // Make the completed death/grave transaction durable first.
+                                this.svc.playerPersistence.saveSnapshot(saveKey, player);
+                            } catch (err) {
+                                logger.warn(
+                                    "[persist] failed to save force-completed death state",
+                                    err,
+                                );
+                            }
+                        }
+                    }
                     if (id !== undefined) {
                         this.svc.groundItemHandler?.clearPlayerState(id);
                         this.svc.playerDynamicLocSceneKeys.delete(id);
@@ -1095,8 +1119,6 @@ export class LoginHandshakeService {
                     this.svc.sailingInstanceManager?.disposeInstance(player);
                     this.svc.instancedAreaManager?.dispose(player);
                     this.svc.worldEntityInfoEncoder.removePlayer(player.id);
-
-                    const saveKey = player.__saveKey ?? buildPlayerSaveKey(player.name, player.id);
 
                     const currentTick = this.svc.ticker.currentTick();
                     const wasOrphaned = this.svc.players?.orphanPlayer(ws, saveKey, currentTick);

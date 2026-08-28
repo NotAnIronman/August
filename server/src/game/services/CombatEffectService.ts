@@ -21,6 +21,7 @@ import { npcCombatEntityRef, playerCombatEntityRef } from "../combat/model/Comba
 import { CombatAttributes } from "../combat/state/CombatAttributes";
 import { DropRollService } from "../drops/DropRollService";
 import { NpcDropRegistry } from "../drops/NpcDropRegistry";
+import type { DropRecipient } from "../drops/types";
 import type { NpcState } from "../npc";
 import type { PendingNpcDrop } from "../npcManager";
 import type { PlayerState } from "../player";
@@ -312,7 +313,7 @@ export class CombatEffectService {
         damageType: DamageType,
         maxHit?: number,
     ): { amount: number; style: number; hpCurrent: number; hpMax: number } | undefined {
-        if (!npc.isCombatTargetable()) return undefined;
+        if (!npc.isCombatTargetable(tick)) return undefined;
         if (npc.getHitpoints() <= 0 || npc.isDead(tick)) return undefined;
 
         const proposedDamage = applyDeveloperInstakillDamage(player, Math.max(0, Math.trunc(damage)));
@@ -354,7 +355,7 @@ export class CombatEffectService {
     // ── NPC Death ───────────────────────────────────────────────────
 
     handleNpcDeathOutsidePrimaryCombat(player: PlayerState, npc: NpcState, tick: number): void {
-        if (!npc.isCombatTargetable() || npc.isDead(tick)) {
+        if (!npc.isCombatTargetable(tick) || npc.isDead(tick)) {
             return;
         }
         // Defer to the canonical death pipeline: NPCs process fatal damage on
@@ -452,19 +453,19 @@ export class CombatEffectService {
         }
     }
 
-    estimateNpcDespawnDelayTicksFromSeq(seqId: number | undefined): number {
-        if (seqId === undefined || seqId < 0) return 1;
+    estimateNpcSequenceDurationTicks(seqId: number | undefined): number | undefined {
+        if (seqId === undefined || seqId < 0) return undefined;
         const loader = this.svc.dataLoaderService.getSeqTypeLoader();
-        if (!loader) return 1;
+        if (!loader) return undefined;
         try {
             const seq = loader.load(seqId);
-            if (!seq) return 1;
+            if (!seq) return undefined;
             if (seq.isSkeletalSeq()) {
                 const dur = Math.max(1, seq.getSkeletalDuration?.() ?? 1);
                 return Math.max(1, Math.ceil(dur / 30));
             }
             const lengths = seq.frameLengths;
-            if (!lengths || lengths.length === 0) return 1;
+            if (!lengths || lengths.length === 0) return undefined;
             let cycles = 0;
             for (let i = 0; i < lengths.length; i++) {
                 let fl = lengths[i];
@@ -474,8 +475,12 @@ export class CombatEffectService {
             }
             return Math.max(1, Math.ceil(cycles / 30));
         } catch {
-            return 1;
+            return undefined;
         }
+    }
+
+    estimateNpcDespawnDelayTicksFromSeq(seqId: number | undefined): number {
+        return this.estimateNpcSequenceDurationTicks(seqId) ?? 1;
     }
 
     getSeqForcedPriority(seqId: number): number {
@@ -496,11 +501,7 @@ export class CombatEffectService {
     rollNpcDrops(npc: NpcState, eligibility: DropEligibility | undefined): PendingNpcDrop[] {
         const service = this.getNpcDropRollService();
         if (!service) return [];
-        const recipients: Array<{
-            ownerId?: number;
-            player?: PlayerState;
-            dropRateMultiplier: number;
-        }> = [];
+        const recipients: DropRecipient[] = [];
         const seen = new Set<number>();
         const gamemode = this.svc.gamemode;
         for (const looter of eligibility?.eligibleLooters ?? []) {
@@ -510,6 +511,7 @@ export class CombatEffectService {
             recipients.push({
                 ownerId: playerId,
                 player: looter,
+                tile: { x: looter.tileX, y: looter.tileY, level: looter.level },
                 dropRateMultiplier: gamemode.getDropRateMultiplier(looter),
             });
         }
@@ -521,6 +523,11 @@ export class CombatEffectService {
             recipients.push({
                 ownerId: eligibility.primaryLooter.id,
                 player: eligibility.primaryLooter,
+                tile: {
+                    x: eligibility.primaryLooter.tileX,
+                    y: eligibility.primaryLooter.tileY,
+                    level: eligibility.primaryLooter.level,
+                },
                 dropRateMultiplier: gamemode.getDropRateMultiplier(eligibility.primaryLooter),
             });
         }

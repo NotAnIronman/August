@@ -4,6 +4,13 @@ import path from "path";
 import { NPC_ANIMATION_REVIEW_PANEL_GROUP_ID } from "../../../../client/common/ui/widgets/custom/journalPanel.cs2";
 import { ComponentIds, type UiMenuButton } from "../../../../client/common/uikit/contracts";
 import type { NpcState } from "../../../src/game/npc";
+import {
+    assignNpcCombatAnimation,
+    getPrimaryNpcAnimation,
+    normalizeNpcSpecialName,
+    type NpcCombatAnimationData,
+    type NpcCombatAnimationRole,
+} from "../../../src/game/npc/NpcCombatAnimationData";
 import type { PlayerState } from "../../../src/game/player";
 import type { IScriptRegistry, ScriptServices } from "../../../src/game/scripts/types";
 import { registerUiPanelActions } from "../uikit/actions";
@@ -22,20 +29,15 @@ const PREVIEW_DISTANCE_TILES = 8;
 // animation must never be silently replaced by a later style review.
 const GENERIC_HUMANOID_ATTACK_ANIMATION = 422;
 
-type CombatAnimationRole =
-    | "attack"
-    | "melee"
-    | "ranged"
-    | "magic"
-    | "block"
-    | "death"
-    | "special";
+export type ReviewAnimationRole = NpcCombatAnimationRole | "special";
 
-type NpcCombatAnimationData = Partial<
-    Record<Exclude<CombatAnimationRole, "special">, number>
-> & {
-    specials?: number[];
-};
+export function shouldAdvanceNpcAnimationReviewCandidate(
+    role: ReviewAnimationRole,
+): boolean {
+    // Primary is deliberately non-consuming: reviewers commonly mark the
+    // default and then assign that same candidate to Melee/Ranged/Magic.
+    return role !== "attack";
+}
 
 type NpcCombatDefinitionsFile = {
     npcs?: Record<string, { name?: string; anims?: NpcCombatAnimationData }>;
@@ -48,6 +50,8 @@ type ReviewSession = {
     candidates: number[];
     candidateIndex: number;
     selectedSequenceId?: number;
+    /** Named mechanic used by the panel's Special button. */
+    specialName?: string;
     /** Invalidates the reset callback from an older candidate preview. */
     playbackGeneration: number;
 };
@@ -63,6 +67,7 @@ const REVIEW_BUTTONS: readonly UiMenuButton[] = [
     { itemId: 1381, label: "Magic" },
     { itemId: 8850, label: "Defend" },
     { itemId: 964, label: "Death" },
+    { itemId: 1050, label: "Spawn" },
     { itemId: 11802, label: "Special" },
 ];
 
@@ -76,12 +81,16 @@ function resolveDataPath(fileName: string): string {
 }
 
 function parseNpcTypeId(value: string | undefined): number | undefined {
-    const id = Number.parseInt(value ?? "", 10);
+    if (!value || !/^\d+$/.test(value)) return undefined;
+    const id = Number(value);
     return Number.isFinite(id) && id >= 0 ? id : undefined;
 }
 
 function parseSequenceId(value: string | undefined): number | undefined {
-    const id = Number.parseInt(value ?? "", 10);
+    // Keep mechanic names such as "3-hit-combo" from being mistaken for the
+    // legacy `save special <sequence>` form. parseInt would accept the prefix.
+    if (!value || !/^\d+$/.test(value)) return undefined;
+    const id = Number(value);
     return Number.isFinite(id) && id >= 0 ? id : undefined;
 }
 
@@ -276,14 +285,19 @@ function openReviewPanel(player: PlayerState, services: ScriptServices, session:
         services,
         player.id,
         NPC_ANIMATION_REVIEW_PANEL_GROUP_ID,
-        `${candidateLabel} | Playing: ${sequenceId ?? "none"}`,
+        `${candidateLabel} | Playing: ${sequenceId ?? "none"} | ${
+            session.specialName
+                ? `Special: ${session.specialName}`
+                : "Special: name not set"
+        }`,
     );
 }
 
 function saveConfirmedAnimation(
     npcTypeId: number,
-    role: CombatAnimationRole,
+    role: ReviewAnimationRole,
     sequenceId: number,
+    specialName?: string,
 ): void {
     const combatDefsPath = resolveDataPath("npc-combat-defs.json");
     const text = fs.readFileSync(combatDefsPath, "utf8");
@@ -293,29 +307,29 @@ function saveConfirmedAnimation(
 
     const entry = (definitions.npcs[String(npcTypeId)] ??= {});
     entry.anims ??= {};
-    if (role === "special") {
-        const specials = Array.isArray(entry.anims.specials) ? entry.anims.specials : [];
-        if (!specials.includes(sequenceId)) specials.push(sequenceId);
-        entry.anims.specials = specials;
-    } else {
-        entry.anims[role] = sequenceId;
-    }
+    assignNpcCombatAnimation(
+        entry.anims,
+        role === "special"
+            ? { role, sequenceId, name: specialName }
+            : { role, sequenceId },
+    );
     // A normal combat-style review should immediately repair a missing or
     // generic live attack. Once a real primary has been saved, later style
     // choices do not replace it; use the Primary button when that is intended.
     if (
         (role === "melee" || role === "ranged" || role === "magic") &&
-        (entry.anims.attack === undefined ||
-            entry.anims.attack === GENERIC_HUMANOID_ATTACK_ANIMATION)
+        (getPrimaryNpcAnimation(entry.anims.attack) === undefined ||
+            getPrimaryNpcAnimation(entry.anims.attack) ===
+                GENERIC_HUMANOID_ATTACK_ANIMATION)
     ) {
-        entry.anims.attack = sequenceId;
+        assignNpcCombatAnimation(entry.anims, { role: "attack", sequenceId });
     }
 
     const formatted = `${JSON.stringify(definitions, null, 2)}\n`.replace(/\n/g, lineEnding);
     fs.writeFileSync(combatDefsPath, formatted, "utf8");
 }
 
-function isRole(value: string | undefined): value is CombatAnimationRole {
+function isRole(value: string | undefined): value is ReviewAnimationRole {
     return (
         value === "attack" ||
         value === "melee" ||
@@ -323,6 +337,7 @@ function isRole(value: string | undefined): value is CombatAnimationRole {
         value === "magic" ||
         value === "block" ||
         value === "death" ||
+        value === "spawn" ||
         value === "special"
     );
 }
@@ -332,7 +347,9 @@ function help(): string {
         "::npcreview <npc id> - spawn a private review NPC and open the button panel.",
         "::npcreview next|prev|show - cycle or inspect the observed candidates.",
         "::npcreview play <sequence id> - preview any sequence manually.",
-        "::npcreview save <attack|melee|ranged|magic|block|death|special> [sequence id] - save a reviewed role.",
+        "::npcreview special <name> - select the named mechanic used by the panel's Special button.",
+        "::npcreview save <attack|melee|ranged|magic|block|death|spawn> [sequence id] - save a reviewed role.",
+        "::npcreview save special <name> [sequence id] - add to a named special pool (a numeric third argument keeps the legacy anonymous slot format).",
         "::npcreview clear - remove your current preview NPC.",
         "Saved roles apply after a server restart. Candidates are observations, not assignments.",
     ].join(" ");
@@ -435,19 +452,47 @@ export function registerNpcAnimationReviewCommands(
             return result;
         }
 
+        if (action === "special") {
+            const specialName = normalizeNpcSpecialName(args.slice(1).join("-"));
+            if (!specialName) {
+                return "Usage: ::npcreview special <name> (letters, numbers, hyphens, or underscores)";
+            }
+            session.specialName = specialName;
+            openReviewPanel(player, services, session);
+            return `NPC ${session.npcTypeId}: the Special button now saves to '${specialName}'.`;
+        }
+
         if (action === "save") {
             const role = args[1]?.toLowerCase();
             if (!isRole(role)) {
-                return "Usage: ::npcreview save <attack|melee|ranged|magic|block|death|special> [sequence id]";
+                return "Usage: ::npcreview save <attack|melee|ranged|magic|block|death|spawn|special> ...";
             }
 
-            const sequenceId = parseSequenceId(args[2]) ?? session.selectedSequenceId;
+            let specialName: string | undefined;
+            let sequenceId: number | undefined;
+            if (role === "special") {
+                const legacySequenceId = parseSequenceId(args[2]);
+                if (legacySequenceId !== undefined) {
+                    // Backward compatibility with ::npcreview save special <sequence>.
+                    sequenceId = legacySequenceId;
+                } else {
+                    specialName = normalizeNpcSpecialName(args[2] ?? "");
+                    if (!specialName) {
+                        return "Usage: ::npcreview save special <name> [sequence id]";
+                    }
+                    sequenceId = parseSequenceId(args[3]) ?? session.selectedSequenceId;
+                    session.specialName = specialName;
+                }
+            } else {
+                sequenceId = parseSequenceId(args[2]) ?? session.selectedSequenceId;
+            }
             if (sequenceId === undefined) return "No candidate is selected; provide a sequence id explicitly.";
 
             try {
-                saveConfirmedAnimation(session.npcTypeId, role, sequenceId);
+                saveConfirmedAnimation(session.npcTypeId, role, sequenceId, specialName);
                 openReviewPanel(player, services, session);
-                return `Saved NPC ${session.npcTypeId} ${role} animation ${sequenceId} to npc-combat-defs.json. Restart the server to use it in combat.`;
+                const roleLabel = specialName ? `special '${specialName}'` : role;
+                return `Saved NPC ${session.npcTypeId} ${roleLabel} animation ${sequenceId} to npc-combat-defs.json. Restart the server to use it in combat.`;
             } catch (error) {
                 services.system.logger.error("[npcreview] failed to save animation", error);
                 return "Could not save npc-combat-defs.json; see the server log for details.";
@@ -477,20 +522,36 @@ export function registerNpcAnimationReviewCommands(
         openReviewPanel(player, services, session);
     };
 
-    const savePanelRole = (player: PlayerState, role: CombatAnimationRole): void => {
+    const savePanelRole = (player: PlayerState, role: ReviewAnimationRole): void => {
         const session = getPanelSession(player);
         const sequenceId = session?.selectedSequenceId;
         if (!session || sequenceId === undefined) return;
-        try {
-            saveConfirmedAnimation(session.npcTypeId, role, sequenceId);
+        if (role === "special" && !session.specialName) {
             services.messaging.sendGameMessage(
                 player,
-                `Saved ${role} animation ${sequenceId} for NPC ${session.npcTypeId}.`,
+                "Choose a mechanic name first with ::npcreview special <name>.",
+            );
+            return;
+        }
+        try {
+            saveConfirmedAnimation(
+                session.npcTypeId,
+                role,
+                sequenceId,
+                role === "special" ? session.specialName : undefined,
+            );
+            const roleLabel =
+                role === "special" ? `special '${session.specialName}'` : role;
+            services.messaging.sendGameMessage(
+                player,
+                `Saved ${roleLabel} animation ${sequenceId} for NPC ${session.npcTypeId}.`,
             );
             // Reviewing is usually a one-pass job: one role click saves this
             // sequence and immediately shows the next candidate. Previous is
             // always available for a correction.
-            moveCandidate(player, 1);
+            if (shouldAdvanceNpcAnimationReviewCandidate(role)) {
+                moveCandidate(player, 1);
+            }
         } catch (error) {
             services.system.logger.error("[npcreview] failed to save animation", error);
             services.messaging.sendGameMessage(player, "Could not save npc-combat-defs.json.");
@@ -513,7 +574,7 @@ export function registerNpcAnimationReviewCommands(
             actionId: "review_save_attack",
             handle: ({ player }) => savePanelRole(player, "attack"),
         },
-        ...(["melee", "ranged", "magic", "block", "death", "special"] as const).map((role, index) => ({
+        ...(["melee", "ranged", "magic", "block", "death", "spawn", "special"] as const).map((role, index) => ({
             componentId: ComponentIds.MENU_BUTTON_BACKGROUND_BASE + index + 3,
             actionId: `review_save_${role}`,
             handle: ({ player }: { player: PlayerState }) => savePanelRole(player, role),

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import { NpcInstanceFlushController } from "../game/npc/NpcInstanceFlushController";
 import { addUnbatchedNpcRenderData } from "../render/render/draw";
+import { markInstanceSceneCommitted } from "../render/render/instance";
 
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
     let resolve!: (value: T) => void;
@@ -118,6 +119,135 @@ async function staleAppearanceRefreshIsNeverApplied(): Promise<void> {
     assert.equal(controller.mapsPendingReload.size, 0);
 }
 
+async function immediateAttackWaitsForCommittedInstanceScene(): Promise<void> {
+    const mapId = (44 << 8) | 83;
+    const spawnX = 2872;
+    const movedX = spawnX + 1;
+    const instanceSnapshots: number[] = [];
+    const geometrySnapshots: number[] = [];
+    let oldMapRefreshes = 0;
+    let newMapRefreshes = 0;
+    let latestWorkerX = -1;
+
+    const oldMap = {
+        getRenderBaseTileX: () => 2816,
+        getRenderBaseTileY: () => 5304,
+        getLocalTileSpan: () => 104,
+        refreshNpcGeometry: () => {
+            oldMapRefreshes++;
+        },
+    };
+    const newInstanceMap = {
+        getRenderBaseTileX: () => 2816,
+        getRenderBaseTileY: () => 5304,
+        getLocalTileSpan: () => 104,
+        refreshNpcGeometry: (...args: any[]) => {
+            newMapRefreshes++;
+            geometrySnapshots.push(args.at(-1).authoritativeX);
+        },
+    };
+    let residentMap = oldMap;
+    const mapManager = {
+        currentMapX: -1,
+        currentMapY: -1,
+        worldEntityMapIds: new Set<number>(),
+        isMapInCurrentGrid: () => false,
+        getMap: () => residentMap,
+        loadMap: () => undefined,
+    };
+    const workerPool = {
+        setNpcInstances: async (instances: Array<{ x: number }>) => {
+            latestWorkerX = instances[0]?.x ?? -1;
+            instanceSnapshots.push(latestWorkerX);
+        },
+        queueNpcGeometry: async () => ({
+            mapX: 44,
+            mapY: 83,
+            authoritativeX: latestWorkerX,
+            loadedTextures: new Map(),
+            vertices: new Uint8Array(),
+            indices: new Int32Array(),
+            npcs: [],
+        }),
+    };
+    const renderer = {
+        app: {},
+        npcProgram: {},
+        textureArray: {},
+        textureMaterials: {},
+        waterTextures: {},
+        sceneUniformBuffer: {},
+        mapManager,
+        maxLevel: 3,
+        loadedTextureIds: new Set<number>(),
+        updateTextureArray: () => undefined,
+        instanceActive: true,
+        // REBUILD_REGION has started, but its replacement map is not resident.
+        instanceSceneReady: false,
+        instanceSceneGeneration: 7,
+        instanceRegionX: 44 * 8,
+        instanceRegionY: 83 * 8,
+        osrsClient: undefined as any,
+        getControlledPlayerWorldViewId: () => 4000,
+    };
+    const controller = new NpcInstanceFlushController({
+        getRenderer: () => renderer,
+        workerPool,
+        getSeqTypeLoader: () => ({}),
+        getSeqFrameLoader: () => ({}),
+        getNpcTypeLoader: () => ({ load: () => ({}) }),
+        getBasTypeLoader: () => ({}),
+    } as any);
+    renderer.osrsClient = {
+        notifyRendererReady: () => controller.notifyRendererReady(),
+    };
+
+    const instance = {
+        serverId: 1,
+        typeId: 2215,
+        x: spawnX,
+        y: 5358,
+        level: 2,
+        worldViewId: 4000,
+    };
+    controller.instanceMap.set("sid:1", instance);
+    controller.markMapPendingReload(mapId);
+    controller.scheduleFlush();
+
+    await waitFor(
+        () => instanceSnapshots.length === 1 && controller.mapsPendingReload.has(mapId),
+    );
+    assert.equal(oldMapRefreshes, 0, "spawn geometry must not attach to the old map");
+
+    // Reproduce the immediate attack: authoritative NPC movement arrives while
+    // the instance terrain is still building.
+    instance.x = movedX;
+    residentMap = newInstanceMap;
+    markInstanceSceneCommitted(renderer as any, {
+        mapX: 44,
+        mapY: 83,
+        instanceSceneGeneration: 6,
+    } as any);
+    assert.equal(renderer.instanceSceneReady, false, "a stale async build cannot unlock sync");
+    markInstanceSceneCommitted(renderer as any, {
+        mapX: 44,
+        mapY: 83,
+        instanceSceneGeneration: 7,
+    } as any);
+    assert.equal(renderer.instanceSceneReady, true);
+
+    await waitFor(() => newMapRefreshes === 1);
+    assert.equal(oldMapRefreshes, 0);
+    assert.deepEqual(instanceSnapshots, [spawnX, movedX]);
+    assert.deepEqual(
+        geometrySnapshots,
+        [movedX],
+        "the committed map must receive the latest authoritative position",
+    );
+    assert.equal(controller.mapsPendingReload.size, 0);
+    controller.clearLocal();
+}
+
 function serverSpawnRendersBeforeMapBatchRefresh(): void {
     const unbatchedMap = {
         mapX: 50,
@@ -196,6 +326,7 @@ function serverSpawnRendersBeforeMapBatchRefresh(): void {
 
 async function run(): Promise<void> {
     await staleAppearanceRefreshIsNeverApplied();
+    await immediateAttackWaitsForCommittedInstanceScene();
     serverSpawnRendersBeforeMapBatchRefresh();
 }
 

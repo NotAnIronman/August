@@ -10,7 +10,7 @@ import {
 import type { NpcDropTable } from "./types";
 
 type ImportedLookup = {
-    byNpcTypeId: Map<number, ImportedTable>;
+    byNpcTypeId: Map<number, ImportedTable[]>;
     exact: Map<string, NpcDropTable>;
     byName: Map<string, NpcDropTable[]>;
 };
@@ -23,7 +23,13 @@ type ImportedTable = {
 // These two live boss spawns have a deliberately small manual safety-net
 // table. Prefer their full source-backed tables when present, but never let a
 // missing ignored reference make their drops disappear altogether.
-const PREFER_IMPORTED_OVER_MANUAL = new Set([2205, 2215]);
+const PREFER_IMPORTED_OVER_MANUAL = new Set([2205, 2215, 3129]);
+
+// PvM Arena combat uses NPC 6495 as a no-reward K'ril form. Its identical
+// cache name cannot safely distinguish it from canonical 3129, and an older
+// generic Wiki checkpoint otherwise survives the exact page's no-Drops
+// diagnostic and awards the full main-game table.
+const NO_REWARD_NPC_TYPE_IDS = new Set([6495]);
 
 export type NpcDropLookupDescription = {
     source: "imported-id" | "imported-name" | "manual" | "none";
@@ -45,7 +51,7 @@ function makeCombatKey(name: string, combatLevel: number | undefined): string {
 }
 
 function buildImportedLookup(): ImportedLookup {
-    const byNpcTypeId = new Map<number, ImportedTable>();
+    const byNpcTypeId = new Map<number, ImportedTable[]>();
     const exact = new Map<string, NpcDropTable>();
     // A number of OSRSBox records are literal duplicate rows for the same
     // name/combat pair (for example General Graardor and Commander Zilyana).
@@ -53,17 +59,18 @@ function buildImportedLookup(): ImportedLookup {
     // level variant would make a perfectly valid table look ambiguous.
     const byNameAndCombat = new Map<string, Map<string, NpcDropTable>>();
     for (const entry of loadMonstersCompleteDefinitions()) {
-        // Retain verified rows from a current Wiki page even if a few unusual
-        // items or shared tables still need a later import pass. The record is
-        // exact to this cache NPC ID, which is safer than falling back to an
-        // older name-only table or showing no baseline table at all.
+        // Definitions arrive complete-first. Keep every exact-ID candidate so
+        // stale legacy cache IDs can be skipped by live-name validation rather
+        // than hiding a later current-ID fallback.
         const table = resolveDropTable(entry.table);
         if (!table) continue;
         const nameKey = normalizeName(entry.name);
         if (!nameKey) continue;
         const combatKey = makeCombatKey(entry.name, entry.combatLevel);
-        if (entry.npcTypeId !== undefined && !byNpcTypeId.has(entry.npcTypeId)) {
-            byNpcTypeId.set(entry.npcTypeId, { name: entry.name, table });
+        if (entry.npcTypeId !== undefined) {
+            const candidates = byNpcTypeId.get(entry.npcTypeId) ?? [];
+            candidates.push({ name: entry.name, table });
+            byNpcTypeId.set(entry.npcTypeId, candidates);
         }
         // Duplicate legacy rows are still useful for an exact NPC ID: get()
         // validates the live cache name before accepting them. Keep them out
@@ -79,6 +86,15 @@ function buildImportedLookup(): ImportedLookup {
         byName.set(name, [...entries.values()]);
     }
     return { byNpcTypeId, exact, byName };
+}
+
+export function selectImportedIdCandidate<T extends { name: string }>(
+    candidates: readonly T[] | undefined,
+    runtimeNpcName: string,
+): T | undefined {
+    const liveName = normalizeName(runtimeNpcName);
+    if (!liveName) return undefined;
+    return candidates?.find((candidate) => normalizeName(candidate.name) === liveName);
 }
 
 export class NpcDropRegistry {
@@ -100,6 +116,10 @@ export class NpcDropRegistry {
         const normalized = npcTypeId;
         const cached = this.resolvedByNpcTypeId.get(normalized);
         if (cached !== undefined) return cached ?? undefined;
+        if (NO_REWARD_NPC_TYPE_IDS.has(normalized)) {
+            this.resolvedByNpcTypeId.set(normalized, null);
+            return undefined;
+        }
 
         let npcType: NpcType | undefined;
         const getNpcType = (): NpcType | undefined => {
@@ -117,11 +137,11 @@ export class NpcDropRegistry {
         // Validate the live definition name before using it: older bootstrap
         // data calls ID 2115 "Thing under the bed", while the target cache can
         // use that same numerical ID for General Graardor.
-        const importedById = this.imported.byNpcTypeId.get(normalized);
-        const directImportedMatchesLiveNpc =
-            importedById !== undefined &&
-            normalizeName(importedById.name) === normalizeName(String(getNpcType()?.name ?? ""));
-        if (importedById && directImportedMatchesLiveNpc && PREFER_IMPORTED_OVER_MANUAL.has(normalized)) {
+        const importedById = selectImportedIdCandidate(
+            this.imported.byNpcTypeId.get(normalized),
+            String(getNpcType()?.name ?? ""),
+        );
+        if (importedById && PREFER_IMPORTED_OVER_MANUAL.has(normalized)) {
             this.resolvedByNpcTypeId.set(normalized, importedById.table);
             return importedById.table;
         }
@@ -132,7 +152,7 @@ export class NpcDropRegistry {
             return manual;
         }
 
-        if (importedById && directImportedMatchesLiveNpc) {
+        if (importedById) {
             this.resolvedByNpcTypeId.set(normalized, importedById.table);
             return importedById.table;
         }
@@ -150,7 +170,6 @@ export class NpcDropRegistry {
     describe(npcTypeId: number): NpcDropLookupDescription {
         const source = getMonstersCompleteSourceStatus();
         const table = this.get(npcTypeId);
-        const directImported = this.imported.byNpcTypeId.get(npcTypeId);
         const manual = this.manualByNpcTypeId.get(npcTypeId);
         let runtimeNpcType: NpcType | undefined;
         try {
@@ -160,6 +179,10 @@ export class NpcDropRegistry {
         }
         const runtimeNpcName = String(runtimeNpcType?.name ?? "").trim();
         const runtimeCombatLevel = runtimeNpcType?.combatLevel ?? -1;
+        const directImported = selectImportedIdCandidate(
+            this.imported.byNpcTypeId.get(npcTypeId),
+            runtimeNpcName,
+        );
         const normalizedRuntimeName = normalizeName(runtimeNpcName);
         const nameCandidateCount = normalizedRuntimeName
             ? this.imported.byName.get(normalizedRuntimeName)?.length ?? 0

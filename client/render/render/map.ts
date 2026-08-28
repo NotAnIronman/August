@@ -265,10 +265,21 @@ export function loadMap(host: WebGLOsrsRendererHost,
         const { mapX, mapY } = mapData;
         const mapId = getMapSquareId(mapX, mapY);
         const existing = host.mapManager.getMap(mapX, mapY);
-        const isLocUpdate = host.pendingLocUpdates.has(mapId);
-        const isLocGeometryUpdate = !isLocUpdate && host.pendingLocGeometryUpdates.has(mapId);
+        // An instance payload is always a complete scene replacement. A loc
+        // update queued for the previously resident overworld map may share the
+        // same map id; treating the instance payload as that partial update
+        // would mutate the old map in place and falsely report a commit.
+        const isInstanceScenePayload = mapData.instanceSceneGeneration !== undefined;
+        const isLocUpdate = !isInstanceScenePayload && host.pendingLocUpdates.has(mapId);
+        const isLocGeometryUpdate =
+            !isInstanceScenePayload &&
+            !isLocUpdate &&
+            host.pendingLocGeometryUpdates.has(mapId);
         const isDoorOnlyUpdate =
-            !isLocUpdate && !isLocGeometryUpdate && host.pendingDoorLocUpdates.has(mapId);
+            !isInstanceScenePayload &&
+            !isLocUpdate &&
+            !isLocGeometryUpdate &&
+            host.pendingDoorLocUpdates.has(mapId);
 
         // A door-only payload is valid only while the original map square is
         // still resident and no broader loc update has superseded it.
@@ -407,6 +418,11 @@ export function loadMap(host: WebGLOsrsRendererHost,
 
 export function isValidMapData(host: WebGLOsrsRendererHost, mapData: SdMapData): boolean {
 
+        const isCurrentInstanceGeneration =
+            mapData.instanceSceneGeneration === undefined ||
+            (host.instanceActive &&
+                mapData.instanceSceneGeneration === host.instanceSceneGeneration);
+
         const expectedInstanceMapX =
             ((host.instanceRegionX * 8) / Scene.MAP_SQUARE_SIZE) | 0;
         const expectedInstanceMapY =
@@ -421,6 +437,7 @@ export function isValidMapData(host: WebGLOsrsRendererHost, mapData: SdMapData):
             mapData.renderPosY != null;
 
         return (
+            isCurrentInstanceGeneration &&
             mapData.cacheName === host.osrsClient.loadedCache?.info?.name &&
             (mapData.loadNpcs === host.loadNpcs || isTerrainOnlyInstancePayload) &&
             mapData.smoothTerrain === host.smoothTerrain

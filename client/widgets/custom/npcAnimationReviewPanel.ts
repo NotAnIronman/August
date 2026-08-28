@@ -16,11 +16,11 @@ registerUiPanel({
             // Keep the test NPC visible behind the panel. This is a compact
             // developer palette, not a full-screen game interface.
             width: 360,
-            height: 248,
+            height: 292,
             content: { rowKind: "mixed", rowHeight: 34, scrollbarWidth: 0 },
             menuButtons: {
                 columns: 3,
-                rows: 3,
+                rows: 4,
                 buttonHeight: 36,
                 gap: 4,
                 iconSize: 26,

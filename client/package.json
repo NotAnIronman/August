@@ -43,7 +43,7 @@
     "test": "node ../scripts/run-typescript-tests.mjs tests --exclude=widget-loader.test.ts",
     "test:all": "node ../scripts/run-typescript-tests.mjs tests",
     "test:cache": "node ../scripts/run-typescript-tests.mjs tests --only=widget-loader.test.ts",
-    "test:smoke": "tsx tests/direction-orientation.test.ts && tsx tests/instance-render-coordinates.test.ts && tsx tests/instance-npc-refresh.test.ts && tsx tests/npc-instance-flush-controller.test.ts && tsx tests/cache-streaming.test.ts && tsx tests/enter-to-type-chat.test.ts && tsx tests/chat-channel-prefix.test.ts && tsx tests/camera-controls.test.ts && tsx tests/renderer-lifecycle.test.ts && tsx tests/widget-root-onload-race.test.ts && tsx tests/uikit-panel-builder.test.ts",
+    "test:smoke": "tsx tests/direction-orientation.test.ts && tsx tests/instance-render-coordinates.test.ts && tsx tests/instance-scene-settings-lifecycle.test.ts && tsx tests/instance-npc-refresh.test.ts && tsx tests/npc-instance-flush-controller.test.ts && tsx tests/cache-streaming.test.ts && tsx tests/enter-to-type-chat.test.ts && tsx tests/chat-channel-prefix.test.ts && tsx tests/camera-controls.test.ts && tsx tests/renderer-lifecycle.test.ts && tsx tests/widget-root-onload-race.test.ts && tsx tests/uikit-panel-builder.test.ts",
     "typecheck": "yarn typecheck:app && yarn typecheck:tools && yarn typecheck:tests",
     "typecheck:all": "yarn typecheck",
     "typecheck:app": "tsc --noEmit -p tsconfig.json",

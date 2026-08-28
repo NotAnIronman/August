@@ -8,6 +8,15 @@ import type { AttackType } from "../combat/AttackType";
 import type { EncounterAnimationReference } from "../encounters/EncounterTypes";
 import type { NpcCombatProfile, NpcState } from "../npc";
 import {
+    getPrimaryNpcAnimation,
+    normalizeNpcAnimationPool,
+    normalizeNpcLegacySpecialSlots,
+    normalizeNpcSpecialName,
+    pickNpcAnimationFromPool,
+    type NpcCombatAnimationData,
+    type NpcCombatAnimationRole,
+} from "../npc/NpcCombatAnimationData";
+import {
     type NpcCombatAnimations,
     type NpcDefinition,
     resolveNpcCombatAnimations,
@@ -20,14 +29,7 @@ import {
 export class CombatDataService {
     private npcCombatDefs?: Record<
         string,
-        {
-            attack?: number;
-            melee?: number;
-            ranged?: number;
-            magic?: number;
-            block?: number;
-            death?: number;
-            specials?: number[];
+        NpcCombatAnimationData & {
             deathSound?: number;
         }
     >;
@@ -61,15 +63,7 @@ export class CombatDataService {
                 npcs?: Record<
                     string,
                     {
-                        anims?: {
-                            attack?: number;
-                            melee?: number;
-                            ranged?: number;
-                            magic?: number;
-                            block?: number;
-                            death?: number;
-                            specials?: number[];
-                        };
+                        anims?: NpcCombatAnimationData;
                         sounds?: { death?: number };
                         deathSound?: number;
                     }
@@ -85,14 +79,7 @@ export class CombatDataService {
             };
             const entries: Record<
                 string,
-                {
-                    attack?: number;
-                    melee?: number;
-                    ranged?: number;
-                    magic?: number;
-                    block?: number;
-                    death?: number;
-                    specials?: number[];
+                NpcCombatAnimationData & {
                     deathSound?: number;
                 }
             > = {};
@@ -101,20 +88,17 @@ export class CombatDataService {
                 for (const [key, val] of Object.entries(npcs)) {
                     if (!val || typeof val !== "object") continue;
                     entries[key] = {
-                        attack: val.anims?.attack,
-                        melee: val.anims?.melee,
-                        ranged: val.anims?.ranged,
-                        magic: val.anims?.magic,
-                        block: val.anims?.block,
-                        death: val.anims?.death,
-                        specials: Array.isArray(val.anims?.specials)
-                            ? val.anims.specials.filter(
-                                  (sequenceId): sequenceId is number =>
-                                      typeof sequenceId === "number" &&
-                                      Number.isFinite(sequenceId) &&
-                                      sequenceId > 0,
-                              )
-                            : undefined,
+                        attack: this.normalizeAnimationValue(val.anims?.attack),
+                        melee: this.normalizeAnimationValue(val.anims?.melee),
+                        ranged: this.normalizeAnimationValue(val.anims?.ranged),
+                        magic: this.normalizeAnimationValue(val.anims?.magic),
+                        block: this.normalizeAnimationValue(val.anims?.block),
+                        death: this.normalizeAnimationValue(val.anims?.death),
+                        spawn: this.normalizeAnimationValue(val.anims?.spawn),
+                        specials: this.normalizeLegacySpecials(val.anims?.specials),
+                        namedSpecials: this.normalizeNamedSpecials(
+                            val.anims?.namedSpecials,
+                        ),
                         deathSound: val.sounds?.death ?? val.deathSound,
                     };
                 }
@@ -175,7 +159,13 @@ export class CombatDataService {
         const entry = this.npcCombatDefs?.[key];
         return resolveNpcCombatAnimations({
             npcTypeId: typeId,
-            configured: entry,
+            configured: entry
+                ? {
+                      attack: getPrimaryNpcAnimation(entry.attack),
+                      block: getPrimaryNpcAnimation(entry.block),
+                      death: getPrimaryNpcAnimation(entry.death),
+                  }
+                : undefined,
             defaults: this.npcCombatDefaults,
             idle,
             walk,
@@ -198,10 +188,9 @@ export class CombatDataService {
      */
     getNpcCombatStyleAnimation(typeId: number, attackType: AttackType): number | undefined {
         this.loadNpcCombatDefs();
-        const animation = this.npcCombatDefs?.[String(Math.trunc(typeId))]?.[attackType];
-        return typeof animation === "number" && Number.isFinite(animation) && animation > 0
-            ? Math.trunc(animation)
-            : undefined;
+        return getPrimaryNpcAnimation(
+            this.npcCombatDefs?.[String(Math.trunc(typeId))]?.[attackType],
+        );
     }
 
     /**
@@ -212,16 +201,42 @@ export class CombatDataService {
     resolveNpcEncounterAnimation(
         typeId: number,
         reference: EncounterAnimationReference,
+        selector: number = 0,
     ): number | undefined {
         this.loadNpcCombatDefs();
         const normalizedTypeId = Math.trunc(typeId);
         const entry = this.npcCombatDefs?.[String(normalizedTypeId)];
         if (typeof reference === "object") {
-            const animation = entry?.specials?.[reference.special];
-            return this.validAnimation(animation);
+            if (typeof reference.special === "number") {
+                // Numeric references retain the historical meaning: select one
+                // exact slot from the anonymous `specials` array.
+                return this.validAnimation(entry?.specials?.[reference.special]);
+            }
+            const name = normalizeNpcSpecialName(reference.special);
+            const pool = name ? normalizeNpcAnimationPool(entry?.namedSpecials?.[name]) : [];
+            return pickNpcAnimationFromPool(pool, selector);
         }
         if (reference === "melee" || reference === "ranged" || reference === "magic") {
-            return this.validAnimation(entry?.[reference]) ?? this.validAnimation(entry?.attack);
+            const explicitPool = normalizeNpcAnimationPool(entry?.[reference]);
+            const pool = explicitPool.length > 0
+                ? explicitPool
+                : normalizeNpcAnimationPool(entry?.attack);
+            return pickNpcAnimationFromPool(pool, selector);
+        }
+        if (reference === "spawn") {
+            return pickNpcAnimationFromPool(
+                normalizeNpcAnimationPool(entry?.spawn),
+                selector,
+            );
+        }
+        if (reference === "attack") {
+            const configured = pickNpcAnimationFromPool(
+                normalizeNpcAnimationPool(entry?.attack),
+                selector,
+            );
+            return configured ?? this.validAnimation(
+                this.getNpcCombatAnimations(normalizedTypeId).attack,
+            );
         }
         const resolved = this.getNpcCombatAnimations(normalizedTypeId);
         if (reference === "defence") return this.validAnimation(resolved.defence);
@@ -237,6 +252,56 @@ export class CombatDataService {
     getNpcSpecialAnimations(typeId: number): readonly number[] {
         this.loadNpcCombatDefs();
         return this.npcCombatDefs?.[String(Math.trunc(typeId))]?.specials ?? [];
+    }
+
+    getNpcNamedSpecialAnimations(typeId: number, name: string): readonly number[] {
+        this.loadNpcCombatDefs();
+        const normalizedName = normalizeNpcSpecialName(name);
+        if (!normalizedName) return [];
+        return normalizeNpcAnimationPool(
+            this.npcCombatDefs?.[String(Math.trunc(typeId))]?.namedSpecials?.[
+                normalizedName
+            ],
+        );
+    }
+
+    getNpcCombatAnimationPool(
+        typeId: number,
+        role: NpcCombatAnimationRole,
+    ): readonly number[] {
+        this.loadNpcCombatDefs();
+        return normalizeNpcAnimationPool(
+            this.npcCombatDefs?.[String(Math.trunc(typeId))]?.[role],
+        );
+    }
+
+    getNpcSpawnAnimation(typeId: number): number | undefined {
+        return getPrimaryNpcAnimation(
+            this.getNpcCombatAnimationPool(typeId, "spawn"),
+        );
+    }
+
+    private normalizeAnimationValue(value: unknown): number | number[] | undefined {
+        const pool = normalizeNpcAnimationPool(value);
+        if (pool.length === 0) return undefined;
+        return pool.length === 1 ? pool[0] : pool;
+    }
+
+    private normalizeNamedSpecials(
+        value: unknown,
+    ): Record<string, number | number[]> | undefined {
+        if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+        const normalized: Record<string, number | number[]> = {};
+        for (const [rawName, rawAnimations] of Object.entries(value)) {
+            const name = normalizeNpcSpecialName(rawName);
+            const animations = this.normalizeAnimationValue(rawAnimations);
+            if (name && animations !== undefined) normalized[name] = animations;
+        }
+        return Object.keys(normalized).length > 0 ? normalized : undefined;
+    }
+
+    private normalizeLegacySpecials(value: unknown): number[] {
+        return normalizeNpcLegacySpecialSlots(value);
     }
 
     private validAnimation(value: number | undefined): number | undefined {

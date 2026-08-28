@@ -49,7 +49,7 @@ export class CompanionHitHandler {
         if (npc.level !== companion.level || npc.level !== player.level) {
             return { ok: false, reason: "different_plane" };
         }
-        if (!npc.isCombatTargetable()) {
+        if (!npc.isCombatTargetable(tick)) {
             return { ok: false, reason: "npc_unattackable" };
         }
         if (npc.getHitpoints() <= 0 || npc.isDead(tick)) {

@@ -90,7 +90,7 @@ export class NpcCombatInteractionHandler {
         if (npc.getHitpoints() <= 0 || npc.isDead(currentTick)) {
             return { ok: false, message: "npc_dead" };
         }
-        if (!npc.isCombatTargetable()) {
+        if (!npc.isCombatTargetable(currentTick)) {
             return { ok: false, message: "npc_unattackable" };
         }
 

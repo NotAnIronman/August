@@ -40,7 +40,11 @@ export type EncounterAnimationReference =
     | "magic"
     | "defence"
     | "death"
-    | { readonly special: number };
+    | "spawn"
+    /** Legacy anonymous special slot, kept for existing encounters. */
+    | { readonly special: number }
+    /** Named mechanic pool, e.g. { special: "slam" }. */
+    | { readonly special: string };
 
 export interface EncounterAttackDefinition {
     readonly id: string;
@@ -80,11 +84,22 @@ export interface EncounterThresholdDefinition {
     readonly atHealthPercent: number;
 }
 
+/**
+ * Native cache boss-HUD metadata shared by every instance that contains this
+ * encounter. The displayed NPC type defaults to the encounter's first form.
+ */
+export interface EncounterBossHealthBarDefinition {
+    readonly name: string;
+    readonly npcTypeId?: number;
+}
+
 export interface EncounterDefinition {
     readonly id: string;
     /** Every NPC type used by this encounter, including alternate forms. */
     readonly npcTypeIds: readonly number[];
     readonly maxHealth?: number;
+    /** Opts this encounter into the reusable native boss-health-bar lifecycle. */
+    readonly bossHealthBar?: EncounterBossHealthBarDefinition;
     readonly movement?: EncounterMovementProfile;
     /** Permanent NPC effect immunities shared by every form in this encounter. */
     readonly immunities?: NpcEffectImmunityProfile;
@@ -97,6 +112,8 @@ export interface PlannedEncounterAttack {
     readonly definition: EncounterAttackDefinition;
     readonly targetId: number;
     readonly plannedAtTick: number;
+    /** Deterministic selector used when the animation role contains a pool. */
+    readonly animationSelector: number;
     readonly traits: Readonly<CombatAttackTraits>;
 }
 

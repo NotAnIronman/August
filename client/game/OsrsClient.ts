@@ -192,6 +192,7 @@ import { isDropTarget, isWidgetUseTarget } from "../widgets/WidgetFlags";
 import { markWidgetInteractionDirty } from "../widgets/WidgetInteraction";
 import { WidgetManager } from "../widgets/WidgetManager";
 import { WidgetSessionManager } from "../widgets/WidgetSessionManager";
+import { applyCollectionLogCompletionColors } from "../widgets/custom/collectionLogCompletion";
 import { applyQuestListWidgetGroups } from "../widgets/custom/questList";
 import { cleanupInterfaceClickTargets } from "../widgets/gl/widgets-gl";
 import { layoutWidgets } from "../widgets/layout/WidgetLayout";
@@ -790,6 +791,12 @@ export class OsrsClient {
      *  Used to color-code completed categories green in the sidebar list
      *  after script 2731/7797 draws it - see the run_script hook below. */
     private _collectionLogCategoryCompletion: Record<number, boolean[]> | null = null;
+    /** Last cache-script category layout, retained so a completion packet that
+     *  arrives after the draw can recolor the already-visible rows. */
+    private _collectionLogLastCategoryDraw?: {
+        tabIndex: number;
+        containerUids: number[];
+    };
     /** Shop stock inventory (ID 516) - stores shop items for CS2 inv queries */
     shopInventory: Inventory = new Inventory(40);
     /** Your offered trade items (inventory ID 90 in the cache scripts). */
@@ -2360,6 +2367,7 @@ export class OsrsClient {
                 // gets captured again).
                 if (closingGroupId === 621) {
                     this._collectionLogLayoutSnapshot = null;
+                    this._collectionLogLastCategoryDraw = undefined;
                 }
             } else if (payload?.action === "set_text") {
                 const uid = Number(payload.uid) | 0;
@@ -2799,137 +2807,24 @@ export class OsrsClient {
                                 }
                             }
 
-                            // Collection log category coloring: the compiled cache script
-                            // (2731, and internally within 7797's tab/category-switch chain)
-                            // draws the sidebar category list but doesn't color-code
-                            // completed categories green itself - confirmed by testing a
-                            // 100%-complete category and seeing it stay the default orange.
-                            // The detail view's "Obtained: X/Y" count IS colored correctly,
-                            // so this is specifically a gap in the list-drawing script, not
-                            // a data problem - server/src/game/collectionlog.ts computes
-                            // completion itself (from collection-log.json's item lists, not
-                            // anything cache-derived) and sends it once at open via a new
-                            // "category_completion" message (see
-                            // handleCollectionLogServerUpdate above).
-                            //
-                            // Both 2731 (initial tab open) and 7797 (tab/category clicks,
-                            // which internally re-invoke 2731) take [tabIndex, ...] as their
-                            // first two args, with the category list container widget uid as
-                            // the 3rd (index 2) - same position in both scripts' argument
-                            // lists, so this one block covers both entry points.
+                            // Script 2731 creates each category across parallel containers:
+                            // visible text, click/hover rows, and supporting layout. Color
+                            // all three corresponding rows after either initial draw or the
+                            // 7797 tab/category redraw so normal and hover text agree.
                             if (scriptId === 2731 || scriptId === 7797) {
                                 const tabIndex = intArgs[0];
-                                const categoryContainerUid = intArgs[2];
+                                const containerUids = intArgs.slice(1, 4);
+                                this._collectionLogLastCategoryDraw = {
+                                    tabIndex,
+                                    containerUids,
+                                };
                                 const completion =
                                     this._collectionLogCategoryCompletion?.[tabIndex];
-                                const container = this.widgetManager?.getWidgetByUid(
-                                    categoryContainerUid,
-                                );
-                                console.log("[collection_log] coloring check", {
-                                    scriptId,
-                                    intArgs,
-                                    tabIndex,
-                                    categoryContainerUid,
-                                    hasCompletionData: !!this._collectionLogCategoryCompletion,
-                                    completionForTab: completion,
-                                    containerFound: !!container,
-                                    containerChildrenLength: container?.children?.length,
-                                });
-                                if (this.widgetManager && completion && container?.children) {
-                                    const GREEN_HEX = "00ff00";
-                                    const GREEN_NUM = 0x00ff00;
-                                    const COL_TAG_RE = /<col=[0-9a-fA-F]{6}>/gi;
-
-                                    // Rounds 1-2 guessed at the row's own .text and .children -
-                                    // both came back empty/undefined, which doesn't match a
-                                    // widget that's visibly rendering colored text. Recalling
-                                    // from the earlier collapse-bug investigation: IF3 widgets
-                                    // (which is everything in this custom-loaded interface,
-                                    // including these dynamically created rows) DON'T reliably
-                                    // populate a .children array at all - real parent/child
-                                    // relationships are tracked via each widget's OWN .parentUid
-                                    // field, discovered by scanning ALL widgets in the group and
-                                    // filtering by parentUid, not by reading .children off the
-                                    // parent. This is the same technique that was needed to fix
-                                    // the earlier size-collapse bug. Applying it here instead of
-                                    // guessing at .children again.
-                                    const allGroupWidgets = this.widgetManager.getWidgetsForGroup(621);
-                                    const findByParentUid = (parentUid: number): any[] =>
-                                        allGroupWidgets.filter((w: any) => w && w.parentUid === parentUid);
-
-                                    let recoloredCount = 0;
-                                    for (let i = 0; i < completion.length; i++) {
-                                        if (!completion[i]) continue;
-                                        const row = container.children?.[i];
-                                        const rowDescendants = row ? findByParentUid(row.uid) : [];
-                                        const textWidgets = rowDescendants.filter(
-                                            (w: any) => typeof w.text === "string" && w.text.length > 0,
-                                        );
-                                        console.log(
-                                            `[collection_log] row ${i} complete=${completion[i]} rowFound=${!!row} rowUid=${row?.uid} descendants=${JSON.stringify(rowDescendants.map((w: any) => ({ uid: w.uid, type: w.type, text: w.text, textColor: w.textColor })))}`,
-                                        );
-                                        if (row && rowDescendants.length === 0) {
-                                            // Nothing hangs off this row by parentUid either -
-                                            // dump every text-bearing widget in the whole group
-                                            // so we can see where the real text actually lives
-                                            // and cross-reference uids/parentUids by hand,
-                                            // rather than guessing a fourth structural theory.
-                                            const allTextWidgets = allGroupWidgets
-                                                .filter(
-                                                    (w: any) =>
-                                                        w && typeof w.text === "string" && w.text.length > 0,
-                                                )
-                                                .map((w: any) => ({
-                                                    uid: w.uid,
-                                                    parentUid: w.parentUid,
-                                                    type: w.type,
-                                                    text: w.text,
-                                                }));
-                                            console.log(
-                                                `[collection_log] fallback dump: ${allTextWidgets.length} text-bearing widgets in group 621:`,
-                                                allTextWidgets,
-                                            );
-                                        }
-                                        if (!row) continue;
-
-                                        let rowChanged = false;
-                                        for (const textWidget of textWidgets) {
-                                            let changed = false;
-                                            if (COL_TAG_RE.test(textWidget.text)) {
-                                                const recolored = textWidget.text.replace(
-                                                    COL_TAG_RE,
-                                                    `<col=${GREEN_HEX}>`,
-                                                );
-                                                if (recolored !== textWidget.text) {
-                                                    textWidget.text = recolored;
-                                                    changed = true;
-                                                }
-                                            } else {
-                                                textWidget.text = `<col=${GREEN_HEX}>${textWidget.text}</col>`;
-                                                changed = true;
-                                            }
-                                            if (changed) {
-                                                this.widgetManager.invalidateWidgetRender(
-                                                    textWidget,
-                                                    "collection-log-category-complete",
-                                                );
-                                                rowChanged = true;
-                                            }
-                                        }
-                                        // Nothing found via parentUid scan either - fall back to
-                                        // the row's own field as a last resort.
-                                        if (textWidgets.length === 0 && row.textColor !== GREEN_NUM) {
-                                            row.textColor = GREEN_NUM;
-                                            this.widgetManager.invalidateWidgetRender(
-                                                row,
-                                                "collection-log-category-complete",
-                                            );
-                                            rowChanged = true;
-                                        }
-                                        if (rowChanged) recoloredCount++;
-                                    }
-                                    console.log(
-                                        `[collection_log] recolored ${recoloredCount} row(s) for tab ${tabIndex}`,
+                                if (this.widgetManager && completion) {
+                                    applyCollectionLogCompletionColors(
+                                        this.widgetManager,
+                                        containerUids,
+                                        completion,
                                     );
                                 }
                             }
@@ -6629,10 +6524,17 @@ export class OsrsClient {
 
         if (update.kind === "category_completion") {
             this._collectionLogCategoryCompletion = update.completionByTab ?? null;
-            console.log(
-                "[collection_log] category_completion received",
-                this._collectionLogCategoryCompletion,
-            );
+            const lastDraw = this._collectionLogLastCategoryDraw;
+            const completion = lastDraw
+                ? this._collectionLogCategoryCompletion?.[lastDraw.tabIndex]
+                : undefined;
+            if (lastDraw && completion && this.widgetManager) {
+                applyCollectionLogCompletionColors(
+                    this.widgetManager,
+                    lastDraw.containerUids,
+                    completion,
+                );
+            }
             return;
         }
 
@@ -7884,6 +7786,9 @@ export class OsrsClient {
         } catch (err) {
             console.warn("[OsrsClient] WidgetManager clear error:", err);
         }
+        this._collectionLogCategoryCompletion = null;
+        this._collectionLogLastCategoryDraw = undefined;
+        this._collectionLogLayoutSnapshot = null;
 
         // Clear ground items
         try {

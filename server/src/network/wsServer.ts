@@ -55,7 +55,11 @@ import type {
 } from "../game/gamemodes/GamemodeDefinition";
 import { getGamemodeDataDir } from "../game/gamemodes/GamemodeRegistry";
 import { GroundItemManager } from "../game/items/GroundItemManager";
-import { NpcState, type NpcUpdateDelta } from "../game/npc";
+import {
+    NPC_SPAWN_ANIMATION_FALLBACK_TICKS,
+    NpcState,
+    type NpcUpdateDelta,
+} from "../game/npc";
 import { NpcManager } from "../game/npcManager";
 import { PlayerManager, PlayerState } from "../game/player";
 import { PrayerSystem } from "../game/prayer/PrayerSystem";
@@ -193,8 +197,12 @@ export class WSServer {
                 this.npcManager?.removeNpc(npcRuntimeId);
             },
         },
-        (npcTypeId, animation) =>
-            this.combatDataService?.resolveNpcEncounterAnimation(npcTypeId, animation),
+        (npcTypeId, animation, selector) =>
+            this.combatDataService?.resolveNpcEncounterAnimation(
+                npcTypeId,
+                animation,
+                selector,
+            ),
     );
     private objTypeLoader?: ObjTypeLoader;
     private locTypeLoader?: LocTypeLoader;
@@ -826,6 +834,7 @@ export class WSServer {
             getPathService: () => this.options.pathService!,
             doorManager: this.doorManager!,
             npcManager: this.npcManager!,
+            encounterManager: this.encounterManager,
             interfaceService: this.interfaceService,
             widgetDialogHandler: undefined!, // Deferred: wired after creation
             prayerSystem: this.prayerSystem,
@@ -1105,9 +1114,25 @@ export class WSServer {
         if (this.npcManager) {
             this.npcManager.setLifecycleHooks({
                 onRemove: (npcId) => this.encounterManager.removeNpc(npcId),
-                onReset: (npcId) => {
+                onReset: (npcId, context) => {
                     const npc = this.npcManager?.getById(npcId);
-                    if (npc) this.encounterManager.ensureForNpc(npc);
+                    if (!npc) return;
+                    this.encounterManager.ensureForNpc(npc);
+                    const spawnAnimation = this.combatDataService?.getNpcSpawnAnimation(
+                        npc.typeId,
+                    );
+                    if (spawnAnimation !== undefined) {
+                        const durationTicks =
+                            this.combatEffectService.estimateNpcSequenceDurationTicks(
+                                spawnAnimation,
+                            ) ?? NPC_SPAWN_ANIMATION_FALLBACK_TICKS;
+                        npc.beginSpawnAnimation(
+                            spawnAnimation,
+                            context.currentTick,
+                            durationTicks,
+                            context.kind === "spawn" ? 1 : 0,
+                        );
+                    }
                 },
             });
             // RSMod parity: Wire up ground item spawner for delayed NPC death drops

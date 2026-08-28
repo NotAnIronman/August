@@ -852,6 +852,12 @@ export interface LocationFacade {
         level: number,
         oldShape?: number,
     ): boolean;
+    hasTemporaryLocVisibleToPlayer(
+        player: PlayerState,
+        locId: number,
+        tile: { x: number; y: number },
+        level: number,
+    ): boolean;
     triggerLocEffect(locId: number, tile: { x: number; y: number }, level: number): boolean;
     isAdjacentToLoc(
         player: PlayerState,

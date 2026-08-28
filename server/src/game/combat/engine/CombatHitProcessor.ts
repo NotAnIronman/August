@@ -777,7 +777,7 @@ export class CombatHitProcessor {
         }
 
         if (candidate instanceof NpcState) {
-            if (!candidate.isCombatTargetable()) return false;
+            if (!candidate.isCombatTargetable(currentMapClock)) return false;
             if (candidate.getCombatLevel() <= 0) return false;
             if (this.services.npcManager?.hasNpcOption(candidate, "Attack") !== true) {
                 return false;

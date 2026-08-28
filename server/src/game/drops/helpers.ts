@@ -20,6 +20,16 @@ const ITEM_NAME_ALIASES = new Map<string, string>([["coins", "Coins"]]);
  */
 const ITEM_NAME_ID_OVERRIDES = new Map<string, number>([["coins", 995]]);
 
+/**
+ * Cache IDs that look like ordinary items but must never enter the live drop
+ * pipeline. ID 617 is an unstackable/interface Coins variant; every economy
+ * check and every real coin pile uses the canonical stackable item (995).
+ *
+ * Keeping this guard at the runtime boundary makes old snapshots and manual
+ * definitions safe while the source-data audit prevents new bad IDs.
+ */
+const CANONICAL_DROP_ITEM_IDS = new Map<number, number>([[617, 995]]);
+
 let cachedItemIdsByName: Map<string, number> | undefined;
 
 function getItemIdsByName(): Map<string, number> {
@@ -45,7 +55,9 @@ export function normalizeName(value: string | undefined | null): string {
 }
 
 export function resolveItemId(def: NpcDropEntryDefinition): number | undefined {
-    if (def.itemId !== undefined && def.itemId > 0) return def.itemId;
+    if (def.itemId !== undefined && def.itemId > 0) {
+        return CANONICAL_DROP_ITEM_IDS.get(def.itemId) ?? def.itemId;
+    }
     const rawName = String(def.itemName ?? "").trim();
     if (!rawName) return undefined;
     const normalized = normalizeName(rawName);
@@ -70,6 +82,7 @@ export function parseQuantity(input: QuantityInput | undefined): DropQuantity {
         .replace(/<!--.*?-->/g, "")
         .replace(/\(.*?\)/g, "")
         .replace(/,/g, "")
+        .replace(/[\u2013\u2014]/g, "-")
         .trim();
     const rangeMatch = raw.match(/^(\d+)\s*-\s*(\d+)$/);
     if (rangeMatch) {
@@ -94,6 +107,7 @@ export function parseProbability(input: ProbabilityInput | undefined): number | 
     }
     const raw = String(input)
         .replace(/<!--.*?-->/g, "")
+        .replace(/,/g, "")
         .trim()
         .toLowerCase();
     if (!raw) return undefined;
@@ -131,11 +145,19 @@ export function resolveDropCondition(
             : undefined;
     const hasCondition =
         condition.wildernessOnly === true ||
+        condition.recipientWildernessOnly === true ||
+        condition.wildernessGodWarsDungeonOnly === true ||
+        condition.slayerTaskOnly === true ||
+        Boolean(condition.requiredSlayerMaster?.trim()) ||
         minimumQuestPoints !== undefined ||
         requiredAnyEquippedItemIds.length > 0;
     if (!hasCondition) return undefined;
     return {
         wildernessOnly: condition.wildernessOnly === true,
+        recipientWildernessOnly: condition.recipientWildernessOnly === true,
+        wildernessGodWarsDungeonOnly: condition.wildernessGodWarsDungeonOnly === true,
+        slayerTaskOnly: condition.slayerTaskOnly === true,
+        requiredSlayerMaster: condition.requiredSlayerMaster?.trim() || undefined,
         minimumQuestPoints,
         requiredAnyEquippedItemIds:
             requiredAnyEquippedItemIds.length > 0 ? requiredAnyEquippedItemIds : undefined,
@@ -165,7 +187,20 @@ export function resolveDropEntry(def: NpcDropEntryDefinition): NpcDropEntry | un
         condition: resolveDropCondition(def.condition),
         altCondition: resolveDropCondition(def.altCondition),
         dropBoostEligible: def.dropBoostEligible === true,
+        outcomeId:
+            typeof def.outcomeId === "string" && def.outcomeId.trim()
+                ? def.outcomeId.trim()
+                : undefined,
     };
+}
+
+function sumOutcomeProbabilities(entries: readonly NpcDropEntry[]): number {
+    const outcomes = new Map<string, number>();
+    entries.forEach((entry, index) => {
+        const key = entry.outcomeId ? `bundle:${entry.outcomeId}` : `entry:${index}`;
+        outcomes.set(key, Math.max(outcomes.get(key) ?? 0, entry.probability ?? 0));
+    });
+    return [...outcomes.values()].reduce((sum, probability) => sum + probability, 0);
 }
 
 export function resolveDropPool(def: NpcDropPoolDefinition): NpcDropPool | undefined {
@@ -177,31 +212,45 @@ export function resolveDropPool(def: NpcDropPoolDefinition): NpcDropPool | undef
         .map((entry) => ({
             ...entry,
             probability: Math.max(0, Math.min(1, entry.probability ?? 0)),
+            altProbability:
+                entry.altProbability === undefined
+                    ? undefined
+                    : Math.max(0, Math.min(1, entry.altProbability)),
         }))
-        .filter((entry) => (entry.probability ?? 0) > 0);
+        .filter(
+            (entry) =>
+                (entry.probability ?? 0) > 0 || (entry.altProbability ?? 0) > 0,
+        );
     if (normalizedEntries.length === 0) return undefined;
-    const totalProbability = normalizedEntries.reduce(
-        (sum, entry) => sum + (entry.probability ?? 0),
-        0,
-    );
-    // A few imported Wiki tables are flattened from several labelled rows
-    // and can add up to slightly above one. Weighted rolling has always
-    // normalised those weights implicitly; make that normalisation explicit
-    // in the retained probabilities too, so the drop viewer displays the
-    // same effective rate the roll service uses.
-    const normalization = Math.max(1, totalProbability);
-    const weightedEntries =
-        normalization === 1
-            ? normalizedEntries
-            : normalizedEntries.map((entry) => ({
-                  ...entry,
-                  probability: (entry.probability ?? 0) / normalization,
-              }));
+    // A paired/bundled Wiki outcome (for example K'ril's super attack and
+    // super strength potions) occupies one table slot even though every item
+    // has the same displayed marginal rarity.
+    const totalProbability = sumOutcomeProbabilities(normalizedEntries);
     return {
         kind: def.kind,
         category: def.category,
+        rollGroupId:
+            typeof def.rollGroupId === "string" && def.rollGroupId.trim()
+                ? def.rollGroupId.trim()
+                : undefined,
+        rollChainId:
+            typeof def.rollChainId === "string" && def.rollChainId.trim()
+                ? def.rollChainId.trim()
+                : undefined,
+        rollChainOrder:
+            typeof def.rollChainOrder === "number" &&
+            Number.isInteger(def.rollChainOrder) &&
+            def.rollChainOrder >= 0
+                ? def.rollChainOrder
+                : undefined,
         rolls: Math.max(1, def.rolls ?? 1),
-        entries: weightedEntries,
+        // Preserve the Wiki's literal marginal weights. The roll service
+        // computes the active table per recipient and normalizes only when
+        // that specific base/alternate/conditional context is overfull.
+        // Static normalization cannot be correct when alternate conditions
+        // change only part of a loaded table, and independent pools may
+        // legitimately contain several guaranteed rolls.
+        entries: normalizedEntries,
         nothingProbability: Math.max(0, 1 - Math.min(1, totalProbability)),
     };
 }

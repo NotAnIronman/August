@@ -5,6 +5,13 @@ import {
     packTemplateChunk,
 } from "../../../client/common/instance/InstanceTypes";
 import type { ServerServices } from "../game/ServerServices";
+import {
+    InstanceBossHealthBarLifecycle,
+    type BossHealthBarSnapshot,
+    type InstanceBossHealthBarLifecyclePort,
+} from "../game/encounters/BossHealthBar";
+import { EncounterRegistry } from "../game/encounters/EncounterRegistry";
+import type { EncounterDefinition } from "../game/encounters/EncounterTypes";
 import type { NpcSpawnConfig } from "../game/npc";
 import type { PlayerState } from "../game/player";
 import type { TemporaryLocChange } from "../game/services/LocationService";
@@ -85,6 +92,12 @@ interface InstanceRuntime {
     readonly memberNames: Map<number, string>;
     readonly npcRuntimeIds: Set<number>;
     readonly locs: TemporaryLocChange[];
+    bossHealthBar?: {
+        readonly definition: EncounterDefinition;
+        readonly displayNpcTypeId: number;
+        readonly name: string;
+        lastMaximum: number;
+    };
     started: boolean;
 }
 
@@ -128,8 +141,18 @@ export class InstancedAreaManager {
     private nextInstanceId = 1;
     private readonly instancesById = new Map<string, InstanceRuntime>();
     private readonly instanceIdByPlayer = new Map<number, string>();
+    private readonly bossHealthBars: InstanceBossHealthBarLifecyclePort;
 
-    constructor(private readonly services: ServerServices) {}
+    constructor(
+        private readonly services: ServerServices,
+        bossHealthBars?: InstanceBossHealthBarLifecyclePort,
+    ) {
+        this.bossHealthBars =
+            bossHealthBars ??
+            new InstanceBossHealthBarLifecycle(
+                () => this.services.scriptRuntime?.getServices(),
+            );
+    }
 
     create(player: PlayerState, spec: QuestInstanceSpec): QuestInstanceHandle | undefined {
         this.dispose(player);
@@ -213,6 +236,7 @@ export class InstancedAreaManager {
             if (npc) {
                 runtime.npcRuntimeIds.add(npc.id);
                 player.instanceNpcIds.add(npc.id);
+                this.captureBossHealthBar(runtime, spawn.id, () => npc.getMaxHitpoints());
             }
         }
 
@@ -231,6 +255,7 @@ export class InstancedAreaManager {
         }
         runtime.locs.push(...locs);
         runtime.started = access === "solo";
+        this.enterBossHealthBar(player, runtime);
         return this.toHandle(runtime);
     }
 
@@ -286,6 +311,7 @@ export class InstancedAreaManager {
             runtime.destination.level,
             runtime.templateChunks,
         );
+        this.enterBossHealthBar(player, runtime);
         return this.toHandle(runtime);
     }
 
@@ -296,6 +322,7 @@ export class InstancedAreaManager {
         const runtime = this.getRuntimeForPlayer(player.id);
         if (!runtime) return false;
 
+        this.bossHealthBars.leave(player);
         this.services.scriptScheduler.cancelOwner({ kind: "player", id: player.id });
         player.instanceNpcIds.clear();
         player.worldViewId = -1;
@@ -332,9 +359,62 @@ export class InstancedAreaManager {
         return this.dispose(player, destination);
     }
 
+    /** Refreshes health and repairs a displaced native HUD mount for every member. */
+    syncBossHealthBars(): void {
+        this.bossHealthBars.sync();
+    }
+
     private getRuntimeForPlayer(playerId: number): InstanceRuntime | undefined {
         const instanceId = this.instanceIdByPlayer.get(Math.trunc(playerId));
         return instanceId ? this.instancesById.get(instanceId) : undefined;
+    }
+
+    private captureBossHealthBar(
+        runtime: InstanceRuntime,
+        npcTypeId: number,
+        getMaximum: () => number,
+    ): void {
+        if (runtime.bossHealthBar) return;
+        const definition = EncounterRegistry.shared.findByNpcTypeId(npcTypeId);
+        const metadata = definition?.bossHealthBar;
+        if (!definition || !metadata) return;
+        runtime.bossHealthBar = {
+            definition,
+            displayNpcTypeId: metadata.npcTypeId ?? definition.npcTypeIds[0] ?? npcTypeId,
+            name: metadata.name,
+            lastMaximum: Math.max(
+                1,
+                Math.trunc(getMaximum() || definition.maxHealth || 1),
+            ),
+        };
+    }
+
+    private enterBossHealthBar(player: PlayerState, runtime: InstanceRuntime): void {
+        if (!runtime.bossHealthBar) return;
+        this.bossHealthBars.enter(player, () => this.resolveBossHealthBarSnapshot(runtime));
+    }
+
+    private resolveBossHealthBarSnapshot(
+        runtime: InstanceRuntime,
+    ): BossHealthBarSnapshot | undefined {
+        const healthBar = runtime.bossHealthBar;
+        if (!healthBar) return undefined;
+        const boss = [...runtime.npcRuntimeIds]
+            .map((npcId) => this.services.npcManager?.getById(npcId))
+            .find(
+                (npc) =>
+                    npc !== undefined &&
+                    healthBar.definition.npcTypeIds.includes(npc.typeId),
+            );
+        if (boss) {
+            healthBar.lastMaximum = Math.max(1, boss.getMaxHitpoints());
+        }
+        return {
+            npcTypeId: healthBar.displayNpcTypeId,
+            name: healthBar.name,
+            current: Math.max(0, boss?.getHitpoints() ?? 0),
+            maximum: healthBar.lastMaximum,
+        };
     }
 
     private toHandle(runtime: InstanceRuntime): QuestInstanceHandle {

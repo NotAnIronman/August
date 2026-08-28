@@ -770,6 +770,7 @@ export class TickPhaseService {
 
     runPostScriptPhase(frame: TickFrame): void {
         this.svc.scriptScheduler.process(frame.tick);
+        this.svc.instancedAreaManager?.syncBossHealthBars();
     }
 
     runPostEffectsPhase(frame: TickFrame): void {

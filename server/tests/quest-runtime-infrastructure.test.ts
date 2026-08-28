@@ -121,6 +121,8 @@ assert(handle);
 assert.equal(player.worldViewId, handle.worldViewId);
 assert.equal(spawnedConfig?.worldViewId, handle.worldViewId);
 assert.equal(spawnedConfig?.ownerPlayerId, player.id);
+assert.equal(spawnedConfig?.x, 2518);
+assert.equal(spawnedConfig?.y, 4633);
 assert(player.instanceNpcIds.has(700));
 assert.equal(instances.dispose(player), true);
 assert.equal(player.worldViewId, -1);

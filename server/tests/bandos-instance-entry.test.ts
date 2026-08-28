@@ -1,18 +1,12 @@
 import assert from "node:assert/strict";
 
 import { resolveLocActions } from "../../client/common/world/LocActionOverrides";
-import {
-    BOSS_HEALTH_BAR_GROUP_ID,
-    BossHealthBarComponent,
-    bossHealthBarUid,
-} from "../../client/common/ui/bossHealthBar";
 import { AttackType } from "../src/game/combat/AttackType";
 import { EncounterRegistry } from "../src/game/encounters/EncounterRegistry";
 import { getNpcCombatProfile } from "../src/data/npcCombatStats";
 import type {
     IScriptRegistry,
     LocInteractionHandler,
-    TickHandler,
 } from "../src/game/scripts/types";
 import { register } from "../extrascripts/bandos-instance";
 
@@ -26,23 +20,23 @@ assert.deepEqual(resolveLocActions(26503, ["Open", "Peek"]), [
 assert.deepEqual(resolveLocActions(1, ["Open"]), ["Open"]);
 
 const handlers = new Map<string, LocInteractionHandler>();
-let tickHandler: TickHandler | undefined;
 const registry = {
     registerLocInteraction: (locId: number, handler: LocInteractionHandler, action?: string) => {
         handlers.set(`${locId}:${action}`, handler);
         return { unregister() {} };
     },
-    registerTickHandler: (handler: TickHandler) => {
-        tickHandler = handler;
-        return { unregister() {} };
-    },
 } as unknown as IScriptRegistry;
 let graveLocRegistration: unknown[] | undefined;
+let legacyGraveLocClear: unknown[] | undefined;
 register(registry, {
     location: {
         replaceTemporaryLoc: (...args: unknown[]) => {
             graveLocRegistration = args;
             return {};
+        },
+        clearTemporaryLoc: (...args: unknown[]) => {
+            legacyGraveLocClear = args;
+            return false;
         },
     },
 } as never);
@@ -58,13 +52,17 @@ assert.deepEqual([...handlers.keys()], [
     "26366:pray-at",
     "9359:read",
 ]);
-assert.deepEqual(graveLocRegistration, [
+assert.equal(
+    graveLocRegistration,
+    undefined,
+    "the reclaim gravestone is no longer spawned globally for players with empty storage",
+);
+assert.deepEqual(legacyGraveLocClear, [
     { worldViewId: -1 },
     0,
-    9359,
     { x: 2858, y: 5354, level: 2 },
     2,
-    { newShape: 10, newRotation: 0 },
+    10,
 ]);
 
 const doorTeleports: Array<{ x: number; y: number; level: number }> = [];
@@ -115,6 +113,11 @@ assert.deepEqual(doorTeleports.at(-1), { x: 2851, y: 5333, level: 2 });
 
 const graardor = EncounterRegistry.shared.findByNpcTypeId(2215);
 assert.equal(graardor?.id, "general-graardor");
+assert.equal(graardor?.maxHealth, 255);
+assert.deepEqual(graardor?.bossHealthBar, {
+    name: "General Graardor",
+    npcTypeId: 2215,
+});
 assert.deepEqual(
     graardor?.attacks.map(({ id, type, maxHit }) => ({ id, type, maxHit })),
     [
@@ -143,89 +146,36 @@ assert.equal(getNpcCombatProfile(2218)?.rangedLevel, 150);
 
 let copiedArea: Record<string, number> | undefined;
 let instanceSpec: any;
-let openedBossHealthBar: { targetUid: number; groupId: number } | undefined;
-let scheduledBossHealthBarRemount: { ticks: number; owner: unknown } | undefined;
-const bossHealthWidgetEvents: Array<Record<string, unknown>> = [];
+let currentInstance: { id: string; definitionId: string } | undefined;
 const testPlayer = {
     id: 42,
-    varps: {
-        setVarpValue: () => undefined,
-        setVarbitValue: () => undefined,
-    },
-} as never;
+} as any;
 const testServices = {
     instances: {
-        get: () => undefined,
+        get: () => currentInstance,
         buildTemplate: (copies: readonly Record<string, number>[]) => {
             copiedArea = copies[0];
             return [];
         },
         create: (_player: unknown, spec: unknown) => {
             instanceSpec = spec;
-            return { id: "test-bandos-room" };
+            currentInstance = {
+                id: "test-bandos-room",
+                definitionId: "graardor-room",
+            };
+            return currentInstance;
         },
         markStarted: () => true,
     },
     messaging: { sendGameMessage: () => undefined },
-    scheduler: {
-        after: (ticks: number, _action: () => void, owner: unknown) => {
-            scheduledBossHealthBarRemount = { ticks, owner };
-        },
-    },
-    variables: {
-        sendVarp: () => undefined,
-        sendVarbit: () => undefined,
-    },
-    dialog: {
-        queueWidgetEvent: (_playerId: number, event: Record<string, unknown>) => {
-            bossHealthWidgetEvents.push(event);
-        },
-        openSubInterface: (
-            _player: unknown,
-            targetUid: number,
-            groupId: number,
-        ) => {
-            openedBossHealthBar = { targetUid, groupId };
-        },
-    },
 };
 handlers.get("26503:enter solo")?.({ player: testPlayer, services: testServices } as never);
-assert.deepEqual(openedBossHealthBar, {
-    targetUid: (161 << 16) | 44,
-    groupId: BOSS_HEALTH_BAR_GROUP_ID,
-});
-assert.deepEqual(scheduledBossHealthBarRemount, {
-    ticks: 3,
-    owner: { kind: "player", id: 42 },
-});
-assert.ok(
-    bossHealthWidgetEvents.some(
-        (event) =>
-            event.action === "set_hidden" &&
-            event.uid === (161 << 16 | 44) &&
-            event.hidden === false,
-    ),
-);
-assert.ok(
-    bossHealthWidgetEvents.some(
-        (event) =>
-            event.action === "set_hidden" &&
-            event.uid === bossHealthBarUid(BossHealthBarComponent.SegmentStart),
-    ),
-);
-assert.ok(
-    bossHealthWidgetEvents.some(
-        (event) =>
-            event.action === "set_text" &&
-            event.uid === bossHealthBarUid(BossHealthBarComponent.Name),
-    ),
-);
-assert.ok(tickHandler);
 assert.deepEqual(instanceSpec.destination, { x: 2864, y: 5354, level: 2 });
 assert.deepEqual(instanceSpec.exit, { x: 2862, y: 5354, level: 2 });
 assert.equal(copiedArea?.destinationChunkX, 4);
 assert.equal(copiedArea?.destinationChunkY, 3);
 assert.equal(copiedArea?.heightChunks, 7);
+
 const instanceBase = {
     x: ((instanceSpec.destination.x >> 3) - 6) * 8,
     y: ((instanceSpec.destination.y >> 3) - 6) * 8,

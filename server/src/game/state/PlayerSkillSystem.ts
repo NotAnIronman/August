@@ -108,6 +108,8 @@ export type SlayerTaskLike = {
     amount?: number;
     monsterName?: string;
     monsterSpecies?: string[];
+    slayerMaster?: string;
+    masterName?: string;
 };
 
 export function createInitialSkills(gamemodeXpFn?: DefaultSkillXpResolver): SkillEntry[] {

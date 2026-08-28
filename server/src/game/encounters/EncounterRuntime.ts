@@ -17,6 +17,7 @@ export class EncounterRuntime {
     readonly healthMax: number;
 
     private readonly random: EncounterRandom;
+    private readonly animationRandom: EncounterRandom;
     private readonly cooldownUntil = new Map<string, number>();
     private readonly firedThresholds = new Set<string>();
     private readonly ownedNpcRuntimeIds = new Set<number>();
@@ -39,6 +40,9 @@ export class EncounterRuntime {
         this.healthMax = Math.max(1, Math.trunc(definition.maxHealth ?? actorMaxHealth));
         this.healthCurrent = this.healthMax;
         this.random = new EncounterRandom(seed);
+        // Keep animation variation on an independent deterministic stream so
+        // adding a pool never changes which attacks the encounter selects.
+        this.animationRandom = new EncounterRandom(seed ^ 0x51f15e5d);
         this.ownedNpcRuntimeIds.add(npcRuntimeId);
     }
 
@@ -115,6 +119,8 @@ export class EncounterRuntime {
             definition: selected,
             targetId: input.targetId,
             plannedAtTick: Math.trunc(input.tick),
+            animationSelector:
+                Math.floor(this.animationRandom.next() * 0x1_0000_0000) >>> 0,
             traits,
         });
         return this.plannedAttack;
@@ -139,11 +145,33 @@ export class EncounterRuntime {
     }
 
     heal(amount: number): void {
-        if (this.lifecycle === "dead" || this.lifecycle === "disposed") return;
+        if (this.lifecycle === "disposed") return;
         this.healthCurrent = Math.min(
             this.healthMax,
             this.healthCurrent + Math.max(0, Math.trunc(amount)),
         );
+        // NpcState is authoritative. A pre-despawn heal can legitimately
+        // restore a zero-HP actor (notably a script-intercepted lethal status
+        // hit), so the encounter must not remain permanently non-plannable.
+        if (this.lifecycle === "dead" && this.healthCurrent > 0) {
+            this.lifecycle = "idle";
+        }
+    }
+
+    /**
+     * Start a fresh life for the same NPC object (for example a leash/stuck
+     * reset). Normal healing deliberately does not re-arm thresholds, while a
+     * true reset clears every per-life combat decision and threshold.
+     */
+    resetHealth(): void {
+        if (this.lifecycle === "disposed") return;
+        this.lifecycle = "resetting";
+        this.healthCurrent = this.healthMax;
+        this.cooldownUntil.clear();
+        this.firedThresholds.clear();
+        this.plannedAttack = undefined;
+        this.previousAttackId = undefined;
+        this.lifecycle = "idle";
     }
 
     transitionForm(npcRuntimeId: number, npcTypeId: number): void {
@@ -156,7 +184,7 @@ export class EncounterRuntime {
         this.currentNpcTypeId = Math.trunc(npcTypeId);
         this.ownedNpcRuntimeIds.add(this.currentNpcRuntimeId);
         this.plannedAttack = undefined;
-        this.lifecycle = "engaged";
+        this.lifecycle = this.healthCurrent <= 0 ? "dead" : "engaged";
     }
 
     ownNpc(npcRuntimeId: number): void {

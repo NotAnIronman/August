@@ -998,7 +998,7 @@ export class CombatActionHandler {
         if (npc.level !== player.level) {
             return { ok: false, reason: "different_plane" };
         }
-        if (!npc.isCombatTargetable()) {
+        if (!npc.isCombatTargetable(tick)) {
             return { ok: false, reason: "npc_unattackable" };
         }
 

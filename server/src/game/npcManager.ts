@@ -91,6 +91,12 @@ type NearbyAggressionPlayer = {
     aggressionState: PlayerAggressionState;
 };
 
+export interface NpcResetLifecycleContext {
+    readonly currentTick: number;
+    /** Fresh spawns synchronize on their next NPC tick; respawns synchronize now. */
+    readonly kind: "spawn" | "respawn";
+}
+
 const REGION_SIZE = 32; // tiles; aligns to half a chunk for coarse spatial buckets
 /** How long an idle NPC holds a pawn-facing before it clears (RSMod Npc.RESET_PAWN_FACE_DELAY). */
 const RESET_PAWN_FACE_DELAY_TICKS = 25;
@@ -252,7 +258,7 @@ export class NpcManager {
 
     private lifecycleHooks?: {
         onRemove?: (npcId: number) => void;
-        onReset?: (npcId: number) => void;
+        onReset?: (npcId: number, context: NpcResetLifecycleContext) => void;
     };
 
     private groundItemSpawner?: GroundItemSpawner;
@@ -281,7 +287,7 @@ export class NpcManager {
 
     setLifecycleHooks(hooks: {
         onRemove?: (npcId: number) => void;
-        onReset?: (npcId: number) => void;
+        onReset?: (npcId: number, context: NpcResetLifecycleContext) => void;
     }): void {
         this.lifecycleHooks = hooks;
     }
@@ -355,7 +361,12 @@ export class NpcManager {
         const npcCombatStats = isTrustedCombatStatsForNpc(npcType, rawNpcCombatStats)
             ? rawNpcCombatStats
             : undefined;
-        const maxHitpoints = this.deriveMaxHitpoints(npcType, npcCombatStats);
+        // Encounter metadata is the shared source of truth across every form.
+        // Falling back to a form's cache HP here would make actor health and
+        // EncounterRuntime phases diverge whenever a definition overrides it.
+        const maxHitpoints =
+            encounterDefinition?.maxHealth ??
+            this.deriveMaxHitpoints(npcType, npcCombatStats);
         const combatLevel = npcType.combatLevel ?? -1;
         // Attack speed is stored in cache param 14
         const attackSpeed = this.deriveAttackSpeed(npcType, npcCombatStats);
@@ -441,7 +452,10 @@ export class NpcManager {
         this.npcs.set(id, npc);
         this.addOccupancyFootprint(npc);
         this.addToRegionIndex(npc);
-        this.lifecycleHooks?.onReset?.(id);
+        this.lifecycleHooks?.onReset?.(id, {
+            currentTick: this.currentTick,
+            kind: "spawn",
+        });
 
         // Initialize boss script if this NPC has one registered
         const bossScript = createBossScript(npc);
@@ -969,50 +983,58 @@ export class NpcManager {
 
                 // 1. Process status effects/timers FIRST (before movement)
                 const hitpointsBeforeStatus = npc.getHitpoints();
-                const statusHitsplats =
-                    this.statusEffects?.processNpc(npc, currentTick) ??
-                    npc.tickStatusEffects(currentTick);
-                if (statusHitsplats) {
-                    for (const hitsplat of statusHitsplats) {
-                        statusEvents.push({ npcId: npc.id, hitsplat });
-                    }
-                    // Status damage (poison/venom) can be fatal: route through the
-                    // deferred death pipeline like combat hits.
-                    if (npc.getHitpoints() <= 0 && !npc.isDead(currentTick)) {
-                        const lethalHitsplat = [...statusHitsplats]
-                            .reverse()
-                            .find((hitsplat) => hitsplat.amount > 0);
-                        const killerPlayerId = npc.getCombatTargetPlayerId();
-                        const prevented =
-                            lethalHitsplat !== undefined &&
-                            this.lethalStatusHitInterceptor?.({
-                                npc,
-                                killerPlayerId,
-                                proposedDamage: lethalHitsplat.amount,
-                                style: lethalHitsplat.style,
-                                hitpointsBefore: hitpointsBeforeStatus,
-                                tick: currentTick,
-                            }) === true;
-                        if (prevented) {
-                            npc.heal(1);
-                            lethalHitsplat.amount = Math.max(0, hitpointsBeforeStatus - 1);
-                            lethalHitsplat.hpCurrent = 1;
-                        } else {
-                            this.scheduleDeathProcessing(
-                                npc.id,
-                                killerPlayerId ?? 0,
-                                currentTick + 1,
-                            );
+                const commitStatusHealth = npc.beginHealthTransaction();
+                try {
+                    const statusHitsplats =
+                        this.statusEffects?.processNpc(npc, currentTick) ??
+                        npc.tickStatusEffects(currentTick);
+                    if (statusHitsplats) {
+                        for (const hitsplat of statusHitsplats) {
+                            statusEvents.push({ npcId: npc.id, hitsplat });
+                        }
+                        // Status damage (poison/venom) can be fatal: route through the
+                        // deferred death pipeline like combat hits.
+                        if (npc.getHitpoints() <= 0 && !npc.isDead(currentTick)) {
+                            const lethalHitsplat = [...statusHitsplats]
+                                .reverse()
+                                .find((hitsplat) => hitsplat.amount > 0);
+                            const killerPlayerId = npc.getCombatTargetPlayerId();
+                            const prevented =
+                                lethalHitsplat !== undefined &&
+                                this.lethalStatusHitInterceptor?.({
+                                    npc,
+                                    killerPlayerId,
+                                    proposedDamage: lethalHitsplat.amount,
+                                    style: lethalHitsplat.style,
+                                    hitpointsBefore: hitpointsBeforeStatus,
+                                    tick: currentTick,
+                                }) === true;
+                            if (prevented) {
+                                npc.heal(1);
+                                lethalHitsplat.amount = Math.max(0, hitpointsBeforeStatus - 1);
+                                lethalHitsplat.hpCurrent = 1;
+                            } else {
+                                this.scheduleDeathProcessing(
+                                    npc.id,
+                                    killerPlayerId ?? 0,
+                                    currentTick + 1,
+                                );
+                            }
                         }
                     }
+                } finally {
+                    // Publish only the committed post-interception HP delta.
+                    commitStatusHealth();
                 }
 
                 const shouldRecoverToSpawn = this.shouldRecoverToSpawn(npc, currentTick);
+                const spawnAnimationLocked = npc.isSpawnAnimationLocked(currentTick);
 
                 // 1.5. OSRS NPC Aggression: Check for players to target
                 // Reference: docs/npc-behavior.md - Aggressive NPCs target nearby players
                 if (
                     !shouldRecoverToSpawn &&
+                    !spawnAnimationLocked &&
                     getNearbyPlayers &&
                     !npc.isInCombat(currentTick) &&
                     !npc.isDead?.(currentTick)
@@ -1032,7 +1054,8 @@ export class NpcManager {
                 // CombatTickEngine owns pursuit. NpcManager only handles recovery and
                 // idle roaming, then consumes paths queued by the combat phase.
                 const combatTargetId = npc.getCombatTargetPlayerId();
-                const movementFrozen = interceptFrozenCombatMovement(npc, currentTick);
+                const effectMovementFrozen = interceptFrozenCombatMovement(npc, currentTick);
+                const movementFrozen = spawnAnimationLocked || effectMovementFrozen;
                 if (!movementFrozen && this.queueOverlapEscape(npc, getNearbyPlayers)) {
                     // A player can briefly stack on an NPC because their paths
                     // are synchronized independently. Every NPC footprint
@@ -1054,7 +1077,7 @@ export class NpcManager {
 
                 // Tick boss script if present
                 const bossScript = this.bossScripts.get(npc.id);
-                if (bossScript) {
+                if (bossScript && !spawnAnimationLocked) {
                     bossScript.tick(currentTick);
                 }
                 const stepPos = npc.drainStepPositions();
@@ -1467,6 +1490,7 @@ export class NpcManager {
             radius: number,
         ) => NearbyAggressionPlayer[],
     ): NpcAggressionEvent | undefined {
+        if (npc.isSpawnAnimationLocked(currentTick)) return undefined;
         if (!npc.isAggressive) return undefined;
         const npcCombatLevel = npc.getCombatLevel();
         if (npcCombatLevel <= 0) return undefined;
@@ -1726,7 +1750,10 @@ export class NpcManager {
             this.npcs.set(npc.id, npc);
             this.addOccupancyFootprint(npc);
             this.addToRegionIndex(npc);
-            this.lifecycleHooks?.onReset?.(npc.id);
+            this.lifecycleHooks?.onReset?.(npc.id, {
+                currentTick,
+                kind: "respawn",
+            });
 
             // Re-initialize boss script if applicable
             const bossScript = createBossScript(npc);

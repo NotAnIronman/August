@@ -92,6 +92,8 @@ export interface DeathContext {
     readonly wildernessLevel: number;
     /** Game tick when death occurred */
     readonly deathTick: number;
+    /** Whether the player occupied a private instance when death was queued. */
+    readonly wasInInstance: boolean;
     /** Optional killer reference (WeakRef to prevent memory leaks) */
     readonly killer?: WeakRef<PlayerState>;
     /** Item protection calculation result */

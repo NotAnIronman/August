@@ -31,6 +31,10 @@ import { CombatAttributes } from "../combat/state/CombatAttributes";
 import { LockState } from "../model/LockState";
 import type { PlayerState } from "../player";
 import { DeathHookRegistry } from "./DeathHookRegistry";
+import {
+    INSTANCE_GRAVE_RECLAIM_COST,
+    syncInstanceGravePresentation,
+} from "./InstanceGravePresentation";
 import { ItemProtectionCalculator } from "./ItemProtectionCalculator";
 import {
     DEATH_ANIMATION_ID,
@@ -145,6 +149,11 @@ export class PlayerDeathService {
             deathLocation: Object.freeze(deathLocation),
             wildernessLevel,
             deathTick: this.svc.ticker.currentTick(),
+            // Instance teardown, disconnect cleanup, and the six-tick death
+            // animation can race. Classification must reflect the moment of
+            // death, not whichever manager entry happens to exist later.
+            wasInInstance:
+                this.svc.instancedAreaManager?.get(player.id) !== undefined,
             killer: options?.killer ? new WeakRef(options.killer) : undefined,
             itemProtection,
         });
@@ -210,7 +219,7 @@ export class PlayerDeathService {
             this.processItemsOnDeath(
                 player,
                 context,
-                this.svc.instancedAreaManager?.get(player.id) !== undefined,
+                context.wasInInstance,
             );
         }
 
@@ -268,12 +277,12 @@ export class PlayerDeathService {
     /**
      * Force complete death for a player (used on disconnect).
      */
-    forceCompleteDeath(playerId: number): void {
+    forceCompleteDeath(playerId: number): boolean {
         const death = this.pendingDeaths.get(playerId);
-        if (death) {
-            this.completePlayerDeath(death);
-            this.pendingDeaths.delete(playerId);
-        }
+        if (!death) return false;
+        this.completePlayerDeath(death);
+        this.pendingDeaths.delete(playerId);
+        return true;
     }
 
     /**
@@ -360,23 +369,14 @@ export class PlayerDeathService {
             `[death] Processing ${itemProtection.lost.length} lost items, keeping ${itemProtection.kept.length} items`,
         );
 
-        // OSRS behavior: All equipment is unequipped on death.
-        // Kept equipment items are moved to inventory.
-        for (const item of itemProtection.kept) {
-            if (item.source.type === ItemSourceType.Equipment) {
-                this.moveEquipmentToInventory(player, item);
-                logger.info(
-                    `[death] Moved kept item ${item.itemId} x${item.quantity} from equipment:${item.source.slot} to inventory`,
-                );
-            }
-        }
-
         // Instanced deaths retain lost items at the dedicated reclaim grave.
         // Protected items still follow ordinary OSRS keep-on-death rules.
         if (storeInInstanceGrave) {
-            player.instanceGrave.store(
+            player.instanceGrave.deposit(
                 itemProtection.lost.map((item) => ({ itemId: item.itemId, quantity: item.quantity })),
+                INSTANCE_GRAVE_RECLAIM_COST,
             );
+            syncInstanceGravePresentation(this.svc.locationService, player);
         }
 
         // Remove lost items from player
@@ -425,6 +425,24 @@ export class PlayerDeathService {
                 },
             );
         }
+
+        // Remove lost inventory entries before unequipping protected gear. A
+        // full inventory commonly becomes sparse as part of this same death;
+        // moving kept equipment first could otherwise find no slot and delete
+        // the protected item. The transfer itself is all-or-nothing and leaves
+        // the equipment in place if an unusual all-kept inventory is still full.
+        for (const item of itemProtection.kept) {
+            if (item.source.type !== ItemSourceType.Equipment) continue;
+            if (this.moveEquipmentToInventory(player, item)) {
+                logger.info(
+                    `[death] Moved kept item ${item.itemId} x${item.quantity} from equipment:${item.source.slot} to inventory`,
+                );
+            } else {
+                logger.warn(
+                    `[death] Retained protected item ${item.itemId} x${item.quantity} in equipment:${item.source.slot} because inventory insertion was unavailable`,
+                );
+            }
+        }
     }
 
     /**
@@ -466,36 +484,20 @@ export class PlayerDeathService {
     /**
      * Move an equipment item to inventory (for kept items on death).
      */
-    private moveEquipmentToInventory(player: PlayerState, item: ValuedItem): void {
-        if (item.source.type !== ItemSourceType.Equipment) return;
+    private moveEquipmentToInventory(player: PlayerState, item: ValuedItem): boolean {
+        if (item.source.type !== ItemSourceType.Equipment) return false;
 
-        const inventory = player.getInventoryEntries();
+        // Insert first, then remove the source. This transaction ordering makes
+        // protected equipment loss impossible even if the inventory cannot
+        // accept the complete stack (for example capped ammunition).
+        const insertion = player.items.addItem(item.itemId, item.quantity, {
+            assureFullInsertion: true,
+        });
+        if (insertion.completed !== item.quantity) return false;
 
-        // Find an empty inventory slot
-        let emptySlot = -1;
-        for (let i = 0; i < inventory.length; i++) {
-            const entry = inventory[i];
-            if (!entry || entry.itemId <= 0 || entry.quantity <= 0) {
-                emptySlot = i;
-                break;
-            }
-        }
-
-        if (emptySlot >= 0) {
-            // Move to inventory
-            const entry = inventory[emptySlot];
-            if (entry) {
-                entry.itemId = item.itemId;
-                entry.quantity = item.quantity;
-            }
-        }
-        // If no empty slot, item is lost (inventory full edge case)
-        // In OSRS this shouldn't happen since inventory + equipment <= 28 + 11
-
-        // Remove from equipment
         this.removeEquipmentSlot(player, item.source.slot);
-        player.markInventoryDirty();
         player.markEquipmentDirty();
+        return true;
     }
 
     /**
