@@ -35,6 +35,23 @@ export class NpcInstanceFlushController {
         this.mapsPendingReload.add(mapId | 0);
     }
 
+    /**
+     * Instance rebuilds can arrive before the already-local player receives a
+     * private world-view assignment. NPC spawn packets do carry that scope, so
+     * use it only when every scoped NPC agrees on one unambiguous view id.
+     */
+    getSoleSynchronizedWorldViewId(): number {
+        let resolved = -1;
+        for (const instance of this.instanceMap.values()) {
+            const candidate = instance.worldViewId;
+            if (typeof candidate !== "number" || candidate < 0) continue;
+            const normalized = candidate | 0;
+            if (resolved >= 0 && resolved !== normalized) return -1;
+            resolved = normalized;
+        }
+        return resolved;
+    }
+
     notifyRendererReady(): void {
         if (this.mapsPendingReload.size > 0) {
             this.scheduleFlush();
@@ -215,13 +232,18 @@ export class NpcInstanceFlushController {
                 continue;
             }
 
-            const controlledWorldViewId = isPrivateInstanceMap
+            const assignedWorldViewId = isPrivateInstanceMap
                 ? (renderer.getControlledPlayerWorldViewId?.() ?? -1) | 0
                 : -1;
+            const controlledWorldViewId =
+                isPrivateInstanceMap && assignedWorldViewId < 0
+                    ? this.getSoleSynchronizedWorldViewId()
+                    : assignedWorldViewId;
             if (isPrivateInstanceMap && controlledWorldViewId < 0) {
                 // Never build an unfiltered instance mesh while player sync is
-                // still assigning the private view. Retrying is preferable to
-                // baking public NPCs at the copied source coordinates.
+                // still assigning the private view and NPC sync is ambiguous.
+                // Retrying is preferable to baking public NPCs at the copied
+                // source coordinates.
                 remaining.add(mapId);
                 continue;
             }

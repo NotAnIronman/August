@@ -39,7 +39,10 @@ const renderer = {
     maxLevel: 3,
     loadedTextureIds: new Set<number>(),
     instanceActive: true,
-    getControlledPlayerWorldViewId: () => 4000,
+    // The controlled player is already local during REBUILD_REGION, so its
+    // spawn packet may not provide the new private view id. NPC sync must be a
+    // safe fallback when all scoped NPCs agree on one view.
+    getControlledPlayerWorldViewId: () => -1,
     updateTextureArray: () => undefined,
 };
 const workerPool = {
@@ -79,6 +82,17 @@ controller.instanceMap.set("sid:1", {
     level: 2,
     worldViewId: 4000,
 });
+assert.equal(controller.getSoleSynchronizedWorldViewId(), 4000);
+controller.instanceMap.set("sid:ambiguous", {
+    serverId: 2,
+    typeId: 2216,
+    x: 2866,
+    y: 5358,
+    level: 2,
+    worldViewId: 4001,
+});
+assert.equal(controller.getSoleSynchronizedWorldViewId(), -1);
+controller.instanceMap.delete("sid:ambiguous");
 controller.markMapPendingReload((44 << 8) + 83);
 controller.scheduleFlush();
 void waitFor(() => applied)

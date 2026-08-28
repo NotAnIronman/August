@@ -993,11 +993,16 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                         sender.skillSystem.setHitpointsCurrent(
                             sender.skillSystem.getHitpointsMax(),
                         );
+                        sender.energy.setRunEnergyPercent(100);
+                        sender.specEnergy.setPercent(100);
+                        sender.varps.setVarpValue(VARP_SPECIAL_ENERGY, 1000);
+                        services.queueVarp(sender.id, VARP_SPECIAL_ENERGY, 1000);
+                        services.queueCombatState(sender);
                     }
                     services.queueChatMessage({
                         messageType: "game",
                         text: enabled
-                            ? "Developer godmode enabled. Hits show real damage without reducing your Hitpoints."
+                            ? "Developer godmode enabled. Hits show real damage; Hitpoints, run energy, and special attack energy are protected."
                             : "Developer godmode disabled.",
                         targetPlayerIds: [sender.id],
                     });

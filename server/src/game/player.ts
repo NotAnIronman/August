@@ -269,13 +269,20 @@ export class PlayerState extends Actor {
     readonly status = new PlayerStatusState();
 
     /** Composed run energy & stamina state */
-    readonly energy = new PlayerRunEnergyState(this as unknown as RunEnergyOwner);
+    readonly energy = new PlayerRunEnergyState(
+        this as unknown as RunEnergyOwner,
+        () => isDeveloperGodmodeEnabled(this),
+    );
     /** Composed aggression tolerance tracker */
     readonly aggression = new PlayerAggressionTracker();
     /** Composed varp/varbit storage */
     readonly varps = new PlayerVarpState();
     /** Composed special attack energy state */
-    readonly specEnergy = new PlayerSpecialEnergyState(this.combat, this.combatAttributes);
+    readonly specEnergy = new PlayerSpecialEnergyState(
+        this.combat,
+        this.combatAttributes,
+        () => isDeveloperGodmodeEnabled(this),
+    );
     /** Composed equipment charge tracking & queries */
     readonly equipment = new PlayerEquipmentAccessor();
     private walkDestination?: { x: number; y: number };

@@ -10,9 +10,17 @@ export class PlayerSpecialEnergyState {
     constructor(
         private readonly combat: PlayerCombatState,
         private readonly attributes: CombatAttributeStore,
+        private readonly hasInfiniteEnergy: () => boolean = () => false,
     ) {}
 
     getUnits(): number {
+        if (this.hasInfiniteEnergy()) {
+            if (this.attributes.get(CombatAttributes.SPECIAL_ATTACK_ENERGY) !== SPECIAL_ENERGY_MAX) {
+                this.attributes.set(CombatAttributes.SPECIAL_ATTACK_ENERGY, SPECIAL_ENERGY_MAX);
+                this.combat.specialEnergyDirty = true;
+            }
+            return SPECIAL_ENERGY_MAX;
+        }
         return Math.max(
             0,
             Math.min(
@@ -56,6 +64,12 @@ export class PlayerSpecialEnergyState {
     consume(costPercent: number): boolean {
         const cost = Math.max(0, Math.min(SPECIAL_ENERGY_MAX, Math.floor(costPercent)));
         if (cost <= 0) return true;
+        if (this.hasInfiniteEnergy()) {
+            this.attributes.set(CombatAttributes.SPECIAL_ATTACK_ENERGY, SPECIAL_ENERGY_MAX);
+            this.attributes.set(CombatAttributes.SPECIAL_ATTACK_ACTIVE, false);
+            this.combat.specialEnergyDirty = true;
+            return true;
+        }
         if (this.getUnits() < cost) {
             this.attributes.set(CombatAttributes.SPECIAL_ATTACK_ACTIVE, false);
             return false;

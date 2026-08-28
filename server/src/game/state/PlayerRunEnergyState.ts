@@ -31,13 +31,23 @@ export class PlayerRunEnergyState {
     private remainder: number = 0;
     private _drainEnabled: boolean = true;
 
-    constructor(private readonly owner: RunEnergyOwner) {}
+    constructor(
+        private readonly owner: RunEnergyOwner,
+        private readonly hasInfiniteEnergy: () => boolean = () => false,
+    ) {}
 
     // ------------------------------------------------------------------
     // Unit-based accessors (internal 0..10000 scale)
     // ------------------------------------------------------------------
 
     getRunEnergyUnits(): number {
+        if (this.hasInfiniteEnergy()) {
+            if (this.owner.runEnergy !== RUN_ENERGY_MAX) {
+                this.owner.runEnergy = RUN_ENERGY_MAX;
+                this.dirty = true;
+            }
+            return RUN_ENERGY_MAX;
+        }
         const current = this.owner.runEnergy;
         if (!Number.isFinite(current)) {
             this.owner.runEnergy = RUN_ENERGY_MAX;
@@ -57,6 +67,12 @@ export class PlayerRunEnergyState {
     }
 
     adjustRunEnergyUnits(deltaUnits: number): number {
+        if (this.hasInfiniteEnergy()) {
+            if (this.owner.runEnergy !== RUN_ENERGY_MAX) this.dirty = true;
+            this.owner.runEnergy = RUN_ENERGY_MAX;
+            this.remainder = 0;
+            return RUN_ENERGY_MAX;
+        }
         const current = this.getRunEnergyUnits();
         let total = current + this.remainder + deltaUnits;
         let next = Math.floor(total);
