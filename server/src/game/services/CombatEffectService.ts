@@ -5,6 +5,7 @@ import type { ServerServices } from "../ServerServices";
 import type { ActionEffect } from "../actions/types";
 import { AttackType } from "../combat/AttackType";
 import { combatEffectApplicator } from "../combat/CombatEffectApplicator";
+import { applyDeveloperInstakillDamage } from "../dev/DeveloperFlags";
 import {
     resolveNpcAttackRange as resolveNpcAttackRangeRule,
     resolveNpcAttackType as resolveNpcAttackTypeRule,
@@ -314,7 +315,7 @@ export class CombatEffectService {
         if (!npc.isCombatTargetable()) return undefined;
         if (npc.getHitpoints() <= 0 || npc.isDead(tick)) return undefined;
 
-        const proposedDamage = Math.max(0, Math.trunc(damage));
+        const proposedDamage = applyDeveloperInstakillDamage(player, Math.max(0, Math.trunc(damage)));
         const hitpointsBefore = npc.getHitpoints();
         const prevented =
             proposedDamage >= hitpointsBefore &&

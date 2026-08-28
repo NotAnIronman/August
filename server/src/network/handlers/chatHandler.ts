@@ -11,7 +11,9 @@ import { getCollectionLogItems } from "../../game/collectionlog";
 import { clearAutocastState } from "../../game/combat/AutocastState";
 import { ALL_RUNE_ITEM_IDS, RUNE_IDS } from "../../game/data/RuneDataProvider";
 import {
+    isDeveloperInstakillEnabled,
     isDeveloperGodmodeEnabled,
+    setDeveloperInstakillEnabled,
     setDeveloperGodmodeEnabled,
 } from "../../game/dev/DeveloperFlags";
 import type { PlayerState } from "../../game/player";
@@ -1008,6 +1010,26 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     });
                     logger.info(
                         `[cmd] ::godmode - Player ${sender.id} ${enabled ? "enabled" : "disabled"} developer godmode`,
+                    );
+                } else if (root === "instakill") {
+                    const requestedState = parts[1];
+                    const currentlyEnabled = isDeveloperInstakillEnabled(sender);
+                    const enabled =
+                        requestedState === "on"
+                            ? true
+                            : requestedState === "off"
+                              ? false
+                              : !currentlyEnabled;
+                    setDeveloperInstakillEnabled(sender, enabled);
+                    services.queueChatMessage({
+                        messageType: "game",
+                        text: enabled
+                            ? "Developer instakill enabled. Successful hits against NPCs deal 9999 damage."
+                            : "Developer instakill disabled.",
+                        targetPlayerIds: [sender.id],
+                    });
+                    logger.info(
+                        `[cmd] ::instakill - Player ${sender.id} ${enabled ? "enabled" : "disabled"} developer instakill`,
                     );
                 } else if (
                     root === SpellbookName.Standard ||

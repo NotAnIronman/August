@@ -206,6 +206,9 @@ export class InstancedAreaManager {
                 y: baseY + Math.trunc(spawn.offsetY),
                 worldViewId,
                 ownerPlayerId: access === "solo" ? player.id : undefined,
+                // Instanced encounters are deliberate fights, not ambient
+                // overworld NPCs. They never become tolerant after ten minutes.
+                aggressionToleranceTicks: spawn.aggressionToleranceTicks ?? 2_147_483_647,
             });
             if (npc) {
                 runtime.npcRuntimeIds.add(npc.id);

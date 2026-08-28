@@ -42,6 +42,7 @@ const BUILTIN_COMMAND_PERMISSIONS: Readonly<Record<string, PlayerPermission>> = 
     maxall: "developer",
     magic: "developer",
     godmode: "developer",
+    instakill: "developer",
     onehealth: "developer",
     quest: "developer",
     randomitem: "developer",

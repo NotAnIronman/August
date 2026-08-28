@@ -13,6 +13,7 @@ import { logger } from "../../../utils/logger";
 import { AttackType } from "../../combat/AttackType";
 import { combatEffectApplicator } from "../../combat/CombatEffectApplicator";
 import { HITMARK_DAMAGE } from "../../combat/HitEffects";
+import { applyDeveloperInstakillDamage } from "../../dev/DeveloperFlags";
 import type { NpcState } from "../../npc";
 import type { PlayerState } from "../../player";
 import {
@@ -157,10 +158,11 @@ export class NpcHitHandler {
             data.hit?.magicImpactEffectsScheduled === true;
 
         // Apply hitsplat to NPC
+        const instakillDamage = applyDeveloperInstakillDamage(player, damage);
         const appliedDamage = this.services.interceptNpcLethalHit(
             player,
             npc,
-            damage,
+            instakillDamage,
             style,
             hitsplatTick,
             maxHit,

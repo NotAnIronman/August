@@ -7,6 +7,7 @@ import type { ServerServices } from "../../ServerServices";
 import { getProjectileParams } from "../../data/ProjectileParamsProvider";
 import { NpcState } from "../../npc";
 import { PlayerState } from "../../player";
+import { applyDeveloperInstakillDamage } from "../../dev/DeveloperFlags";
 import { OverheadType } from "../../prayer/OverheadType";
 import {
     type PoweredStaffSpellData,
@@ -1448,7 +1449,11 @@ export class CombatHitProcessor {
         }
 
         const effect = pending.enchantedBoltEffect;
-        if (!effect || !pending.landed || !source) return damage;
+        if (!effect || !pending.landed || !source) {
+            return source instanceof PlayerState && target instanceof NpcState
+                ? applyDeveloperInstakillDamage(source, damage)
+                : damage;
+        }
         if (effect.effectType === "hp_drain") {
             const currentHitpoints =
                 target instanceof PlayerState
@@ -1467,7 +1472,10 @@ export class CombatHitProcessor {
             const visibleRangedLevel = Math.max(0, ranged.baseLevel + ranged.boost);
             damage += Math.floor(visibleRangedLevel * 0.1);
         }
-        return Math.max(0, Math.floor(damage + (effect.flatDamageBonus ?? 0)));
+        const resolvedDamage = Math.max(0, Math.floor(damage + (effect.flatDamageBonus ?? 0)));
+        return source instanceof PlayerState && target instanceof NpcState
+            ? applyDeveloperInstakillDamage(source, resolvedDamage)
+            : resolvedDamage;
     }
 
     /** Rolls once at fire time, so delayed impacts retain the fired ammunition's effect. */

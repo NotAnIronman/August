@@ -17,6 +17,7 @@ import { PRAYER_RECHARGE_SOUND_ID } from "../../../client/rs/prayer/prayers";
 const BANDOS_DOOR_LOC_ID = 26503;
 const BANDOS_STRONGHOLD_DOOR_LOC_ID = 26461;
 const BANDOS_ALTAR_LOC_ID = 26366;
+const INSTANCE_GRAVE_RECLAIM_LOC_ID = 9359;
 const BANDOS_DEFINITION_ID = "graardor-room";
 const BANDOS_ALTAR_COOLDOWN_TICKS = 500;
 const lastBandosAltarUse = new WeakMap<PlayerState, number>();
@@ -89,6 +90,9 @@ function openBandosStrongholdDoor({ player, services }: LocInteractionEvent): vo
 }
 
 const INSTANCE_EXIT = Object.freeze({ x: 2862, y: 5354, level: 2 });
+// Shared reclaim point immediately outside the Bandos chamber. Item ownership
+// lives in the player's persistent grave state, not in the world object.
+const INSTANCE_GRAVE_RECLAIM_TILE = Object.freeze({ x: 2858, y: 5354, level: 2 });
 const INSTANCE_ENTRANCE = Object.freeze({ x: 2864, y: 5354, level: 2 });
 // InstancedAreaManager centers its 13x13-chunk view six chunks behind the
 // destination chunk. These values keep the copied room at its native world
@@ -110,6 +114,7 @@ function registerBandosEncounters(): void {
             movement: {
                 wanderRadius: 10,
                 aggressionRadius: 15,
+                aggressionToleranceTicks: 2_147_483_647,
                 combatLeashRadius: 30,
                 retreatInteractionRange: 40,
             },
@@ -153,6 +158,7 @@ function registerBandosEncounters(): void {
             movement: {
                 wanderRadius: 8,
                 aggressionRadius: 15,
+                aggressionToleranceTicks: 2_147_483_647,
                 combatLeashRadius: 30,
                 retreatInteractionRange: 40,
             },
@@ -177,11 +183,21 @@ function isBandosInstance(player: PlayerState, services: ScriptServices): boolea
 
 function openBossHealthBar(player: PlayerState, services: ScriptServices): void {
     activeBandosPlayers.add(player);
-    openEncounterHealthBar(player, services, {
+    const snapshot = {
         name: "General Graardor",
         current: 255,
         maximum: 255,
-    });
+    };
+    openEncounterHealthBar(player, services, snapshot);
+    // An instance rebuild can discard an overlay sent during the same client
+    // frame as the teleport. Re-mount after the rebuilt scene is established.
+    services.scheduler.after(
+        3,
+        () => {
+            if (isBandosInstance(player, services)) openEncounterHealthBar(player, services, snapshot);
+        },
+        { kind: "player", id: player.id },
+    );
 }
 
 function closeBossHealthBar(player: PlayerState, services: ScriptServices): void {
@@ -355,6 +371,28 @@ function handlePeek({ player, services }: LocInteractionEvent): void {
     );
 }
 
+function reclaimInstanceGrave({ player, services }: LocInteractionEvent): void {
+    if (!player.instanceGrave.hasItems()) {
+        services.messaging.sendGameMessage(player, "Your instanced-death grave is empty.");
+        return;
+    }
+    const result = player.instanceGrave.reclaim((itemId, quantity) =>
+        player.items.addItem(itemId, quantity, { assureFullInsertion: false }).completed,
+    );
+    services.inventory.snapshotInventoryImmediate(player);
+    if (result.remaining > 0) {
+        services.messaging.sendGameMessage(
+            player,
+            `You reclaim ${result.reclaimed} item${result.reclaimed === 1 ? "" : "s"}. Make more inventory space for the remaining ${result.remaining} stack${result.remaining === 1 ? "" : "s"}.`,
+        );
+        return;
+    }
+    services.messaging.sendGameMessage(
+        player,
+        `You reclaim ${result.reclaimed} item${result.reclaimed === 1 ? "" : "s"} from your grave. Reclaiming is currently free.`,
+    );
+}
+
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     registerBandosEncounters();
     registry.registerLocInteraction(
@@ -377,5 +415,16 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     }, "join party");
     registry.registerLocInteraction(BANDOS_ALTAR_LOC_ID, prayAtBandosAltar, "pray");
     registry.registerLocInteraction(BANDOS_ALTAR_LOC_ID, prayAtBandosAltar, "pray-at");
+    registry.registerLocInteraction(INSTANCE_GRAVE_RECLAIM_LOC_ID, reclaimInstanceGrave, "read");
+    // The location service replays this global temporary loc for every scene
+    // load, making the reclaim point available after login as well as death.
+    _services.location.replaceTemporaryLoc(
+        { worldViewId: -1 },
+        0,
+        INSTANCE_GRAVE_RECLAIM_LOC_ID,
+        INSTANCE_GRAVE_RECLAIM_TILE,
+        INSTANCE_GRAVE_RECLAIM_TILE.level,
+        { newShape: 10, newRotation: 0 },
+    );
     registry.registerTickHandler(({ services }) => syncBossHealthBars(services));
 }

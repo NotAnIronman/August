@@ -1,4 +1,5 @@
 import { HITMARK_DAMAGE } from "../../combat/HitEffects";
+import { applyDeveloperInstakillDamage } from "../../dev/DeveloperFlags";
 import type { NpcState } from "../../npc";
 import type { PlayerState } from "../../player";
 import type { CombatCompanionHitActionData } from "../actionPayloads";
@@ -63,10 +64,11 @@ export class CompanionHitHandler {
         const damage2 = Number.isFinite(data.damage2) ? data.damage2 : undefined;
         const attackTypeHint = this.services.normalizeAttackType(data.attackType) ?? "melee";
 
+        const instakillDamage = applyDeveloperInstakillDamage(player, damage);
         const appliedDamage = this.services.interceptNpcLethalHit(
             player,
             npc,
-            damage,
+            instakillDamage,
             style,
             tick,
             maxHit,

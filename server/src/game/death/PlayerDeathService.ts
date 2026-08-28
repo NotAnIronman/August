@@ -207,7 +207,11 @@ export class PlayerDeathService {
         // Phase 3: Drop Items
         // ========================================
         if (context.deathType !== DeathType.SAFE) {
-            this.processItemsOnDeath(player, context);
+            this.processItemsOnDeath(
+                player,
+                context,
+                this.svc.instancedAreaManager?.get(player.id) !== undefined,
+            );
         }
 
         // ========================================
@@ -343,7 +347,11 @@ export class PlayerDeathService {
     /**
      * Process items on death - move kept equipment to inventory, drop lost items to ground.
      */
-    private processItemsOnDeath(player: PlayerState, context: DeathContext): void {
+    private processItemsOnDeath(
+        player: PlayerState,
+        context: DeathContext,
+        storeInInstanceGrave = false,
+    ): void {
         const { itemProtection, deathLocation, deathType } = context;
         const currentTick = this.svc.ticker.currentTick();
         const inWilderness = context.wildernessLevel > 0;
@@ -363,12 +371,22 @@ export class PlayerDeathService {
             }
         }
 
+        // Instanced deaths retain lost items at the dedicated reclaim grave.
+        // Protected items still follow ordinary OSRS keep-on-death rules.
+        if (storeInInstanceGrave) {
+            player.instanceGrave.store(
+                itemProtection.lost.map((item) => ({ itemId: item.itemId, quantity: item.quantity })),
+            );
+        }
+
         // Remove lost items from player
         for (const item of itemProtection.lost) {
             this.removeItemFromPlayer(player, item);
             logger.info(
                 `[death] Dropped item ${item.itemId} x${item.quantity} from ${item.source.type}:${item.source.slot}`,
             );
+
+            if (storeInInstanceGrave) continue;
 
             // Handle untradeable coin conversion in PvP
             let dropItemId = item.itemId;

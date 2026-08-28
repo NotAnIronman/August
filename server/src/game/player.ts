@@ -43,6 +43,7 @@ import {
 import { PlayerCombatState } from "./state/PlayerCombatState";
 import { PlayerEquipmentAccessor } from "./state/PlayerEquipmentAccessor";
 import { PlayerFollowerPersistState } from "./state/PlayerFollowerPersistState";
+import { PlayerInstanceGraveState, type InstanceGraveSnapshot } from "./state/PlayerInstanceGraveState";
 import { PlayerInventoryState } from "./state/PlayerInventoryState";
 import {
     type InventoryEntry,
@@ -221,6 +222,7 @@ export interface PlayerPersistentVars {
         }>;
     };
     follower?: PlayerFollowerPersistentEntry;
+    instanceGrave?: InstanceGraveSnapshot;
     playTimeSeconds?: number;
 }
 
@@ -240,6 +242,8 @@ export class PlayerState extends Actor {
     lastNpcHealthBarScaled: Map<number, Map<number, number>> = new Map();
     /** Composed follower persistence state (pet item/npc tracking) */
     readonly followers = new PlayerFollowerPersistState();
+    /** Lost items from the player's most recent instanced death. */
+    readonly instanceGrave = new PlayerInstanceGraveState();
     /** Composed skill system (levels, XP, hitpoints, status effects, restoration) */
     readonly skillSystem: PlayerSkillSystem;
 
