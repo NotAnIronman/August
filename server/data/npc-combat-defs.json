@@ -105,7 +105,10 @@
         "block": 3990,
         "magic": 3992,
         "attack": 3992,
-        "death": 3993
+        "death": 3993,
+        "specials": [
+          7135
+        ]
       }
     },
     "499": {
@@ -1432,6 +1435,15 @@
         "death": 836
       }
     },
+    "3127": {
+      "anims": {
+        "ranged": 2652,
+        "attack": 2655,
+        "magic": 2656,
+        "block": 2653,
+        "death": 2654
+      }
+    },
     "3129": {
       "name": "K'ril Tsutsaroth",
       "anims": {
@@ -2057,6 +2069,17 @@
         "death": 3310
       }
     },
+    "5862": {
+      "anims": {
+        "magic": 4490,
+        "attack": 4493,
+        "melee": 4491,
+        "specials": [
+          4492
+        ],
+        "death": 4495
+      }
+    },
     "6224": {
       "name": "Rat",
       "anims": {
@@ -2403,6 +2426,45 @@
         "ranged": 7183
       }
     },
+    "7525": {
+      "anims": {
+        "ranged": 7433,
+        "attack": 7433,
+        "melee": 7441,
+        "death": 7442
+      }
+    },
+    "7530": {
+      "anims": {
+        "ranged": 7454,
+        "attack": 7454,
+        "magic": 7455,
+        "melee": 7454
+      }
+    },
+    "7540": {
+      "anims": {
+        "melee": 7483,
+        "attack": 7494,
+        "block": 7493,
+        "death": 7495
+      }
+    },
+    "7561": {
+      "anims": {
+        "melee": 7420,
+        "attack": 7424,
+        "ranged": 7421,
+        "magic": 7422
+      }
+    },
+    "7566": {
+      "anims": {
+        "death": 7415,
+        "magic": 7409,
+        "attack": 7409
+      }
+    },
     "7656": {
       "anims": {
         "attack": 64,
@@ -2423,6 +2485,14 @@
         "attack": 64,
         "block": 65,
         "death": 67
+      }
+    },
+    "7706": {
+      "anims": {
+        "block": 7565,
+        "death": 7562,
+        "magic": 7566,
+        "attack": 7566
       }
     },
     "7806": {
@@ -2474,6 +2544,78 @@
         "death": 4659
       }
     },
+    "8338": {
+      "anims": {
+        "death": 8063
+      }
+    },
+    "8354": {
+      "anims": {
+        "death": 7998,
+        "ranged": 7989,
+        "attack": 8004,
+        "melee": 7990
+      }
+    },
+    "8355": {
+      "anims": {
+        "ranged": 7989,
+        "attack": 7990,
+        "magic": 8001,
+        "melee": 8004,
+        "death": 8005
+      }
+    },
+    "8356": {
+      "anims": {
+        "ranged": 7989,
+        "attack": 7990,
+        "melee": 7990,
+        "death": 7991,
+        "magic": 7989
+      }
+    },
+    "8357": {
+      "anims": {
+        "ranged": 7999,
+        "attack": 8001,
+        "melee": 8001,
+        "death": 7998
+      }
+    },
+    "8359": {
+      "anims": {
+        "specials": [
+          8082
+        ],
+        "death": 8085
+      }
+    },
+    "8360": {
+      "anims": {
+        "magic": 8091,
+        "attack": 8091,
+        "ranged": 8092,
+        "death": 8094
+      }
+    },
+    "8387": {
+      "anims": {
+        "attack": 8138,
+        "ranged": 8139,
+        "death": 8140,
+        "melee": 8138
+      }
+    },
+    "8388": {
+      "anims": {
+        "magic": 8139,
+        "attack": 8136,
+        "melee": 8138,
+        "ranged": 8139,
+        "death": 8140
+      }
+    },
     "8583": {
       "anims": {
         "ranged": 8224,
@@ -2481,6 +2623,22 @@
         "magic": 8223,
         "death": 8225,
         "melee": 8221
+      }
+    },
+    "8615": {
+      "anims": {
+        "attack": 8234,
+        "melee": 8235,
+        "ranged": 8236,
+        "block": 8233
+      }
+    },
+    "8633": {
+      "anims": {
+        "attack": 8308,
+        "death": 8310,
+        "melee": 8308,
+        "ranged": 8309
       }
     },
     "8700": {
@@ -2526,6 +2684,22 @@
         "death": 3835
       }
     },
+    "9021": {
+      "anims": {
+        "specials": [
+          8418
+        ],
+        "melee": 8420,
+        "attack": 8420
+      }
+    },
+    "9022": {
+      "anims": {
+        "ranged": 8419,
+        "attack": 8419,
+        "melee": 8420
+      }
+    },
     "9026": {
       "name": "Giant rat",
       "anims": {
@@ -2562,6 +2736,19 @@
       },
       "sounds": {
         "death": 4625
+      }
+    },
+    "9049": {
+      "anims": {
+        "attack": 8431,
+        "death": 8440,
+        "specials": [
+          8439
+        ],
+        "magic": 8432,
+        "block": 8436,
+        "ranged": 8433,
+        "melee": 8435
       }
     },
     "9209": {
@@ -2666,6 +2853,13 @@
         "attack": 2705,
         "block": 2706,
         "death": 2707
+      }
+    },
+    "10572": {
+      "anims": {
+        "death": 8900,
+        "magic": 8905,
+        "attack": 8905
       }
     },
     "10682": {
@@ -2822,6 +3016,49 @@
         ]
       }
     },
+    "12191": {
+      "anims": {
+        "attack": 10176,
+        "ranged": 10177,
+        "death": 10181,
+        "magic": 10180
+      }
+    },
+    "12204": {
+      "anims": {
+        "attack": 10234,
+        "ranged": 10236,
+        "block": 10238,
+        "death": 10260
+      }
+    },
+    "12214": {
+      "anims": {
+        "attack": 10283,
+        "melee": 10284,
+        "ranged": 10286,
+        "block": 10287,
+        "magic": 10289,
+        "death": 10293
+      }
+    },
+    "12223": {
+      "anims": {
+        "attack": 10340,
+        "melee": 10341,
+        "death": 10346
+      }
+    },
+    "12821": {
+      "anims": {
+        "melee": 10885,
+        "attack": 10883,
+        "specials": [
+          10884
+        ],
+        "death": 10888
+      }
+    },
     "13011": {
       "anims": {
         "melee": 11001,
@@ -2863,6 +3100,18 @@
         "death": 2707
       }
     },
+    "13668": {
+      "anims": {
+        "ranged": 11484,
+        "attack": 11487,
+        "death": 11481,
+        "magic": 11476,
+        "melee": 11483,
+        "specials": [
+          11482
+        ]
+      }
+    },
     "13685": {
       "anims": {
         "specials": [
@@ -2883,6 +3132,13 @@
         ],
         "melee": 11973,
         "magic": 11979
+      }
+    },
+    "14176": {
+      "anims": {
+        "melee": 12148,
+        "attack": 12148,
+        "death": 12161
       }
     },
     "14707": {
@@ -2908,6 +3164,15 @@
         ],
         "death": 12482,
         "attack": 12483
+      }
+    },
+    "14860": {
+      "anims": {
+        "attack": 12552,
+        "melee": 12553,
+        "ranged": 12554,
+        "magic": 12555,
+        "death": 12557
       }
     },
     "15628": {

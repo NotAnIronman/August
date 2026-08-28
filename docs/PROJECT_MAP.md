@@ -5,44 +5,44 @@ without requiring knowledge of the entire engine.
 
 ## Top-level ownership
 
-| Path | Owns | Does not own |
-| --- | --- | --- |
-| `client/` | Browser input, cache decoding, rendering, widgets, audio, and WebSocket client behavior | Authoritative game rules or persistence |
-| `server/src/` | Reusable game engine, networking, tick loop, persistence infrastructure, combat framework, instances | Rules tied to one game mode |
-| `server/gamemodes/{id}/` | A world's content, progression, quests, skills, shops, NPC definitions, and rule providers | Cross-world engine primitives |
-| `server/extrascripts/{id}/` | Optional content that works with any game mode | A game mode's required core content |
-| `server/data/` | Reviewed, committed runtime inputs and generated runtime snapshots | Logs, temporary downloads, or mutable player state |
-| `server/scripts/` | Cache, data, audit, import, and diagnostic maintenance commands | Runtime request handling |
-| `docs/` | Contributor, architecture, operations, and parity documentation | Runtime source data |
-| `references/` | External research/bootstrap sources with explicit provenance | Unreviewed runtime truth |
+|            Path             |                                         Owns                                                         |               Does not own                    |
+| ---                         | ---                                                                                                  | ---                                           |
+| `client/`                   | Browser input, cache decoding, rendering, widgets, audio, and WebSocket client behavior              | Authoritative game rules or persistence       |
+| `server/src/`               | Reusable game engine, networking, tick loop, persistence infrastructure, combat framework, instances | Rules tied to one game mode                   |
+| `server/gamemodes/{id}/`    | A world's content, progression, quests, skills, shops, NPC definitions, and rule providers           | Cross-world engine primitives                 |
+| `server/extrascripts/{id}/` | Optional content that works with any game mode                                                       | A game mode's required core content           |
+| `server/data/`              | Reviewed, committed runtime inputs and generated runtime snapshots                                   | Logs, temp downloads, or mutable player state |
+| `server/scripts/`           | Cache, data, audit, import, and diagnostic maintenance commands                                      | Runtime request handling                      |
+| `docs/`                     | Contributor, architecture, operations, and parity documentation                                      | Runtime source data                           |
+| `references/`               | External research/bootstrap sources with explicit provenance                                         | Unreviewed runtime truth                      |
 
 ## Common changes
 
-| I want to change… | Start here | Related locations |
-| --- | --- | --- |
-| Boss/encounter framework | `server/src/game/encounters/` | `server/src/world/InstancedAreaManager.ts`, game-mode boss content |
-| Instance lifecycle or maps | `server/src/world/` | `client/common/instance/`, `server/src/game/encounters/` |
-| Player death or instance graves | `server/src/game/death/` | `server/src/game/state/PlayerInstanceGraveState.ts` |
-| Combat calculations | `server/src/game/combat/` | `server/gamemodes/{id}/combat/`, `client/common/combat/` |
-| A Vanilla skill | `server/gamemodes/vanilla/skills/` | shared action contracts under `server/src/game/actions/` |
-| A quest | `server/gamemodes/vanilla/quests/definitions/` | quest registry/service in the parent folder |
-| NPCs, shops, drops, or spawns | `server/gamemodes/vanilla/{npcs,shops,data}/` | reviewed snapshots in `server/data/` |
-| A developer command | `server/src/network/commands/` | permission checks in `server/src/network/` |
-| Login/account behavior | `server/src/network/AuthenticationService.ts` | `AccountStore.ts`, game-mode persistence data |
-| Packet format | `client/common/network/` and `client/common/packets/` | client decoder and server encoding/handlers |
-| Client movement/sync | `client/game/{movement,sync,worldview}/` | server network managers |
-| 3D rendering | `client/render/` | `client/game/render/`, shaders and loaders |
-| Native/cache widgets | `client/widgets/` | game-mode widget scripts under `server/gamemodes/{id}/widgets/` |
-| React application shell | `client/components/` | keep game/render logic out of React components |
-| Cache export tooling | `client/scripts/cache/` | consumers in `server/scripts/` and `server/data/` |
-| Project documentation | `docs/` | add the page to `docs/.vitepress/config.mts` |
+|      I want to change…          |                  Start here                           |                        Related locations                           |
+| ---                             | ---                                                   | ---                                                                |
+| Boss/encounter framework        | `server/src/game/encounters/`                         | `server/src/world/InstancedAreaManager.ts`, game-mode boss content |
+| Instance lifecycle or maps      | `server/src/world/`                                   | `client/common/instance/`, `server/src/game/encounters/`           |
+| Player death or instance graves | `server/src/game/death/`                              | `server/src/game/state/PlayerInstanceGraveState.ts`                |
+| Combat calculations             | `server/src/game/combat/`                             | `server/gamemodes/{id}/combat/`, `client/common/combat/`           |
+| A Vanilla skill                 | `server/gamemodes/vanilla/skills/`                    | shared action contracts under `server/src/game/actions/`           |
+| A quest                         | `server/gamemodes/vanilla/quests/definitions/`        | quest registry/service in the parent folder                        |
+| NPCs, shops, drops, or spawns   | `server/gamemodes/vanilla/{npcs,shops,data}/`         | reviewed snapshots in `server/data/`                               |
+| A developer command             | `server/src/network/commands/`                        | permission checks in `server/src/network/`                         |
+| Login/account behavior          | `server/src/network/AuthenticationService.ts`         | `AccountStore.ts`, game-mode persistence data                      |
+| Packet format                   | `client/common/network/` and `client/common/packets/` | client decoder and server encoding/handlers                        |
+| Client movement/sync            | `client/game/{movement,sync,worldview}/`              | server network managers                                            |
+| 3D rendering                    | `client/render/`                                      | `client/game/render/`, shaders and loaders                         |
+| Native/cache widgets            | `client/widgets/`                                     | game-mode widget scripts under `server/gamemodes/{id}/widgets/`    |
+| React application shell         | `client/components/`                                  | keep game/render logic out of React components                     |
+| Cache export tooling            | `client/scripts/cache/`                               | consumers in `server/scripts/` and `server/data/`                  |
+| Project documentation           | `docs/`                                               | add the page to `docs/.vitepress/config.mts`                       |
 
 ## Dependency direction
 
 ```text
 game-mode content ───────► server engine ───────► shared client/common + cache types
-browser application ───────────────────────────► shared client/common + cache types
-maintenance tools ───────► reviewed data and public service APIs
+browser application ────────────────────────────► shared client/common + cache types
+maintenance tools ──────────────────────────────► reviewed data and public service APIs
 ```
 
 The server engine must not import a specific game mode. Game modes contribute
