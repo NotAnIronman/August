@@ -1117,11 +1117,17 @@ export class LoginHandshakeService {
                     player.widgets.setDispatcher(undefined);
 
                     this.svc.sailingInstanceManager?.disposeInstance(player);
+                    // Private instances end immediately on disconnect. Do not let
+                    // combat orphaning retain a player in a destroyed world view.
+                    const disconnectedFromInstance =
+                        this.svc.instancedAreaManager?.get(player.id) !== undefined;
                     this.svc.instancedAreaManager?.dispose(player);
                     this.svc.worldEntityInfoEncoder.removePlayer(player.id);
 
                     const currentTick = this.svc.ticker.currentTick();
-                    const wasOrphaned = this.svc.players?.orphanPlayer(ws, saveKey, currentTick);
+                    const wasOrphaned = disconnectedFromInstance
+                        ? false
+                        : this.svc.players?.orphanPlayer(ws, saveKey, currentTick);
 
                     if (wasOrphaned) {
                         logger.info(

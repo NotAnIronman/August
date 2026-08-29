@@ -34,4 +34,8 @@ assert.deepEqual(messages, [
 
 onNpcKilled?.(player, { typeId: 3130 }, 2);
 assert.equal(messages.length, 2, "bodyguards must not count as boss kills");
+
+onNpcKilled?.(player, { typeId: 2205 }, 3);
+assert.equal(stats.get(483)?.count1, 1);
+assert.equal(messages.at(-1), "Commander Zilyana killcount : 1");
 console.log("boss killcount tests passed");
