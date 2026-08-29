@@ -21,6 +21,14 @@ export interface MapSquare {
     canRender(frameCount: number): boolean;
 
     delete(): void;
+
+    /**
+     * Frees GPU resources only, without touching any NPCs tracked at these
+     * map-square coordinates. Optional so implementers that don't need the
+     * distinction (or don't track NPCs) can omit it; addMap() falls back to
+     * delete() when absent.
+     */
+    disposeGpuResources?(): void;
 }
 
 export class MapManager<T extends MapSquare> {
@@ -291,7 +299,22 @@ export class MapManager<T extends MapSquare> {
         this._lastUsed.set(mapId, this._useCounter++);
         if (prev && prev !== mapSquare) {
             try {
-                prev.delete();
+                // A replacement map is taking over these coordinates (e.g. an
+                // overworld square being swapped for a freshly-loaded private
+                // instance square at the same mapX/mapY, since instances reuse
+                // the overworld's own map-square id space). By this point the
+                // new map's own NPCs may already be registered under that same
+                // map-square bucket, so only free the old map's GPU resources
+                // here — never run its NPC cleanup, or it wipes NPCs that
+                // aren't actually leftovers, they just happen to share
+                // coordinates with the map being replaced. True removal (a
+                // square leaving relevance with nothing replacing it) still
+                // goes through removeMap()'s full delete().
+                if (prev.disposeGpuResources) {
+                    prev.disposeGpuResources();
+                } else {
+                    prev.delete();
+                }
             } catch (error) {
                 console.log("[MapManager] Failed to delete replaced map", {
                     mapX: mapX | 0,

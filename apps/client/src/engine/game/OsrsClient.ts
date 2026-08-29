@@ -7234,26 +7234,6 @@ export class OsrsClient {
         const localY = this.npcEcs.getTargetY(ecsId) | 0;
         const running = move.traversals?.some?.((t) => (t | 0) === 2) ?? false;
 
-        // --- TEMP DIAGNOSTIC: remove once the first-sync NPC offset is found ---
-        const __diagExisting = this.npcEcs.getServerState?.(ecsId);
-        if (!__diagExisting) {
-            console.log("[npc-movement-diag] no existingState at first movement update", {
-                serverId,
-                ecsId,
-                size: this.npcEcs.getSize(ecsId),
-                mapX,
-                mapY,
-                localX,
-                localY,
-                mapBaseX,
-                mapBaseY,
-                targetXRaw: this.npcEcs.getTargetX(ecsId),
-                targetYRaw: this.npcEcs.getTargetY(ecsId),
-                directions: move.directions,
-            });
-        }
-        // --- END TEMP DIAGNOSTIC ---
-
         this.npcMovementSync.applyNpcUpdate(
             {
                 serverId,
