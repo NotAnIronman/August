@@ -850,6 +850,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             create: (player, spec) => deps.instancedAreaManager.create(player, spec),
             get: (playerId) => deps.instancedAreaManager.get(playerId),
             getById: (instanceId) => deps.instancedAreaManager.getById(instanceId),
+            getMemberPlayers: (instanceId) =>
+                deps.instancedAreaManager.getMemberPlayers(instanceId),
             listJoinable: (definitionId) =>
                 deps.instancedAreaManager.listJoinable(definitionId),
             join: (player, instanceId) => deps.instancedAreaManager.join(player, instanceId),

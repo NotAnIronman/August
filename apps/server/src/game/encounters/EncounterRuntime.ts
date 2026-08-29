@@ -65,6 +65,7 @@ export class EncounterRuntime {
         targetId: number;
         targetDistance: number;
         targetProtectingFromMelee?: boolean;
+        targetIsAttackingNpc?: boolean;
     }): PlannedEncounterAttack | undefined {
         if (this.lifecycle === "dead" || this.lifecycle === "disposed") return undefined;
         if (this.plannedAttack?.targetId === input.targetId) {
@@ -232,6 +233,7 @@ export class EncounterRuntime {
         targetId: number;
         targetDistance: number;
         targetProtectingFromMelee?: boolean;
+        targetIsAttackingNpc?: boolean;
     }): EncounterContext {
         return {
             tick: Math.trunc(input.tick),
@@ -246,6 +248,7 @@ export class EncounterRuntime {
             phaseId: this.phaseId,
             previousAttackId: this.previousAttackId,
             targetProtectingFromMelee: input.targetProtectingFromMelee === true,
+            targetIsAttackingNpc: input.targetIsAttackingNpc === true,
         };
     }
 

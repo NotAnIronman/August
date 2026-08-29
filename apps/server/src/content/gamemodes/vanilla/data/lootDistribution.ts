@@ -12,9 +12,9 @@ export const NPC_LOOT_CONFIGS: Map<number, NpcLootConfig> = new Map([
 
     // God Wars Dungeon - highest damage with MVP consideration
     [2215, { distribution: "most-valuable-player" }], // General Graardor
-    [3162, { distribution: "most-valuable-player" }], // K'ril Tsutsaroth
+    [3162, { distribution: "most-valuable-player" }], // Kree'arra
     [2205, { distribution: "most-valuable-player" }], // Commander Zilyana
-    [3129, { distribution: "most-valuable-player" }], // Kree'arra
+    [3129, { distribution: "most-valuable-player" }], // K'ril Tsutsaroth
 
     // Corporeal Beast - shared loot
     [319, { distribution: "shared", sharedLootThreshold: 0.1, minDamageThreshold: 100 }],

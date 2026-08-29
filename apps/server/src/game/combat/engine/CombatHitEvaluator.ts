@@ -16,6 +16,10 @@ import {
     getSpellData,
 } from "@server/game/spells/SpellDataProvider";
 import { AttackType } from "@server/game/combat/AttackType";
+import {
+    HALBERD_WEAPON_CATEGORY,
+    SALAMANDER_WEAPON_CATEGORY,
+} from "@server/game/combat/CombatRules";
 import { getAttackStyle as getWeaponAttackStyle } from "@server/game/combat/WeaponDataProvider";
 import {
     HIT_CHANCE_SCALE,
@@ -127,6 +131,7 @@ export class CombatHitEvaluator {
             ignoreProtectionPrayer: attack.traits.effects?.ignoreProtectionPrayer,
             guaranteedHit: attack.traits.effects?.guaranteedHit,
             minimumDamageOverride: attack.traits.effects?.minimumHit,
+            defenceRollAttackType: attack.traits.effects?.defenceRollAttackType,
         });
     }
 
@@ -258,6 +263,31 @@ export class CombatHitEvaluator {
 
         const target = this.options.resolveEntity(attack.target);
         if (!target) return this.invalid(attack, "target_not_found", attacker);
+
+        // Kree'arra is airborne: melee can only connect with the extended
+        // reach supplied by a halberd or a salamander's melee style.
+        if (
+            attacker instanceof PlayerState &&
+            target instanceof NpcState &&
+            target.typeId === 3162 &&
+            attack.traits.type === AttackType.Melee &&
+            attacker.combat.weaponCategory !== HALBERD_WEAPON_CATEGORY &&
+            attacker.combat.weaponCategory !== SALAMANDER_WEAPON_CATEGORY
+        ) {
+            return Object.freeze({
+                valid: true,
+                attack,
+                attacker,
+                target,
+                attackRoll: 0,
+                defenceRoll: 0,
+                hitChance: 0,
+                maxHit: 0,
+                landed: false,
+                preProtectionDamage: 0,
+                damage: 0,
+            });
+        }
 
         const rollAttack = this.withRollAttackType(attack, special.rollAttackType);
         const rolls = this.buildRollProfile(
