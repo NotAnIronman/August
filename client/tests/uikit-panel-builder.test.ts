@@ -48,6 +48,37 @@ const controls = buildUiPanel(groupId + 1, {
 const controlsUid = (componentId: number) => (((groupId + 1) & 0xffff) << 16) | componentId;
 assert.equal(controls.widgets.get(controlsUid(ComponentIds.CONTROL_BACKGROUND_BASE))?.actions?.[0], "Select");
 assert.equal(controls.widgets.get(controlsUid(ComponentIds.CONTROL_LABEL_BASE))?.isHidden, true);
+// Bug #6: buttons/footer buttons previously had no default cacheUiAsset at
+// all (only tabs had one), so any panel that didn't explicitly pass
+// skin.button rendered flat, untextured placeholder rectangles.
+assert.equal(
+    controls.widgets.get(controlsUid(ComponentIds.CONTROL_BACKGROUND_BASE))?.cacheUiAsset,
+    "cache.sprite.293.0",
+);
+assert.equal(
+    controls.widgets.get(controlsUid(ComponentIds.CONTROL_BACKGROUND_BASE))?.cacheUiAssetHover,
+    "cache.sprite.294.0",
+);
+const footer = buildUiPanel(groupId + 4, {
+    width: 520, height: 240, footerButton: true,
+    content: { rowKind: "text", rowHeight: 18, scrollbarWidth: 0 },
+});
+const footerUid = (componentId: number) => (((groupId + 4) & 0xffff) << 16) | componentId;
+assert.equal(
+    footer.widgets.get(footerUid(ComponentIds.FOOTER_BUTTON))?.cacheUiAsset,
+    "cache.sprite.293.0",
+);
+// An explicit skin.button override still wins over the new default.
+const skinnedControls = buildUiPanel(groupId + 5, {
+    width: 520, height: 240, controls: {},
+    content: { rowKind: "text", rowHeight: 18, scrollbarWidth: 0 },
+    skin: { button: { backgroundAsset: "cache.sprite.999.0" } },
+});
+const skinnedUid = (componentId: number) => (((groupId + 5) & 0xffff) << 16) | componentId;
+assert.equal(
+    skinnedControls.widgets.get(skinnedUid(ComponentIds.CONTROL_BACKGROUND_BASE))?.cacheUiAsset,
+    "cache.sprite.999.0",
+);
 assert.throws(
     () => buildUiPanel(groupId + 3, {
         width: 1, height: 1, footerButton: true, controls: {},

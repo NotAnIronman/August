@@ -128,7 +128,7 @@ const services = {
     },
     location: { removeTemporaryLoc: () => ({}) },
     skills: { addSkillXp: () => undefined },
-    data: { getObjType: () => ({ stackable: 0 }) },
+    data: { getObjType: () => ({ stackability: 0 }) },
     dialog: {
         getInterfaceService: () => ({ getCurrentChatboxModal: () => undefined }),
         openDialog: (_player: unknown, spec: { onContinue?: () => void }) => spec.onContinue?.(),

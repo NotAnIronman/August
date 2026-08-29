@@ -114,6 +114,35 @@ function testRegistryValidation(): void {
             }),
         /preferred distance/,
     );
+    const namedSpecial = {
+        ...testDefinition(),
+        id: "named-special",
+        npcTypeIds: [2000],
+        attacks: [
+            {
+                ...testDefinition().attacks[0],
+                id: "ground-slam",
+                animation: { special: "ground-slam" },
+            },
+        ],
+        phases: undefined,
+    } satisfies EncounterDefinition;
+    new EncounterRegistry().register(namedSpecial);
+    assert.throws(
+        () =>
+            new EncounterRegistry().register({
+                ...namedSpecial,
+                id: "invalid-named-special",
+                npcTypeIds: [2001],
+                attacks: [
+                    {
+                        ...namedSpecial.attacks[0],
+                        animation: { special: "bad/name" },
+                    },
+                ],
+            }),
+        /special animation reference/,
+    );
 }
 
 function testConditionalAndStickyAttackPlanning(): void {

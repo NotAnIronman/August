@@ -34,6 +34,7 @@ sendPublic(
         },
     } as any,
     0,
+    null,
 );
 
 assert.ok(sentPacket);
@@ -56,6 +57,7 @@ sendPublic(
         varManager: { setVarcString: () => {} },
     } as any,
     0,
+    null,
 );
 assert.ok(sentPacket);
 assert.deepEqual(decodeClientPacket(sentPacket), {
@@ -76,6 +78,7 @@ sendClan(
         varManager: { setVarcString: () => {} },
     } as any,
     0,
+    null,
 );
 assert.equal(sentPacket, undefined);
 

@@ -14,6 +14,7 @@ import {
     failGatheringPrecheck,
 } from "../gatheringPrecheck";
 import {
+    type MiningRockDefinition,
     type PickaxeDefinition,
     buildMiningLocMap,
     getMiningRockById,
@@ -51,10 +52,11 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     const locId = data.rockLocId;
     const rockId = data.rockId;
     const rock =
-        (rockId ? getMiningRockById(rockId) : undefined) ?? services.getMiningRock?.(locId);
+        (rockId ? getMiningRockById(rockId) : undefined) ??
+        (services.getMiningRock?.(locId) as MiningRockDefinition | undefined);
 
     if (!rock) {
-        return failMiningPrecheck(player, services, "You can't mine that rock.");
+        return failGatheringPrecheck(player, services, "You can't mine that rock.");
     }
 
     const tile = { x: data.tile.x, y: data.tile.y };
@@ -63,18 +65,18 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     const nodeKey = buildTileKey(tile, plane);
 
     if (services.gathering?.getTracker("mining")?.has(nodeKey)) {
-        return failMiningPrecheck(player, services, "The rock is depleted of ore.");
+        return failGatheringPrecheck(player, services, "The rock is depleted of ore.");
     }
 
     if (!services.location.isAdjacentToLoc(player, locId, tile, plane)) {
-        return failMiningPrecheck(player, services, "You stop mining the rock.");
+        return failGatheringPrecheck(player, services, "You stop mining the rock.");
     }
 
     const skill = services.skills.getSkill(player, SkillId.Mining);
     const effectiveLevel = Math.max(1, (skill?.baseLevel ?? 1) + (skill?.boost ?? 0));
 
     if (effectiveLevel < rock.level) {
-        return failMiningPrecheck(
+        return failGatheringPrecheck(
             player,
             services,
             `You need Mining level ${rock.level} to mine this rock.`,
@@ -85,7 +87,7 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     const equippedWeaponId = services.equipment.getEquippedItem(player, 3) ?? 0;
     const pickaxe = selectPickaxeByLevel(carriedIds, effectiveLevel, equippedWeaponId);
     if (!pickaxe) {
-        return failMiningPrecheck(
+        return failGatheringPrecheck(
             player,
             services,
             "You need a pickaxe that you have the Mining level to use.",
@@ -94,7 +96,7 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     const hasEchoPickaxePerk = ECHO_PICKAXE_ITEM_IDS.includes(pickaxe.itemId);
 
     if (!hasEchoPickaxePerk && !services.inventory.hasInventorySlot(player)) {
-        return failMiningPrecheck(
+        return failGatheringPrecheck(
             player,
             services,
             "Your inventory is too full to hold any more ore.",
@@ -150,7 +152,7 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
         if (hasEchoPickaxePerk) {
             const banked = services.banking?.addItemToBank?.(player, rock.oreItemId, 1);
             if (!banked) {
-                return failMiningPrecheck(
+                return failGatheringPrecheck(
                     player,
                     services,
                     "Your bank is too full to hold any more ore.",
@@ -160,7 +162,7 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
         } else {
             const result = services.inventory.addItemToInventory(player, rock.oreItemId, 1);
             if (result.added <= 0) {
-                return failMiningPrecheck(
+                return failGatheringPrecheck(
                     player,
                     services,
                     "Your inventory is too full to hold any more ore.",
@@ -284,7 +286,9 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     }
     for (const action of MINING_ACTIONS) {
         registry.registerLocAction(action, (event) => {
-            const rock = services.getMiningRock?.(event.locId);
+            const rock = services.getMiningRock?.(event.locId) as
+                | MiningRockDefinition
+                | undefined;
             if (!rock) return;
             const delay = 0;
             const result = services.combat.requestAction(

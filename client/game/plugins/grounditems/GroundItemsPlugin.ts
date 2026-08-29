@@ -209,7 +209,7 @@ function valueByMode(
 
 function buildLabel(stack: ClientGroundItemStack, config: GroundItemsPluginConfig): string {
     const qtyLabel =
-        stack.quantity > 1 ? ` (${formatCompact(Math.max(1, stack.quantity | 0))})` : "";
+        stack.quantity > 1 ? ` x ${formatCompact(Math.max(1, stack.quantity | 0))}` : "";
     const baseLabel = `${stack.name}${qtyLabel}`;
     if (config.priceDisplayMode === "off" || (stack.itemId | 0) === COINS_ITEM_ID) {
         return baseLabel;
@@ -492,7 +492,7 @@ export class GroundItemsPlugin {
         if ((stack.quantity | 0) <= 1) {
             return name;
         }
-        return `${name} (${formatWithCommas(stack.quantity)})`;
+        return `${name} x ${formatWithCommas(stack.quantity)}`;
     }
 
     getMenuTargetColorized(stack: ClientGroundItemStack, targetName: string): string {

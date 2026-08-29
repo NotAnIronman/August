@@ -140,17 +140,33 @@ export class ViewportEnumService {
      * @returns Component UID for the specified display mode
      */
     getComponent(baseUid: number, displayMode: DisplayMode): number {
-        const mapping =
-            displayMode === DisplayMode.FIXED
-                ? this.fixedMapping
-                : displayMode === DisplayMode.RESIZABLE_LIST
-                  ? this.resizableListMapping
-                  : displayMode === DisplayMode.FULLSCREEN
-                    ? this.fullscreenMapping
-                    : displayMode === DisplayMode.MOBILE
-                      ? this.mobileMapping
-                      : this.resizableMapping;
+        const mapping = this.mappingForDisplayMode(displayMode);
         return mapping.get(baseUid) ?? baseUid;
+    }
+
+    /**
+     * True when the cache enum for this display mode actually defines a
+     * mapping for baseUid. getComponent() falls back to returning baseUid
+     * itself when unmapped, which silently produces a nonsensical UID for
+     * callers that assume the result is always a real, renderable widget
+     * (e.g. the boss health bar HUD, which isn't present in every display
+     * mode's enum) - callers that need to know the difference should check
+     * this first rather than trusting getComponent()'s result blindly.
+     */
+    hasComponent(baseUid: number, displayMode: DisplayMode): boolean {
+        return this.mappingForDisplayMode(displayMode).has(baseUid);
+    }
+
+    private mappingForDisplayMode(displayMode: DisplayMode): Map<number, number> {
+        return displayMode === DisplayMode.FIXED
+            ? this.fixedMapping
+            : displayMode === DisplayMode.RESIZABLE_LIST
+              ? this.resizableListMapping
+              : displayMode === DisplayMode.FULLSCREEN
+                ? this.fullscreenMapping
+                : displayMode === DisplayMode.MOBILE
+                  ? this.mobileMapping
+                  : this.resizableMapping;
     }
 
     /**

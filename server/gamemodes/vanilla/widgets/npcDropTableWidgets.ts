@@ -26,6 +26,12 @@ export type NpcDropViewer = {
 
 function categoryLabel(pool: NpcDropPool): string {
     switch (pool.category) {
+        case "pre_roll":
+            return "Pre-roll";
+        case "unique":
+            return "Unique";
+        case "secondary":
+            return "Secondary drops";
         case "weapons_armour":
             return "Equipment";
         case "runes_ammo":
@@ -36,6 +42,8 @@ function categoryLabel(pool: NpcDropPool): string {
             return "Other";
         case "tertiary":
             return "Tertiary";
+        case "shared":
+            return "Rare drop table";
         default:
             return "Main drops";
     }

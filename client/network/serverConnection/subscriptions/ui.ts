@@ -1,5 +1,6 @@
 import { cloneRunEnergyState, state } from "../state";
 import { cloneShopState, cloneSmithingState, cloneTradeState } from "../domain/defaults";
+import { cloneCollectionLogCategoryCompletion } from "../domain/inventory";
 import { cloneGroundItemsPayload } from "../utils/groundItems";
 import type {
     BankServerUpdate,
@@ -94,6 +95,14 @@ export function subscribeCollectionLog(
         cb({
             kind: "snapshot",
             slots: state.lastCollectionLogSnapshot.map((slot) => ({ ...slot })),
+        });
+    }
+    if (state.lastCollectionLogCategoryCompletion) {
+        cb({
+            kind: "category_completion",
+            completionByTab: cloneCollectionLogCategoryCompletion(
+                state.lastCollectionLogCategoryCompletion,
+            ),
         });
     }
     return () => state.collectionLogListeners.delete(cb);

@@ -13,6 +13,8 @@ import {
     getFreeToPlayQuestContent,
     type FreeToPlayQuestContent,
 } from "../quests/content/freeToPlay";
+import { getMembersQuestContent } from "../quests/content/members";
+import { getMiniquestContent } from "../quests/content/miniquests";
 import {
     buildQuestMap,
     getQuestCompletionInfo,
@@ -77,7 +79,10 @@ function buildJournalLines(
         return definition.buildJournal(player, services);
     }
 
-    const freeToPlayContent = getFreeToPlayQuestContent(quest.displayName);
+    const freeToPlayContent =
+        getFreeToPlayQuestContent(quest.displayName) ??
+        getMembersQuestContent(quest.displayName) ??
+        getMiniquestContent(quest.displayName);
     if (freeToPlayContent) {
         return buildFreeToPlayQuestJournal(freeToPlayContent);
     }
@@ -312,7 +317,10 @@ function openQuestJournal(player: PlayerState, quest: QuestEntry, services: Scri
 
     // Show the "View Quest Overview" switch button, if this quest has one.
     const definition = getQuestDefinition(quest.displayName);
-    const freeToPlayContent = getFreeToPlayQuestContent(quest.displayName);
+    const freeToPlayContent =
+        getFreeToPlayQuestContent(quest.displayName) ??
+        getMembersQuestContent(quest.displayName) ??
+        getMiniquestContent(quest.displayName);
     sendUiInfoColumnRows(
         services,
         playerId,
@@ -338,7 +346,10 @@ function openQuestJournal(player: PlayerState, quest: QuestEntry, services: Scri
 function openQuestOverview(player: PlayerState, quest: QuestEntry, services: ScriptServices): void {
     const playerId = player.id;
     const definition = getQuestDefinition(quest.displayName);
-    const freeToPlayContent = getFreeToPlayQuestContent(quest.displayName);
+    const freeToPlayContent =
+        getFreeToPlayQuestContent(quest.displayName) ??
+        getMembersQuestContent(quest.displayName) ??
+        getMiniquestContent(quest.displayName);
     if (!freeToPlayContent && !definition?.overviewStartText) {
         services.system.logger.info?.(
             `[quest-journal] No overview start text for quest="${quest.displayName}" (dbrow=${quest.dbrowId})`,

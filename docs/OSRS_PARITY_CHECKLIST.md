@@ -138,7 +138,7 @@ Confirmed present as real implementation folders under
 ## World Content
 
 - [CODE] Achievement diaries (`diaryJournalWidgets.ts`,
-  `diaryVarbits.ts`) — not tested
+  `gamemodes/vanilla/data/loginVarbits.ts`) — not tested
 - [CODE] Sailing (a real, substantial custom system — `SailingInstance`,
   docked collision, deck flooding — confirmed initializing correctly in
   logs when tested this session for an unrelated dialogue test, but not

@@ -54,6 +54,20 @@ export class CombatTickEngine {
         const clock = this.mapClock(currentMapClock);
         const preparedAttacks: CombatAttack[] = [];
         const statuses = new Map<CombatInteractionStatus | "waiting", number>();
+        const resolvedTraits = new Map<
+            CombatEntity,
+            { target: CombatEntity; traits: CombatAttackTraits | null }
+        >();
+        const resolveTraits = (
+            attacker: CombatEntity,
+            target: CombatEntity,
+        ): CombatAttackTraits | null => {
+            const cached = resolvedTraits.get(attacker);
+            if (cached?.target === target) return cached.traits;
+            const traits = this.options.resolveAttackTraits(attacker, target);
+            resolvedTraits.set(attacker, { target, traits });
+            return traits;
+        };
         let activeInteractions = 0;
 
         for (const attacker of this.options.getCombatants()) {
@@ -71,7 +85,7 @@ export class CombatTickEngine {
             const interaction = this.interactionProcessor.process(
                 attacker,
                 clock,
-                this.options.resolveAttackTraits,
+                resolveTraits,
             );
             if (interaction.status !== "ready" || !interaction.target || !interaction.traits) {
                 this.incrementStatus(statuses, interaction.status);

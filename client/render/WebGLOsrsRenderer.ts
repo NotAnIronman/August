@@ -238,9 +238,35 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
     public locAnimTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
     /** When true, an instance scene is active and normal map streaming is suppressed. */
     public instanceActive: boolean = false;
+    /**
+     * True only after the current instance map payload has been applied to
+     * MapManager. NPC geometry must not target the pre-rebuild map while false.
+     */
+    public instanceSceneReady: boolean = false;
+    /** Monotonic token used to discard late async instance builds. */
+    public instanceSceneGeneration: number = 0;
+    /** Remains true through worker completion until the payload is committed. */
+    public instanceSceneBuildPending: boolean = false;
+    /** Latest settings requested while another instance build is pending. */
+    public instanceScenePendingSettings: {
+        smoothTerrain: boolean;
+        loadNpcs: boolean;
+    } | null = null;
+    /** Last committed scene state, retained for transactional failure recovery. */
+    public instanceSceneFallbackState: {
+        active: boolean;
+        ready: boolean;
+        templateChunks: number[][][] | null;
+        regionX: number;
+        regionY: number;
+        smoothTerrain: boolean;
+        loadNpcs: boolean;
+    } | null = null;
     public instanceTemplateChunks: number[][][] | null = null;
     public instanceRegionX: number = 0;
     public instanceRegionY: number = 0;
+    /** Coalesced loc change waiting for the current instance payload to commit. */
+    public instanceLocRebuildPending: boolean = false;
     public instanceLocRebuildTimer: ReturnType<typeof setTimeout> | null = null;
     /** Active world entity overlays (rendered on top of normal world). */
     public worldEntityOverlays: Map<
@@ -1461,6 +1487,7 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
         playerMapX: number,
         playerMapY: number,
         replaceExistingMaps: boolean = false,
+        instanceSceneGeneration?: number,
     ): Promise<boolean> {
         return render.doInstanceSceneBuild(
             this,
@@ -1470,7 +1497,23 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
             playerMapX,
             playerMapY,
             replaceExistingMaps,
+            instanceSceneGeneration,
         );
+    }
+
+    public markInstanceSceneCommitted(mapData: SdMapData): void {
+        return render.markInstanceSceneCommitted(this, mapData);
+    }
+
+    public failInstanceSceneCommit(mapData: SdMapData, error: unknown): void {
+        return render.failInstanceSceneCommit(this, mapData, error);
+    }
+
+    public requestInstanceSceneSettingsRebuild(
+        smoothTerrain: boolean,
+        loadNpcs: boolean,
+    ): void {
+        return render.requestInstanceSceneSettingsRebuild(this, smoothTerrain, loadNpcs);
     }
 
     public getInstanceExtraLocs(

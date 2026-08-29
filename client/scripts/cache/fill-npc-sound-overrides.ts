@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 
-import { resolveCache } from "../../mcp/lib/cache";
-import { NpcSoundLookup } from "../../server/src/audio/NpcSoundLookup";
+import { resolveCache } from "../../../mcp/lib/cache";
+import { NpcSoundLookup } from "../../../server/src/audio/NpcSoundLookup";
 import { DbRepository } from "../../rs/config/db/DbRepository";
 
 type SoundTuple = {
@@ -89,7 +89,7 @@ function pickRule(name: string): Rule | undefined {
 }
 
 async function main() {
-    const root = path.resolve(__dirname, "../../");
+    const root = path.resolve(__dirname, "../../../");
     const overridesPath = path.resolve(root, "server/data/npc-sounds.overrides.json");
     const overridesRaw = fs.existsSync(overridesPath) ? loadJson<any>(overridesPath) : { npcs: {} };
     const overrides = ensureOverrideShape(overridesRaw);

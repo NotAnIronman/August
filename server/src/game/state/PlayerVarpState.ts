@@ -11,6 +11,10 @@ import {
     VARP_SHOP_QUANTITY,
     VARP_SOUND_EFFECTS_VOLUME,
 } from "../../../../client/common/vars";
+import {
+    BossHealthBarVar,
+    BossHealthBarVarbit,
+} from "../../../../client/common/ui/bossHealthBar";
 import type { PersistentSubState } from "./PersistentSubState";
 
 /** Varps that should persist even when their value is 0. */
@@ -22,10 +26,20 @@ const ZERO_PERSISTENT_VARPS = new Set<number>([
 ]);
 
 /** Varps that are session-only and must NOT be saved to disk. */
-const NON_PERSISTENT_VARPS = new Set<number>([VARP_COMBAT_TARGET_PLAYER_INDEX, VARP_SHOP_QUANTITY]);
+const NON_PERSISTENT_VARPS = new Set<number>([
+    VARP_COMBAT_TARGET_PLAYER_INDEX,
+    VARP_SHOP_QUANTITY,
+    BossHealthBarVar.NpcType,
+]);
 
 /** Varbits that are session-only and must NOT be saved to disk. */
-const NON_PERSISTENT_VARBITS = new Set<number>([VARBIT_HAM_TRAPDOOR, VARBIT_SHOP_QUANTITY]);
+const NON_PERSISTENT_VARBITS = new Set<number>([
+    VARBIT_HAM_TRAPDOOR,
+    VARBIT_SHOP_QUANTITY,
+    BossHealthBarVarbit.Current,
+    BossHealthBarVarbit.Maximum,
+    BossHealthBarVarbit.Boss,
+]);
 
 /** Varbits that should persist even when their value is 0. */
 const ZERO_PERSISTENT_VARBITS = new Set<number>([

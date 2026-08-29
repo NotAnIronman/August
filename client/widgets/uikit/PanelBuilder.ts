@@ -9,6 +9,13 @@ export type WidgetGroupLoadResult = {
     widgets: Map<number, WidgetNode>;
 };
 
+type UiPanelMenuButtonsLayout = NonNullable<UiPanelLayout["menuButtons"]>;
+
+/** PanelBuilder supports compact developer grids beyond the shared two-column default. */
+export type UiPanelBuildLayout = Omit<UiPanelLayout, "menuButtons"> & {
+    menuButtons?: Omit<UiPanelMenuButtonsLayout, "columns"> & { columns?: number };
+};
+
 const SIDEBAR_TOP = 36;
 const TAB_HEIGHT = 22;
 const CONTENT_TOP = 36;
@@ -88,7 +95,7 @@ function makeWidget(
 const MAINMODAL_SAFE_WIDTH = 512;
 const MAINMODAL_SAFE_HEIGHT = 334;
 
-export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGroupLoadResult {
+export function buildUiPanel(groupId: number, layout: UiPanelBuildLayout): WidgetGroupLoadResult {
     if (!Number.isInteger(groupId) || groupId < 0) {
         throw new RangeError("UIKit panel groupId must be a non-negative integer");
     }
@@ -147,8 +154,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     const tabActiveAsset =
         layout.tabs?.backgroundHoverAsset ?? layout.skin?.tabs?.activeAsset ??
         NATIVE_UIKIT_SKIN.tabs.activeAsset;
-    const buttonBackgroundAsset = layout.skin?.button?.backgroundAsset;
-    const buttonHoverAsset = layout.skin?.button?.hoverAsset;
+    const buttonBackgroundAsset =
+        layout.skin?.button?.backgroundAsset ?? NATIVE_UIKIT_SKIN.button.backgroundAsset;
+    const buttonHoverAsset =
+        layout.skin?.button?.hoverAsset ?? NATIVE_UIKIT_SKIN.button.hoverAsset;
     const inputBackgroundAsset = layout.skin?.input?.backgroundAsset;
     const inputHoverAsset = layout.skin?.input?.hoverAsset;
     const sidebarWidth =
@@ -593,7 +602,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
             const rawY = i * rowHeight;
 
             if (iconRowBackgroundLayerUid !== undefined) {
-                const config = alternatingRowConfig === true ? {} : alternatingRowConfig;
+                const config =
+                    typeof alternatingRowConfig === "object" && alternatingRowConfig !== null
+                        ? alternatingRowConfig
+                        : {};
                 const background = makeWidget(
                     groupId,
                     ComponentIds.ICON_ROW_BACKGROUND_BASE + i,
@@ -746,7 +758,7 @@ export function buildUiPanel(groupId: number, layout: UiPanelLayout): WidgetGrou
     }
 
     if (layout.menuButtons) {
-        const columns = layout.menuButtons.columns ?? 2;
+        const columns = Math.max(1, Math.trunc(layout.menuButtons.columns ?? 2));
         const gap = layout.menuButtons.gap ?? 8;
         const rows = Math.max(1, layout.menuButtons.rows ?? 4);
         const requestedButtonHeight = layout.menuButtons.buttonHeight ?? 52;

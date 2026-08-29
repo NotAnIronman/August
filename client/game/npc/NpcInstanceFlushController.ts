@@ -188,8 +188,15 @@ export class NpcInstanceFlushController {
             !!renderer.waterTextures &&
             !!renderer.sceneUniformBuffer;
         const mapManager = renderer?.mapManager as MapManager<any> | undefined;
+        // instanceActive is set before the async scene build completes. An old
+        // overworld map can therefore still occupy the same map-square id. Do
+        // not consume the pending NPC refresh until the replacement map has
+        // actually been committed by the render frame.
+        const instanceSceneCommitted =
+            !renderer?.instanceActive || renderer.instanceSceneReady !== false;
         const mapManagerReady =
             !!mapManager &&
+            instanceSceneCommitted &&
             (renderer.instanceActive ||
                 ((mapManager.currentMapX | 0) >= 0 && (mapManager.currentMapY | 0) >= 0));
 

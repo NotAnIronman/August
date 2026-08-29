@@ -1,5 +1,6 @@
 import type { CombatAttack } from "../../model/CombatAttack";
 import {
+    WeaponSpecialAttackTargetPattern,
     type WeaponSpecialAttackScript,
     setWeaponSpecialAttackTraitOverrides,
 } from "../WeaponSpecialAttackScript";
@@ -7,6 +8,7 @@ import {
 const DRAGON_CROSSBOW_ITEM_ID = 21902;
 const ANNIHILATE_ENERGY_COST = 60;
 const ANNIHILATE_PRIMARY_DAMAGE_MULTIPLIER = 1.2;
+const ANNIHILATE_TARGETING = Object.freeze({ pattern: WeaponSpecialAttackTargetPattern.TargetSquare, width: 3, maxTargets: 9, requiresMultiCombat: true, secondaryDamageMultiplier: 0.8 });
 
 /**
  * Annihilate deals 20% additional damage to its primary target. In OSRS, it
@@ -23,6 +25,7 @@ export class DragonCrossbowSpec implements WeaponSpecialAttackScript {
         setWeaponSpecialAttackTraitOverrides(attack, {
             hitCount: 1,
             damageMultiplier: ANNIHILATE_PRIMARY_DAMAGE_MULTIPLIER,
+            targeting: ANNIHILATE_TARGETING,
         });
     }
 

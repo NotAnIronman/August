@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-import { resolveCache } from "../../mcp/lib/cache";
+import { resolveCache } from "../../../mcp/lib/cache";
 import { DbRepository } from "../../rs/config/db/DbRepository";
 import { NpcType } from "../../rs/config/npctype/NpcType";
 
@@ -285,7 +285,7 @@ async function main() {
         }
     }
 
-    const spawnsPath = path.resolve(__dirname, "../../server/data/npc-spawns.json");
+    const spawnsPath = path.resolve(__dirname, "../../../server/data/npc-spawns.json");
     const spawnRows = JSON.parse(fs.readFileSync(spawnsPath, "utf8")) as Array<{ id: number }>;
     const spawnedIds = new Set<number>((spawnRows || []).map((row) => Number(row.id) | 0));
 
@@ -449,7 +449,7 @@ async function main() {
         .map(([name, value]) => ({ name, ...value }))
         .sort((a, b) => b.count - a.count);
 
-    const dataDir = path.resolve(__dirname, "../../server/data");
+    const dataDir = path.resolve(__dirname, "../../../server/data");
     const generatedPath = path.join(dataDir, "npc-sounds.generated.json");
     const unresolvedPath = path.join(dataDir, "npc-sounds.unresolved.json");
     const overridesPath = path.join(dataDir, "npc-sounds.overrides.json");

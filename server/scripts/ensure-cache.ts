@@ -2,12 +2,29 @@ import AdmZip from "adm-zip";
 import fs from "fs";
 import path from "path";
 
+import {
+    assertCacheLockOwned,
+    type CacheLockOptions,
+    type CacheLockOwnership,
+    heartbeatCacheLock,
+    reclaimStaleCacheLock,
+    releaseCacheLock,
+    startCacheLockHeartbeat,
+    tryAcquireCacheLock,
+} from "./ensure-cache-lock";
+import { publishStagedCache, writeMergedCacheManifest } from "./ensure-cache-publish";
+import {
+    isCacheInstallationValid,
+    parseOpenRs2XteaKeys,
+} from "./ensure-cache-validation";
+
 const OPENRS2_API = "https://archive.openrs2.org";
 /** server/ package root (this file lives in server/scripts/) */
 const SERVER_ROOT = path.resolve(__dirname, "..");
 const CACHES_DIR = path.join(SERVER_ROOT, "caches");
 const TARGET_FILE = path.join(SERVER_ROOT, "target.txt");
 const LOCK_FILE = path.join(CACHES_DIR, ".cache-download.lock");
+const CACHES_MANIFEST_FILE = path.join(CACHES_DIR, "caches.json");
 const LOCK_POLL_MS = 1000;
 const LOCK_STALE_MS = 10 * 60 * 1000;
 
@@ -29,47 +46,16 @@ type OpenRS2CacheEntry = {
     size: number;
 };
 
-function acquireLock(): boolean {
-    const lockPath = LOCK_FILE;
-    fs.mkdirSync(path.dirname(lockPath), { recursive: true });
-
-    if (fs.existsSync(lockPath)) {
-        try {
-            const stat = fs.statSync(lockPath);
-            if (Date.now() - stat.mtimeMs > LOCK_STALE_MS) {
-                console.log("[CacheDownloader] Removing stale lock file");
-                fs.unlinkSync(lockPath);
-            }
-        } catch {}
-    }
-
-    try {
-        fs.writeFileSync(lockPath, `${process.pid}`, { flag: "wx" });
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-function releaseLock(): void {
-    try {
-        fs.unlinkSync(LOCK_FILE);
-    } catch {}
-}
+const CACHE_LOCK_OPTIONS: CacheLockOptions = {
+    lockPath: LOCK_FILE,
+    staleMs: LOCK_STALE_MS,
+};
 
 async function waitForLock(): Promise<void> {
-    const lockPath = LOCK_FILE;
-    console.log("[CacheDownloader] Another process is downloading the cache, waiting...");
-    while (fs.existsSync(lockPath)) {
-        try {
-            const stat = fs.statSync(lockPath);
-            if (Date.now() - stat.mtimeMs > LOCK_STALE_MS) {
-                console.log("[CacheDownloader] Lock appears stale, removing");
-                fs.unlinkSync(lockPath);
-                break;
-            }
-        } catch {
-            break;
+    while (fs.existsSync(LOCK_FILE)) {
+        if (reclaimStaleCacheLock(CACHE_LOCK_OPTIONS)) {
+            console.log("[CacheDownloader] Reclaimed stale cache download lock");
+            return;
         }
         await new Promise((resolve) => setTimeout(resolve, LOCK_POLL_MS));
     }
@@ -92,8 +78,7 @@ function parseTargetName(target: string): { revision: number; date: string } {
 }
 
 function isCacheValid(cacheDir: string): boolean {
-    const required = ["main_file_cache.dat2", "main_file_cache.idx255", "info.json", "keys.json"];
-    return required.every((f) => fs.existsSync(path.join(cacheDir, f)));
+    return isCacheInstallationValid(cacheDir);
 }
 
 function cacheMatchesRevision(cacheDir: string, expectedRevision: number): boolean {
@@ -186,35 +171,45 @@ async function downloadWithProgress(url: string, label: string): Promise<Buffer>
     return Buffer.concat(chunks);
 }
 
-async function downloadCache(entry: OpenRS2CacheEntry, cacheDir: string): Promise<void> {
+function refreshOwnedLock(ownership: CacheLockOwnership): void {
+    if (!heartbeatCacheLock(ownership)) assertCacheLockOwned(ownership);
+}
+
+async function downloadCache(
+    entry: OpenRS2CacheEntry,
+    cacheDir: string,
+    ownership: CacheLockOwnership,
+): Promise<void> {
     fs.mkdirSync(cacheDir, { recursive: true });
 
+    refreshOwnedLock(ownership);
     console.log(`[CacheDownloader] Downloading cache files (id=${entry.id})...`);
     const zipBuffer = await downloadWithProgress(
         `${OPENRS2_API}/caches/${entry.scope}/${entry.id}/disk.zip`,
         "Downloading cache archive...",
     );
 
+    refreshOwnedLock(ownership);
     console.log("[CacheDownloader] Extracting cache files...");
     const zip = new AdmZip(zipBuffer);
     zip.extractEntryTo("cache/", cacheDir, false, true);
 
+    refreshOwnedLock(ownership);
     console.log("[CacheDownloader] Downloading XTEA keys...");
     const keysResp = await fetch(`${OPENRS2_API}/caches/${entry.scope}/${entry.id}/keys.json`);
-    let xteas: Record<string, number[]> = {};
-    if (keysResp.ok) {
-        const keys: Array<{ group: number; key: number[] }> = await keysResp.json();
-        for (const k of keys) {
-            xteas[k.group.toString()] = k.key;
-        }
+    if (!keysResp.ok) {
+        throw new Error(
+            `XTEA key download failed: ${keysResp.status} ${keysResp.statusText}`,
+        );
     }
+    const xteas = parseOpenRs2XteaKeys(await keysResp.json(), entry.valid_keys);
 
     fs.writeFileSync(path.join(cacheDir, "keys.json"), JSON.stringify(xteas), "utf8");
     fs.writeFileSync(path.join(cacheDir, "info.json"), JSON.stringify(entry), "utf8");
+    refreshOwnedLock(ownership);
 }
 
 function writeCachesJson(target: string, entry: OpenRS2CacheEntry): void {
-    const cachesJsonPath = path.resolve(CACHES_DIR, "caches.json");
     const cacheEntry = {
         name: target,
         game: entry.game,
@@ -224,7 +219,7 @@ function writeCachesJson(target: string, entry: OpenRS2CacheEntry): void {
         size: entry.size ?? 0,
     };
 
-    fs.writeFileSync(cachesJsonPath, JSON.stringify([cacheEntry]), "utf8");
+    writeMergedCacheManifest(CACHES_MANIFEST_FILE, cacheEntry);
 }
 
 /**
@@ -234,7 +229,7 @@ function writeCachesJson(target: string, entry: OpenRS2CacheEntry): void {
  * wrong cache.  The validated target's own info.json is sufficient to repair
  * the manifest without another download.
  */
-function refreshCacheManifestFromDisk(target: string, cacheDir: string): void {
+function refreshCacheManifestFromDisk(target: string, cacheDir: string): boolean {
     const infoPath = path.join(cacheDir, "info.json");
     try {
         const entry = JSON.parse(fs.readFileSync(infoPath, "utf8")) as OpenRS2CacheEntry;
@@ -243,10 +238,17 @@ function refreshCacheManifestFromDisk(target: string, cacheDir: string): void {
         }
         writeCachesJson(target, entry);
         console.log(`[CacheDownloader] Cache manifest set to "${target}"`);
+        return true;
     } catch (error) {
-        throw new Error(
-            `Validated cache '${target}' has unreadable metadata at ${infoPath}: ${String(error)}`,
+        // A cache can be replaced by another startup process after the caller
+        // validates it but before this manifest refresh reads info.json. Treat
+        // that short-lived or interrupted state as invalid so ensureCache can
+        // safely acquire the download lock and publish a fully validated
+        // replacement; never leave the whole server unable to start.
+        console.warn(
+            `[CacheDownloader] Cache metadata is unreadable at ${infoPath}; refreshing the cache: ${String(error)}`,
         );
+        return false;
     }
 }
 
@@ -260,40 +262,37 @@ async function ensureCache(): Promise<void> {
     if (isCacheValid(cacheDir) && cacheMatchesRevision(cacheDir, revision)) {
         // Keep subsequent cache consumers (item sync, NPC tools, world boot)
         // locked to target.txt even when this directory already existed.
-        refreshCacheManifestFromDisk(target, cacheDir);
-        console.log("[CacheDownloader] Cache is present and valid");
-        return;
+        if (refreshCacheManifestFromDisk(target, cacheDir)) {
+            console.log("[CacheDownloader] Cache is present and valid");
+            return;
+        }
     }
 
     if (isCacheValid(cacheDir)) {
         console.log("[CacheDownloader] Cache metadata does not match target revision; refreshing it");
     }
 
-    if (!acquireLock()) {
-        await waitForLock();
-        if (isCacheValid(cacheDir) && cacheMatchesRevision(cacheDir, revision)) {
-            console.log("[CacheDownloader] Cache is now available (downloaded by another process)");
-            refreshCacheManifestFromDisk(target, cacheDir);
-            return;
-        }
-        if (!acquireLock()) {
-            throw new Error("Failed to acquire cache download lock after waiting");
-        }
+    let ownership = tryAcquireCacheLock(CACHE_LOCK_OPTIONS);
+    if (!ownership) {
+        console.log("[CacheDownloader] Another process is downloading the cache, waiting...");
     }
 
-    try {
-        const cachesRoot = path.resolve(CACHES_DIR);
-        if (fs.existsSync(cachesRoot)) {
-            console.log("[CacheDownloader] Clearing caches/ directory...");
-            const lockPath = path.resolve(LOCK_FILE);
-            const entries = fs.readdirSync(cachesRoot);
-            for (const e of entries) {
-                const fullPath = path.join(cachesRoot, e);
-                if (fullPath === lockPath) continue;
-                fs.rmSync(fullPath, { recursive: true, force: true });
+    while (!ownership) {
+        await waitForLock();
+        if (isCacheValid(cacheDir) && cacheMatchesRevision(cacheDir, revision)) {
+            if (refreshCacheManifestFromDisk(target, cacheDir)) {
+                console.log("[CacheDownloader] Cache is now available (downloaded by another process)");
+                return;
             }
         }
+        ownership = tryAcquireCacheLock(CACHE_LOCK_OPTIONS);
+    }
 
+    startCacheLockHeartbeat(ownership);
+    const stagingCacheDir = path.resolve(CACHES_DIR, `.${target}.download-${ownership.token}`);
+    const backupCacheDir = path.resolve(CACHES_DIR, `.${target}.backup-${ownership.token}`);
+
+    try {
         console.log("[CacheDownloader] Cache missing or incomplete, searching OpenRS2...");
 
         const entry = await findCacheOnOpenRS2(revision, date);
@@ -308,16 +307,42 @@ async function ensureCache(): Promise<void> {
         );
 
         fs.mkdirSync(CACHES_DIR, { recursive: true });
-        await downloadCache(entry, cacheDir);
-        writeCachesJson(target, entry);
+        await downloadCache(entry, stagingCacheDir, ownership);
 
-        if (!isCacheValid(cacheDir)) {
+        if (
+            !isCacheValid(stagingCacheDir) ||
+            !cacheMatchesRevision(stagingCacheDir, revision)
+        ) {
             throw new Error("Cache download completed but validation failed");
         }
 
+        // Do not touch the current cache until its replacement has downloaded
+        // and validated in a token-owned staging directory.
+        refreshOwnedLock(ownership);
+        console.log("[CacheDownloader] Installing validated cache...");
+        publishStagedCache({
+            targetCacheDir: cacheDir,
+            stagingCacheDir,
+            backupCacheDir,
+            manifestPath: CACHES_MANIFEST_FILE,
+            publishManifest: () => writeCachesJson(target, entry),
+            assertOwnership: () => refreshOwnedLock(ownership),
+        });
+
         console.log("[CacheDownloader] Cache downloaded and validated successfully");
     } finally {
-        releaseLock();
+        if (fs.existsSync(stagingCacheDir)) {
+            try {
+                fs.rmSync(stagingCacheDir, { recursive: true, force: true });
+            } catch (error) {
+                console.warn(
+                    `[CacheDownloader] Could not remove staging directory ${stagingCacheDir}: ${String(error)}`,
+                );
+            }
+        }
+        if (!releaseCacheLock(ownership)) {
+            console.warn("[CacheDownloader] Cache lock was no longer owned during cleanup");
+        }
     }
 }
 

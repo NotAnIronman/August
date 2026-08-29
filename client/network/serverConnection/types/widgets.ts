@@ -62,6 +62,11 @@ export type WidgetServerPayload =
           height?: number;
       }
     | {
+          action: "set_transparency";
+          uid: number;
+          transparency: number;
+      }
+    | {
           action: "set_npc_head";
           uid: number;
           npcId: number;

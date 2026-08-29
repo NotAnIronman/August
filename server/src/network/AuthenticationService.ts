@@ -11,7 +11,7 @@ const ADMIN_USERNAMES_ENV = (
     process?.env?.ADMIN_USERNAMES ??
     process?.env?.ADMIN_PLAYERS ??
     process?.env?.ADMIN_NAMES ??
-    "lol,bot"
+    ""
 ).toString();
 
 const ADMIN_USERNAMES = new Set(

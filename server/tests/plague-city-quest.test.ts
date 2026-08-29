@@ -130,7 +130,7 @@ const services = {
         queueWidgetEvent: () => undefined,
     },
     viewport: { getMainmodalUid: () => 0 },
-    data: { getObjType: () => ({ stackable: 0 }) },
+    data: { getObjType: () => ({ stackability: 0 }) },
     skills: {
         addSkillXp: (_player: unknown, skillId: number, amount: number) => {
             if (skillId === SkillId.Mining) miningXp += amount;

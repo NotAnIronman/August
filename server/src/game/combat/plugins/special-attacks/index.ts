@@ -19,6 +19,7 @@ import { RUNE_CLAWS_PROFILE } from "./RuneClawsSpec";
 import { SARADOMIN_GODSWORD_PROFILE } from "./SaradominGodswordSpec";
 import { SARADOMIN_SWORD_PROFILE } from "./SaradominSwordSpec";
 import { SARADOMINS_BLESSED_SWORD_PROFILE } from "./SaradominsBlessedSwordSpec";
+import { SCYTHE_OF_VITUR_PROFILE } from "./ScytheOfViturSpec";
 import { TOXIC_BLOWPIPE_PROFILE } from "./ToxicBlowpipeSpec";
 import { VESTAS_SPEAR_BH_PROFILE } from "./VestasSpearBhSpec";
 import { WEBWEAVER_BOW_PROFILE } from "./WebweaverBowSpec";
@@ -306,6 +307,7 @@ export const CORE_SPECIAL_ATTACK_PROFILES: readonly WeaponCombatProfile[] = Obje
     DRAGON_SPEAR_PROFILE,
     ROSEWOOD_BLOWPIPE_PROFILE,
     SARADOMIN_SWORD_PROFILE,
+    SCYTHE_OF_VITUR_PROFILE,
     VESTAS_SPEAR_BH_PROFILE,
     WEBWEAVER_BOW_PROFILE,
 ]);

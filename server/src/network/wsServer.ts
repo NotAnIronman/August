@@ -22,7 +22,6 @@ import { NpcSoundLookup } from "../audio/NpcSoundLookup";
 import { config } from "../config";
 import { getItemDefinition } from "../data/items";
 import { populateLocEffectsFromLoader } from "../data/locEffects";
-import { GameContext } from "../game/GameContext";
 import type { ServerServices } from "../game/ServerServices";
 import {
     ActionScheduler,
@@ -56,7 +55,11 @@ import type {
 } from "../game/gamemodes/GamemodeDefinition";
 import { getGamemodeDataDir } from "../game/gamemodes/GamemodeRegistry";
 import { GroundItemManager } from "../game/items/GroundItemManager";
-import { NpcState, type NpcUpdateDelta } from "../game/npc";
+import {
+    NPC_SPAWN_ANIMATION_FALLBACK_TICKS,
+    NpcState,
+    type NpcUpdateDelta,
+} from "../game/npc";
 import { NpcManager } from "../game/npcManager";
 import { PlayerManager, PlayerState } from "../game/player";
 import { PrayerSystem } from "../game/prayer/PrayerSystem";
@@ -194,8 +197,12 @@ export class WSServer {
                 this.npcManager?.removeNpc(npcRuntimeId);
             },
         },
-        (npcTypeId, animation) =>
-            this.combatDataService?.resolveNpcEncounterAnimation(npcTypeId, animation),
+        (npcTypeId, animation, selector) =>
+            this.combatDataService?.resolveNpcEncounterAnimation(
+                npcTypeId,
+                animation,
+                selector,
+            ),
     );
     private objTypeLoader?: ObjTypeLoader;
     private locTypeLoader?: LocTypeLoader;
@@ -235,7 +242,6 @@ export class WSServer {
     private messageRouter!: MessageRouter;
 
     // Extracted services (Phase 1)
-    private gameContext!: GameContext;
     private dataLoaderService!: DataLoaderService;
     private authService!: AuthenticationService;
     private networkLayer!: PlayerNetworkLayer;
@@ -682,7 +688,7 @@ export class WSServer {
         this.dataLoaderService = new DataLoaderService(env);
         this.networkLayer = new PlayerNetworkLayer();
         // AuthService created below after we know players is set up
-        // GameContext created below after all Phase 1 services are ready
+        // Phase 1 services are initialized below after core dependencies are ready.
 
         this.cacheFactory = undefined;
         try {
@@ -828,6 +834,7 @@ export class WSServer {
             getPathService: () => this.options.pathService!,
             doorManager: this.doorManager!,
             npcManager: this.npcManager!,
+            encounterManager: this.encounterManager,
             interfaceService: this.interfaceService,
             widgetDialogHandler: undefined!, // Deferred: wired after creation
             prayerSystem: this.prayerSystem,
@@ -1107,9 +1114,25 @@ export class WSServer {
         if (this.npcManager) {
             this.npcManager.setLifecycleHooks({
                 onRemove: (npcId) => this.encounterManager.removeNpc(npcId),
-                onReset: (npcId) => {
+                onReset: (npcId, context) => {
                     const npc = this.npcManager?.getById(npcId);
-                    if (npc) this.encounterManager.ensureForNpc(npc);
+                    if (!npc) return;
+                    this.encounterManager.ensureForNpc(npc);
+                    const spawnAnimation = this.combatDataService?.getNpcSpawnAnimation(
+                        npc.typeId,
+                    );
+                    if (spawnAnimation !== undefined) {
+                        const durationTicks =
+                            this.combatEffectService.estimateNpcSequenceDurationTicks(
+                                spawnAnimation,
+                            ) ?? NPC_SPAWN_ANIMATION_FALLBACK_TICKS;
+                        npc.beginSpawnAnimation(
+                            spawnAnimation,
+                            context.currentTick,
+                            durationTicks,
+                            context.kind === "spawn" ? 1 : 0,
+                        );
+                    }
                 },
             });
             // RSMod parity: Wire up ground item spawner for delayed NPC death drops
@@ -1150,24 +1173,7 @@ export class WSServer {
                     (process.env.ALLOW_LEGACY_ACCOUNT_CLAIM ?? "false").toLowerCase() === "true",
             },
         );
-        this.gameContext = new GameContext({
-            ticker: opts.ticker,
-            gamemode: this.gamemode,
-            npcManager: this.npcManager,
-            pathService: opts.pathService,
-            mapService: opts.mapService,
-            cacheEnv: this.cacheEnv,
-            dataLoaders: this.dataLoaderService,
-            auth: this.authService,
-            network: this.networkLayer,
-        });
-        if (this.players) {
-            this.gameContext.setPlayers(this.players);
-            // movementService.players wired in deferred block below
-        }
-        logger.info(
-            "[services] Phase 1 services initialized (GameContext, DataLoaders, Auth, Network)",
-        );
+        logger.info("[services] Phase 1 services initialized (DataLoaders, Auth, Network)");
 
         // --- Phase 2: Initialize core game services ---
         this.variableService = new VariableService(this.svc);

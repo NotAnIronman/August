@@ -31,6 +31,18 @@ export type GroundItemStack = {
     staticSpawnKey?: string;
 };
 
+/**
+ * Result of an authoritative removal. `restore` is a one-shot, quantity-capped
+ * rollback that puts the same stack record back with its original identity,
+ * ownership, visibility window, expiry, and static-spawn bookkeeping.
+ */
+export type GroundItemRemoval = {
+    removed: number;
+    remaining?: number;
+    staticSpawnKey?: string;
+    restore(quantity?: number): number;
+};
+
 export type SpawnGroundItemOptions = {
     ownerId?: number;
     privateTicks?: number;
@@ -278,7 +290,7 @@ export class GroundItemManager {
         quantity: number,
         currentTick: number,
         requesterPlayerId?: number,
-    ): { removed: number; remaining?: number; staticSpawnKey?: string } | undefined {
+    ): GroundItemRemoval | undefined {
         const idxEntry = this.stacksById.get(stackId);
         if (!idxEntry) return undefined;
         const { key, stack } = idxEntry;
@@ -305,6 +317,7 @@ export class GroundItemManager {
             : 1;
         const removeQty = Math.min(stack.quantity, requestedQty);
         const staticSpawnKey = stack.staticSpawnKey;
+        let restorableQuantity = removeQty;
         stack.quantity -= removeQty;
         if (stack.quantity <= 0) {
             list.splice(listIndex, 1);
@@ -325,6 +338,34 @@ export class GroundItemManager {
             removed: removeQty,
             remaining: stack.quantity > 0 ? stack.quantity : undefined,
             staticSpawnKey,
+            restore: (quantity = restorableQuantity): number => {
+                const requestedRestore = Number.isFinite(quantity)
+                    ? Math.max(0, Math.floor(quantity))
+                    : 0;
+                const restoreQuantity = Math.min(restorableQuantity, requestedRestore);
+                if (restoreQuantity <= 0) return 0;
+
+                const indexed = this.stacksById.get(stack.id);
+                if (indexed?.stack !== stack) {
+                    const restoredList = this.stacksByTile.get(key) ?? [];
+                    if (restoredList.length >= GROUND_ITEM_MAX_STACKS_PER_TILE) return 0;
+                    restoredList.splice(Math.min(listIndex, restoredList.length), 0, stack);
+                    this.stacksByTile.set(key, restoredList);
+                    this.stacksById.set(stack.id, { key, stack });
+                }
+
+                stack.quantity += restoreQuantity;
+                restorableQuantity -= restoreQuantity;
+                if (staticSpawnKey) {
+                    const staticSpawn = this.staticSpawns.get(staticSpawnKey);
+                    if (staticSpawn) {
+                        staticSpawn.activeStackId = stack.id;
+                        staticSpawn.respawnTick = undefined;
+                    }
+                }
+                this.bumpSerial();
+                return restoreQuantity;
+            },
         };
     }
 

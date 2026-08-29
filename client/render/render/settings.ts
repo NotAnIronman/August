@@ -227,11 +227,21 @@ export function clearSceneHslOverride(host: WebGLOsrsRendererHost, ): void {
 
 export function setSmoothTerrain(host: WebGLOsrsRendererHost, enabled: boolean): void {
 
-        const updated = host.smoothTerrain !== enabled;
-        host.smoothTerrain = enabled;
-        if (updated) {
-            host.clearMaps();
+        const normalized = !!enabled;
+        const effectiveSmoothTerrain =
+            host.instanceScenePendingSettings?.smoothTerrain ?? host.smoothTerrain;
+        if (effectiveSmoothTerrain === normalized) return;
+
+        if (host.instanceActive) {
+            host.requestInstanceSceneSettingsRebuild(
+                normalized,
+                host.instanceScenePendingSettings?.loadNpcs ?? host.loadNpcs,
+            );
+            return;
         }
+
+        host.smoothTerrain = normalized;
+        host.clearMaps();
     
 }
 
@@ -309,11 +319,20 @@ export function finishRenderFrame(host: WebGLOsrsRendererHost,
 
 export function setLoadNpcs(host: WebGLOsrsRendererHost, enabled: boolean): void {
 
-        const updated = host.loadNpcs !== enabled;
-        host.loadNpcs = enabled;
-        if (updated) {
-            host.clearMaps();
+        const normalized = !!enabled;
+        const effectiveLoadNpcs = host.instanceScenePendingSettings?.loadNpcs ?? host.loadNpcs;
+        if (effectiveLoadNpcs === normalized) return;
+
+        if (host.instanceActive) {
+            host.requestInstanceSceneSettingsRebuild(
+                host.instanceScenePendingSettings?.smoothTerrain ?? host.smoothTerrain,
+                normalized,
+            );
+            return;
         }
+
+        host.loadNpcs = normalized;
+        host.clearMaps();
     
 }
 

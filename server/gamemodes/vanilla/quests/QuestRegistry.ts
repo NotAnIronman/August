@@ -24,6 +24,7 @@ function normalizeQuestName(name: string): string {
 export function registerQuestDefinition(quest: QuestDefinition): void {
     const key = normalizeQuestKey(quest.key);
     const name = normalizeQuestName(quest.name);
+    const stageBits = "stageBits" in quest ? quest.stageBits : undefined;
     if (key.length === 0) throw new Error("Quest definition key cannot be empty");
     if (name.length === 0) throw new Error(`Quest definition name cannot be empty (key=${key})`);
     const progressSourceCount = Number(quest.varpId !== undefined) + Number(quest.varbitId !== undefined);
@@ -36,11 +37,11 @@ export function registerQuestDefinition(quest: QuestDefinition): void {
     if (quest.varbitId !== undefined && (!Number.isInteger(quest.varbitId) || quest.varbitId < 0)) {
         throw new Error(`Quest \"${quest.name}\" has an invalid varbit id: ${quest.varbitId}`);
     }
-    if (quest.varbitId !== undefined && quest.stageBits !== undefined) {
+    if (quest.varbitId !== undefined && stageBits !== undefined) {
         throw new Error(`Quest \"${quest.name}\" cannot use stageBits with a varbit progress source`);
     }
-    if (quest.stageBits) {
-        const { start, end } = quest.stageBits;
+    if (stageBits) {
+        const { start, end } = stageBits;
         if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end < start || end > 30) {
             throw new Error(
                 `Quest \"${quest.name}\" has an invalid stage bit range: ${start}-${end}`,

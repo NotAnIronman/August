@@ -58,7 +58,7 @@ export const thievingSkillGuide: SkillGuideData = {
                     requires: "",
                 },
                 {
-                    itemId: 617,
+                    itemId: 995,
                     level: 13,
                     name: "Loot the 10 coin chests",
                     requires: "",
@@ -202,7 +202,7 @@ export const thievingSkillGuide: SkillGuideData = {
                     requires: "",
                 },
                 {
-                    itemId: 617,
+                    itemId: 995,
                     level: 43,
                     name: "Loot the 50 coin chests",
                     requires: "",

@@ -2,7 +2,7 @@ import type { ObjType } from "../../../../client/rs/config/objtype/ObjType";
 import type { GamemodeServerServices } from "../../../src/game/gamemodes/GamemodeDefinition";
 import type { PlayerState } from "../../../src/game/player";
 import type { ShoppingServices } from "../../../src/game/scripts/types";
-import { encodeMessage } from "../../../src/network/messages";
+import { encodeMessage, type ShopServerPayload } from "../../../src/network/messages";
 import type { ShopOpenData } from "./ShopInterfaceHooks";
 import type { ShopStockEntry } from "./ShopManager";
 import { ShopManager } from "./ShopManager";
@@ -44,7 +44,7 @@ export class ShopService {
         });
 
         this.ss.registerSnapshotEncoder("shop", (_playerId, payload) => ({
-            message: encodeMessage({ type: "shop", payload }),
+            message: encodeMessage({ type: "shop", payload: payload as ShopServerPayload }),
             context: "shop_event",
         }));
 

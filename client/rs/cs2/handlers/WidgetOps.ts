@@ -8,6 +8,12 @@ import {
 import { markWidgetInteractionDirty } from "../../../widgets/WidgetInteraction";
 import type { WidgetNode } from "../../../widgets/WidgetManager";
 import { getViewportSize } from "../../../common/utils/DeviceUtil";
+import {
+    BossHealthBarComponent,
+    BossHealthBarVarbit,
+    bossHealthBarUid,
+    formatBossHealthValue,
+} from "../../../common/ui/bossHealthBar";
 import { Opcodes } from "../Opcodes";
 import type { HandlerContext, HandlerMap } from "./HandlerTypes";
 
@@ -129,6 +135,21 @@ function getWidgetScriptHeight(ctx: HandlerContext, w: WidgetNode | null | undef
     }
 
     return Math.max(1, Math.round((height * viewportHeight) / canvasHeight));
+}
+
+/**
+ * Cache script 2103 owns the native bar's fill and value label, but the live
+ * game's preference is either count or percent. August deliberately shows
+ * both, while retaining every other cache-native lifecycle/layout behavior.
+ */
+function getWidgetTextOverride(ctx: HandlerContext, widget: WidgetNode, text: string): string {
+    if ((widget.uid | 0) !== (bossHealthBarUid(BossHealthBarComponent.Value) | 0)) {
+        return text;
+    }
+    return formatBossHealthValue(
+        ctx.varManager.getVarbit(BossHealthBarVarbit.Current),
+        ctx.varManager.getVarbit(BossHealthBarVarbit.Maximum),
+    );
 }
 
 // Helper to get current clientclock (game ticks)
@@ -1518,9 +1539,10 @@ export function registerWidgetOps(handlers: HandlerMap): void {
 
     // === Text ===
     handlers.set(Opcodes.CC_SETTEXT, (ctx, intOp) => {
-        const text = ctx.stringStack[--ctx.stringStackSize];
+        const sourceText = ctx.stringStack[--ctx.stringStackSize];
         const w = getTargetWidget(ctx, intOp);
         if (w) {
+            const text = getWidgetTextOverride(ctx, w, sourceText);
             // PERF: Only invalidate if value actually changed
             if (w.text !== text) {
                 w.text = text;
@@ -1533,8 +1555,9 @@ export function registerWidgetOps(handlers: HandlerMap): void {
     handlers.set(Opcodes.IF_SETTEXT, (ctx) => {
         // Pop order: widget first (top of intStack), then text (from stringStack)
         const w = getWidgetFromStack(ctx);
-        const text = ctx.stringStack[--ctx.stringStackSize];
+        const sourceText = ctx.stringStack[--ctx.stringStackSize];
         if (w) {
+            const text = getWidgetTextOverride(ctx, w, sourceText);
             // PERF: Only invalidate if value actually changed
             if (w.text !== text) {
                 w.text = text;

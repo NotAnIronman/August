@@ -89,7 +89,7 @@ const services = {
         getSkill: () => ({ baseLevel: 20, boost: 0 }),
         addSkillXp: (_player: unknown, skillId: number, amount: number) => xp.set(skillId, (xp.get(skillId) ?? 0) + amount),
     },
-    data: { getObjType: (itemId: number) => itemId === ITEM.knife ? { name: "Knife", bonuses: [] } : { stackable: 0 } },
+    data: { getObjType: (itemId: number) => itemId === ITEM.knife ? { name: "Knife", bonuses: [] } : { stackability: 0 } },
     movement: {
         teleportPlayer: (_player: unknown, x: number, y: number, level: number) => {
             teleports.push({ x, y, level });

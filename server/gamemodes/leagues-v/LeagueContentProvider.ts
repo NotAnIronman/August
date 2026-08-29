@@ -16,7 +16,7 @@ export interface GamemodeDataPayload {
     gamemodeId: string;
     datasets: Array<{
         key: string;
-        rows: unknown[];
+        rows: readonly unknown[];
     }>;
 }
 

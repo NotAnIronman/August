@@ -97,7 +97,7 @@ const services = {
         addSkillXp: (_player: unknown, skillId: number, amount: number) =>
             xp.set(skillId, (xp.get(skillId) ?? 0) + amount),
     },
-    data: { getObjType: () => ({ stackable: 0 }) },
+    data: { getObjType: () => ({ stackability: 0 }) },
     groundItems: {
         spawn: (itemId: number, _quantity: number, _tile: unknown, options: { ownerId?: number }) => {
             drops.push({ itemId, ownerId: options.ownerId });

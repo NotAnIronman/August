@@ -87,18 +87,27 @@ const getDragonfireCharges = (player: PlayerState & Record<symbol, unknown>): nu
 
 const getDayKey = (): number => Math.floor(Date.now() / MS_PER_DAY);
 
+function isExplorerRingState(value: unknown): value is { dayKey: number; used: number } {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        "dayKey" in value &&
+        typeof value.dayKey === "number" &&
+        "used" in value &&
+        typeof value.used === "number"
+    );
+}
+
 const getExplorerRingState = (
     player: PlayerState & Record<symbol, unknown>,
 ): { dayKey: number; used: number } => {
-    let state = player?.[explorerRingStateKey];
+    const state = player?.[explorerRingStateKey];
     const today = getDayKey();
-    if (!state) {
-        state = { dayKey: today, used: 0 };
-    } else if (state.dayKey !== today) {
-        state = { dayKey: today, used: 0 };
-    }
-    player[explorerRingStateKey] = state;
-    return state;
+    const currentState = isExplorerRingState(state) ? state : undefined;
+    const nextState =
+        currentState?.dayKey === today ? currentState : { dayKey: today, used: 0 };
+    player[explorerRingStateKey] = nextState;
+    return nextState;
 };
 
 export function registerEquipmentHandlers(

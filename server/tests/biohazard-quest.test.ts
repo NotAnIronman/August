@@ -78,7 +78,7 @@ const services = {
         addSkillXp: (_player: unknown, skillId: number, amount: number) => xp.set(skillId, (xp.get(skillId) ?? 0) + amount),
         getSkill: () => ({ baseLevel: 99, boost: 0 }),
     },
-    data: { getObjType: () => ({ stackable: 0 }) },
+    data: { getObjType: () => ({ stackability: 0 }) },
     npc: {
         findNearbyNpc: () => undefined,
         spawnNpc: (config: { id: number }) => { spawned.push(config.id); return { id: 1_000 + spawned.length, typeId: config.id }; },

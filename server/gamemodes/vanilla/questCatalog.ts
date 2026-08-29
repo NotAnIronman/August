@@ -1,5 +1,6 @@
 import type { GamemodeQuestListGroup } from "../../src/game/gamemodes/GamemodeDefinition";
 import { FREE_TO_PLAY_QUEST_CONTENT } from "./quests/content/freeToPlay";
+import { MEMBERS_QUEST_CONTENT } from "./quests/content/members";
 
 /** Canonical display record for one quest-list entry. */
 export interface QuestCatalogEntry {
@@ -210,6 +211,12 @@ const FREE_TO_PLAY_QUEST_NAMES = new Set<string>(
 for (const quest of FREE_TO_PLAY_QUEST_CONTENT) {
     if (!QUEST_DISPLAY_NAMES.includes(quest.displayName)) {
         throw new Error(`Free-to-play quest is missing from the display catalog: ${quest.displayName}`);
+    }
+}
+
+for (const quest of MEMBERS_QUEST_CONTENT) {
+    if (!QUEST_DISPLAY_NAMES.includes(quest.displayName)) {
+        throw new Error(`Members quest is missing from the display catalog: ${quest.displayName}`);
     }
 }
 

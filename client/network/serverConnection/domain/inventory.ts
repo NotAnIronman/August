@@ -1,6 +1,19 @@
 import type { CollectionLogServerPayload, InventoryServerUpdate } from "../types";
 import { state } from "../state";
 
+export function cloneCollectionLogCategoryCompletion(
+    completionByTab: Record<number, boolean[]>,
+): Record<number, boolean[]> {
+    const clone: Record<number, boolean[]> = {};
+    for (const [tabIndex, completion] of Object.entries(completionByTab)) {
+        const parsedTabIndex = Number(tabIndex);
+        if (!Number.isInteger(parsedTabIndex) || parsedTabIndex < 0) continue;
+        if (!Array.isArray(completion)) continue;
+        clone[parsedTabIndex] = completion.map((isComplete) => isComplete === true);
+    }
+    return clone;
+}
+
 export function emitInventory(update: InventoryServerUpdate): void {
     if (update.kind === "snapshot") {
         state.lastInventorySnapshot = update.slots.map((slot) => ({ ...slot }));
@@ -30,7 +43,8 @@ export function emitCollectionLog(update: CollectionLogServerPayload): void {
     if (update.kind === "snapshot") {
         state.lastCollectionLogSnapshot = update.slots.map((slot) => ({ ...slot }));
     } else if (update.kind === "category_completion") {
-        state.lastCollectionLogCategoryCompletion = update.completionByTab;
+        state.lastCollectionLogCategoryCompletion =
+            cloneCollectionLogCategoryCompletion(update.completionByTab);
     }
 
     for (const listener of state.collectionLogListeners) {
@@ -38,7 +52,12 @@ export function emitCollectionLog(update: CollectionLogServerPayload): void {
             if (update.kind === "snapshot") {
                 listener({ kind: "snapshot", slots: update.slots.map((slot) => ({ ...slot })) });
             } else if (update.kind === "category_completion") {
-                listener({ kind: "category_completion", completionByTab: update.completionByTab });
+                listener({
+                    kind: "category_completion",
+                    completionByTab: cloneCollectionLogCategoryCompletion(
+                        update.completionByTab,
+                    ),
+                });
             }
         } catch (err) {
             console.warn("collection log listener error", err);

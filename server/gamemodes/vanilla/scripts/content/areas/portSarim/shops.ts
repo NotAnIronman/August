@@ -8,10 +8,9 @@ import {
     openShopFromEvent,
     sayNpc,
     sayPlayer,
-    startNpcConversation,
 } from "../../../../npcs/dialogue";
 import { registerShopTalkMany, type ShopTalkDefinition } from "../../../../npcs/shopTalk";
-import { registerTalkTo } from "../../../../npcs/helpers";
+import { registerTalkTo, startNpcConversation } from "../../../../npcs/helpers";
 
 const BETTY = 5905;
 const BRIAN_AXES = 2892; // Battleaxe Bazaar — not Rimmington archery Brian 8694

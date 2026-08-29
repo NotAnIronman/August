@@ -112,7 +112,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
             for (const entry of inventory) {
                 const itemId = entry.itemId;
                 if (!BURIABLE_BONES_XP.has(itemId)) continue;
-                if (services.data.getObjType(itemId)?.noted) continue;
+                if ((services.data.getObjType(itemId)?.noteTemplate ?? -1) !== -1) continue;
                 let available = Math.max(0, entry.quantity);
                 while (available > 0 && processed < maxBones) {
                     if (!consume(player, entry.slot)) {

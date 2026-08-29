@@ -43,7 +43,13 @@ This installs the root command runner, server dependencies, and client dependenc
 yarn start
 ```
 
-This starts both processes in the same terminal. Press `Ctrl+C` to stop them.
+This starts both configured server worlds and the client in the same terminal. Press `Ctrl+C` to stop them.
+
+To run only the Vanilla world and the client:
+
+```bash
+yarn start:vanilla
+```
 
 To start only the game server:
 
@@ -146,10 +152,12 @@ Run the first three commands from the repository root. Package-specific maintena
 
 | Command | Description |
 | ------- | ----------- |
-| `yarn setup` | Install the server and client and build collision data |
+| `yarn setup` | Install root, server, client, and docs dependencies, ensure the cache, and build collision data |
 | `yarn start` | Start the game server and web client together |
+| `yarn start:vanilla` | Start World 1 and the web client |
 | `yarn server` | Start only the game server |
 | `yarn client` | Start only the web client |
+| `yarn check` | Typecheck the server runtime plus client app/tools/tests, run cache-independent tests, and build docs |
 | `cd server && yarn ensure-cache` | Manually download the OSRS cache |
 | `cd client && yarn typecheck` | Typecheck the client |
 | `cd server && yarn typecheck` | Typecheck the server |

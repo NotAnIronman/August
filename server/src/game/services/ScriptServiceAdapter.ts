@@ -51,6 +51,7 @@ import { getSkillcapeSeqId, getSkillcapeSpotId } from "../equipment";
 import type { GameEventBus } from "../events/GameEventBus";
 import type { FollowerCombatManager } from "../followers/FollowerCombatManager";
 import type { FollowerManager } from "../followers/FollowerManager";
+import type { EncounterManager } from "../encounters/EncounterManager";
 import {
     FOLLOWER_ITEM_DEFINITIONS,
     getFollowerDefinitionByItemId,
@@ -71,6 +72,7 @@ import type {
     ScriptGroundItem,
     ScriptServices,
 } from "../scripts/types";
+import type { FollowerServiceFacade } from "../scripts/serviceInterfaces";
 import { triggerLocEffect } from "../scripts/utils/locEffects";
 import { RuneValidator } from "../spells/RuneValidator";
 import type { PersistenceProvider } from "../state/PersistenceProvider";
@@ -121,6 +123,7 @@ export interface ScriptServiceAdapterDeps {
     getPathService: () => PathService;
     doorManager: DoorStateManager;
     npcManager: NpcManager;
+    encounterManager: EncounterManager;
     interfaceService: InterfaceService;
     widgetDialogHandler: WidgetDialogHandler;
     prayerSystem: PrayerSystem;
@@ -346,7 +349,7 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             openSmithingBarModal: undefined,
             getBarTypeByItemId: (_itemId) => undefined,
         },
-        get followers() {
+        get followers(): FollowerServiceFacade | undefined {
             return deps.followerManager
                 ? {
                   summonFollowerFromItem: (player, itemId, npcTypeId) => {
@@ -878,6 +881,13 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                 deps.locationService.removeTemporaryLoc(scope, oldId, tile, level, options),
             clearTemporaryLoc: (scope, oldId, tile, level, oldShape) =>
                 deps.locationService.clearTemporaryLoc(scope, oldId, tile, level, oldShape),
+            hasTemporaryLocVisibleToPlayer: (player, locId, tile, level) =>
+                deps.locationService.hasTemporaryLocVisibleToPlayer(
+                    player,
+                    locId,
+                    tile,
+                    level,
+                ),
             triggerLocEffect: () => false, // replaced below with self-referencing version
             isAdjacentToLoc: (player, locId, tile, level) =>
                 deps.locationService.isAdjacentToLoc(player, locId, tile, level),
@@ -1065,7 +1075,12 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                         replacement.getMaxHitpoints() -
                             Math.min(hitpoints, replacement.getMaxHitpoints()),
                     );
-                    replacement.applyDamage(damageToPreserve);
+                    const transitioned =
+                        deps.encounterManager.transitionFormIfCompatible(
+                            npc.id,
+                            replacement,
+                        );
+                    if (!transitioned) replacement.applyDamage(damageToPreserve);
                     if (targetPlayerId !== undefined) {
                         replacement.engageCombat(targetPlayerId, deps.getCurrentTick());
                     }

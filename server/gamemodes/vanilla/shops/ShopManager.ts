@@ -5,10 +5,10 @@ import { getAllShopDefinitions } from "./definitions";
 import { type ShopDefinition } from "./types";
 
 type LoggerLike = {
-    info?: (...args: unknown[]) => void;
-    warn?: (...args: unknown[]) => void;
-    error?: (...args: unknown[]) => void;
-    debug?: (...args: unknown[]) => void;
+    info?: (message: string, ...args: unknown[]) => void;
+    warn?: (message: string, ...args: unknown[]) => void;
+    error?: (message: string, ...args: unknown[]) => void;
+    debug?: (message: string, ...args: unknown[]) => void;
 };
 
 type ShopSlotState = {

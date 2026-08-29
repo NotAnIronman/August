@@ -64,6 +64,10 @@ export function processQuestListScrollbarInput(
     const content = widgetManager.getWidgetByUid(QUEST_LIST_CONTENT_UID);
     if (!content) return false;
     widgetManager.ensureLayout(content);
+    const renderedContent = content as typeof content & {
+        _absWidth?: number;
+        _absHeight?: number;
+    };
 
     const logicalViewportHeight = Math.max(0, content.height | 0);
     const contentHeight = Math.max(logicalViewportHeight, content.scrollHeight | 0);
@@ -72,8 +76,11 @@ export function processQuestListScrollbarInput(
 
     const contentX = (content._absX ?? content.x ?? 0) | 0;
     const contentY = (content._absY ?? content.y ?? 0) | 0;
-    const physicalContentWidth = Math.max(1, content._absWidth ?? content.width ?? 1);
-    const physicalViewportHeight = Math.max(1, content._absHeight ?? logicalViewportHeight ?? 1);
+    const physicalContentWidth = Math.max(1, renderedContent._absWidth ?? content.width ?? 1);
+    const physicalViewportHeight = Math.max(
+        1,
+        renderedContent._absHeight ?? logicalViewportHeight,
+    );
     const scaleX = physicalContentWidth / Math.max(1, content.width | 0);
     const scaleY = physicalViewportHeight / Math.max(1, logicalViewportHeight);
 
@@ -120,8 +127,9 @@ export function processQuestListScrollbarInput(
         hasScrollbarClickCoordinates || (pointerPressedThisFrame && isOverScrollbar);
 
     if (hasScrollbarClickCoordinates) {
-        input.leftClickX = -1;
-        input.leftClickY = -1;
+        input.clickMode3 = ClickMode.NONE;
+        input.saveClickX = -1;
+        input.saveClickY = -1;
     }
 
     const setScrollY = (value: number): void => {

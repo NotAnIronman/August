@@ -26,6 +26,8 @@ export function disposeServerConnection(reason: string = "hmr refresh"): void {
             g[WS_SUPPRESS_RECONNECT_KEY] = true;
         } catch {}
         state.lastInventorySnapshot = undefined;
+        state.lastCollectionLogSnapshot = undefined;
+        state.lastCollectionLogCategoryCompletion = undefined;
         state.lastTradeState = createDefaultTradeState();
         state.lastGroundItems = undefined;
     }

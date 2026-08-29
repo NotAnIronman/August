@@ -51,6 +51,13 @@ export const DEFAULT_NPC_RETREAT_INTERACTION_RANGE = 18;
 export const NPC_STUCK_RESET_TICKS = 100;
 
 /**
+ * Conservative interaction hold when cache sequence metadata is unavailable.
+ * Four game ticks matches the existing default NPC attack cadence and prevents
+ * an aggressive spawn from replacing its entrance animation immediately.
+ */
+export const NPC_SPAWN_ANIMATION_FALLBACK_TICKS = 4;
+
+/**
  * OSRS Flinch Mechanics:
  * When attacking an NPC that is out of combat, there is a "flinch window" where
  * the NPC cannot retaliate immediately. Formula: floor(attack_speed / 2) + 8 ticks
@@ -167,6 +174,22 @@ export interface NpcFollowerState {
     itemId: number;
 }
 
+export type NpcHealthChangeReason = "damage" | "heal" | "reset" | "death";
+
+/**
+ * A committed NPC hitpoint change. `previous` and `current` are the actual
+ * post-clamp values, so observers never have to reconstruct dealt damage from
+ * a proposed hit that may have overkilled or been rejected.
+ */
+export interface NpcHealthChange {
+    readonly previous: number;
+    readonly current: number;
+    readonly max: number;
+    readonly reason: NpcHealthChangeReason;
+}
+
+export type NpcHealthChangeListener = (change: NpcHealthChange) => void;
+
 type PoisonEffectState = {
     potency: number;
     nextTick: number;
@@ -257,6 +280,8 @@ export class NpcState extends Actor {
     private nextAggressionCheckTick: number = 0;
     /** True while the NPC is committed to returning to its spawn tile. */
     private returningToSpawn: boolean = false;
+    /** Absolute map clock until which a configured spawn sequence owns the NPC. */
+    private spawnAnimationLockUntilTick: number = 0;
     /** Tracks consecutive ticks NPC has been blocked from moving */
     private stuckTicks: number = 0;
     /** Last tick the NPC successfully moved */
@@ -274,6 +299,10 @@ export class NpcState extends Actor {
     worldViewId: number;
     readonly ownerPlayerId?: number;
     private readonly effectImmunities: NpcEffectImmunityProfile;
+    private readonly healthChangeListeners = new Set<NpcHealthChangeListener>();
+    private healthTransactionDepth = 0;
+    private healthTransactionStart = 0;
+    private healthTransactionReason?: NpcHealthChangeReason;
 
     constructor(
         id: number,
@@ -415,13 +444,52 @@ export class NpcState extends Actor {
         return this.followerState;
     }
 
+    /** Subscribe to authoritative hitpoint commits for encounter/UI bridges. */
+    onHealthChange(listener: NpcHealthChangeListener): () => void {
+        this.healthChangeListeners.add(listener);
+        return () => this.healthChangeListeners.delete(listener);
+    }
+
+    /**
+     * Coalesce a reversible group of HP mutations into its final committed
+     * result. Status pre-death scripts use this because they may replace a
+     * lethal poison/venom tick with one remaining hitpoint.
+     */
+    beginHealthTransaction(): () => void {
+        if (this.healthTransactionDepth === 0) {
+            this.healthTransactionStart = this.hitpoints;
+            this.healthTransactionReason = undefined;
+        }
+        this.healthTransactionDepth++;
+        let completed = false;
+        return () => {
+            if (completed) return;
+            completed = true;
+            this.healthTransactionDepth = Math.max(0, this.healthTransactionDepth - 1);
+            if (this.healthTransactionDepth > 0) return;
+
+            const previous = this.healthTransactionStart;
+            const current = this.hitpoints;
+            const forcedReason = this.healthTransactionReason;
+            this.healthTransactionReason = undefined;
+            if (current === previous && forcedReason === undefined) return;
+            const reason =
+                forcedReason ?? (current < previous ? "damage" : "heal");
+            this.notifyHealthChange(previous, current, reason);
+        };
+    }
+
     isPlayerFollower(): boolean {
         return this.followerState !== undefined;
     }
 
     /** Whether this NPC may be selected as a combat target. */
-    isCombatTargetable(): boolean {
-        return !this.isUnattackable && !this.isPlayerFollower();
+    isCombatTargetable(currentTick: number): boolean {
+        return (
+            !this.isUnattackable &&
+            !this.isPlayerFollower() &&
+            !this.isSpawnAnimationLocked(currentTick)
+        );
     }
 
     /**
@@ -501,9 +569,10 @@ export class NpcState extends Actor {
         // nextRoamTick is set by the caller (processNpcRespawns) to prevent
         // same-tick roaming which causes a visible teleport on the client.
         this.nextAggressionCheckTick = 0;
+        this.spawnAnimationLockUntilTick = 0;
         this.clearInteractionTarget();
         this.clearPendingSeqs();
-        this.hitpoints = this.maxHitpoints;
+        this.commitHitpoints(this.maxHitpoints, "reset", true);
         this.restoreCombatLevels();
         this.poisonEffect = undefined;
         this.venomEffect = undefined;
@@ -516,6 +585,7 @@ export class NpcState extends Actor {
         this.combatAttributes.set(CombatAttributes.MAGIC_DEFENCE_BONUS_DRAIN, 0);
         this.combatAttributes.set(CombatAttributes.MAGIC_DEFENCE_BONUS_CURRENT, 0);
         this.returningToSpawn = false;
+        this.releaseMovementHold();
     }
 
     getCombatStat(stat: NpcCombatStat): number {
@@ -569,6 +639,43 @@ export class NpcState extends Actor {
     }
 
     /**
+     * Starts the configured spawn presentation and prevents movement/combat
+     * from replacing it before the client has played the sequence.
+     */
+    beginSpawnAnimation(
+        sequenceId: number,
+        currentTick: number,
+        durationTicks: number,
+        sequenceVisibilityDelayTicks: number = 0,
+    ): void {
+        const sequence = Math.trunc(sequenceId);
+        if (!Number.isFinite(sequence) || sequence < 0) return;
+        const clock = Math.max(0, Math.trunc(currentTick));
+        const duration = Math.max(1, Math.trunc(durationTicks));
+        const visibilityDelay = Math.max(0, Math.trunc(sequenceVisibilityDelayTicks));
+        const deadline = clock + duration + visibilityDelay;
+
+        this.spawnAnimationLockUntilTick = Math.max(
+            this.spawnAnimationLockUntilTick,
+            deadline,
+        );
+        this.combatAttributes.set(
+            CombatAttributes.ATTACK_DELAY,
+            Math.max(
+                this.combatAttributes.get(CombatAttributes.ATTACK_DELAY),
+                this.spawnAnimationLockUntilTick,
+            ),
+        );
+        this.disengageCombat();
+        this.holdMovementUntil(this.spawnAnimationLockUntilTick);
+        this.queueOneShotSeq(sequence);
+    }
+
+    isSpawnAnimationLocked(currentTick: number): boolean {
+        return Math.max(0, Math.trunc(currentTick)) < this.spawnAnimationLockUntilTick;
+    }
+
+    /**
      * Get the NPC's combat level for aggression checks.
      * Returns 0 if not a combat NPC.
      */
@@ -585,7 +692,7 @@ export class NpcState extends Actor {
         if (this.isUnattackable) return;
         const until = Math.max(0, despawnTick);
         this.deadUntilTick = until;
-        this.hitpoints = 0;
+        this.commitHitpoints(0, "death", true);
         this.combatAttributes.set(CombatAttributes.COMBAT_TARGET, null);
         this.combatAttributes.set(CombatAttributes.IS_DEAD, true);
         this.clearPath();
@@ -623,6 +730,7 @@ export class NpcState extends Actor {
         playerTile?: { tileX: number; tileY: number },
     ): void {
         if (this.returningToSpawn) return;
+        if (this.isSpawnAnimationLocked(currentTick)) return;
         if (this.isDead(currentTick) || this.hitpoints <= 0) return;
         // OSRS: attacking from >18 tiles from spawn → instant de-aggro, no chase.
         if (
@@ -947,7 +1055,7 @@ export class NpcState extends Actor {
             return { current: this.hitpoints, max: this.maxHitpoints };
         }
         if (amount > 0) {
-            this.hitpoints = Math.max(0, this.hitpoints - amount);
+            this.commitHitpoints(Math.max(0, this.hitpoints - amount), "damage");
         }
         return { current: this.hitpoints, max: this.maxHitpoints };
     }
@@ -957,9 +1065,45 @@ export class NpcState extends Actor {
             return { current: this.hitpoints, max: this.maxHitpoints };
         }
         if (amount > 0) {
-            this.hitpoints = Math.min(this.maxHitpoints, this.hitpoints + amount);
+            this.commitHitpoints(
+                Math.min(this.maxHitpoints, this.hitpoints + amount),
+                "heal",
+            );
         }
         return { current: this.hitpoints, max: this.maxHitpoints };
+    }
+
+    private commitHitpoints(
+        nextRaw: number,
+        reason: NpcHealthChangeReason,
+        notifyWhenUnchanged: boolean = false,
+    ): void {
+        const previous = this.hitpoints;
+        const next = Math.max(0, Math.min(this.maxHitpoints, nextRaw));
+        this.hitpoints = next;
+        if (this.healthTransactionDepth > 0) {
+            if (notifyWhenUnchanged || reason === "reset" || reason === "death") {
+                this.healthTransactionReason = reason;
+            }
+            return;
+        }
+        if (!notifyWhenUnchanged && next === previous) return;
+
+        this.notifyHealthChange(previous, next, reason);
+    }
+
+    private notifyHealthChange(
+        previous: number,
+        current: number,
+        reason: NpcHealthChangeReason,
+    ): void {
+        const change: NpcHealthChange = Object.freeze({
+            previous,
+            current,
+            max: this.maxHitpoints,
+            reason,
+        });
+        for (const listener of this.healthChangeListeners) listener(change);
     }
 
     inflictPoison(

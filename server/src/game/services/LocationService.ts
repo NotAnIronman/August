@@ -186,6 +186,30 @@ export class LocationService {
         );
     }
 
+    /**
+     * Authoritative interaction check for a temporary location. Client loc-op
+     * packets contain an id and tile, but neither proves that the object exists
+     * for this player. Owner-scoped content must validate against this store.
+     */
+    hasTemporaryLocVisibleToPlayer(
+        player: PlayerState,
+        locId: number,
+        tile: { x: number; y: number },
+        level: number,
+    ): boolean {
+        const normalizedLocId = Math.max(0, Math.trunc(locId));
+        const normalizedX = Math.trunc(tile.x);
+        const normalizedY = Math.trunc(tile.y);
+        const normalizedLevel = Math.max(0, Math.min(3, Math.trunc(level)));
+        return this.getStoredTemporaryLocsVisibleToPlayer(player).some(
+            (state) =>
+                state.newId === normalizedLocId &&
+                state.tile.x === normalizedX &&
+                state.tile.y === normalizedY &&
+                state.level === normalizedLevel,
+        );
+    }
+
     replayTemporaryLocsForPlayer(player: PlayerState): void {
         const ws = this.services.players?.getSocketByPlayerId(player.id);
         if (!ws) return;

@@ -65,6 +65,9 @@ export class PlayerCombatState {
         amount?: number;
         monsterName?: string;
         monsterSpecies?: string[];
+        /** Optional assignment source used by task-specific rewards. */
+        slayerMaster?: string;
+        masterName?: string;
     };
 
     /** Current attack speed in ticks (e.g., 4 for most melee weapons) */

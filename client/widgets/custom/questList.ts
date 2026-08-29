@@ -5,6 +5,7 @@ import {
 } from "../../common/ui/questList";
 import { FONT_BOLD_12, FONT_PLAIN_11 } from "../../ui/fonts";
 import type { WidgetManager } from "../WidgetManager";
+import type { WidgetNode } from "../WidgetNode";
 
 const QUEST_LIST_GROUP_ID = 399;
 const QUEST_LIST_LIST_CHILD_ID = 7;

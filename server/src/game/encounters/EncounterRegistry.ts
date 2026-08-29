@@ -1,3 +1,4 @@
+import { normalizeNpcSpecialName } from "../npc/NpcCombatAnimationData";
 import type { EncounterDefinition } from "./EncounterTypes";
 
 export class EncounterRegistry {
@@ -50,7 +51,28 @@ export class EncounterRegistry {
         if (definition.attacks.length === 0) {
             throw new Error(`Encounter '${definition.id}' must declare at least one attack.`);
         }
+        if (
+            definition.maxHealth !== undefined &&
+            (!Number.isInteger(definition.maxHealth) || definition.maxHealth <= 0)
+        ) {
+            throw new Error(`Encounter '${definition.id}' max health must be a positive integer.`);
+        }
         this.assertUnique(definition.npcTypeIds, `NPC type in '${definition.id}'`);
+        const bossHealthBar = definition.bossHealthBar;
+        if (bossHealthBar) {
+            if (!bossHealthBar.name.trim()) {
+                throw new Error(`Encounter '${definition.id}' boss health bar name cannot be empty.`);
+            }
+            if (
+                bossHealthBar.npcTypeId !== undefined &&
+                (!Number.isInteger(bossHealthBar.npcTypeId) ||
+                    !definition.npcTypeIds.includes(bossHealthBar.npcTypeId))
+            ) {
+                throw new Error(
+                    `Encounter '${definition.id}' boss health bar NPC type must belong to the encounter.`,
+                );
+            }
+        }
         const attackIds = definition.attacks.map((attack) => attack.id);
         this.assertUnique(attackIds, `Attack id in '${definition.id}'`);
         for (const attack of definition.attacks) {
@@ -83,11 +105,17 @@ export class EncounterRegistry {
             ) {
                 throw new Error(`Attack '${attack.id}' animationId must be a positive integer.`);
             }
-            if (
-                typeof attack.animation === "object" &&
-                (!Number.isInteger(attack.animation.special) || attack.animation.special < 0)
-            ) {
-                throw new Error(`Attack '${attack.id}' special animation index must be non-negative.`);
+            if (typeof attack.animation === "object") {
+                const special = attack.animation.special;
+                if (
+                    (typeof special === "number" &&
+                        (!Number.isInteger(special) || special < 0)) ||
+                    (typeof special === "string" && !normalizeNpcSpecialName(special))
+                ) {
+                    throw new Error(
+                        `Attack '${attack.id}' special animation reference is invalid.`,
+                    );
+                }
             }
             if ((attack.weight ?? 1) < 0 || (attack.cooldownTicks ?? 0) < 0) {
                 throw new Error(`Attack '${attack.id}' has a negative weight or cooldown.`);

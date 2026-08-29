@@ -153,74 +153,85 @@ Maggot King - 15742 / Not in August cache revision 237
 Phosani's Nightmare - 9416 thru 9424 (11153-11155 are later variants)
 
 Yama - 14176
+All animations within first 11
 
 Duke Sucellus - 12191 thru 12196 (12166 / 12167 auxiliary forms)
+All within first 10 anims
 
 The Leviathan - 12214 / 12215 / 12219
+All within first 15
 
 The Whisperer - 12204 thru 12207
+All within first 33
 
 Vardorvis - 12223 / 12224 / 12228 (12425 / 12426 auxiliary forms)
+All within first 10
 
-The Mimic - 8633 (7979 is the challenge NPC)
+The Mimic - 8633 (7979 is the challenge NPC) ✅
+All within first 5
 
-Hespori - 8583 (11192 is a later variant)
+Hespori - 8583 (11192 is a later variant) ✅
+All within first 5
 
-Skotizo - 7286
+Skotizo - 7286 ✅
 
-Shellbane gryphon - 14860 / 15010
+Shellbane gryphon - 14860 / 15010 ✅
+All within first 8
 
 Grotesque Guardians - Dawn: 7850 / 7852 / 7853 / 7884 / 7885; Dusk: 7849 / 7851 / 7854 / 7855 / 7882-7889
 
 Abyssal Sire - 5886 thru 5891 / 5908
 
-Kraken - 494
+Kraken - 494 ✅
 
-Cerberus - 5862 / 5863 / 5866
+Cerberus - 5862 / 5863 / 5866 ✅
 
-Araxxor - 13668 (13669 is the defeated/harvest form)
+Araxxor - 13668 (13669 is the defeated/harvest form) ✅
 
-Thermonuclear smoke devil - 499
+Thermonuclear smoke devil - 499 ✅
 
-Alchemical Hydra - 8615 thru 8622 / 8634
+Alchemical Hydra - 8615 thru 8622 / 8634 ✅
 
 Crystalline Hunllef - 9021 thru 9024
 
 Corrupted Hunllef - 9035 thru 9038
 
-TzTok-Jad - 3127
+TzTok-Jad - 3127 ✅
 
-TzKal-Zuk - 7706
+TzKal-Zuk - 7706 ✅
 
-Sol Heredit - 12821 / 12827
+Sol Heredit - 12821 / 12827 ✅
 
-Tempoross - 10572 / 10574 / 10575
+Tempoross - 10572 / 10574 / 10575 ✅
 
 Wintertodt - Not an NPC; the encounter is driven by environment/objects
 
-Zalcano - 9049 / 9050
+Zalcano - 9049 / 9050 ✅
 
-Tekton - 7540 / 7541 / 7542 / 7545
+Tekton - 7540 / 7541 / 7542 / 7545 ✅
 
-Vanguard - 7525 thru 7529
+Vanguard - 7525 thru 7529 ✅
 
-Vespula - 7530 / 7531 / 7532
+Vespula - 7530 / 7531 / 7532 ✅
 
-Vasa Nistirio - 7566 / 7567
+Vasa Nistirio - 7566 / 7567 ✅
 
-Muttadile - 7561 / 7562 / 7563
+Muttadile - 7561 / 7562 / 7563 ✅
 
 Great Olm - 7551 / 7554; right claws 7550 / 7553; left claws 7552 / 7555
 
-The Maiden of Sugadinti - 8360 thru 8365
+The Maiden of Sugadinti - 8360 thru 8365 ✅
 
 Pestilent Bloat - 8359
+There's no animation for bloat, because his sleep animation is part of his wake and stop; can we use part of an animation?
 
-Nylocas Vasilias - 8354 thru 8357
+Nylocas Vasilias - 8354 thru 8357 ✅
+All animations 90-100
 
-Sotetseg - 8387 / 8388
+Sotetseg - 8387 / 8388 ✅
 
 Xarpus - 8338 thru 8341
+look in 70's
 
 Verzik Vitur - 8370 thru 8375
 
@@ -235,10 +246,5 @@ Zebak - 11730 / 11732 / 11733
 Tumeken's Warden - 11747 / 11749 / 11756-11758 / 11760 / 11762 / 11764
 
 Elidinis' Warden - 11746 / 11748 / 11753-11755 / 11759 / 11761 / 11763
-
-Objectsa to fix:
-26461 - Need hammer to go through door ; Add hammering animation, and then teleport player to location 2850 5333 2
-
-NPCs to fix :
 
 

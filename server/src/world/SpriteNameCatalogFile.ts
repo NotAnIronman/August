@@ -29,13 +29,15 @@ function isValidEntry(key: string, value: unknown): value is string {
 
 function normalizeCatalog(value: unknown): SpriteNameCatalog {
     if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
-    const entries = Object.entries(value as Record<string, unknown>)
-        .filter(([key, name]) => isValidEntry(key, name))
-        .sort(([a], [b]) => {
-            const [aArchive, aFrame] = a.split(":").map(Number);
-            const [bArchive, bFrame] = b.split(":").map(Number);
-            return aArchive - bArchive || aFrame - bFrame;
-        });
+    const entries: Array<[string, string]> = [];
+    for (const [key, name] of Object.entries(value as Record<string, unknown>)) {
+        if (isValidEntry(key, name)) entries.push([key, name]);
+    }
+    entries.sort(([a], [b]) => {
+        const [aArchive, aFrame] = a.split(":").map(Number);
+        const [bArchive, bFrame] = b.split(":").map(Number);
+        return aArchive - bArchive || aFrame - bFrame;
+    });
     return Object.fromEntries(entries);
 }
 

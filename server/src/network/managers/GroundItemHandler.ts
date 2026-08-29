@@ -9,11 +9,11 @@ import type { WebSocket } from "ws";
 import { ObjStackability } from "../../../../client/rs/config/objtype/ObjStackability";
 import { getItemDefinition } from "../../data/items";
 import type { ServerServices } from "../../game/ServerServices";
-import { isInWilderness } from "../../game/combat/MultiCombatZones";
 import type { GroundItemInteractionState } from "../../game/interactions/types";
 import type { GroundItemStack } from "../../game/items/GroundItemManager";
 import type { PlayerState } from "../../game/player";
 import type { ScriptGroundItem } from "../../game/scripts/types";
+import { MAX_ITEM_STACK_QUANTITY } from "../../game/trade/TradeInventoryCapacity";
 import { logger } from "../../utils/logger";
 import { encodeMessage } from "../messages";
 
@@ -64,6 +64,25 @@ export type GroundItemsServerPayload =
           upserts: GroundItemStackPayload[];
           removes: number[];
       };
+
+export function resolveGroundItemPickupQuantity(options: {
+    requested: number;
+    available: number;
+    inventoryCapacity: number;
+    stackable: boolean;
+}): number {
+    const requested = Number.isFinite(options.requested)
+        ? Math.max(1, Math.floor(options.requested))
+        : 1;
+    const available = Number.isFinite(options.available)
+        ? Math.max(0, Math.floor(options.available))
+        : 0;
+    const inventoryCapacity = Number.isFinite(options.inventoryCapacity)
+        ? Math.max(0, Math.floor(options.inventoryCapacity))
+        : 0;
+    const requestedForType = options.stackable ? requested : 1;
+    return Math.max(0, Math.min(requestedForType, available, inventoryCapacity));
+}
 
 /**
  * Handler for ground item operations.
@@ -161,12 +180,20 @@ export class GroundItemHandler {
         );
     }
 
+    private isItemStackable(itemId: number): boolean {
+        const objType = this.svc.dataLoaderService.getObjType(itemId);
+        if (objType) {
+            return (
+                objType.stackability === ObjStackability.ALWAYS ||
+                (Number.isFinite(objType.noteTemplate) && objType.noteTemplate !== -1)
+            );
+        }
+        return getItemDefinition(itemId)?.stackable === true;
+    }
+
     private getInventoryInsertCapacity(player: PlayerState, itemId: number): number {
         const inventory = player.getInventoryEntries();
-        const objType = this.svc.dataLoaderService.getObjType(itemId);
-        const stackable = objType
-            ? objType.stackability === ObjStackability.ALWAYS || objType.noteTemplate !== -1
-            : getItemDefinition(itemId)?.stackable === true;
+        const stackable = this.isItemStackable(itemId);
 
         if (stackable) {
             for (const entry of inventory) {
@@ -174,13 +201,16 @@ export class GroundItemHandler {
                 const quantity = entry.quantity;
                 if (entryItemId === itemId && quantity > 0) {
                     if (!Number.isFinite(quantity)) return 0;
-                    return Math.max(0, Number.MAX_SAFE_INTEGER - Math.max(0, quantity));
+                    return Math.max(
+                        0,
+                        MAX_ITEM_STACK_QUANTITY - Math.max(0, Math.trunc(quantity)),
+                    );
                 }
             }
             const hasEmptySlot = inventory.some(
                 (entry) => entry.itemId <= 0 || entry.quantity <= 0,
             );
-            return hasEmptySlot ? Number.MAX_SAFE_INTEGER : 0;
+            return hasEmptySlot ? MAX_ITEM_STACK_QUANTITY : 0;
         }
 
         let freeSlots = 0;
@@ -587,10 +617,12 @@ export class GroundItemHandler {
             return;
         }
 
-        const quantityToTake = Math.max(
-            0,
-            Math.min(qty, Math.max(0, targetStack.quantity), inventoryCapacity),
-        );
+        const quantityToTake = resolveGroundItemPickupQuantity({
+            requested: qty,
+            available: targetStack.quantity,
+            inventoryCapacity,
+            stackable: this.isItemStackable(itemId),
+        });
         if (quantityToTake <= 0) {
             this.svc.messagingService.queueChatMessage({
                 messageType: "game",
@@ -611,12 +643,38 @@ export class GroundItemHandler {
             return;
         }
 
-        const addResult = this.svc.inventoryService.addItemToInventory(
-            player,
-            itemId,
-            removed.removed,
-        );
-        const added = Math.max(0, addResult.added);
+        let addResult: ReturnType<ServerServices["inventoryService"]["addItemToInventory"]>;
+        try {
+            addResult = this.svc.inventoryService.addItemToInventory(
+                player,
+                itemId,
+                removed.removed,
+            );
+        } catch (error) {
+            const restored = removed.restore();
+            logger.error(
+                `[ground] inventory insertion threw during pickup player=${player.id} item=${itemId} expectedRestore=${removed.removed} restored=${restored}`,
+                error,
+            );
+            this.svc.messagingService.queueChatMessage({
+                messageType: "game",
+                text: "You could not pick that up.",
+                targetPlayerIds: [player.id],
+            });
+            return;
+        }
+        const added = Number.isFinite(addResult.added)
+            ? Math.max(0, Math.min(removed.removed, Math.trunc(addResult.added)))
+            : 0;
+        const notInserted = removed.removed - added;
+        if (notInserted > 0) {
+            const restored = removed.restore(notInserted);
+            if (restored !== notInserted) {
+                logger.error(
+                    `[ground] failed to roll back pickup remainder player=${player.id} item=${itemId} expected=${notInserted} restored=${restored}`,
+                );
+            }
+        }
 
         if (added <= 0) {
             this.svc.messagingService.queueChatMessage({
@@ -624,22 +682,6 @@ export class GroundItemHandler {
                 text: "Your inventory is too full to pick that up.",
                 targetPlayerIds: [player.id],
             });
-
-            if (removed.staticSpawnKey) {
-                groundItems.restoreStaticSpawnNow(removed.staticSpawnKey, nowTick);
-            } else {
-                const inWilderness = isInWilderness(tile.x, tile.y);
-                groundItems.spawn(
-                    itemId,
-                    removed.removed,
-                    tile,
-                    nowTick,
-                    {
-                        privateTicks: inWilderness ? 0 : undefined,
-                    },
-                    player.worldViewId,
-                );
-            }
             return;
         }
 

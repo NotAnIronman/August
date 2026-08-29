@@ -190,6 +190,104 @@ import { KNOWN_WATER_TEXTURE_IDS } from "../water/WaterTextureIds";
 import type { WebGLOsrsRendererHost } from "./hostInterface";
 import { RENDER_CONSTANTS } from "./constants";
 
+function captureInstanceSceneFallback(host: WebGLOsrsRendererHost) {
+    return {
+        active: host.instanceActive,
+        ready: host.instanceSceneReady,
+        templateChunks: host.instanceTemplateChunks,
+        regionX: host.instanceRegionX,
+        regionY: host.instanceRegionY,
+        smoothTerrain: host.smoothTerrain,
+        loadNpcs: host.loadNpcs,
+    };
+}
+
+function applyDeferredInstanceSceneSettings(host: WebGLOsrsRendererHost): void {
+    const pending = host.instanceScenePendingSettings;
+    if (!pending) return;
+    host.instanceScenePendingSettings = null;
+
+    if (host.instanceActive && host.instanceTemplateChunks) {
+        host.requestInstanceSceneSettingsRebuild(pending.smoothTerrain, pending.loadNpcs);
+        return;
+    }
+
+    // A failed initial instance transition may have restored the normal scene
+    // while ClientState still awaits a server rebuild. Keep that committed map
+    // resident; clearing it here can leave no map and no active streaming path.
+    host.smoothTerrain = pending.smoothTerrain;
+    host.loadNpcs = pending.loadNpcs;
+}
+
+function startPendingInstanceLocRebuild(host: WebGLOsrsRendererHost): void {
+    if (!host.instanceLocRebuildPending || host.instanceSceneBuildPending) return;
+    if (!host.instanceActive || !host.instanceTemplateChunks) {
+        host.instanceLocRebuildPending = false;
+        return;
+    }
+
+    host.instanceLocRebuildPending = false;
+    host.instanceSceneFallbackState = captureInstanceSceneFallback(host);
+    host.instanceSceneGeneration = (host.instanceSceneGeneration + 1) | 0;
+    const generation = host.instanceSceneGeneration;
+    host.instanceSceneBuildPending = true;
+    host.instanceSceneReady = false;
+
+    const templateChunks = host.instanceTemplateChunks;
+    const regionX = host.instanceRegionX;
+    const regionY = host.instanceRegionY;
+    const playerMapX = ((regionX * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+    const playerMapY = ((regionY * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+
+    void host
+        .doInstanceSceneBuild(
+            templateChunks,
+            regionX,
+            regionY,
+            playerMapX,
+            playerMapY,
+            true,
+            generation,
+        )
+        .then((loaded) => {
+            if (host.instanceSceneGeneration !== generation) return;
+            if (!loaded) {
+                failCurrentInstanceSceneBuild(
+                    host,
+                    new Error("instance loc rebuild returned no valid map data"),
+                );
+            }
+        })
+        .catch((error) => {
+            if (host.instanceSceneGeneration !== generation) return;
+            failCurrentInstanceSceneBuild(host, error);
+        });
+}
+
+function failCurrentInstanceSceneBuild(host: WebGLOsrsRendererHost, error: unknown): void {
+    const fallback = host.instanceSceneFallbackState;
+    host.instanceSceneBuildPending = false;
+    host.instanceSceneFallbackState = null;
+
+    if (fallback) {
+        host.instanceActive = fallback.active;
+        host.instanceSceneReady = fallback.ready;
+        host.instanceTemplateChunks = fallback.templateChunks;
+        host.instanceRegionX = fallback.regionX;
+        host.instanceRegionY = fallback.regionY;
+        host.smoothTerrain = fallback.smoothTerrain;
+        host.loadNpcs = fallback.loadNpcs;
+    }
+
+    console.error(
+        "[WebGLOsrsRenderer] Instance scene build failed; preserving the previous scene",
+        error,
+    );
+    if (host.instanceSceneReady) host.osrsClient.notifyRendererReady();
+    applyDeferredInstanceSceneSettings(host);
+    startPendingInstanceLocRebuild(host);
+}
+
 export async function loadInstanceScene(host: WebGLOsrsRendererHost, 
         templateChunks: number[][][],
         regionX: number,
@@ -198,16 +296,26 @@ export async function loadInstanceScene(host: WebGLOsrsRendererHost,
 
         if (!host.osrsClient.loadedCache) return;
 
-        // Keep the current scene usable until the replacement has actually
-        // finished building. If a worker/settings race rejects the new scene,
-        // restoring these fields lets normal rendering continue instead of
-        // stranding the client in a cleared white void.
-        const previousInstanceState = {
-            active: host.instanceActive,
-            templateChunks: host.instanceTemplateChunks,
-            regionX: host.instanceRegionX,
-            regionY: host.instanceRegionY,
-        };
+        // An overlapping REBUILD_REGION must retain the fallback captured by
+        // the first uncommitted transition. Restoring fields from the previous
+        // request would otherwise restore another uncommitted scene.
+        if (!host.instanceSceneBuildPending || !host.instanceSceneFallbackState) {
+            host.instanceSceneFallbackState = captureInstanceSceneFallback(host);
+        }
+
+        // A setting requested during the superseded build can safely become
+        // the input to this newer generation.
+        const pendingSettings = host.instanceScenePendingSettings;
+        if (pendingSettings) {
+            host.instanceScenePendingSettings = null;
+            host.smoothTerrain = pendingSettings.smoothTerrain;
+            host.loadNpcs = pendingSettings.loadNpcs;
+        }
+
+        const instanceSceneGeneration = (host.instanceSceneGeneration + 1) | 0;
+        host.instanceSceneGeneration = instanceSceneGeneration;
+        host.instanceSceneBuildPending = true;
+        host.instanceSceneReady = false;
 
         // Suppress normal map streaming while the instance is active
         host.instanceActive = true;
@@ -232,19 +340,17 @@ export async function loadInstanceScene(host: WebGLOsrsRendererHost,
                 playerMapX,
                 playerMapY,
                 true,
+                instanceSceneGeneration,
             );
             if (!loaded) {
+                // A newer rebuild or clearInstance invalidated this request.
+                // Its lifecycle owns the renderer state now.
+                if (host.instanceSceneGeneration !== instanceSceneGeneration) return;
                 throw new Error("instance scene loader returned no valid map data");
             }
         } catch (error) {
-            host.instanceActive = previousInstanceState.active;
-            host.instanceTemplateChunks = previousInstanceState.templateChunks;
-            host.instanceRegionX = previousInstanceState.regionX;
-            host.instanceRegionY = previousInstanceState.regionY;
-            console.error(
-                "[WebGLOsrsRenderer] Instance scene build failed; preserving the previous scene",
-                error,
-            );
+            if (host.instanceSceneGeneration !== instanceSceneGeneration) return;
+            failCurrentInstanceSceneBuild(host, error);
             return;
         }
 
@@ -264,6 +370,7 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
         playerMapX: number,
         playerMapY: number,
         replaceExistingMaps: boolean = false,
+        instanceSceneGeneration?: number,
     ): Promise<boolean> {
 
         const extraLocs = host.getInstanceExtraLocs(playerMapX, playerMapY);
@@ -289,6 +396,7 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
                 ...(controlledWorldViewId >= 0 ? { worldViewId: controlledWorldViewId } : {}),
             },
             locOverrides: host.locOverrides,
+            locSpawns: host.locSpawns,
             terrainOverrides: host.terrainOverrides,
             extraLocs,
         };
@@ -299,6 +407,18 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
             SdMapDataLoader
         >(host.dataLoader, input);
 
+        if (
+            instanceSceneGeneration !== undefined &&
+            (host.instanceSceneGeneration !== instanceSceneGeneration || !host.instanceActive)
+        ) {
+            return false;
+        }
+
+        if (mapData && instanceSceneGeneration !== undefined) {
+            mapData.instanceSceneGeneration = instanceSceneGeneration;
+            mapData.instanceSceneReplacesExistingMaps = replaceExistingMaps;
+        }
+
         if (mapData && host.isValidMapData(mapData)) {
             console.log(
                 `[WebGLOsrsRenderer] Instance scene loaded: vertices=${
@@ -307,13 +427,6 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
                     mapData.mapY
                 } border=${mapData.borderSize} extraLocs=${extraLocs?.length ?? 0}`,
             );
-            // The initial transition is transactional: only discard the old
-            // scene after its replacement is built and accepted. Deferred loc
-            // rebuilds leave the current instance visible until their payload
-            // is applied.
-            if (replaceExistingMaps) {
-                host.mapManager.clearMaps();
-            }
             // Clear any in-flight normal map loads that arrived during the async instance build
             host.mapsToLoad.clear();
             host.pendingStreamMapsByGeneration.clear();
@@ -337,6 +450,156 @@ export async function doInstanceSceneBuild(host: WebGLOsrsRendererHost,
             return false;
         }
     
+}
+
+/**
+ * Completes the instance transition only once its map has actually replaced
+ * the old scene. Until this point NPC sync may update ECS/worker state, but its
+ * geometry refresh remains pending so it cannot attach to the old map square.
+ */
+export function markInstanceSceneCommitted(
+        host: WebGLOsrsRendererHost,
+        mapData: SdMapData,
+    ): void {
+
+        const generation = mapData.instanceSceneGeneration;
+        if (
+            !host.instanceActive ||
+            generation === undefined ||
+            generation !== host.instanceSceneGeneration
+        ) {
+            return;
+        }
+
+        const expectedMapX = ((host.instanceRegionX * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+        const expectedMapY = ((host.instanceRegionY * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+        if (mapData.mapX !== expectedMapX || mapData.mapY !== expectedMapY) return;
+        if (host.instanceSceneReady && !host.instanceSceneBuildPending) return;
+
+        // loadMap has already installed the replacement at this point. Only
+        // now is it safe to release the prior scene; if map construction threw,
+        // this commit hook was never reached and the old scene remains intact.
+        if (mapData.instanceSceneReplacesExistingMaps) {
+            for (const existing of Array.from(host.mapManager.mapSquares.values())) {
+                if (existing.mapX === mapData.mapX && existing.mapY === mapData.mapY) continue;
+                host.mapManager.removeMap(existing.mapX, existing.mapY);
+            }
+            host.mapManager.loadingMapIds.clear();
+        }
+
+        host.instanceSceneBuildPending = false;
+        host.instanceSceneReady = true;
+        host.instanceSceneFallbackState = null;
+        host.osrsClient.notifyRendererReady();
+        applyDeferredInstanceSceneSettings(host);
+        startPendingInstanceLocRebuild(host);
+
+}
+
+/** Restore the last committed scene when GPU/map application fails before commit. */
+export function failInstanceSceneCommit(
+        host: WebGLOsrsRendererHost,
+        mapData: SdMapData,
+        error: unknown,
+    ): void {
+        const generation = mapData.instanceSceneGeneration;
+        if (
+            generation === undefined ||
+            generation !== host.instanceSceneGeneration ||
+            !host.instanceSceneBuildPending
+        ) {
+            return;
+        }
+        host.mapManager.loadingMapIds.delete(getMapSquareId(mapData.mapX, mapData.mapY));
+        failCurrentInstanceSceneBuild(host, error);
+}
+
+/**
+ * Applies renderer settings transactionally inside an instance. If another
+ * scene payload is in flight, retain its exact validation settings and defer
+ * the newest request until that payload commits. A committed instance remains
+ * resident while the follow-up worker build runs.
+ */
+export function requestInstanceSceneSettingsRebuild(
+        host: WebGLOsrsRendererHost,
+        smoothTerrain: boolean,
+        loadNpcs: boolean,
+    ): void {
+
+        const requested = {
+            smoothTerrain: !!smoothTerrain,
+            loadNpcs: !!loadNpcs,
+        };
+
+        if (host.instanceSceneBuildPending) {
+            host.instanceScenePendingSettings = requested;
+            return;
+        }
+
+        if (!host.instanceActive) {
+            const updated =
+                host.smoothTerrain !== requested.smoothTerrain ||
+                host.loadNpcs !== requested.loadNpcs;
+            host.smoothTerrain = requested.smoothTerrain;
+            host.loadNpcs = requested.loadNpcs;
+            if (updated) host.clearMaps();
+            return;
+        }
+
+        if (!host.instanceTemplateChunks) {
+            // Malformed/incomplete instance state has no safe rebuild input.
+            // Retain any resident map instead of suppressing streaming after a
+            // destructive clear; the next server rebuild can apply the setting.
+            host.smoothTerrain = requested.smoothTerrain;
+            host.loadNpcs = requested.loadNpcs;
+            return;
+        }
+
+        if (
+            host.smoothTerrain === requested.smoothTerrain &&
+            host.loadNpcs === requested.loadNpcs
+        ) {
+            return;
+        }
+
+        host.instanceSceneFallbackState = captureInstanceSceneFallback(host);
+        host.smoothTerrain = requested.smoothTerrain;
+        host.loadNpcs = requested.loadNpcs;
+        host.instanceSceneGeneration = (host.instanceSceneGeneration + 1) | 0;
+        const generation = host.instanceSceneGeneration;
+        host.instanceSceneBuildPending = true;
+        host.instanceSceneReady = false;
+
+        const templateChunks = host.instanceTemplateChunks;
+        const regionX = host.instanceRegionX;
+        const regionY = host.instanceRegionY;
+        const playerMapX = ((regionX * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+        const playerMapY = ((regionY * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+
+        void host
+            .doInstanceSceneBuild(
+                templateChunks,
+                regionX,
+                regionY,
+                playerMapX,
+                playerMapY,
+                true,
+                generation,
+            )
+            .then((loaded) => {
+                if (host.instanceSceneGeneration !== generation) return;
+                if (!loaded) {
+                    failCurrentInstanceSceneBuild(
+                        host,
+                        new Error("instance settings rebuild returned no valid map data"),
+                    );
+                }
+            })
+            .catch((error) => {
+                if (host.instanceSceneGeneration !== generation) return;
+                failCurrentInstanceSceneBuild(host, error);
+            });
+
 }
 
 export function getInstanceExtraLocs(host: WebGLOsrsRendererHost, 
@@ -371,37 +634,44 @@ export function getInstanceExtraLocs(host: WebGLOsrsRendererHost,
 }
 
 export function scheduleInstanceLocRebuild(host: WebGLOsrsRendererHost, ): void {
-
+        host.instanceLocRebuildPending = true;
+        // A scene build snapshots extraLocs before awaiting the worker. Starting
+        // another payload with the same generation here allows completion order
+        // to restore the older snapshot. Coalesce changes until commit instead;
+        // the follow-up build receives its own generation.
+        if (host.instanceSceneBuildPending) return;
         if (host.instanceLocRebuildTimer !== null) {
             clearTimeout(host.instanceLocRebuildTimer);
         }
         host.instanceLocRebuildTimer = setTimeout(() => {
             host.instanceLocRebuildTimer = null;
-            if (!host.instanceActive || !host.instanceTemplateChunks) return;
-            const playerMapX = ((host.instanceRegionX * 8) / Scene.MAP_SQUARE_SIZE) | 0;
-            const playerMapY = ((host.instanceRegionY * 8) / Scene.MAP_SQUARE_SIZE) | 0;
+            if (!host.instanceActive || !host.instanceTemplateChunks) {
+                host.instanceLocRebuildPending = false;
+                return;
+            }
             console.log(
                 `[WebGLOsrsRenderer] Rebuilding instance scene with ${host.addedLocs.size} extra locs`,
             );
-            host.doInstanceSceneBuild(
-                host.instanceTemplateChunks,
-                host.instanceRegionX,
-                host.instanceRegionY,
-                playerMapX,
-                playerMapY,
-            );
+            startPendingInstanceLocRebuild(host);
         }, 100);
     
 }
 
 export function clearInstance(host: WebGLOsrsRendererHost, ): void {
 
+        host.instanceSceneGeneration = (host.instanceSceneGeneration + 1) | 0;
+        host.instanceSceneBuildPending = false;
+        host.instanceSceneReady = false;
+        host.instanceScenePendingSettings = null;
+        host.instanceSceneFallbackState = null;
+        host.instanceLocRebuildPending = false;
         host.instanceActive = false;
         host.instanceTemplateChunks = null;
         if (host.instanceLocRebuildTimer !== null) {
             clearTimeout(host.instanceLocRebuildTimer);
             host.instanceLocRebuildTimer = null;
         }
+        host.mapsToLoad.clear();
         host.mapManager.clearMaps();
         console.log("[WebGLOsrsRenderer] Instance cleared, normal map streaming resumed");
     

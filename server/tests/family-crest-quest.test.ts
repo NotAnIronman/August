@@ -105,7 +105,7 @@ const services = {
     },
     data: {
         getObjType: (itemId: number) => ({
-            stackable: 0,
+            stackability: 0,
             name: itemId === 175 ? "Antipoison(3)" : `Item ${itemId}`,
         }),
         getLocDefinition: () => ({ name: "Furnace" }),

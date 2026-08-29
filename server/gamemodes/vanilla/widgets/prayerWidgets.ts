@@ -281,7 +281,10 @@ export function registerPrayerWidgetHandlers(
 
 function buildQuickPrayerSetupSlotMap(services: ScriptServices): Map<number, PrayerName> {
     const slotToPrayer = new Map<number, PrayerName>();
-    const enumLoader = services.data.getEnumTypeLoader() ?? services.enumTypeLoader;
+    const legacyServices = services as ScriptServices & {
+        enumTypeLoader?: ReturnType<ScriptServices["data"]["getEnumTypeLoader"]>;
+    };
+    const enumLoader = services.data.getEnumTypeLoader() ?? legacyServices.enumTypeLoader;
     const getObjType = services.data.getObjType;
     if (!enumLoader?.load || !getObjType) {
         return slotToPrayer;
@@ -430,7 +433,7 @@ function handleQuickPrayerAction(
                     player,
                     result.errors[0]?.message ?? "You can't use that prayer.",
                 );
-                player.setQuickPrayersEnabled(false);
+                player.prayer.setQuickPrayersEnabled(false);
                 services.combat.queueCombatState(player);
                 return;
             }

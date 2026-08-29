@@ -97,7 +97,7 @@ const services = {
         addSkillXp: (_player: unknown, skillId: number, amount: number) =>
             awardedXp.set(skillId, (awardedXp.get(skillId) ?? 0) + amount),
     },
-    data: { getObjType: (itemId: number) => ({ stackable: itemId === ITEM.coins ? 1 : 0 }) },
+    data: { getObjType: (itemId: number) => ({ stackability: itemId === ITEM.coins ? 1 : 0 }) },
     dialog: {
         getInterfaceService: () => ({ getCurrentChatboxModal: () => undefined }),
         openDialog: (_player: unknown, spec: { onContinue?: () => void }) => spec.onContinue?.(),

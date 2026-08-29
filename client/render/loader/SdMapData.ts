@@ -66,6 +66,15 @@ export type SdMapData = {
     mapX: number;
     mapY: number;
 
+    /**
+     * Identifies the private-instance scene build that produced this payload.
+     * Normal streamed maps leave this unset. The renderer uses it to reject an
+     * async instance build that completes after another rebuild (or an exit).
+     */
+    instanceSceneGeneration?: number;
+    /** Purge the previously committed scene only after this payload is resident. */
+    instanceSceneReplacesExistingMaps?: boolean;
+
     cacheName: string;
 
     maxLevel: number;

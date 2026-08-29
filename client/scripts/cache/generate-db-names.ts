@@ -13,7 +13,7 @@ import { StringUtil } from "../../rs/util/StringUtil";
 import { loadCache, loadCacheInfos, loadCacheList } from "./load-util";
 
 // Output directory for name files
-const OUT_DIR = path.join(__dirname, "..", "..", "cs2-decompiler", "src", "data");
+const OUT_DIR = path.join(__dirname, "..", "..", "..", "cs2-decompiler", "src", "data");
 
 /**
  * Build a map from name hash -> archive ID using the reference table
@@ -47,7 +47,15 @@ function buildHashToIdMap(
  * Read case names from reference scripts
  */
 function loadCaseNamesFromReferenceScripts(): string[] {
-    const refScriptsDir = path.join(__dirname, "..", "..", "references", "cs2-scripts", "scripts");
+    const refScriptsDir = path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "references",
+        "cs2-scripts",
+        "scripts",
+    );
     if (!fs.existsSync(refScriptsDir)) {
         console.log("Reference scripts directory not found");
         return [];
@@ -77,7 +85,15 @@ function loadCaseNamesFromReferenceScripts(): string[] {
  * Format: db_getfield($var, tablename:columnname, index)
  */
 function loadDbColumnNamesFromReferenceScripts(): Map<string, string[]> {
-    const refScriptsDir = path.join(__dirname, "..", "..", "references", "cs2-scripts", "scripts");
+    const refScriptsDir = path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "references",
+        "cs2-scripts",
+        "scripts",
+    );
     if (!fs.existsSync(refScriptsDir)) {
         return new Map();
     }

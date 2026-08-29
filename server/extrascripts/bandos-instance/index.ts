@@ -5,24 +5,23 @@ import type {
     ScriptServices,
 } from "../../src/game/scripts/types";
 import { AttackType } from "../../src/game/combat/AttackType";
-import { EncounterRegistry, registerEncounter } from "../../src/game/encounters/EncounterRegistry";
 import {
-    closeBossHealthBar as closeEncounterHealthBar,
-    openBossHealthBar as openEncounterHealthBar,
-    updateBossHealthBar as updateEncounterHealthBar,
-} from "../../src/game/encounters/BossHealthBar";
+    INSTANCE_GRAVE_RECLAIM_LOC_ID,
+    INSTANCE_GRAVE_RECLAIM_TILE,
+    isAuthorizedInstanceGraveInteraction,
+    syncInstanceGravePresentation,
+} from "../../src/game/death/InstanceGravePresentation";
+import { EncounterRegistry, registerEncounter } from "../../src/game/encounters/EncounterRegistry";
 import { SkillId } from "../../../client/rs/skill/skills";
 import { PRAYER_RECHARGE_SOUND_ID } from "../../../client/rs/prayer/prayers";
 
 const BANDOS_DOOR_LOC_ID = 26503;
 const BANDOS_STRONGHOLD_DOOR_LOC_ID = 26461;
 const BANDOS_ALTAR_LOC_ID = 26366;
-const INSTANCE_GRAVE_RECLAIM_LOC_ID = 9359;
 const BANDOS_DEFINITION_ID = "graardor-room";
+const BANDOS_BOSS_MAX_HEALTH = 255;
 const BANDOS_ALTAR_COOLDOWN_TICKS = 500;
 const lastBandosAltarUse = new WeakMap<PlayerState, number>();
-const activeBandosPlayers = new Set<PlayerState>();
-const lastBossHealthState = new WeakMap<PlayerState, string>();
 const BANDOS_STRONGHOLD_OUTSIDE = Object.freeze({ x: 2851, y: 5333, level: 2 });
 const BANDOS_STRONGHOLD_INSIDE = Object.freeze({ x: 2850, y: 5333, level: 2 });
 const BANDOS_DOOR_HAMMERING_SEQ = 898;
@@ -90,10 +89,12 @@ function openBandosStrongholdDoor({ player, services }: LocInteractionEvent): vo
 }
 
 const INSTANCE_EXIT = Object.freeze({ x: 2862, y: 5354, level: 2 });
-// Shared reclaim point immediately outside the Bandos chamber. Item ownership
-// lives in the player's persistent grave state, not in the world object.
-const INSTANCE_GRAVE_RECLAIM_TILE = Object.freeze({ x: 2858, y: 5354, level: 2 });
 const INSTANCE_ENTRANCE = Object.freeze({ x: 2864, y: 5354, level: 2 });
+const INSTANCE_GRAVE = Object.freeze({
+    locId: INSTANCE_GRAVE_RECLAIM_LOC_ID,
+    tile: { x: INSTANCE_GRAVE_RECLAIM_TILE.x, y: INSTANCE_GRAVE_RECLAIM_TILE.y },
+    level: INSTANCE_GRAVE_RECLAIM_TILE.level,
+});
 // InstancedAreaManager centers its 13x13-chunk view six chunks behind the
 // destination chunk. These values keep the copied room at its native world
 // coordinates while still assigning it a private world view.
@@ -111,6 +112,11 @@ function registerBandosEncounters(): void {
         registerEncounter({
             id: "general-graardor",
             npcTypeIds: [2215],
+            maxHealth: BANDOS_BOSS_MAX_HEALTH,
+            bossHealthBar: {
+                name: "General Graardor",
+                npcTypeId: 2215,
+            },
             movement: {
                 wanderRadius: 10,
                 aggressionRadius: 15,
@@ -181,51 +187,6 @@ function isBandosInstance(player: PlayerState, services: ScriptServices): boolea
     return services.instances.get(player.id)?.definitionId === BANDOS_DEFINITION_ID;
 }
 
-function openBossHealthBar(player: PlayerState, services: ScriptServices): void {
-    activeBandosPlayers.add(player);
-    const snapshot = {
-        name: "General Graardor",
-        current: 255,
-        maximum: 255,
-    };
-    openEncounterHealthBar(player, services, snapshot);
-    // An instance rebuild can discard an overlay sent during the same client
-    // frame as the teleport. Re-mount after the rebuilt scene is established.
-    services.scheduler.after(
-        3,
-        () => {
-            if (isBandosInstance(player, services)) openEncounterHealthBar(player, services, snapshot);
-        },
-        { kind: "player", id: player.id },
-    );
-}
-
-function closeBossHealthBar(player: PlayerState, services: ScriptServices): void {
-    activeBandosPlayers.delete(player);
-    lastBossHealthState.delete(player);
-    closeEncounterHealthBar(player, services);
-}
-
-function syncBossHealthBars(services: ScriptServices): void {
-    for (const player of activeBandosPlayers) {
-        if (!isBandosInstance(player, services)) {
-            closeBossHealthBar(player, services);
-            continue;
-        }
-        const boss = services.npc.findNearbyNpc(player, 2215, 40);
-        const current = Math.max(0, boss?.getHitpoints() ?? 0);
-        const maximum = Math.max(1, boss?.getMaxHitpoints() ?? 1);
-        const stateKey = `${current}:${maximum}`;
-        if (lastBossHealthState.get(player) === stateKey) continue;
-        lastBossHealthState.set(player, stateKey);
-        updateEncounterHealthBar(player, services, {
-            name: "General Graardor",
-            current,
-            maximum,
-        });
-    }
-}
-
 function formatCooldown(ticks: number): string {
     const seconds = Math.max(1, Math.ceil((ticks * 600) / 1000));
     const minutes = Math.floor(seconds / 60);
@@ -291,6 +252,7 @@ function createBandosInstance(
         templateChunks,
         destination: INSTANCE_ENTRANCE,
         exit: INSTANCE_EXIT,
+        grave: INSTANCE_GRAVE,
         npcs: BANDOS_NPCS,
     });
     if (!room) {
@@ -298,12 +260,10 @@ function createBandosInstance(
         return;
     }
     services.instances.markStarted(room.id);
-    openBossHealthBar(player, services);
 }
 
 function showEntryOptions(player: PlayerState, services: ScriptServices): void {
     if (isBandosInstance(player, services)) {
-        closeBossHealthBar(player, services);
         services.instances.leave(player, INSTANCE_EXIT);
         return;
     }
@@ -345,8 +305,6 @@ function showJoinOptions(player: PlayerState, services: ScriptServices): void {
             const room = visibleRooms[choice];
             if (!room || !services.instances.join(player, room.id)) {
                 services.messaging.sendGameMessage(player, "That party is no longer available.");
-            } else {
-                openBossHealthBar(player, services);
             }
         },
     });
@@ -371,30 +329,103 @@ function handlePeek({ player, services }: LocInteractionEvent): void {
     );
 }
 
-function reclaimInstanceGrave({ player, services }: LocInteractionEvent): void {
+export function reclaimInstanceGrave({
+    player,
+    services,
+    locId,
+    tile,
+    level,
+}: LocInteractionEvent): void {
     if (!player.instanceGrave.hasItems()) {
         services.messaging.sendGameMessage(player, "Your instanced-death grave is empty.");
         return;
     }
-    const result = player.instanceGrave.reclaim((itemId, quantity) =>
-        player.items.addItem(itemId, quantity, { assureFullInsertion: false }).completed,
-    );
-    services.inventory.snapshotInventoryImmediate(player);
-    if (result.remaining > 0) {
+    if (
+        !isAuthorizedInstanceGraveInteraction(services.location, player, {
+            locId,
+            tile,
+            level,
+        })
+    ) {
         services.messaging.sendGameMessage(
             player,
-            `You reclaim ${result.reclaimed} item${result.reclaimed === 1 ? "" : "s"}. Make more inventory space for the remaining ${result.remaining} stack${result.remaining === 1 ? "" : "s"}.`,
+            "You need to return to your gravestone to reclaim those items.",
         );
         return;
     }
-    services.messaging.sendGameMessage(
-        player,
-        `You reclaim ${result.reclaimed} item${result.reclaimed === 1 ? "" : "s"} from your grave. Reclaiming is currently free.`,
-    );
+    const inventoryBeforeReclaim = player.items
+        .getInventoryEntries()
+        .map((entry) => ({ itemId: entry.itemId, quantity: entry.quantity }));
+    const graveBeforeReclaim = player.instanceGrave.serialize();
+    const rollbackReclaim = (): void => {
+        for (let slot = 0; slot < inventoryBeforeReclaim.length; slot++) {
+            const entry = inventoryBeforeReclaim[slot];
+            player.items.setInventorySlot(slot, entry.itemId, entry.quantity);
+        }
+        player.instanceGrave.deserialize(graveBeforeReclaim);
+    };
+    const reclaimCost = player.instanceGrave.getReclaimCost();
+    try {
+        if (reclaimCost > 0) {
+            if (!player.items.hasItem(995, reclaimCost)) {
+                services.messaging.sendGameMessage(
+                    player,
+                    `You need ${reclaimCost.toLocaleString()} coins to reclaim these items.`,
+                );
+                return;
+            }
+            const payment = player.items.removeItem(995, reclaimCost, {
+                assureFullRemoval: true,
+            });
+            if (payment.completed !== reclaimCost) {
+                rollbackReclaim();
+                services.inventory.snapshotInventoryImmediate(player);
+                services.messaging.sendGameMessage(
+                    player,
+                    "Your reclaim payment could not be processed.",
+                );
+                return;
+            }
+            player.instanceGrave.markReclaimCostPaid();
+        }
+        const result = player.instanceGrave.reclaim((itemId, quantity) =>
+            player.items.addItem(itemId, quantity, { assureFullInsertion: false }).completed,
+        );
+        services.inventory.snapshotInventoryImmediate(player);
+        syncInstanceGravePresentation(services.location, player);
+        if (result.remaining > 0) {
+            services.messaging.sendGameMessage(
+                player,
+                `You reclaim ${result.reclaimed} item${result.reclaimed === 1 ? "" : "s"}. Make more inventory space for the remaining ${result.remaining} stack${result.remaining === 1 ? "" : "s"}.`,
+            );
+            return;
+        }
+        services.messaging.sendGameMessage(
+            player,
+            `You reclaim ${result.reclaimed} item${result.reclaimed === 1 ? "" : "s"} from your grave.${reclaimCost > 0 ? ` You paid ${reclaimCost.toLocaleString()} coins.` : " Reclaiming is currently free."}`,
+        );
+    } catch {
+        rollbackReclaim();
+        services.inventory.snapshotInventoryImmediate(player);
+        syncInstanceGravePresentation(services.location, player);
+        services.messaging.sendGameMessage(
+            player,
+            "Your grave could not be reclaimed. No items or coins were lost; please try again.",
+        );
+    }
 }
 
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     registerBandosEncounters();
+    // Remove the legacy shared reclaim loc during hot reloads. Owner-scoped
+    // graves are created from persistent storage by the death/login flow.
+    _services.location.clearTemporaryLoc(
+        { worldViewId: -1 },
+        0,
+        INSTANCE_GRAVE_RECLAIM_TILE,
+        INSTANCE_GRAVE_RECLAIM_TILE.level,
+        10,
+    );
     registry.registerLocInteraction(
         BANDOS_STRONGHOLD_DOOR_LOC_ID,
         openBandosStrongholdDoor,
@@ -416,15 +447,4 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerLocInteraction(BANDOS_ALTAR_LOC_ID, prayAtBandosAltar, "pray");
     registry.registerLocInteraction(BANDOS_ALTAR_LOC_ID, prayAtBandosAltar, "pray-at");
     registry.registerLocInteraction(INSTANCE_GRAVE_RECLAIM_LOC_ID, reclaimInstanceGrave, "read");
-    // The location service replays this global temporary loc for every scene
-    // load, making the reclaim point available after login as well as death.
-    _services.location.replaceTemporaryLoc(
-        { worldViewId: -1 },
-        0,
-        INSTANCE_GRAVE_RECLAIM_LOC_ID,
-        INSTANCE_GRAVE_RECLAIM_TILE,
-        INSTANCE_GRAVE_RECLAIM_TILE.level,
-        { newShape: 10, newRotation: 0 },
-    );
-    registry.registerTickHandler(({ services }) => syncBossHealthBars(services));
 }

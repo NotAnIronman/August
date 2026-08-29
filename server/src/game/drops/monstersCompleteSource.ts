@@ -81,6 +81,10 @@ function isKnownTertiaryDrop(drop: RawMonsterDrop): boolean {
     return (
         name.startsWith("clue scroll") ||
         name.startsWith("pet ") ||
+        name === "giant key" ||
+        name === "mossy key" ||
+        name === "ecumenical key" ||
+        name === "larran's key" ||
         name === "brimstone key" ||
         name === "long bone" ||
         name === "curved bone" ||
@@ -162,11 +166,30 @@ function normalizeRawMonster(raw: RawMonsterEntry): ImportedMonsterDefinition | 
         combatLevel: raw.combat_level,
         duplicate: raw.duplicate === true,
         incomplete: raw.incomplete === true,
+        source: "legacy",
         table: {
             always,
             pools: pools.length > 0 ? pools : undefined,
         },
     };
+}
+
+/**
+ * Prefer complete data before partial data while retaining the current Wiki
+ * source as the tie-breaker. A complete exact-ID legacy table is safer than a
+ * Wiki fallback known to have omitted rows; live cache-name validation still
+ * prevents a stale legacy ID from attaching to a different NPC.
+ */
+export function prioritizeImportedDefinitions(
+    wikiEntries: readonly ImportedMonsterDefinition[],
+    legacyEntries: readonly ImportedMonsterDefinition[],
+): ImportedMonsterDefinition[] {
+    return [
+        ...wikiEntries.filter((entry) => entry.incomplete !== true),
+        ...legacyEntries.filter((entry) => entry.incomplete !== true),
+        ...wikiEntries.filter((entry) => entry.incomplete === true),
+        ...legacyEntries.filter((entry) => entry.incomplete === true),
+    ];
 }
 
 function extractObjectAt(
@@ -266,33 +289,30 @@ function loadWikiSnapshotDefinitions(sourcePath: string): ImportedMonsterDefinit
  * Wiki subheadings such as "Weapons and armour" and "Runes and ammunition"
  * are display categories for one normal NPC drop roll. Keeping each heading
  * as its own weighted pool would incorrectly award several regular drops in
- * one death. Only the labelled tertiary table is an independent roll.
+ * one death. Expanded shared/RDT rows are also alternatives selected by that
+ * same main roll; treating them as an additional pool can award two mutually
+ * exclusive drops from one kill.
  */
-function normalizeWikiDropTable(table: NpcDropTableDefinition): NpcDropTableDefinition {
-    const weightedPools = (table.pools ?? []).filter((pool) => pool.kind === "weighted");
-    const weightedEntries = weightedPools.flatMap((pool) => pool.entries);
-    const weightedRollCounts = new Set(weightedPools.map((pool) => Math.max(1, pool.rolls ?? 1)));
-    // Most tables, such as Zulrah's, declare one roll count for every normal
-    // subheading. Preserve it so the roll service performs the same number of
-    // main-table rolls. Mixed counts need a later special-table rule, so keep
-    // one roll rather than inventing extra loot rolls.
-    const weightedRolls = weightedRollCounts.size === 1 ? [...weightedRollCounts][0] : 1;
-    const independentPools = (table.pools ?? []).filter((pool) => pool.kind === "independent");
+export function normalizeWikiDropTable(
+    table: NpcDropTableDefinition,
+): NpcDropTableDefinition {
     return {
         always: table.always,
-        pools: [
-            ...(weightedEntries.length > 0
-                ? [
-                      {
-                          kind: "weighted" as const,
-                          category: "main" as const,
-                          rolls: weightedRolls,
-                          entries: weightedEntries,
-                      },
-                  ]
-                : []),
-            ...independentPools,
-        ],
+        pools: (table.pools ?? []).map((pool) => {
+            const isExclusiveWikiPool = pool.kind === "weighted" || pool.category === "coins";
+            if (!isExclusiveWikiPool) return pool;
+            const rolls = Math.max(1, pool.rolls ?? 1);
+            return {
+                ...pool,
+                // Compatibility for bucket-v2 checkpoints written before
+                // outcome grouping: overflow coins were temporarily stored as
+                // independent even though they are main-table alternatives.
+                kind: "weighted" as const,
+                rollGroupId:
+                    pool.rollGroupId?.trim() || `wiki:exclusive:${rolls}`,
+                rolls,
+            };
+        }),
     };
 }
 
@@ -318,7 +338,7 @@ export function loadMonstersCompleteDefinitions(): ImportedMonsterDefinition[] {
     } catch (error) {
         errors.push(`Legacy snapshot: ${error instanceof Error ? error.message : String(error)}`);
     }
-    cachedEntries = [...wikiEntries, ...legacyEntries];
+    cachedEntries = prioritizeImportedDefinitions(wikiEntries, legacyEntries);
     const sourcePath = wikiEntries.length > 0 ? `${wikiSourcePath} + ${legacySourcePath}` : legacySourcePath;
     if (cachedEntries.length === 0) {
         sourceStatus = { path: sourcePath, entryCount: 0, error: errors.join("; ") || "no drop tables found" };

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.16.0"
   },
   "dependencies": {
     "@foxglove/wasm-bz2": "^0.3.0",
@@ -40,8 +40,15 @@
     "start": "tsx ../server/scripts/ensure-cache.ts && craco start",
     "dev": "yarn start",
     "build": "craco build",
-    "test": "tsx tests/direction-orientation.test.ts && tsx tests/instance-render-coordinates.test.ts && tsx tests/instance-npc-refresh.test.ts && tsx tests/npc-instance-flush-controller.test.ts && tsx tests/cache-streaming.test.ts && tsx tests/enter-to-type-chat.test.ts && tsx tests/chat-channel-prefix.test.ts && tsx tests/camera-controls.test.ts && tsx tests/renderer-lifecycle.test.ts && tsx tests/widget-root-onload-race.test.ts && tsx tests/uikit-panel-builder.test.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node ../scripts/run-typescript-tests.mjs tests --exclude=widget-loader.test.ts",
+    "test:all": "node ../scripts/run-typescript-tests.mjs tests",
+    "test:cache": "node ../scripts/run-typescript-tests.mjs tests --only=widget-loader.test.ts",
+    "test:smoke": "tsx tests/direction-orientation.test.ts && tsx tests/instance-render-coordinates.test.ts && tsx tests/instance-scene-settings-lifecycle.test.ts && tsx tests/instance-npc-refresh.test.ts && tsx tests/npc-instance-flush-controller.test.ts && tsx tests/cache-streaming.test.ts && tsx tests/enter-to-type-chat.test.ts && tsx tests/chat-channel-prefix.test.ts && tsx tests/camera-controls.test.ts && tsx tests/renderer-lifecycle.test.ts && tsx tests/widget-root-onload-race.test.ts && tsx tests/uikit-panel-builder.test.ts",
+    "typecheck": "yarn typecheck:app && yarn typecheck:tools && yarn typecheck:tests",
+    "typecheck:all": "yarn typecheck",
+    "typecheck:app": "tsc --noEmit -p tsconfig.json",
+    "typecheck:tools": "tsc --noEmit -p tsconfig.tools.json",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
     "export-textures": "tsx scripts/cache/export-textures.ts",
     "export-height-map": "tsx scripts/cache/export-height-map.ts",
     "export-items": "tsx scripts/cache/export-items.ts",

@@ -43,8 +43,13 @@ export class CombatTargetResolver {
         if (entity instanceof PlayerState && !entity.canBeAttacked()) {
             return { valid: false, reason: "interaction_blocked" };
         }
-        if (entity instanceof NpcState && !entity.isCombatTargetable()) {
-            return { valid: false, reason: "unattackable" };
+        if (entity instanceof NpcState && !entity.isCombatTargetable(currentMapClock)) {
+            return {
+                valid: false,
+                reason: entity.isSpawnAnimationLocked(currentMapClock)
+                    ? "interaction_blocked"
+                    : "unattackable",
+            };
         }
         return { valid: true, entity };
     }
@@ -62,7 +67,11 @@ export class CombatTargetResolver {
         if (attacker instanceof PlayerState && !attacker.canAttack()) {
             return { valid: false, reason: "interaction_blocked" };
         }
-        if (attacker instanceof NpcState && attacker.isRecoveringToSpawn()) {
+        if (
+            attacker instanceof NpcState &&
+            (attacker.isRecoveringToSpawn() ||
+                attacker.isSpawnAnimationLocked(currentMapClock))
+        ) {
             return { valid: false, reason: "interaction_blocked" };
         }
         return { valid: true, entity: attacker };

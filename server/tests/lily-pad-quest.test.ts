@@ -89,7 +89,7 @@ const services = {
         addSkillXp: (_player: unknown, skillId: number, amount: number) =>
             xp.set(skillId, (xp.get(skillId) ?? 0) + amount),
     },
-    data: { getObjType: () => ({ stackable: 0 }) },
+    data: { getObjType: () => ({ stackability: 0 }) },
     npc: {
         findNearbyNpc: (_player: unknown, typeId: number) =>
             activeNpcs.find((npc) => npc.typeId === typeId),

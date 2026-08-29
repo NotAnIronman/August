@@ -91,7 +91,18 @@ export function registerKeyDoorHandlers(registry: IScriptRegistry): void {
             handler: (event) => openWithKey(event, def),
         });
         registry.registerItemOnLoc(def.keyItemId, def.locId, (event) => {
-            openWithKey(event, def);
+            openWithKey(
+                {
+                    player: event.player,
+                    services: event.services,
+                    tick: event.tick,
+                    locId: event.target.locId,
+                    tile: event.target.tile,
+                    level: event.target.level,
+                    action: event.option,
+                },
+                def,
+            );
         });
     }
 }

@@ -116,7 +116,7 @@ const services = {
         getSkill: () => ({ baseLevel: 1, boost: 0 }),
         addSkillXp: () => undefined,
     },
-    data: { getObjType: (id: number) => ({ stackable: id === ITEM.coins ? 1 : 0 }) },
+    data: { getObjType: (id: number) => ({ stackability: id === ITEM.coins ? 1 : 0 }) },
     dialog: {
         getInterfaceService: () => ({ getCurrentChatboxModal: () => undefined }),
         openDialog: (_player: unknown, spec: { onContinue?: () => void }) => spec.onContinue?.(),
