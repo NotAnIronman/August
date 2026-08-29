@@ -42,6 +42,13 @@ handlers.get("26561:tie-rope")?.({ player: ropePlayer, services: ropeServices, l
 assert.equal(ropes, 1);
 assert.equal(replacements[0]?.[2], 26372);
 assert.equal(replacements[1]?.[2], 26374);
+assert.equal((replacements[0]?.[5] as { newRotation: number }).newRotation, 2);
 assert.equal(messages.at(-1), "You tie the rope securely to the rock.");
+
+handlers.get("26562:tie-rope")?.({ player: ropePlayer, services: ropeServices, locId: 26562, tile: { x: 2920, y: 5276 }, level: 1 } as never);
+assert.equal(replacements[2]?.[2], 26376);
+assert.equal(replacements[3]?.[2], 26378);
+assert.deepEqual(replacements[3]?.[3], { x: 2920, y: 5274, level: 0 });
+assert.equal((replacements[2]?.[5] as { newRotation: number }).newRotation, 3);
 
 console.log("saradomin instance entry tests passed");
