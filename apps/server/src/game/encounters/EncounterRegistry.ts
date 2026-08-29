@@ -117,7 +117,10 @@ export class EncounterRegistry {
                     );
                 }
             }
-            if ((attack.weight ?? 1) < 0 || (attack.cooldownTicks ?? 0) < 0) {
+            if (
+                (typeof attack.weight === "number" && attack.weight < 0) ||
+                (attack.cooldownTicks ?? 0) < 0
+            ) {
                 throw new Error(`Attack '${attack.id}' has a negative weight or cooldown.`);
             }
         }

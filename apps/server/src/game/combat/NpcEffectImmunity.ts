@@ -23,7 +23,7 @@ const BASE_IMMUNITIES_BY_NPC_TYPE = new Map<number, NpcEffectImmunityProfile>([
     [2044, Object.freeze({ poison: true, venom: true })],
     [7937, Object.freeze({ poison: true, venom: true })], // Vorkath
     [239, Object.freeze({ poison: true })], // King Black Dragon
-    [3129, Object.freeze({ poison: true })], // K'ril Tsutsaroth
+    [3129, Object.freeze({ poison: true, venom: true })], // K'ril Tsutsaroth
     [963, Object.freeze({ poison: true })], // Kalphite workers
     [959, Object.freeze({ poison: true })], // Kalphite soldiers
     [960, Object.freeze({ poison: true })], // Kalphite guardians
