@@ -23,7 +23,8 @@ const INSTANCE_EXIT = Object.freeze({ x: 2839, y: 5294, level: 2 });
 const INSTANCE_GRAVE = Object.freeze({ locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: { x: 2839, y: 5292 }, level: 2 });
 const INSTANCE_BASE = Object.freeze({ x: 2784, y: 5240 });
 const ARMADYL_NPCS = Object.freeze([
-    Object.freeze({ id: 3162, offsetX: 2832 - INSTANCE_BASE.x, offsetY: 5302 - INSTANCE_BASE.y, level: 2 }),
+    // Keep the live NPC's fallback combat cadence aligned with its encounter attacks.
+    Object.freeze({ id: 3162, offsetX: 2832 - INSTANCE_BASE.x, offsetY: 5302 - INSTANCE_BASE.y, level: 2, attackSpeed: 3 }),
     Object.freeze({ id: 3163, offsetX: 2840 - INSTANCE_BASE.x, offsetY: 5303 - INSTANCE_BASE.y, level: 2 }),
     Object.freeze({ id: 3164, offsetX: 2828 - INSTANCE_BASE.x, offsetY: 5299 - INSTANCE_BASE.y, level: 2 }),
     Object.freeze({ id: 3165, offsetX: 2833 - INSTANCE_BASE.x, offsetY: 5297 - INSTANCE_BASE.y, level: 2 }),

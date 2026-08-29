@@ -143,6 +143,8 @@ export interface NpcSpawnConfig {
     x: number;
     y: number;
     level: number;
+    /** Explicit attack cadence for authored encounter spawns. */
+    attackSpeed?: number;
     wanderRadius?: number;
     /** Distance at which this NPC can automatically acquire a player target. */
     aggressionRadius?: number;

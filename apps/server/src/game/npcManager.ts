@@ -369,7 +369,10 @@ export class NpcManager {
             this.deriveMaxHitpoints(npcType, npcCombatStats);
         const combatLevel = npcType.combatLevel ?? -1;
         // Attack speed is stored in cache param 14
-        const attackSpeed = this.deriveAttackSpeed(npcType, npcCombatStats);
+        const attackSpeed = Math.max(
+            1,
+            Math.trunc(spawn.attackSpeed ?? this.deriveAttackSpeed(npcType, npcCombatStats)),
+        );
         // Preview/quest spawns may explicitly opt out of aggression. Normal
         // map spawns still derive their behavior from data as before.
         const isAggressive =
