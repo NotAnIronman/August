@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@client/*": ["apps/client/src/*"],
+      "@server/*": ["apps/server/src/*"],
+      "@tools/*": ["tools/*"],
+      "@august/data/*": ["data/*"],
+      "@august/game-model": ["packages/game-model/src/index.ts"],
+      "@august/game-model/*": ["packages/game-model/src/*"],
+      "@august/protocol": ["packages/protocol/src/index.ts"],
+      "@august/protocol/*": ["packages/protocol/src/*"],
+      "@august/osrs-engine": ["packages/osrs-engine/src/index.ts"],
+      "@august/osrs-engine/*": ["packages/osrs-engine/src/*"],
+      "@august/custom-content": ["packages/custom-content/src/index.ts"],
+      "@august/custom-content/*": ["packages/custom-content/src/*"]
+    }
+  }
+}

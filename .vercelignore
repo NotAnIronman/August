@@ -1,8 +1,6 @@
-server/caches
-server/cache
-server/data/gamemodes/*/game.sqlite*
-server/data/gamemodes/*/player-state.json
-server/data/gamemodes/*/accounts.json
+apps/server/var
+apps/docs/.vitepress/cache
+apps/docs/.vitepress/dist
 node_modules
 tmp
 .git

@@ -1,35 +1,26 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies and build output
+**/node_modules/
+**/build/
+**/dist/
+**/coverage/
+**/.vite/
+**/.vitepress/cache/
+**/.vitepress/dist/
 
-# dependencies
-/node_modules
-**/node_modules
-/.pnp
-.pnp.js
+# Large generated, imported, and runtime data
+/apps/client/locs/
+/apps/client/npcs/
+/apps/client/public/spriteNames.json
+/apps/server/var/
+/data/**/*.json
+/references/
+/.tmp/
 
-# testing
-/coverage
+# Local state and logs
+/.pnpm-store/
+*.log*
+.env
+.env.*
 
-# production
-/build
-/client/build
-
-# Generated/runtime data and caches
-/caches
-/server/cache
-/server/data/**/*.json
-/references
-/.tmp
-
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Deliberately minified file
+# Deliberately minified files
 *.min.*

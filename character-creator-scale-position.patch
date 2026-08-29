@@ -1,0 +1,190 @@
+--- a/apps/client/src/ui/widgets/model/playerModelPresentation.ts	2026-08-29 15:06:16.019848336 +0000
++++ b/apps/client/src/ui/widgets/model/playerModelPresentation.ts	2026-08-29 15:06:16.179288637 +0000
+@@ -2,7 +2,16 @@
+ export const EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM = 600;
+ /** PlayerDesign / character creator (cache interface group 679). */
+ export const CHARACTER_CREATOR_GROUP_ID = 679;
+-export const CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM = 600;
++/** ~15% smaller than the previous 600 cap (600 / 0.85 ≈ 706). */
++export const CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM = 706;
++/**
++ * Nudges the character creator preview down so its feet land just above the
++ * Confirm button instead of the model floating high enough to clip the
++ * header. Starting estimate from the reported screenshot — model-space
++ * offsetY2d is scaled by camera depth/zoom before it reaches screen pixels,
++ * so this may need a small visual tweak in-client to land exactly on target.
++ */
++export const CHARACTER_CREATOR_PLAYER_MODEL_OFFSET_Y = 30;
+ /** Cache/default human standing sequence used before the local BAS is ready. */
+ export const DEFAULT_PLAYER_IDLE_SEQUENCE_ID = 808;
+ 
+@@ -16,11 +25,22 @@
+     [CHARACTER_CREATOR_GROUP_ID]: CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM,
+ };
+ 
++/**
++ * Per-group vertical offset override for the same portrait widgets. Groups
++ * absent from this map keep whatever offsetY the cache widget/CS2 script
++ * already configured (e.g. equipment stats, whose framing wasn't reported
++ * as off).
++ */
++const PORTRAIT_PLAYER_MODEL_OFFSET_Y: Readonly<Partial<Record<number, number>>> = {
++    [CHARACTER_CREATOR_GROUP_ID]: CHARACTER_CREATOR_PLAYER_MODEL_OFFSET_Y,
++};
++
+ export interface PlayerModelPresentationInput {
+     groupId: number;
+     contentType: number;
+     configuredSequenceId?: number;
+     configuredZoom: number;
++    configuredOffsetY?: number;
+     modelFrame: number;
+     idleSequenceId?: number;
+     movementSequenceId?: number;
+@@ -31,6 +51,7 @@
+     sequenceId?: number;
+     sequenceFrame: number;
+     zoom: number;
++    offsetY: number;
+ }
+ 
+ /**
+@@ -55,6 +76,7 @@
+     const movementFrame = Math.max(0, Math.trunc(input.movementFrame ?? 0));
+     const modelFrame = Math.max(0, Math.trunc(input.modelFrame));
+     const zoom = Math.max(1, Math.trunc(input.configuredZoom));
++    const configuredOffsetY = Math.trunc(input.configuredOffsetY ?? 0);
+ 
+     const portraitMaxZoom =
+         input.contentType === 328
+@@ -70,6 +92,7 @@
+                     ? movementFrame
+                     : 0,
+             zoom: Math.min(zoom, portraitMaxZoom),
++            offsetY: PORTRAIT_PLAYER_MODEL_OFFSET_Y[input.groupId] ?? configuredOffsetY,
+         };
+     }
+ 
+@@ -85,5 +108,6 @@
+                 ? movementFrame
+                 : modelFrame,
+         zoom,
++        offsetY: configuredOffsetY,
+     };
+ }
+--- a/apps/client/src/ui/widgets/gl/widgets-gl/renderWidgetTree.ts	2026-08-29 15:06:16.173401009 +0000
++++ b/apps/client/src/ui/widgets/gl/widgets-gl/renderWidgetTree.ts	2026-08-29 15:06:16.180545357 +0000
+@@ -3397,6 +3397,7 @@
+                 contentType: (w.contentType ?? 0) | 0,
+                 configuredSequenceId: sequenceId,
+                 configuredZoom: zoom,
++                configuredOffsetY: offY,
+                 modelFrame: (w.modelFrame ?? 0) | 0,
+                 idleSequenceId,
+                 movementSequenceId,
+@@ -3405,6 +3406,7 @@
+             sequenceId = playerPresentation.sequenceId;
+             liveMovementFrame = playerPresentation.sequenceFrame;
+             zoom = playerPresentation.zoom;
++            offY = playerPresentation.offsetY;
+ 
+             // Chathead widgets are special: the cache's generic model angles
+             // describe its old placeholder model, not the NPC/player head
+--- a/apps/client/tests/player-model-presentation.test.ts	2026-08-29 15:06:16.177922177 +0000
++++ b/apps/client/tests/player-model-presentation.test.ts	2026-08-29 15:06:16.183037559 +0000
+@@ -2,6 +2,7 @@
+ 
+ import {
+     CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM,
++    CHARACTER_CREATOR_PLAYER_MODEL_OFFSET_Y,
+     DEFAULT_PLAYER_IDLE_SEQUENCE_ID,
+     EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM,
+     resolvePlayerModelPresentation,
+@@ -12,6 +13,7 @@
+     contentType: 328,
+     configuredSequenceId: 424,
+     configuredZoom: 2_000,
++    configuredOffsetY: -10,
+     modelFrame: 7,
+     idleSequenceId: 808,
+     movementSequenceId: 808,
+@@ -21,6 +23,9 @@
+     sequenceId: 808,
+     sequenceFrame: 3,
+     zoom: EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM,
++    // Equipment stats' framing wasn't reported as off; its offsetY passes
++    // through unchanged rather than being forced like the character creator.
++    offsetY: -10,
+ });
+ 
+ const equipmentWhileWalking = resolvePlayerModelPresentation({
+@@ -37,6 +42,7 @@
+     sequenceId: 808,
+     sequenceFrame: 0,
+     zoom: 500,
++    offsetY: 0,
+ });
+ 
+ const equipmentBeforePlayerBasIsReady = resolvePlayerModelPresentation({
+@@ -50,15 +56,18 @@
+     sequenceId: DEFAULT_PLAYER_IDLE_SEQUENCE_ID,
+     sequenceFrame: 0,
+     zoom: EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM,
++    offsetY: 0,
+ });
+ 
+ // Character creator (PlayerDesign, group 679) is a portrait too: it must
+-// stay in the idle stance and have its zoom capped, same as equipment stats,
+-// instead of mirroring whatever the local player is doing out in the world.
++// stay in the idle stance, have its zoom capped (now ~15% smaller than
++// equipment stats' cap), and be nudged down toward the Confirm button
++// regardless of whatever offsetY the cache/CS2 script configured.
+ const characterCreatorPreview = resolvePlayerModelPresentation({
+     groupId: 679,
+     contentType: 328,
+     configuredZoom: 1_500,
++    configuredOffsetY: -15,
+     modelFrame: 0,
+     idleSequenceId: 808,
+     movementSequenceId: 819,
+@@ -68,6 +77,7 @@
+     sequenceId: 808,
+     sequenceFrame: 0,
+     zoom: CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM,
++    offsetY: CHARACTER_CREATOR_PLAYER_MODEL_OFFSET_Y,
+ });
+ 
+ const characterCreatorBeforeBasIsReady = resolvePlayerModelPresentation({
+@@ -80,14 +90,23 @@
+     sequenceId: DEFAULT_PLAYER_IDLE_SEQUENCE_ID,
+     sequenceFrame: 0,
+     zoom: CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM,
++    offsetY: CHARACTER_CREATOR_PLAYER_MODEL_OFFSET_Y,
+ });
+ 
++// The character creator's zoom cap should be meaningfully (~15%) tighter
++// than equipment stats' now that they're tuned independently.
++assert.ok(
++    CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM > EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM,
++    "character creator zoom cap should be higher (smaller model) than equipment stats",
++);
++
+ // A group unrelated to either portrait interface should still fall through
+-// to the generic (non-portrait) behavior.
++// to the generic (non-portrait) behavior, with offsetY passed through as-is.
+ const otherPlayerPreview = resolvePlayerModelPresentation({
+     groupId: 90,
+     contentType: 328,
+     configuredZoom: 1_500,
++    configuredOffsetY: 12,
+     modelFrame: 0,
+     idleSequenceId: 808,
+     movementSequenceId: 819,
+@@ -97,6 +116,7 @@
+     sequenceId: 819,
+     sequenceFrame: 5,
+     zoom: 1_500,
++    offsetY: 12,
+ });
+ 
+ console.log("player model presentation tests passed");

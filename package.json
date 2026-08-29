@@ -1,24 +1,36 @@
 {
-  "name": "xrsps",
+  "name": "august",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "yarn@1.22.22",
+  "packageManager": "pnpm@11.19.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tools"
+  ],
   "engines": {
     "node": ">=22.16.0"
   },
   "scripts": {
-    "setup": "yarn install --frozen-lockfile && yarn --cwd server install --frozen-lockfile && yarn --cwd client install --frozen-lockfile && yarn --cwd docs install --frozen-lockfile && yarn --cwd server ensure-cache && yarn --cwd server build-collision",
-    "start": "yarn concurrently --kill-others --names server,client \"yarn server\" \"yarn client\"",
-    "start:vanilla": "yarn concurrently --kill-others --names world-1,client \"yarn --cwd server start\" \"yarn --cwd client start\"",
-    "server": "yarn --cwd server ensure-cache && yarn concurrently --kill-others --names world-1,world-2 \"yarn --cwd server start:world --world=1\" \"yarn --cwd server start:world --world=2\"",
-    "client": "yarn --cwd client start",
-    "check": "yarn typecheck && yarn test && yarn docs:build",
-    "typecheck": "yarn --cwd server typecheck && yarn --cwd client typecheck",
-    "typecheck:all": "yarn --cwd server typecheck:all && yarn --cwd client typecheck:all",
-    "test": "yarn --cwd server test && yarn --cwd client test",
-    "test:all": "yarn --cwd server test:all && yarn --cwd client test:all",
-    "test:cache": "yarn --cwd server test:cache && yarn --cwd client test:cache",
-    "docs:build": "yarn --cwd docs build"
+    "setup": "pnpm install --frozen-lockfile",
+    "prepare:data": "pnpm --filter @august/server ensure-cache && pnpm --filter @august/server build-collision",
+    "start": "pnpm exec concurrently --kill-others --names server,client \"pnpm run server\" \"pnpm run client\"",
+    "start:vanilla": "pnpm exec concurrently --kill-others --names world-1,client \"pnpm --filter @august/server start:world -- --world=1\" \"pnpm --filter @august/client start\"",
+    "server": "pnpm --filter @august/server ensure-cache && pnpm exec concurrently --kill-others --names world-1,world-2 \"pnpm --filter @august/server start:world -- --world=1\" \"pnpm --filter @august/server start:world -- --world=2\"",
+    "client": "pnpm --filter @august/client start",
+    "check": "pnpm check:structure && pnpm check:naming && pnpm check:boundaries && pnpm typecheck && pnpm test && pnpm build",
+    "check:structure": "node tools/repository/check-repository-structure.mjs",
+    "check:naming": "node tools/repository/check-repository-naming.mjs",
+    "check:boundaries": "node tools/repository/check-package-boundaries.mjs",
+    "typecheck:packages": "pnpm --filter \"./packages/**\" --if-present typecheck",
+    "typecheck:tools": "pnpm --filter @august/tools typecheck",
+    "typecheck": "pnpm typecheck:packages && pnpm typecheck:tools && pnpm --filter @august/server typecheck:all && pnpm --filter @august/client typecheck:all",
+    "typecheck:all": "pnpm typecheck",
+    "test": "pnpm --filter @august/server test && pnpm --filter @august/client test",
+    "test:all": "pnpm --filter @august/server test:all && pnpm --filter @august/client test:all",
+    "test:cache": "pnpm --filter @august/server test:cache && pnpm --filter @august/client test:cache",
+    "build": "pnpm --filter @august/server build && pnpm --filter @august/client build && pnpm docs:build",
+    "docs:build": "pnpm --filter @august/docs build"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

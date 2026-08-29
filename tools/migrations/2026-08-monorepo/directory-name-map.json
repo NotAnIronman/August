@@ -1,0 +1,266 @@
+[
+  {
+    "from": "apps/client/src/core/network/serverConnection",
+    "to": "apps/client/src/core/network/server-connection"
+  },
+  {
+    "from": "apps/client/src/engine/game/worldMap",
+    "to": "apps/client/src/engine/game/world-map"
+  },
+  {
+    "from": "apps/client/src/ui/components/OsrsLoadingBar",
+    "to": "apps/client/src/ui/components/osrs-loading-bar"
+  },
+  {
+    "from": "apps/client/src/ui/components/RenderStatsOverlay",
+    "to": "apps/client/src/ui/components/render-stats-overlay"
+  },
+  {
+    "from": "apps/client/src/ui/widgets/gl/widgetsGl",
+    "to": "apps/client/src/ui/widgets/gl/widgets-gl"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/diaryTasks",
+    "to": "apps/server/src/content/gamemodes/vanilla/diary-tasks"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/barCrawl",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/bar-crawl"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/bigChompyBirdHunting",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/big-chompy-bird-hunting"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/blackKnightsFortress",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/black-knights-fortress"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/clockTower",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/clock-tower"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/cooksAssistant",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/cooks-assistant"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/deathPlateau",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/death-plateau"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/demonSlayer",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/demon-slayer"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/desertTreasureI",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/desert-treasure-i"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/desertTreasureSeries",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/desert-treasure-series"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/digSite",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/dig-site"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/dragonSlayerI",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/dragon-slayer-i"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/druidicRitual",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/druidic-ritual"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/dwarfCannon",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/dwarf-cannon"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/elementalWorkshopI",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/elemental-workshop-i"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/ernestTheChicken",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/ernest-the-chicken"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/familyCrest",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/family-crest"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/fightArena",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/fight-arena"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/fishingContest",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/fishing-contest"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/gertrudesCat",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/gertrudes-cat"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/goblinDiplomacy",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/goblin-diplomacy"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/grandTree",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/grand-tree"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/hazeelCult",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/hazeel-cult"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/heroesQuest",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/heroes-quest"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/holyGrail",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/holy-grail"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/impCatcher",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/imp-catcher"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/junglePotion",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/jungle-potion"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/knightsSword",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/knights-sword"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/lilyPad",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/lily-pad"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/lostCity",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/lost-city"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/merlinsCrystal",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/merlins-crystal"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/monksFriend",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/monks-friend"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/murderMystery",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/murder-mystery"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/natureSpirit",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/nature-spirit"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/observatoryQuest",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/observatory-quest"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/piratesTreasure",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/pirates-treasure"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/plagueCity",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/plague-city"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/preservationRemainder",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/preservation-remainder"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/priestInPeril",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/priest-in-peril"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/princeAliRescue",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/prince-ali-rescue"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/restlessGhost",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/restless-ghost"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/romeoAndJuliet",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/romeo-and-juliet"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/runeMysteries",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/rune-mysteries"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/scorpionCatcher",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/scorpion-catcher"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/seaSlug",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/sea-slug"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/sheepHerder",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/sheep-herder"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/sheepShearer",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/sheep-shearer"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/shieldOfArrav",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/shield-of-arrav"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/templeOfIkov",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/temple-of-ikov"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/touristTrap",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/tourist-trap"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/treeGnomeVillage",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/tree-gnome-village"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/tribalTotem",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/tribal-totem"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/trollStronghold",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/troll-stronghold"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/vampyreSlayer",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/vampyre-slayer"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/waterfallQuest",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/waterfall-quest"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/witchsHouse",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/witchs-house"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/quests/definitions/witchsPotion",
+    "to": "apps/server/src/content/gamemodes/vanilla/quests/definitions/witchs-potion"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/scripts/content/areas/portSarim",
+    "to": "apps/server/src/content/gamemodes/vanilla/scripts/content/areas/port-sarim"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/scripts/content/areas/wizardTower",
+    "to": "apps/server/src/content/gamemodes/vanilla/scripts/content/areas/wizard-tower"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/scripts/content/keyDoors",
+    "to": "apps/server/src/content/gamemodes/vanilla/scripts/content/key-doors"
+  },
+  {
+    "from": "apps/server/src/content/gamemodes/vanilla/skillGuide",
+    "to": "apps/server/src/content/gamemodes/vanilla/skill-guide"
+  }
+]

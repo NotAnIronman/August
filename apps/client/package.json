@@ -1,0 +1,131 @@
+{
+  "name": "@august/client",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "dependencies": {
+    "@august/custom-content": "workspace:*",
+    "@august/game-model": "workspace:*",
+    "@august/osrs-engine": "workspace:*",
+    "@august/protocol": "workspace:*",
+    "@foxglove/wasm-bz2": "^0.3.0",
+    "@types/node": "^25.9.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@wasm-audio-decoders/ogg-vorbis": "^0.1.20",
+    "bzip2": "^0.1.1",
+    "denque": "^2.1.0",
+    "fast-memoize": "^2.5.2",
+    "file-saver": "^2.0.5",
+    "gl-matrix": "^3.4.4",
+    "java-random": "^0.4.0",
+    "js-xxhash": "^5.0.1",
+    "jszip": "^3.10.1",
+    "leva": "^0.10.1",
+    "pako": "^2.1.0",
+    "picogl": "^0.17.9",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-modal": "^3.16.3",
+    "react-router-dom": "^7.17.0",
+    "react-scripts": "5.0.1",
+    "react-select": "^5.10.2",
+    "threads": "^1.7.0",
+    "typescript": "6.0.3",
+    "usehooks-ts": "^3.1.1",
+    "wasm-gzip": "^2.1.0",
+    "web-vitals": "^5.3.0",
+    "webfontloader": "^1.6.28",
+    "xxhash-wasm": "^1.1.0"
+  },
+  "scripts": {
+    "start": "pnpm --filter @august/server ensure-cache && craco start",
+    "dev": "pnpm run start",
+    "build": "craco build",
+    "test": "node ../../tools/testing/run-typescript-tests.mjs tests --exclude=widget-loader.test.ts",
+    "test:all": "node ../../tools/testing/run-typescript-tests.mjs tests",
+    "test:cache": "node ../../tools/testing/run-typescript-tests.mjs tests --only=widget-loader.test.ts",
+    "test:smoke": "tsx tests/direction-orientation.test.ts && tsx tests/instance-render-coordinates.test.ts && tsx tests/instance-scene-settings-lifecycle.test.ts && tsx tests/instance-npc-refresh.test.ts && tsx tests/npc-instance-flush-controller.test.ts && tsx tests/cache-streaming.test.ts && tsx tests/enter-to-type-chat.test.ts && tsx tests/chat-channel-prefix.test.ts && tsx tests/camera-controls.test.ts && tsx tests/renderer-lifecycle.test.ts && tsx tests/widget-root-onload-race.test.ts && tsx tests/uikit-panel-builder.test.ts",
+    "typecheck": "pnpm run typecheck:app && pnpm run typecheck:tests",
+    "typecheck:all": "pnpm run typecheck",
+    "typecheck:app": "tsc --noEmit -p tsconfig.json",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
+    "export-items": "tsx ../../tools/cache/client/export-items.ts",
+    "export-npcs": "tsx ../../tools/cache/client/export-npcs.ts",
+    "export-locs": "tsx ../../tools/cache/client/export-locs.ts"
+  },
+  "eslintConfig": {
+    "extends": ["react-app"],
+    "overrides": [
+      {
+        "files": ["src/engine/**/*.{ts,js}"],
+        "rules": {
+          "@typescript-eslint/no-unused-vars": "off",
+          "eqeqeq": "off",
+          "strict": "off"
+        }
+      },
+      {
+        "files": ["src/engine/game/OsrsClient.ts"],
+        "rules": {
+          "@typescript-eslint/no-unused-vars": "off",
+          "no-useless-escape": "off"
+        }
+      },
+      {
+        "files": [
+          "src/engine/audio/**/*.{ts,tsx}",
+          "src/features/login/**/*.{ts,tsx}",
+          "src/engine/game/menu/**/*.{ts,tsx}",
+          "src/engine/game/movement/**/*.{ts,tsx}",
+          "src/engine/game/roof/**/*.{ts,tsx}",
+          "src/engine/game/sync/**/*.{ts,tsx}",
+          "src/engine/rendering/**/*.{ts,tsx}",
+          "src/ui/widgets/gl/**/*.{ts,tsx}",
+          "src/ui/runtime/item/**/*.{ts,tsx}",
+          "src/ui/runtime/model/**/*.{ts,tsx}",
+          "src/core/network/server-connection/**/*.{ts,tsx}"
+        ],
+        "rules": {
+          "@typescript-eslint/no-unused-vars": "off"
+        }
+      },
+      {
+        "files": ["src/core/**/*.js"],
+        "rules": { "strict": "off" }
+      }
+    ]
+  },
+  "browserslist": {
+    "production": [
+      "chrome >= 67",
+      "edge >= 79",
+      "firefox >= 68",
+      "opera >= 54",
+      "safari >= 14"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@craco/craco": "^7.1.0",
+    "@types/file-saver": "^2.0.7",
+    "@types/gzip-js": "^0.3.5",
+    "@types/pako": "^2.0.4",
+    "@types/react-modal": "^3.16.3",
+    "@types/webfontloader": "^1.6.38",
+    "express": "^4.22.2",
+    "json-minimizer-webpack-plugin": "^5.0.1",
+    "path": "^0.12.7",
+    "react-dev-utils": "12.0.1",
+    "threads-plugin": "^1.4.0",
+    "ts-shader-loader": "^2.1.0",
+    "tsx": "^4.22.4"
+  }
+}

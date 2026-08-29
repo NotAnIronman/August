@@ -5,26 +5,25 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+          run_install: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.16.0
-          cache: yarn
-          cache-dependency-path: |
-            yarn.lock
-            server/yarn.lock
-            client/yarn.lock
-            docs/yarn.lock
-      - name: Install dependencies
-        run: |
-          yarn install --frozen-lockfile
-          yarn --cwd server install --frozen-lockfile
-          yarn --cwd client install --frozen-lockfile
-          yarn --cwd docs install --frozen-lockfile
-      - name: Validate source and safe tests
-        run: yarn check
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate source, tests, and docs
+        run: pnpm run check

@@ -1,0 +1,68 @@
+--- a/apps/client/src/ui/widgets/model/playerModelPresentation.ts	2026-08-29 14:55:17.687503873 +0000
++++ b/apps/client/src/ui/widgets/model/playerModelPresentation.ts	2026-08-29 14:55:18.389931573 +0000
+@@ -1,8 +1,21 @@
+ export const EQUIPMENT_STATS_GROUP_ID = 84;
+ export const EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM = 600;
++/** PlayerDesign / character creator (cache interface group 679). */
++export const CHARACTER_CREATOR_GROUP_ID = 679;
++export const CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM = 600;
+ /** Cache/default human standing sequence used before the local BAS is ready. */
+ export const DEFAULT_PLAYER_IDLE_SEQUENCE_ID = 808;
+ 
++/**
++ * Widget groups whose contentType=328 model widget is a static portrait of
++ * the local player rather than another view of the live combat actor, keyed
++ * to their max camera zoom.
++ */
++const PORTRAIT_PLAYER_MODEL_MAX_ZOOM: Readonly<Record<number, number>> = {
++    [EQUIPMENT_STATS_GROUP_ID]: EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM,
++    [CHARACTER_CREATOR_GROUP_ID]: CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM,
++};
++
+ export interface PlayerModelPresentationInput {
+     groupId: number;
+     contentType: number;
+@@ -21,10 +34,11 @@
+ }
+ 
+ /**
+- * Equipment stats is a portrait, not another view of the live combat actor.
+- * Its cache widget can retain a block/action sequence; always present the
+- * equipped player at the normal idle stance and cap camera distance so the
+- * full-body model remains readable.
++ * Some interfaces (equipment stats, the PlayerDesign character creator) show
++ * a portrait of the local player, not another view of the live combat actor.
++ * Their cache widgets can retain a stale block/action/walk sequence; always
++ * present the player at the normal idle stance and cap camera distance so
++ * the full-body model remains readable.
+  */
+ export function resolvePlayerModelPresentation(
+     input: PlayerModelPresentationInput,
+@@ -42,19 +56,20 @@
+     const modelFrame = Math.max(0, Math.trunc(input.modelFrame));
+     const zoom = Math.max(1, Math.trunc(input.configuredZoom));
+ 
+-    if (
+-        input.groupId === EQUIPMENT_STATS_GROUP_ID &&
++    const portraitMaxZoom =
+         input.contentType === 328
+-    ) {
+-        const equipmentIdleSequenceId =
++            ? PORTRAIT_PLAYER_MODEL_MAX_ZOOM[input.groupId]
++            : undefined;
++    if (portraitMaxZoom !== undefined) {
++        const portraitIdleSequenceId =
+             idleSequenceId ?? DEFAULT_PLAYER_IDLE_SEQUENCE_ID;
+         return {
+-            sequenceId: equipmentIdleSequenceId,
++            sequenceId: portraitIdleSequenceId,
+             sequenceFrame:
+-                movementSequenceId === equipmentIdleSequenceId
++                movementSequenceId === portraitIdleSequenceId
+                     ? movementFrame
+                     : 0,
+-            zoom: Math.min(zoom, EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM),
++            zoom: Math.min(zoom, portraitMaxZoom),
+         };
+     }
+ 

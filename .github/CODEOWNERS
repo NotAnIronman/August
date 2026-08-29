@@ -1,0 +1,11 @@
+# Default owner until domain teams are introduced.
+* @NotAnIronman
+
+# Governance and change-control boundaries.
+/.github/ @NotAnIronman
+/CONTRIBUTING.md @NotAnIronman
+/apps/docs/contributing/ @NotAnIronman
+/apps/docs/testing/manual/ @NotAnIronman
+/tools/migrations/ @NotAnIronman
+/data/ @NotAnIronman
+/apps/server/resources/ @NotAnIronman

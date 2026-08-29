@@ -1,0 +1,104 @@
+--- a/packages/osrs-engine/src/config/player/PlayerModelLoader.ts	2026-08-29 16:00:51.246862332 +0000
++++ b/packages/osrs-engine/src/config/player/PlayerModelLoader.ts	2026-08-29 16:00:51.248937090 +0000
+@@ -39,17 +39,52 @@
+         const missesBefore = this.modelLoader.missCount ?? 0;
+         const modelDatas: ModelData[] = [];
+         const colors = Array.isArray(appearance.colors) ? appearance.colors : [];
++        // --- TEMP DIAGNOSTIC: remove after the null-flash is found ---
++        const expectedParts: number[] = [];
++        const producedParts: number[] = [];
++        // --- END TEMP DIAGNOSTIC (setup) ---
+ 
+         // Body parts 0..6 per Idk: 0 head, 1 jaw, 2 torso, 3 arms, 4 hands, 5 legs, 6 feet
+         for (let part = 0; part <= 6; part++) {
+             const kitId = appearance.kits[part] ?? -1;
+             if (kitId === -1) continue;
++            expectedParts.push(part); // TEMP DIAGNOSTIC
+             try {
+                 const kit = this.idkTypeLoader.load(kitId) as any;
+                 const ids: number[] = kit.modelIds ?? [];
++                // --- TEMP DIAGNOSTIC: catch a resolved kit with no modelIds at all ---
++                if (ids.length === 0) {
++                    console.warn(
++                        "[cc-diag] kit had zero modelIds",
++                        "part:",
++                        part,
++                        "kitId:",
++                        kitId,
++                        "kit:",
++                        kit,
++                    );
++                }
++                // --- END TEMP DIAGNOSTIC ---
++                let partProducedAny = false; // TEMP DIAGNOSTIC
+                 for (let i = 0; i < ids.length; i++) {
+                     const md = this.modelLoader.getModel(ids[i]);
+-                    if (!md) continue;
++                    if (!md) {
++                        // --- TEMP DIAGNOSTIC ---
++                        console.warn(
++                            "[cc-diag] getModel miss",
++                            "part:",
++                            part,
++                            "kitId:",
++                            kitId,
++                            "modelId:",
++                            ids[i],
++                            "missCount:",
++                            this.modelLoader.missCount,
++                        );
++                        // --- END TEMP DIAGNOSTIC ---
++                        continue;
++                    }
++                    partProducedAny = true; // TEMP DIAGNOSTIC
+                     // Apply kit recolors/retextures first
+                     if (kit.recolorFrom) {
+                         for (let r = 0; r < kit.recolorFrom.length; r++) {
+@@ -82,7 +117,14 @@
+                     }
+                     modelDatas.push(md);
+                 }
+-            } catch {}
++            } catch (e) {
++                // --- TEMP DIAGNOSTIC ---
++                console.warn("[cc-diag] part threw", "part:", part, "kitId:", kitId, "err:", e);
++                // --- END TEMP DIAGNOSTIC ---
++            }
++            // --- TEMP DIAGNOSTIC ---
++            if (partProducedAny) producedParts.push(part);
++            // --- END TEMP DIAGNOSTIC ---
+         }
+ 
+         // Merge extra wearable object models (e.g., boots, helms)
+@@ -136,9 +178,31 @@
+         if (modelDatas.length === 0) {
+             return undefined;
+         }
++        // --- TEMP DIAGNOSTIC: flag when we expected N body parts but built fewer ---
++        if (producedParts.length !== expectedParts.length) {
++            console.warn(
++                "[cc-diag] PARTIAL BODY BUILT",
++                "expected parts:",
++                expectedParts,
++                "produced parts:",
++                producedParts,
++                "kits:",
++                appearance.kits,
++            );
++        }
++        // --- END TEMP DIAGNOSTIC ---
+         if ((this.modelLoader.missCount ?? 0) !== missesBefore) {
+             // A body-part model is still streaming in; don't build (and let
+             // callers cache) a partial player model.
++            // --- TEMP DIAGNOSTIC ---
++            console.warn(
++                "[cc-diag] miss-guard tripped, returning undefined this frame",
++                "missesBefore:",
++                missesBefore,
++                "missesAfter:",
++                this.modelLoader.missCount,
++            );
++            // --- END TEMP DIAGNOSTIC ---
+             return undefined;
+         }
+ 

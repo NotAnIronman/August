@@ -1,0 +1,150 @@
+--- a/apps/client/src/features/login/SavedAccountSlots.ts	2026-08-29 17:03:55.343617301 +0000
++++ b/apps/client/src/features/login/SavedAccountSlots.ts	2026-08-29 17:03:55.644501183 +0000
+@@ -208,3 +208,21 @@
+         return undefined;
+     }
+ }
++
++/** Remove a saved account slot (e.g. the player no longer wants it quick-login listed). */
++export async function removeSavedAccount(slot: number): Promise<SavedAccountSlot[]> {
++    if (!Number.isInteger(slot) || slot < 0 || slot >= SAVED_ACCOUNT_SLOT_COUNT) {
++        return loadSavedAccountSlots();
++    }
++    const database = await openDatabase();
++    if (!database) return emptySlots();
++    try {
++        const transaction = database.transaction(SLOT_STORE, "readwrite");
++        const done = transactionDone(transaction);
++        transaction.objectStore(SLOT_STORE).delete(slot);
++        await done;
++        return toSavedSlots(await readSlots(database));
++    } catch {
++        return loadSavedAccountSlots();
++    }
++}
+--- a/apps/client/src/features/login/LoginState.ts	2026-08-29 17:03:55.679617321 +0000
++++ b/apps/client/src/features/login/LoginState.ts	2026-08-29 17:03:55.958705391 +0000
+@@ -20,6 +20,7 @@
+     SAVED_ACCOUNT_SLOT_COUNT,
+     loadSavedAccountCredentials,
+     loadSavedAccountSlots,
++    removeSavedAccount,
+     saveSuccessfulAccount,
+     type SavedAccountCredentials,
+     type SavedAccountSlot,
+@@ -172,6 +173,11 @@
+         return loadSavedAccountCredentials(slot);
+     }
+ 
++    /** Drop a slot from the saved-accounts quick-login list. */
++    async removeSavedAccountSlot(slot: number): Promise<void> {
++        this.savedAccountSlots = await removeSavedAccount(slot);
++    }
++
+     // ========== UI Dialog State ==========
+ 
+     /** Current login screen index (which dialog to show) */
+--- a/apps/client/src/features/login/LoginAction.ts	2026-08-29 17:03:55.999617340 +0000
++++ b/apps/client/src/features/login/LoginAction.ts	2026-08-29 17:03:56.310398365 +0000
+@@ -8,6 +8,7 @@
+     | { type: "existing_user" }
+     | { type: "login" }
+     | { type: "select_saved_account"; slot: number }
++    | { type: "remove_saved_account"; slot: number }
+     | { type: "cancel" }
+     | { type: "try_again" }
+     | { type: "forgot_password" }
+--- a/apps/client/src/features/login/renderer/render/loginScreensPrimary.ts	2026-08-29 17:03:56.355617361 +0000
++++ b/apps/client/src/features/login/renderer/render/loginScreensPrimary.ts	2026-08-29 17:03:56.670475760 +0000
+@@ -10,6 +10,8 @@
+ const SAVED_ACCOUNTS_WIDTH = 172;
+ const SAVED_ACCOUNTS_ROW_Y = 236;
+ const SAVED_ACCOUNTS_ROW_HEIGHT = 21;
++/** Small "x" hit-zone on the right edge of each row, used to forget that slot. */
++const SAVED_ACCOUNTS_REMOVE_BUTTON_WIDTH = 16;
+ 
+ export function getSavedAccountSlotBounds(host: LoginRendererHost, slot: number) {
+     return {
+@@ -20,6 +22,17 @@
+     };
+ }
+ 
++/** Bounds of the small "x" remove button at the right edge of a saved-account row. */
++export function getSavedAccountRemoveButtonBounds(host: LoginRendererHost, slot: number) {
++    const row = getSavedAccountSlotBounds(host, slot);
++    return {
++        x: row.x + row.width - SAVED_ACCOUNTS_REMOVE_BUTTON_WIDTH,
++        y: row.y,
++        width: SAVED_ACCOUNTS_REMOVE_BUTTON_WIDTH,
++        height: row.height,
++    };
++}
++
+ function drawSavedAccounts(host: LoginRendererHost, ctx: RenderContext, state: LoginState): void {
+     const panelX = host.loginBoxX + SAVED_ACCOUNTS_X_OFFSET;
+     drawGradientRect(host, ctx, panelX, SAVED_ACCOUNTS_Y, SAVED_ACCOUNTS_WIDTH, SAVED_ACCOUNTS_ROW_HEIGHT * 4 + 18, 0x3a3022, 0x17120c);
+@@ -29,10 +42,19 @@
+         const account = state.savedAccountSlots[slot];
+         const occupied = !!account?.username;
+         drawGradientRect(host, ctx, bounds.x + 1, bounds.y, bounds.width - 2, bounds.height, occupied ? 0x4c4131 : 0x282017, occupied ? 0x2e271d : 0x17120c);
++        // Leave room on the right for the remove "x" so the truncated name never sits under it.
++        const labelMaxWidth = occupied ? bounds.width - 12 - SAVED_ACCOUNTS_REMOVE_BUTTON_WIDTH : bounds.width - 12;
+         const label = occupied
+-            ? `${slot + 1}. ${ellipsis(host, account.username, bounds.width - 12)}`
++            ? `${slot + 1}. ${ellipsis(host, account.username, labelMaxWidth)}`
+             : `${slot + 1}. Empty`;
+         drawText(host, ctx, host.fontBold12!, label, bounds.x + 6, bounds.y + 14, occupied ? 0xffffff : 0x9c9588, true);
++        if (occupied) {
++            const removeBounds = getSavedAccountRemoveButtonBounds(host, slot);
++            drawCenteredText(
++                host, ctx, host.fontBold12!, "x",
++                removeBounds.x + removeBounds.width / 2, bounds.y + 14, 0xff9090, true,
++            );
++        }
+     }
+ }
+ 
+--- a/apps/client/src/features/login/renderer/input/mouseHandlers.ts	2026-08-29 17:03:56.711617383 +0000
++++ b/apps/client/src/features/login/renderer/input/mouseHandlers.ts	2026-08-29 17:03:57.016404608 +0000
+@@ -4,7 +4,7 @@
+ import type { LoginRendererHost } from "@client/features/login/renderer/host";
+ import { getWelcomeLayout } from "@client/features/login/renderer/layout/geometry";
+ import { measureText } from "@client/features/login/renderer/render/drawUtils";
+-import { getSavedAccountSlotBounds } from "@client/features/login/renderer/render/loginScreensPrimary";
++import { getSavedAccountRemoveButtonBounds, getSavedAccountSlotBounds } from "@client/features/login/renderer/render/loginScreensPrimary";
+ 
+ export function handleWelcomeClick(host: LoginRendererHost, x: number, y: number) {
+ 
+@@ -42,9 +42,18 @@
+         // checked before the generic field-row hit areas below.
+         if (!isConnecting) {
+             for (let slot = 0; slot < 4; slot++) {
++                if (!state.savedAccountSlots[slot]?.username) continue;
++                // Check the remove "x" first — it's a small hit-zone nested inside
++                // the row's own bounds, so it must win before the row-select check below.
++                const removeBounds = getSavedAccountRemoveButtonBounds(host, slot);
++                if (
++                    x >= removeBounds.x && x <= removeBounds.x + removeBounds.width &&
++                    y >= removeBounds.y && y <= removeBounds.y + removeBounds.height
++                ) {
++                    return { type: "remove_saved_account", slot } as const;
++                }
+                 const bounds = getSavedAccountSlotBounds(host, slot);
+                 if (
+-                    state.savedAccountSlots[slot]?.username &&
+                     x >= bounds.x && x <= bounds.x + bounds.width &&
+                     y >= bounds.y && y <= bounds.y + bounds.height
+                 ) {
+--- a/apps/client/src/engine/game/OsrsClient.ts	2026-08-29 17:03:57.039617402 +0000
++++ b/apps/client/src/engine/game/OsrsClient.ts	2026-08-29 17:03:57.335444583 +0000
+@@ -5531,6 +5531,10 @@
+                 void this.loginWithSavedAccount(action.slot);
+                 return undefined;
+ 
++            case "remove_saved_account":
++                void this.loginState.removeSavedAccountSlot(action.slot);
++                return undefined;
++
+             case "cancel":
+                 this.loginState.loginIndex = LoginIndex.WELCOME;
+                 this.loginState.password = "";
