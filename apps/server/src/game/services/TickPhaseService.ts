@@ -34,6 +34,7 @@ import {
 import type { ServerServices } from "@server/game/ServerServices";
 import { DEBUG_PLAYER_IDS } from "@server/game/actor";
 import { AttackType } from "@server/game/combat/AttackType";
+import { canMeleeHitAirborneAviansie, isAirborneAviansie } from "@server/game/combat/CombatRules";
 import {
     getWildernessLevel,
     isInLMS,
@@ -996,6 +997,21 @@ export class TickPhaseService {
         const service = this.svc.playerCombatService;
         if (!service) return null;
         const type = service.deriveAttackTypeFromStyle(attacker.combat.styleSlot, attacker);
+        if (
+            target instanceof NpcState &&
+            type === AttackType.Melee &&
+            isAirborneAviansie(target.typeId) &&
+            !canMeleeHitAirborneAviansie(attacker.combat.weaponCategory)
+        ) {
+            attacker.combatAttributes.set(CombatAttributes.COMBAT_TARGET, null);
+            attacker.clearInteraction();
+            this.svc.messagingService.queueChatMessage({
+                messageType: "game",
+                text: "They are flying too high for your melee weapon to affect them.",
+                targetPlayerIds: [attacker.id],
+            });
+            return null;
+        }
         const weaponId = attacker.combat.weaponItemId;
         if (weaponId === 12924) {
             attacker.combatAttributes.set(CombatAttributes.COMBAT_TARGET, null);

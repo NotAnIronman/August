@@ -142,6 +142,10 @@ function knockback(event: NpcAttackEvent): void {
             const startTile = { x: player.tileX, y: player.tileY };
             event.services.movement.teleportPlayer(player, destination.x, destination.y, player.level);
             event.services.movement.queueForcedMovement(player, { startTile, endTile: destination, endTick: event.tick + 1 });
+            // MovementService deliberately clears interactions on teleports. Kree's
+            // tornado is forced movement, not a target change, so restore it.
+            player.setCombatTarget(event.npc);
+            player.setInteraction("npc", event.npc.id);
             event.services.combat.stunPlayer(player, 2);
         }
     }

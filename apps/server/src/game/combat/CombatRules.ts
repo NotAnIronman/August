@@ -8,6 +8,19 @@ export const POWERED_STAFF_CATEGORIES = new Set<number>([24]);
 export const SALAMANDER_WEAPON_CATEGORY = 31;
 /** Category 12: Jab/Swipe/Fend (Halberds) — see WeaponInterfaces.ts. */
 export const HALBERD_WEAPON_CATEGORY = 12;
+/** Aviansies and the Armadyl generals are airborne beyond ordinary melee reach. */
+const AIRBORNE_AVIANSIE_NPC_TYPE_IDS = new Set<number>([
+    3162, 3163, 3164, 3165,
+    3170, 3171, 3172, 3173, 3174, 3175, 3176, 3177, 3178, 3179, 3180, 3181,
+]);
+
+export function isAirborneAviansie(npcTypeId: number): boolean {
+    return AIRBORNE_AVIANSIE_NPC_TYPE_IDS.has(Math.trunc(npcTypeId));
+}
+
+export function canMeleeHitAirborneAviansie(weaponCategory: number | undefined): boolean {
+    return weaponCategory === HALBERD_WEAPON_CATEGORY || weaponCategory === SALAMANDER_WEAPON_CATEGORY;
+}
 /** OSRS reach for halberd-class weapons when no cache-supplied range overrides it. */
 export const DEFAULT_HALBERD_MELEE_RANGE = 2;
 export const DEFAULT_NPC_MELEE_RANGE = 1;

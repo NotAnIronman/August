@@ -17,8 +17,8 @@ import {
 } from "@server/game/spells/SpellDataProvider";
 import { AttackType } from "@server/game/combat/AttackType";
 import {
-    HALBERD_WEAPON_CATEGORY,
-    SALAMANDER_WEAPON_CATEGORY,
+    canMeleeHitAirborneAviansie,
+    isAirborneAviansie,
 } from "@server/game/combat/CombatRules";
 import { getAttackStyle as getWeaponAttackStyle } from "@server/game/combat/WeaponDataProvider";
 import {
@@ -269,10 +269,9 @@ export class CombatHitEvaluator {
         if (
             attacker instanceof PlayerState &&
             target instanceof NpcState &&
-            target.typeId === 3162 &&
+            isAirborneAviansie(target.typeId) &&
             attack.traits.type === AttackType.Melee &&
-            attacker.combat.weaponCategory !== HALBERD_WEAPON_CATEGORY &&
-            attacker.combat.weaponCategory !== SALAMANDER_WEAPON_CATEGORY
+            !canMeleeHitAirborneAviansie(attacker.combat.weaponCategory)
         ) {
             return Object.freeze({
                 valid: true,

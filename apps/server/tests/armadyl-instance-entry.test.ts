@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 
 import { resolveLocActions } from "@august/game-model/world/LocActionOverrides";
 import { AttackType } from "@server/game/combat/AttackType";
+import { canMeleeHitAirborneAviansie, isAirborneAviansie } from "@server/game/combat/CombatRules";
 import { EncounterRegistry } from "@server/game/encounters/EncounterRegistry";
 import type { IScriptRegistry, LocInteractionHandler } from "@server/game/scripts/types";
 import { register } from "@server/content/modules/armadyl-instance";
@@ -23,6 +24,12 @@ assert.deepEqual(kree?.attacks.map(({ id, type, maxHit, speedTicks, effects }) =
 assert.equal(EncounterRegistry.shared.findByNpcTypeId(3163)?.attacks[0]?.maxHit, 16);
 assert.equal(EncounterRegistry.shared.findByNpcTypeId(3164)?.attacks[0]?.maxHit, 25);
 assert.equal(EncounterRegistry.shared.findByNpcTypeId(3165)?.attacks[0]?.maxHit, 15);
+assert.equal(isAirborneAviansie(3162), true);
+assert.equal(isAirborneAviansie(3181), true);
+assert.equal(isAirborneAviansie(3182), false);
+assert.equal(canMeleeHitAirborneAviansie(12), true);
+assert.equal(canMeleeHitAirborneAviansie(31), true);
+assert.equal(canMeleeHitAirborneAviansie(0), false);
 
 const messages: string[] = [];
 let received = 0;
