@@ -59,6 +59,28 @@ export class NpcMovementSync {
                   ? existingState.subY | 0
                   : (update.localY | 0) + (update.mapBaseY | 0);
 
+        // --- TEMP DIAGNOSTIC: remove once the first-sync NPC offset is found ---
+        if (!existingState) {
+            console.log("[npc-spawn-diag]", {
+                ecsIndex,
+                npcSize,
+                centerOffset,
+                rawUpdateSubX: update.subX,
+                rawUpdateSubY: update.subY,
+                localX: update.localX,
+                localY: update.localY,
+                mapBaseX: update.mapBaseX,
+                mapBaseY: update.mapBaseY,
+                snap: update.snap,
+                directionsLen: directions.length,
+                resolvedSubX,
+                resolvedSubY,
+                tileNoOffset: [resolvedSubX >> 7, resolvedSubY >> 7],
+                tileMinusOffset: [(resolvedSubX - centerOffset) >> 7, (resolvedSubY - centerOffset) >> 7],
+            });
+        }
+        // --- END TEMP DIAGNOSTIC ---
+
         let resolvedTileX: number | undefined;
         let resolvedTileY: number | undefined;
 

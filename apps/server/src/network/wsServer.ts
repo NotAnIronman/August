@@ -401,6 +401,34 @@ export class WSServer {
     }
 
     /**
+     * Forces every connected player currently inside a quest instance or
+     * sailing instance out to wherever they'd land if they'd left normally
+     * (same exit-teleport path used on manual leave, logout, death, and
+     * disconnect). Must run before flushPlayerSaves() during graceful
+     * shutdown — otherwise a player's raw in-instance coordinates get
+     * persisted verbatim, and on their next login they're placed at those
+     * coordinates in the *main world* (the instance itself is never
+     * persisted), often deep inside a boss room with no encounter running.
+     */
+    evacuateInstancedPlayers(): void {
+        if (!this.instancedAreaManager && !this.sailingInstanceManager) return;
+        const players: PlayerState[] = [];
+        this.svc.players?.forEach((_ws, player) => players.push(player));
+        for (const player of players) {
+            try {
+                this.sailingInstanceManager?.disposeInstance(player);
+            } catch (err) {
+                logger.warn(`[shutdown] Failed to dispose sailing instance for player ${player.id}:`, err);
+            }
+            try {
+                this.instancedAreaManager?.dispose(player);
+            } catch (err) {
+                logger.warn(`[shutdown] Failed to dispose instance for player ${player.id}:`, err);
+            }
+        }
+    }
+
+    /**
      * Persist all connected players immediately. Used by graceful shutdown so
      * progress since the last autosave is not lost.
      */

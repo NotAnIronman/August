@@ -101,6 +101,11 @@ async function main() {
         logger.info(`Received ${signal}, shutting down...`);
         ticker.stop();
         try {
+            server.evacuateInstancedPlayers();
+        } catch (err) {
+            logger.warn("Failed to evacuate instanced players before shutdown", err);
+        }
+        try {
             await server.flushPlayerSaves();
         } catch (err) {
             logger.warn("Final player save failed", err);

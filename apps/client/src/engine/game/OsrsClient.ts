@@ -2313,15 +2313,28 @@ export class OsrsClient {
                     if ((payload.groupId | 0) === BOSS_HEALTH_BAR_GROUP_ID) {
                         // The stock top-level script normally reveals these
                         // cache widgets during its own bootstrap. Instances can
-                        // open after that bootstrap, so explicitly reveal the
-                        // native group and its health container on every mount.
+                        // open after that bootstrap, so explicitly reveal every
+                        // known native component on every mount — not just the
+                        // container, or the bar renders as an empty shell with
+                        // no visible fill/value even though it's "open".
                         for (const component of [
                             BossHealthBarComponent.Root,
                             BossHealthBarComponent.Health,
                             BossHealthBarComponent.Name,
+                            BossHealthBarComponent.Empty,
+                            BossHealthBarComponent.FillDark,
+                            BossHealthBarComponent.FillLight,
+                            BossHealthBarComponent.Value,
                         ]) {
                             const widget = this.widgetManager.getWidgetByUid(bossHealthBarUid(component));
-                            if (!widget) continue;
+                            if (!widget) {
+                                console.warn(
+                                    `[BossHealthBar] component ${component} not found at uid ${bossHealthBarUid(
+                                        component,
+                                    ).toString(16)} — cache tree may differ from expected layout`,
+                                );
+                                continue;
+                            }
                             widget.hidden = false;
                             widget.isHidden = false;
                             this.widgetManager.invalidateWidget(widget, "boss-health-bar-open");
@@ -7220,6 +7233,26 @@ export class OsrsClient {
         const localX = this.npcEcs.getTargetX(ecsId) | 0;
         const localY = this.npcEcs.getTargetY(ecsId) | 0;
         const running = move.traversals?.some?.((t) => (t | 0) === 2) ?? false;
+
+        // --- TEMP DIAGNOSTIC: remove once the first-sync NPC offset is found ---
+        const __diagExisting = this.npcEcs.getServerState?.(ecsId);
+        if (!__diagExisting) {
+            console.log("[npc-movement-diag] no existingState at first movement update", {
+                serverId,
+                ecsId,
+                size: this.npcEcs.getSize(ecsId),
+                mapX,
+                mapY,
+                localX,
+                localY,
+                mapBaseX,
+                mapBaseY,
+                targetXRaw: this.npcEcs.getTargetX(ecsId),
+                targetYRaw: this.npcEcs.getTargetY(ecsId),
+                directions: move.directions,
+            });
+        }
+        // --- END TEMP DIAGNOSTIC ---
 
         this.npcMovementSync.applyNpcUpdate(
             {
