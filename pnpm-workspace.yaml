@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - packages/*
+  - tools
+allowBuilds:
+  # esbuild's install script selects the platform binary used by tests/builds.
+  esbuild: true
+  # These legacy transitive polyfills do not need postinstall scripts here.
+  core-js: false
+  core-js-pure: false

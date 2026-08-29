@@ -1,0 +1,269 @@
+# NPC encounter manual test notes
+
+> **Status:** Active working notes
+>
+> **Owner:** Gameplay and content maintainers (`@NotAnIronman`)
+>
+> **Record date:** 2026-08-29; individual observations may predate this migration
+>
+> **Validation:** Manual in-game inspection against August cache revision 237; a check
+> mark records an observed candidate, not automated regression coverage
+>
+> **Lifecycle:** Revalidate entries when their encounter changes. Move confirmed
+> behavior into runtime data and an automated test, link any remaining defect, then
+> remove the resolved note. Delete this file when no uncaptured findings remain.
+
+These notes are review evidence, not runtime configuration. Coordinates and identifiers
+must be confirmed in the target world before they are promoted into source-controlled data.
+
+## Coordinate reference
+
+X , Y , Z
+Lower X = West
+Higher X = East
+Lower Y = South
+Higher Y = North
+X,Y,Z = Player Location
+BX,BY,BZ = Boss spawn
+Boss locations :
+Not working yet :
+Name             |   X   |   Y   |   Z   |   BX   |   BY   |   BZ   |   Notes   |
+Zulrah           - 2268     3069     0      2268     3075      0
+Vorkath          - 2272     4055     0      2272     4065      0
+KBD              - 2271     4680     0      2270     4700      0
+Nex              - 2911     5203     0      2925     5203      0
+Alchemical Hydra - 1357     10259    0      1366     10266     0
+Scurrius         - 3290     9867     0      3303     9872      0
+
+Working:
+Name              |   X   |   Y   |   Z   |   BX   |   BY   |   BZ   |   Notes   |
+General Graardor  - 2875    5355      2
+Kree'arra         - 2839    5296      2      2834    5304       2
+Commander Zilyana - 2906    5265      0      2898    5268       0
+K'ril Tsutsaroth  - 2925    5331      2      2925    5323       2
+Corporeal Beast   - 2975    4384      2      2990    4382       2
+kraken            - 2280    10022     0      2280    10036      0       Whirlpool
+Abyssal Sire      - 3038    4762      0      3102    4855       0       Tentacles spawn
+Giant Mole        - 1763    5193      0      1761    5184       0
+Dagannoth Kings   - 2900    4449      0      ---
+Sarachnis         - 1841    9910      0      1841    9900       0
+Kalphite Queen    - 3506    9494      0      3472    9494       0
+
+Cerberus          - 1310    1251      0    Find instance
+Thermy - 2404 3056 0 Find instance
+Grotesque Guardians - 3425 3537 2 Find instance
+Skotizo - 1693 9886 0 Not even close, literally middle of nowhere
+Hespori - 1234 3761 0 Find Instance
+Obor - 3094 9833 0 Find instance
+Bryophyta - 3174 9900 0 Find Instance
+
+moons of peril : 1400 9725
+Blue moon : 1440 9680
+Eclipse Moon : 1490 9631
+blood moon : 1386 9632
+
+Yama's lair : 1500, 10080
+
+Coloseum entrance : 1800 9500
+
+Catacombs : 1700 10000
+
+Royal titans : 2911 9573
+
+
+Bosses to add to the game :
+Ahrim the Blighted - 1672 ✅
+
+Karil the Tainted - 1675 ✅
+
+Dharok the Wretched - 1673 ✅
+
+Guthan the Infested - 1674 ✅
+
+Torag the Corrupted - 1676 ✅
+
+Verac the Defiled - 1677 ✅
+
+Gemstone Crab - 14779 ✅
+
+Scurrius - 7221 / 7222 ✅
+
+Giant Mole - 5779 ✅
+
+Deranged Archaeologist - 7806 ✅
+
+Dagannoth Supreme - 2265 ✅
+
+Dagannoth Rex - 2267 ✅
+
+Dagannoth Prime	- 2266 ✅
+
+Sarachnis - 8713 ✅
+
+Blood Moon - 13011 ✅
+
+Blue Moon - 13013 ✅
+
+Eclipse Moon - 13012 ✅
+
+Kalphite Queen - 963/965 ✅
+
+Kree'arra - 3162 ✅
+
+Commander Zilyana - 2205 ✅
+
+General Graardor - 2215 ✅
+
+K'ril Tsutsaroth - 3129 ✅
+
+The Hueycoatl - 14009
+
+Corporeal Beast	- 319 ✅
+
+Nex - 11278 ✅
+
+Chaos Fanatic - 6619 ✅
+
+Crazy archaeologist - 6618 ✅
+
+Scorpia	- 6615 ✅
+
+King Black Dragon - 239 ✅
+
+Chaos Elemental	- 2054 ✅
+
+Revenant maledictus - 11246 ✅
+
+Vet'ion	- 6611/6612 ✅
+
+Venenatis - 6610 ✅
+
+Callisto - 6609 ✅
+
+Demonic Brutus	- 15628 / 15629 ✅
+
+Obor - 7416 ✅
+
+Amoxliatl - 13685 ✅
+
+Royal Titans :
+Eldric - 14147 / 14149
+Branda - 12596 / 14148
+
+Doom of Mokhaiotl - 14707
+
+Mad Angel - 16305-16312 / 16314-16315 / Not in August cache revision 237
+
+Zulrah	- 2042 / 2043 / 2044 (all three forms reviewed below) ✅
+Serpentine - 2042 ✅
+Magma - 2043 ✅
+Tanzanite - 2044 ✅
+
+Vorkath	- 8061 ✅
+
+Phantom Muspah	- 12077 / 12078 / 12079 / 12080 / 12082
+Melee - 12078
+Ranged - 12077
+Teleporting - 12082
+Shield - 12079
+
+Maggot King - 15742 / Not in August cache revision 237
+
+Phosani's Nightmare - 9416 thru 9424 (11153-11155 are later variants)
+
+Yama - 14176
+All animations within first 11
+
+Duke Sucellus - 12191 thru 12196 (12166 / 12167 auxiliary forms)
+All within first 10 anims
+
+The Leviathan - 12214 / 12215 / 12219
+All within first 15
+
+The Whisperer - 12204 thru 12207
+All within first 33
+
+Vardorvis - 12223 / 12224 / 12228 (12425 / 12426 auxiliary forms)
+All within first 10
+
+The Mimic - 8633 (7979 is the challenge NPC) ✅
+All within first 5
+
+Hespori - 8583 (11192 is a later variant) ✅
+All within first 5
+
+Skotizo - 7286 ✅
+
+Shellbane gryphon - 14860 / 15010 ✅
+All within first 8
+
+Grotesque Guardians - Dawn: 7850 / 7852 / 7853 / 7884 / 7885; Dusk: 7849 / 7851 / 7854 / 7855 / 7882-7889
+
+Abyssal Sire - 5886 thru 5891 / 5908
+
+Kraken - 494 ✅
+
+Cerberus - 5862 / 5863 / 5866 ✅
+
+Araxxor - 13668 (13669 is the defeated/harvest form) ✅
+
+Thermonuclear smoke devil - 499 ✅
+
+Alchemical Hydra - 8615 thru 8622 / 8634 ✅
+
+Crystalline Hunllef - 9021 thru 9024
+
+Corrupted Hunllef - 9035 thru 9038
+
+TzTok-Jad - 3127 ✅
+
+TzKal-Zuk - 7706 ✅
+
+Sol Heredit - 12821 / 12827 ✅
+
+Tempoross - 10572 / 10574 / 10575 ✅
+
+Wintertodt - Not an NPC; the encounter is driven by environment/objects
+
+Zalcano - 9049 / 9050 ✅
+
+Tekton - 7540 / 7541 / 7542 / 7545 ✅
+
+Vanguard - 7525 thru 7529 ✅
+
+Vespula - 7530 / 7531 / 7532 ✅
+
+Vasa Nistirio - 7566 / 7567 ✅
+
+Muttadile - 7561 / 7562 / 7563 ✅
+
+Great Olm - 7551 / 7554; right claws 7550 / 7553; left claws 7552 / 7555
+
+The Maiden of Sugadinti - 8360 thru 8365 ✅
+
+Pestilent Bloat - 8359
+There's no animation for bloat, because his sleep animation is part of his wake and stop; can we use part of an animation?
+
+Nylocas Vasilias - 8354 thru 8357 ✅
+All animations 90-100
+
+Sotetseg - 8387 / 8388 ✅
+
+Xarpus - 8338 thru 8341
+look in 70's
+
+Verzik Vitur - 8370 thru 8375
+
+Akkha - 11789 thru 11796
+
+Ba-Ba - 11778 / 11779 / 11780
+
+Kephri - 11719 thru 11722
+
+Zebak - 11730 / 11732 / 11733
+
+Tumeken's Warden - 11747 / 11749 / 11756-11758 / 11760 / 11762 / 11764
+
+Elidinis' Warden - 11746 / 11748 / 11753-11755 / 11759 / 11761 / 11763
+
+

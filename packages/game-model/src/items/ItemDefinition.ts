@@ -1,0 +1,136 @@
+export type EquipmentType =
+    | "NONE"
+    | "AMULET"
+    | "ARROWS"
+    | "BODY"
+    | "BOOTS"
+    | "CAPE"
+    | "COIF"
+    | "FULL_HELMET"
+    | "GLOVES"
+    | "HAT"
+    | "HOODED_CAPE"
+    | "LEGS"
+    | "MASK"
+    | "MED_HELMET"
+    | "PLATEBODY"
+    | "RING"
+    | "SHIELD"
+    | "WEAPON";
+
+export type WeaponInterface =
+    | "ABYSSAL_BLUDGEON"
+    | "ABYSSAL_DAGGER"
+    | "ANCIENT_STAFF"
+    | "BALLISTA"
+    | "BATTLEAXE"
+    | "BLOWPIPE"
+    | "BULWARK"
+    | "CLAWS"
+    | "CROSSBOW"
+    | "DAGGER"
+    | "DARK_BOW"
+    | "DART"
+    | "DRAGON_DAGGER"
+    | "ELDER_MAUL"
+    | "GHRAZI_RAPIER"
+    | "GODSWORD"
+    | "GRANITE_MAUL"
+    | "GREATAXE"
+    | "HALBERD"
+    | "JAVELIN"
+    | "KARILS_CROSSBOW"
+    | "KNIFE"
+    | "LONGBOW"
+    | "LONGSWORD"
+    | "MACE"
+    | "MAUL"
+    | "OBBY_RINGS"
+    | "PICKAXE"
+    | "SARADOMIN_SWORD"
+    | "SCIMITAR"
+    | "SCYTHE"
+    | "SHORTBOW"
+    | "SPEAR"
+    | "STAFF"
+    | "SWORD"
+    | "THROWNAXE"
+    | "TWO_HANDED_SWORD"
+    | "UNARMED"
+    | "VERACS_FLAIL"
+    | "WARHAMMER"
+    | "WHIP";
+
+export type ItemBonuses = readonly [
+    stabAttack: number,
+    slashAttack: number,
+    crushAttack: number,
+    magicAttack: number,
+    rangedAttack: number,
+    stabDefence: number,
+    slashDefence: number,
+    crushDefence: number,
+    magicDefence: number,
+    rangedDefence: number,
+    meleeStrength: number,
+    rangedStrength: number,
+    magicDamage: number,
+    prayer: number,
+];
+
+export type ItemRequirements = readonly [
+    attack: number,
+    defence: number,
+    strength: number,
+    hitpoints: number,
+    ranged: number,
+    prayer: number,
+    magic: number,
+    cooking: number,
+    woodcutting: number,
+    fletching: number,
+    fishing: number,
+    firemaking: number,
+    crafting: number,
+    smithing: number,
+    mining: number,
+    herblore: number,
+    agility: number,
+    thieving: number,
+    slayer: number,
+    farming: number,
+    runecraft: number,
+    hunter: number,
+    construction: number,
+];
+
+export interface ItemDefinition {
+    id: number;
+    name: string;
+    examine: string;
+    equipmentType?: EquipmentType;
+    weaponInterface?: WeaponInterface;
+    doubleHanded: boolean;
+    stackable: boolean;
+    tradeable: boolean;
+    dropable: boolean;
+    sellable: boolean;
+    noted: boolean;
+    value: number;
+    bloodMoneyValue?: number;
+    highAlch: number;
+    lowAlch: number;
+    dropValue: number;
+    noteId: number;
+    blockAnim: number;
+    standAnim: number;
+    walkAnim: number;
+    runAnim: number;
+    standTurnAnim: number;
+    turn180Anim: number;
+    turn90CWAnim: number;
+    turn90CCWAnim: number;
+    weight: number;
+    bonuses?: ItemBonuses;
+    requirements?: ItemRequirements;
+}

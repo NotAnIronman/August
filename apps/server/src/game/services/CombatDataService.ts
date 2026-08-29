@@ -1,0 +1,417 @@
+import type { EnumTypeLoader } from "@august/osrs-engine/config/enumtype/EnumTypeLoader";
+import type { NpcSoundType } from "@server/audio/NpcSoundLookup";
+import { logger } from "@server/observability/logger";
+import type { ServerServices } from "@server/game/ServerServices";
+import type { AttackType } from "@server/game/combat/AttackType";
+import type { EncounterAnimationReference } from "@server/game/encounters/EncounterTypes";
+import type { NpcCombatProfile, NpcState } from "@server/game/npc";
+import { serverGeneratedDataPath } from "@server/paths";
+import {
+    getPrimaryNpcAnimation,
+    normalizeNpcAnimationPool,
+    normalizeNpcLegacySpecialSlots,
+    normalizeNpcSpecialName,
+    pickNpcAnimationFromPool,
+    type NpcCombatAnimationData,
+    type NpcCombatAnimationRole,
+} from "@server/game/npc/NpcCombatAnimationData";
+import {
+    type NpcCombatAnimations,
+    type NpcDefinition,
+    resolveNpcCombatAnimations,
+} from "@server/game/npc/NpcDefinition";
+
+/**
+ * Loads and provides NPC combat definitions, stats, special attack data,
+ * and NPC sound lookups. Extracted from WSServer.
+ */
+export class CombatDataService {
+    private npcCombatDefs?: Record<
+        string,
+        NpcCombatAnimationData & {
+            deathSound?: number;
+        }
+    >;
+    private npcCombatDefaults?: {
+        attack: number;
+        block: number;
+        death: number;
+        deathSound: number;
+    };
+    private npcCombatStats?: Record<string, Record<string, unknown>>;
+    private specialAttackCostUnitsByWeapon?: Map<number, number>;
+    private specialAttackDescriptionByWeapon?: Map<number, string>;
+    private specialAttackDefaultDescription?: string;
+
+    constructor(private readonly services: ServerServices) {}
+
+    // --- NPC combat definitions ---
+
+    loadNpcCombatDefs(): void {
+        if (this.npcCombatDefs) return;
+        try {
+            const raw = require(serverGeneratedDataPath("npc-combat-defs.json")) as {
+                defaults?: {
+                    humanoid?: {
+                        attack?: number;
+                        block?: number;
+                        death?: number;
+                        deathSound?: number;
+                    };
+                };
+                npcs?: Record<
+                    string,
+                    {
+                        anims?: NpcCombatAnimationData;
+                        sounds?: { death?: number };
+                        deathSound?: number;
+                    }
+                >;
+                refs?: { npcs?: Array<[number, number, number, number?]> };
+            };
+            const defaultsRaw = raw?.defaults?.humanoid;
+            this.npcCombatDefaults = {
+                attack: defaultsRaw?.attack ?? 422,
+                block: defaultsRaw?.block ?? 424,
+                death: defaultsRaw?.death ?? 836,
+                deathSound: defaultsRaw?.deathSound ?? 512,
+            };
+            const entries: Record<
+                string,
+                NpcCombatAnimationData & {
+                    deathSound?: number;
+                }
+            > = {};
+            const npcs = raw?.npcs;
+            if (npcs && typeof npcs === "object") {
+                for (const [key, val] of Object.entries(npcs)) {
+                    if (!val || typeof val !== "object") continue;
+                    entries[key] = {
+                        attack: this.normalizeAnimationValue(val.anims?.attack),
+                        melee: this.normalizeAnimationValue(val.anims?.melee),
+                        ranged: this.normalizeAnimationValue(val.anims?.ranged),
+                        magic: this.normalizeAnimationValue(val.anims?.magic),
+                        block: this.normalizeAnimationValue(val.anims?.block),
+                        death: this.normalizeAnimationValue(val.anims?.death),
+                        spawn: this.normalizeAnimationValue(val.anims?.spawn),
+                        specials: this.normalizeLegacySpecials(val.anims?.specials),
+                        namedSpecials: this.normalizeNamedSpecials(
+                            val.anims?.namedSpecials,
+                        ),
+                        deathSound: val.sounds?.death ?? val.deathSound,
+                    };
+                }
+            }
+            // Additional sequences derived from references, kept in the same
+            // file to avoid multiple sources of truth. Manual entries win.
+            for (const row of raw?.refs?.npcs ?? []) {
+                const [npcId, attack, block, death] = row;
+                if (!(npcId > 0) || !(attack >= 0) || !(block >= 0)) continue;
+                const idKey = String(npcId);
+                if (entries[idKey]) continue;
+                entries[idKey] = {
+                    attack,
+                    block,
+                    death: death !== undefined && death >= 0 ? death : undefined,
+                };
+            }
+            this.npcCombatDefs = entries;
+            logger.info(
+                `[combat] loaded ${Object.keys(entries).length} NPC combat definitions`,
+            );
+        } catch (err) {
+            logger.warn("[combat] failed to load npc-combat-defs.json", err);
+            this.npcCombatDefs = {};
+            this.npcCombatDefaults = { attack: 422, block: 424, death: 836, deathSound: 512 };
+        }
+    }
+
+    loadNpcCombatStats(): void {
+        if (this.npcCombatStats) return;
+        try {
+            const raw = require(serverGeneratedDataPath("npc-combat-stats.json"));
+            this.npcCombatStats = raw ?? {};
+        } catch {
+            this.npcCombatStats = {};
+        }
+    }
+
+    getNpcCombatSequences(typeId: number): {
+        block?: number;
+        attack?: number;
+        death?: number;
+    } {
+        const animations = this.getNpcCombatAnimations(typeId);
+        return {
+            block: animations.defence,
+            attack: animations.attack,
+            death: animations.death,
+        };
+    }
+
+    getNpcCombatAnimations(npc: NpcState | number): NpcCombatAnimations {
+        this.loadNpcCombatDefs();
+        const typeId = typeof npc === "number" ? Math.trunc(npc) : npc.typeId;
+        const idle = typeof npc === "number" ? undefined : npc.idleSeqId;
+        const walk = typeof npc === "number" ? undefined : npc.walkSeqId;
+        const key = String(typeId);
+        const entry = this.npcCombatDefs?.[key];
+        return resolveNpcCombatAnimations({
+            npcTypeId: typeId,
+            configured: entry
+                ? {
+                      attack: getPrimaryNpcAnimation(entry.attack),
+                      block: getPrimaryNpcAnimation(entry.block),
+                      death: getPrimaryNpcAnimation(entry.death),
+                  }
+                : undefined,
+            defaults: this.npcCombatDefaults,
+            idle,
+            walk,
+        });
+    }
+
+    getNpcDefinition(npc: NpcState): NpcDefinition {
+        return {
+            id: npc.typeId,
+            name: npc.name,
+            animations: this.getNpcCombatAnimations(npc),
+        };
+    }
+
+    /**
+     * A multi-style animation is metadata for a mechanic or boss script to
+     * select deliberately. It is not safe for ordinary NPC combat to choose
+     * one automatically, because the generic engine does not know which
+     * special or phase condition is active.
+     */
+    getNpcCombatStyleAnimation(typeId: number, attackType: AttackType): number | undefined {
+        this.loadNpcCombatDefs();
+        return getPrimaryNpcAnimation(
+            this.npcCombatDefs?.[String(Math.trunc(typeId))]?.[attackType],
+        );
+    }
+
+    /**
+     * Resolves encounter animation roles from the canonical NPC combat data.
+     * Style roles prefer their explicit mapping and safely fall back to that
+     * NPC's generic attack animation. Specials never fall back by index.
+     */
+    resolveNpcEncounterAnimation(
+        typeId: number,
+        reference: EncounterAnimationReference,
+        selector: number = 0,
+    ): number | undefined {
+        this.loadNpcCombatDefs();
+        const normalizedTypeId = Math.trunc(typeId);
+        const entry = this.npcCombatDefs?.[String(normalizedTypeId)];
+        if (typeof reference === "object") {
+            if (typeof reference.special === "number") {
+                // Numeric references retain the historical meaning: select one
+                // exact slot from the anonymous `specials` array.
+                return this.validAnimation(entry?.specials?.[reference.special]);
+            }
+            const name = normalizeNpcSpecialName(reference.special);
+            const pool = name ? normalizeNpcAnimationPool(entry?.namedSpecials?.[name]) : [];
+            return pickNpcAnimationFromPool(pool, selector);
+        }
+        if (reference === "melee" || reference === "ranged" || reference === "magic") {
+            const explicitPool = normalizeNpcAnimationPool(entry?.[reference]);
+            const pool = explicitPool.length > 0
+                ? explicitPool
+                : normalizeNpcAnimationPool(entry?.attack);
+            return pickNpcAnimationFromPool(pool, selector);
+        }
+        if (reference === "spawn") {
+            return pickNpcAnimationFromPool(
+                normalizeNpcAnimationPool(entry?.spawn),
+                selector,
+            );
+        }
+        if (reference === "attack") {
+            const configured = pickNpcAnimationFromPool(
+                normalizeNpcAnimationPool(entry?.attack),
+                selector,
+            );
+            return configured ?? this.validAnimation(
+                this.getNpcCombatAnimations(normalizedTypeId).attack,
+            );
+        }
+        const resolved = this.getNpcCombatAnimations(normalizedTypeId);
+        if (reference === "defence") return this.validAnimation(resolved.defence);
+        if (reference === "death") return this.validAnimation(resolved.death);
+        return this.validAnimation(resolved.attack);
+    }
+
+    /**
+     * Special sequences are deliberately separate from normal combat styles.
+     * A boss script chooses when one is appropriate; generic NPC combat must
+     * never pick a charge-up or phase animation at random.
+     */
+    getNpcSpecialAnimations(typeId: number): readonly number[] {
+        this.loadNpcCombatDefs();
+        return this.npcCombatDefs?.[String(Math.trunc(typeId))]?.specials ?? [];
+    }
+
+    getNpcNamedSpecialAnimations(typeId: number, name: string): readonly number[] {
+        this.loadNpcCombatDefs();
+        const normalizedName = normalizeNpcSpecialName(name);
+        if (!normalizedName) return [];
+        return normalizeNpcAnimationPool(
+            this.npcCombatDefs?.[String(Math.trunc(typeId))]?.namedSpecials?.[
+                normalizedName
+            ],
+        );
+    }
+
+    getNpcCombatAnimationPool(
+        typeId: number,
+        role: NpcCombatAnimationRole,
+    ): readonly number[] {
+        this.loadNpcCombatDefs();
+        return normalizeNpcAnimationPool(
+            this.npcCombatDefs?.[String(Math.trunc(typeId))]?.[role],
+        );
+    }
+
+    getNpcSpawnAnimation(typeId: number): number | undefined {
+        return getPrimaryNpcAnimation(
+            this.getNpcCombatAnimationPool(typeId, "spawn"),
+        );
+    }
+
+    private normalizeAnimationValue(value: unknown): number | number[] | undefined {
+        const pool = normalizeNpcAnimationPool(value);
+        if (pool.length === 0) return undefined;
+        return pool.length === 1 ? pool[0] : pool;
+    }
+
+    private normalizeNamedSpecials(
+        value: unknown,
+    ): Record<string, number | number[]> | undefined {
+        if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+        const normalized: Record<string, number | number[]> = {};
+        for (const [rawName, rawAnimations] of Object.entries(value)) {
+            const name = normalizeNpcSpecialName(rawName);
+            const animations = this.normalizeAnimationValue(rawAnimations);
+            if (name && animations !== undefined) normalized[name] = animations;
+        }
+        return Object.keys(normalized).length > 0 ? normalized : undefined;
+    }
+
+    private normalizeLegacySpecials(value: unknown): number[] {
+        return normalizeNpcLegacySpecialSlots(value);
+    }
+
+    private validAnimation(value: number | undefined): number | undefined {
+        return typeof value === "number" && Number.isFinite(value) && value > 0
+            ? Math.trunc(value)
+            : undefined;
+    }
+
+    resolveNpcCombatProfile(npc: NpcState): NpcCombatProfile {
+        return npc.combat;
+    }
+
+    getNpcParamValue(npc: NpcState, paramKey: number): number | undefined {
+        try {
+            const npcType = this.services.npcManager?.getNpcType?.(npc.typeId);
+            const params = npcType?.params;
+            if (!params) return undefined;
+            const val = params.get(paramKey);
+            return typeof val === "number" ? val : undefined;
+        } catch {
+            return undefined;
+        }
+    }
+
+    // --- Special attack data ---
+
+    loadSpecialAttackCacheData(enumTypeLoader: EnumTypeLoader): void {
+        try {
+            const costEnum = enumTypeLoader.load(906);
+            const costMap = new Map<number, number>();
+            for (let i = 0; i < costEnum.keys.length; i++) {
+                costMap.set(costEnum.keys[i], costEnum.intValues[i]);
+            }
+            this.specialAttackCostUnitsByWeapon = costMap;
+        } catch (err) {
+            logger.warn("[cache] failed to load special attack cost enum (906)", err);
+        }
+
+        try {
+            const descEnum = enumTypeLoader.load(1739);
+            const descMap = new Map<number, string>();
+            for (let i = 0; i < descEnum.keys.length; i++) {
+                const val = descEnum.stringValues[i] ?? "";
+                if (val) descMap.set(descEnum.keys[i], val);
+            }
+            this.specialAttackDescriptionByWeapon = descMap;
+            this.specialAttackDefaultDescription = descEnum.defaultString || undefined;
+        } catch (err) {
+            logger.warn("[cache] failed to load special attack description enum (1739)", err);
+        }
+    }
+
+    getWeaponSpecialCostPercent(weaponItemId: number): number | undefined {
+        const units = this.specialAttackCostUnitsByWeapon?.get(weaponItemId);
+        if (units === undefined || units <= 0) return undefined;
+        return Math.max(1, Math.min(100, Math.ceil(units / 10)));
+    }
+
+    getWeaponSpecialDescription(weaponItemId: number): string | undefined {
+        const direct = this.specialAttackDescriptionByWeapon?.get(weaponItemId);
+        if (direct) return direct;
+        return this.specialAttackDefaultDescription;
+    }
+
+    // --- NPC sound methods ---
+
+    getNpcSoundFromTable88(typeId: number, soundType: NpcSoundType): number | undefined {
+        if (!this.services.npcSoundLookup) return undefined;
+        try {
+            const npcTypeLoader = this.services.dataLoaderService.getNpcTypeLoader();
+            if (!npcTypeLoader) return undefined;
+            const npcType = npcTypeLoader.load(typeId);
+            if (!npcType) return undefined;
+            return this.services.npcSoundLookup.getSoundForNpc(npcType, soundType);
+        } catch {
+            return undefined;
+        }
+    }
+
+    getNpcDeathSoundFromDefs(typeId: number): { deathSound?: number } | undefined {
+        this.loadNpcCombatDefs();
+        return this.npcCombatDefs?.[String(typeId)];
+    }
+
+    getNpcCombatDefaultDeathSound(): number {
+        this.loadNpcCombatDefs();
+        return this.npcCombatDefaults?.deathSound ?? 512;
+    }
+
+    getNpcDeathSoundId(npc: NpcState): number | undefined {
+        const table88 = this.getNpcSoundFromTable88(npc.typeId, "death");
+        if (table88 !== undefined) return table88;
+
+        this.loadNpcCombatDefs();
+        const entry = this.npcCombatDefs?.[String(npc.typeId)];
+        if (entry?.deathSound !== undefined) return entry.deathSound;
+
+        return undefined;
+    }
+
+    getNpcAttackSoundId(npc: NpcState): number {
+        const NPC_ATTACK_SOUND = 394;
+        const table88 = this.getNpcSoundFromTable88(npc.typeId, "attack");
+        return table88 ?? NPC_ATTACK_SOUND;
+    }
+
+    getNpcHitSoundId(npc: NpcState): number | undefined {
+        return this.getNpcSoundFromTable88(npc.typeId, "hit");
+    }
+
+    getNpcDefendSoundId(npc: NpcState): number | undefined {
+        return this.getNpcSoundFromTable88(npc.typeId, "defend");
+    }
+}

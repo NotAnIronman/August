@@ -1,0 +1,61 @@
+{
+  "name": "@august/server",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "dependencies": {
+    "@august/custom-content": "workspace:*",
+    "@august/game-model": "workspace:*",
+    "@august/osrs-engine": "workspace:*",
+    "@august/protocol": "workspace:*",
+    "@foxglove/wasm-bz2": "^0.3.0",
+    "bzip2": "^0.1.1",
+    "denque": "^2.1.0",
+    "gl-matrix": "^3.4.4",
+    "java-random": "^0.4.0",
+    "pako": "^2.1.0",
+    "tsx": "^4.22.4",
+    "ws": "^8.21.0"
+  },
+  "scripts": {
+    "start": "pnpm run ensure-npc-drops && pnpm run ensure-cache && pnpm run start:world",
+    "start:world": "tsx --env-file-if-exists=.env --env-file-if-exists=../../.env src/index.ts",
+    "dev": "pnpm run start",
+    "build": "pnpm run typecheck",
+    "typecheck": "pnpm run typecheck:runtime",
+    "typecheck:all": "pnpm run typecheck:runtime && pnpm run typecheck:tests",
+    "typecheck:runtime": "tsc --noEmit -p tsconfig.runtime.json",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
+    "build-collision": "tsx ../../tools/cache/build-collision-cache.ts --include-models --force",
+    "audit-npc-animations": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs ../../tools/diagnostics/audit-npc-animations.ts",
+    "build-npc-aggression": "tsx ../../tools/data/build-npc-aggression.ts",
+    "build-shops": "tsx ../../tools/data/build-shops.ts",
+    "export-league-masteries": "pnpm run ensure-cache && tsx ../../tools/data/export-league-masteries.ts",
+    "export-league-tasks": "pnpm run ensure-cache && tsx ../../tools/data/export-league-tasks.ts",
+    "sync-missing-cache-items": "tsx ../../tools/data/sync-missing-cache-items.ts",
+    "sync-equipment-data": "pnpm run ensure-cache && pnpm run sync-missing-cache-items && pnpm run sync-equipment-requirements && pnpm run import-equipment-reference && pnpm run audit-equipment-data",
+    "sync-equipment-requirements": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs ../../tools/data/sync-osrs-equipment-requirements.ts",
+    "sync-npc-drops": "node --use-system-ca --import tsx ../../tools/data/sync-osrs-npc-drops.ts",
+    "ensure-npc-drops": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs ../../tools/data/sync-osrs-npc-drops.ts --if-missing",
+    "import-equipment-reference": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs ../../tools/data/import-osrs-equipment-reference.ts",
+    "audit-equipment-data": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs ../../tools/diagnostics/audit-equipment-data.ts",
+    "sync-wiki-skill-guides": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs ../../tools/data/sync-wiki-skill-guides.ts",
+    "import-wiki-dialogue": "node --use-system-ca ./node_modules/tsx/dist/cli.mjs ../../tools/data/import-wiki-dialogue.ts",
+    "ensure-cache": "tsx ../../tools/cache/ensure-cache.ts --server",
+    "merge-wiki-examine": "tsx ../../tools/data/merge-wiki-examine.ts",
+    "scrape-loc-examine": "tsx ../../tools/data/scrape-loc-examine.ts",
+    "diagnose-loc-html": "tsx ../../tools/diagnostics/diagnose-loc-html.ts",
+    "fill-blank-examine": "tsx ../../tools/data/fill-blank-examine.ts",
+    "test": "node ../../tools/testing/run-typescript-tests.mjs tests --exclude=modern-preservation-cache-ids.test.ts --exclude=trade-inventory-widget.test.ts",
+    "test:all": "node ../../tools/testing/run-typescript-tests.mjs tests",
+    "test:cache": "node ../../tools/testing/run-typescript-tests.mjs tests --only=modern-preservation-cache-ids.test.ts --only=trade-inventory-widget.test.ts",
+    "test:smoke": "tsx tests/authentication.test.ts && tsx tests/friends-chat.test.ts && tsx tests/achievement-diary-persistence.test.ts && tsx tests/dialogue-editor.test.ts && tsx tests/dialogue-system.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "@types/ws": "^8.18.1",
+    "typescript": "6.0.3"
+  }
+}

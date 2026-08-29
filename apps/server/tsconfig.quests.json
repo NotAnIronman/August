@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/**/*",
+    "src/content/gamemodes/vanilla/quests/**/*",
+    "src/content/gamemodes/vanilla/widgets/questListData.ts",
+    "src/content/gamemodes/vanilla/widgets/questListUi.ts"
+  ]
+}
