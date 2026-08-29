@@ -89,7 +89,11 @@ function prayAtAltar({ player, services, tick }: LocInteractionEvent): void {
 
 function createRoom(player: PlayerState, services: ScriptServices, access: "solo" | "party"): void {
     if (services.instances.get(player.id)) { services.messaging.sendGameMessage(player, "You are already inside an instance."); return; }
-    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: 2912, sourceBaseY: 5312, widthChunks: 4, heightChunks: 4, sourcePlanes: [2], destinationChunkX: 4, destinationChunkY: 3 }]);
+    // The instance view begins six chunks behind its destination.  K'ril's
+    // native source starts five/four chunks into that view; using 4/3 shifts
+    // the copied landscape one chunk south-west even though NPC coordinates
+    // themselves remain correct.
+    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: 2912, sourceBaseY: 5312, widthChunks: 4, heightChunks: 4, sourcePlanes: [2], destinationChunkX: 5, destinationChunkY: 4 }]);
     const room = services.instances.create(player, { definitionId: ZAMORAK_DEFINITION_ID, access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party", templateChunks, destination: INSTANCE_ENTRANCE, exit: INSTANCE_EXIT, grave: INSTANCE_GRAVE, npcs: ZAMORAK_NPCS });
     if (!room) { services.messaging.sendGameMessage(player, "The Zamorak room is unavailable right now."); return; }
     services.instances.markStarted(room.id);
@@ -138,4 +142,7 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerLocInteraction(ZAMORAK_ALTAR_LOC_ID, prayAtAltar, "pray");
     registry.registerLocInteraction(ZAMORAK_ALTAR_LOC_ID, prayAtAltar, "pray-at");
     registry.registerLocInteraction(ICE_BRIDGE_LOC_ID, crossIceBridge, "climb-off");
+    // The cache has only option 1, but retain an id-specific fallback for
+    // clients that submit a loc-op before its action string is resolved.
+    registry.registerLocInteraction(ICE_BRIDGE_LOC_ID, crossIceBridge);
 }

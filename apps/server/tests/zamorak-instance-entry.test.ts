@@ -20,7 +20,7 @@ const registry = {
 register(registry, {} as never);
 assert.deepEqual([...handlers.keys()], [
     "26505:open", "26505:peek", "26505:enter solo", "26505:enter party", "26505:join party",
-    "26363:pray", "26363:pray-at", "26518:climb-off",
+    "26363:pray", "26363:pray-at", "26518:climb-off", "26518:undefined",
 ]);
 
 const kril = EncounterRegistry.shared.findByNpcTypeId(3129);
