@@ -11,6 +11,7 @@ type BossKillcountDefinition = Readonly<{
 /** One registry for boss-facing killcount behavior as GWD grows. */
 const BOSS_KILLCOUNTS: ReadonlyMap<number, BossKillcountDefinition> = new Map([
     [2215, { name: "General Graardor", collectionLogStructId: 487 }],
+    [2205, { name: "Commander Zilyana", collectionLogStructId: 483 }],
     [3129, { name: "K'ril Tsutsaroth", collectionLogStructId: 494 }],
 ]);
 
