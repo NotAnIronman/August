@@ -12,6 +12,10 @@
 **/.vitepress/cache/
 *.tsbuildinfo
 
+#Cache files
+/[sS]erver/[cC]ache/
+/[sS]erver/[cC]aches/
+
 # Local environments and credentials
 .env
 .env.*

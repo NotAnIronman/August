@@ -25,6 +25,13 @@ import {
 import { getRuneDay } from "@server/game/time/RuneDay";
 
 // ============================================================================
+// Path files
+// ============================================================================
+
+import { DATA_ROOT } from "../paths";
+import path from "path";
+
+// ============================================================================
 // Interface and Inventory IDs
 // ============================================================================
 
@@ -344,10 +351,7 @@ export function getTabIndexFromComponentId(componentId: number): number {
 // Item Tracking
 // ============================================================================
 
-const COLLECTION_LOG_DATA_PATH = path.resolve(
-    __dirname,
-    "../../../data/catalogs/collection-log.json",
-);
+const COLLECTION_LOG_DATA_PATH = path.join(DATA_ROOT, "catalogs", "collection-log.json");
 
 type CollectionLogCategoryData = {
     tabIndex: number;

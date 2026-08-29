@@ -3397,6 +3397,7 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                 contentType: (w.contentType ?? 0) | 0,
                 configuredSequenceId: sequenceId,
                 configuredZoom: zoom,
+                configuredOffsetY: offY,
                 modelFrame: (w.modelFrame ?? 0) | 0,
                 idleSequenceId,
                 movementSequenceId,
@@ -3405,6 +3406,7 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
             sequenceId = playerPresentation.sequenceId;
             liveMovementFrame = playerPresentation.sequenceFrame;
             zoom = playerPresentation.zoom;
+            offY = playerPresentation.offsetY;
 
             // Chathead widgets are special: the cache's generic model angles
             // describe its old placeholder model, not the NPC/player head

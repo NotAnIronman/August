@@ -264,6 +264,31 @@ export class PlayerModelLoader {
         return this.buildStaticModel(workingAppearance, extras);
     }
 
+    /**
+     * Warms the sparse model cache for every IdentityKit body-part model
+     * (all genders, all styles). `models` is a deferred cache index — model
+     * payloads stream in on first use rather than being downloaded upfront —
+     * so cycling through unseen kit styles one at a time can each briefly
+     * miss while its model streams in. Calling this once, up front, fires
+     * off all those fetches together instead of discovering them reactively
+     * per click. Safe to call repeatedly; already-resident models are cheap
+     * no-ops and misses are swallowed (they've simply re-queued the fetch).
+     */
+    prefetchAllKitModels(): void {
+        const count = this.idkTypeLoader.getCount?.() ?? 0;
+        for (let kitId = 0; kitId < count; kitId++) {
+            try {
+                const kit = this.idkTypeLoader.load(kitId) as any;
+                const ids: number[] = kit?.modelIds ?? [];
+                for (let i = 0; i < ids.length; i++) {
+                    try {
+                        this.modelLoader.getModel(ids[i]);
+                    } catch {}
+                }
+            } catch {}
+        }
+    }
+
     private partCoveredByEquipment(
         part: number,
         equippedSlots: Set<EquipmentSlot>,

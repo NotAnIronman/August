@@ -4,7 +4,7 @@ import { GameState, LoginIndex } from "@client/features/login/GameState";
 import type { LoginRendererHost } from "@client/features/login/renderer/host";
 import { getWelcomeLayout } from "@client/features/login/renderer/layout/geometry";
 import { measureText } from "@client/features/login/renderer/render/drawUtils";
-import { getSavedAccountSlotBounds } from "@client/features/login/renderer/render/loginScreensPrimary";
+import { getSavedAccountRemoveButtonBounds, getSavedAccountSlotBounds } from "@client/features/login/renderer/render/loginScreensPrimary";
 
 export function handleWelcomeClick(host: LoginRendererHost, x: number, y: number) {
 
@@ -42,9 +42,18 @@ export function handleLoginFormClick(host: LoginRendererHost, state: LoginState,
         // checked before the generic field-row hit areas below.
         if (!isConnecting) {
             for (let slot = 0; slot < 4; slot++) {
+                if (!state.savedAccountSlots[slot]?.username) continue;
+                // Check the remove "x" first — it's a small hit-zone nested inside
+                // the row's own bounds, so it must win before the row-select check below.
+                const removeBounds = getSavedAccountRemoveButtonBounds(host, slot);
+                if (
+                    x >= removeBounds.x && x <= removeBounds.x + removeBounds.width &&
+                    y >= removeBounds.y && y <= removeBounds.y + removeBounds.height
+                ) {
+                    return { type: "remove_saved_account", slot } as const;
+                }
                 const bounds = getSavedAccountSlotBounds(host, slot);
                 if (
-                    state.savedAccountSlots[slot]?.username &&
                     x >= bounds.x && x <= bounds.x + bounds.width &&
                     y >= bounds.y && y <= bounds.y + bounds.height
                 ) {

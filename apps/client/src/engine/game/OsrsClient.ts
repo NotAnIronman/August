@@ -5531,6 +5531,10 @@ export class OsrsClient {
                 void this.loginWithSavedAccount(action.slot);
                 return undefined;
 
+            case "remove_saved_account":
+                void this.loginState.removeSavedAccountSlot(action.slot);
+                return undefined;
+
             case "cancel":
                 this.loginState.loginIndex = LoginIndex.WELCOME;
                 this.loginState.password = "";

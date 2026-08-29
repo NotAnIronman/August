@@ -208,3 +208,21 @@ export async function loadSavedAccountCredentials(slot: number): Promise<SavedAc
         return undefined;
     }
 }
+
+/** Remove a saved account slot (e.g. the player no longer wants it quick-login listed). */
+export async function removeSavedAccount(slot: number): Promise<SavedAccountSlot[]> {
+    if (!Number.isInteger(slot) || slot < 0 || slot >= SAVED_ACCOUNT_SLOT_COUNT) {
+        return loadSavedAccountSlots();
+    }
+    const database = await openDatabase();
+    if (!database) return emptySlots();
+    try {
+        const transaction = database.transaction(SLOT_STORE, "readwrite");
+        const done = transactionDone(transaction);
+        transaction.objectStore(SLOT_STORE).delete(slot);
+        await done;
+        return toSavedSlots(await readSlots(database));
+    } catch {
+        return loadSavedAccountSlots();
+    }
+}

@@ -20,6 +20,7 @@ import {
     SAVED_ACCOUNT_SLOT_COUNT,
     loadSavedAccountCredentials,
     loadSavedAccountSlots,
+    removeSavedAccount,
     saveSuccessfulAccount,
     type SavedAccountCredentials,
     type SavedAccountSlot,
@@ -170,6 +171,11 @@ export class LoginState {
 
     async getSavedAccountCredentials(slot: number): Promise<SavedAccountCredentials | undefined> {
         return loadSavedAccountCredentials(slot);
+    }
+
+    /** Drop a slot from the saved-accounts quick-login list. */
+    async removeSavedAccountSlot(slot: number): Promise<void> {
+        this.savedAccountSlots = await removeSavedAccount(slot);
     }
 
     // ========== UI Dialog State ==========

@@ -10,6 +10,8 @@ const SAVED_ACCOUNTS_Y = 216;
 const SAVED_ACCOUNTS_WIDTH = 172;
 const SAVED_ACCOUNTS_ROW_Y = 236;
 const SAVED_ACCOUNTS_ROW_HEIGHT = 21;
+/** Small "x" hit-zone on the right edge of each row, used to forget that slot. */
+const SAVED_ACCOUNTS_REMOVE_BUTTON_WIDTH = 16;
 
 export function getSavedAccountSlotBounds(host: LoginRendererHost, slot: number) {
     return {
@@ -17,6 +19,17 @@ export function getSavedAccountSlotBounds(host: LoginRendererHost, slot: number)
         y: SAVED_ACCOUNTS_ROW_Y + slot * SAVED_ACCOUNTS_ROW_HEIGHT,
         width: SAVED_ACCOUNTS_WIDTH,
         height: SAVED_ACCOUNTS_ROW_HEIGHT - 1,
+    };
+}
+
+/** Bounds of the small "x" remove button at the right edge of a saved-account row. */
+export function getSavedAccountRemoveButtonBounds(host: LoginRendererHost, slot: number) {
+    const row = getSavedAccountSlotBounds(host, slot);
+    return {
+        x: row.x + row.width - SAVED_ACCOUNTS_REMOVE_BUTTON_WIDTH,
+        y: row.y,
+        width: SAVED_ACCOUNTS_REMOVE_BUTTON_WIDTH,
+        height: row.height,
     };
 }
 
@@ -29,10 +42,19 @@ function drawSavedAccounts(host: LoginRendererHost, ctx: RenderContext, state: L
         const account = state.savedAccountSlots[slot];
         const occupied = !!account?.username;
         drawGradientRect(host, ctx, bounds.x + 1, bounds.y, bounds.width - 2, bounds.height, occupied ? 0x4c4131 : 0x282017, occupied ? 0x2e271d : 0x17120c);
+        // Leave room on the right for the remove "x" so the truncated name never sits under it.
+        const labelMaxWidth = occupied ? bounds.width - 12 - SAVED_ACCOUNTS_REMOVE_BUTTON_WIDTH : bounds.width - 12;
         const label = occupied
-            ? `${slot + 1}. ${ellipsis(host, account.username, bounds.width - 12)}`
+            ? `${slot + 1}. ${ellipsis(host, account.username, labelMaxWidth)}`
             : `${slot + 1}. Empty`;
         drawText(host, ctx, host.fontBold12!, label, bounds.x + 6, bounds.y + 14, occupied ? 0xffffff : 0x9c9588, true);
+        if (occupied) {
+            const removeBounds = getSavedAccountRemoveButtonBounds(host, slot);
+            drawCenteredText(
+                host, ctx, host.fontBold12!, "x",
+                removeBounds.x + removeBounds.width / 2, bounds.y + 14, 0xff9090, true,
+            );
+        }
     }
 }
 

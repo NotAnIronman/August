@@ -3,6 +3,7 @@ import type { IdkTypeLoader } from "@august/osrs-engine/config/idktype/IdkTypeLo
 import type { ObjTypeLoader } from "@august/osrs-engine/config/objtype/ObjTypeLoader";
 import { PlayerAppearance } from "@august/osrs-engine/config/player/PlayerAppearance";
 import { PLAYER_BODY_RECOLOR_TO_1 } from "@august/osrs-engine/config/player/PlayerDesignColors";
+import { PlayerModelLoader } from "@august/osrs-engine/config/player/PlayerModelLoader";
 import type { SeqTypeLoader } from "@august/osrs-engine/config/seqtype/SeqTypeLoader";
 import type { VarManager } from "@august/osrs-engine/config/vartype/VarManager";
 import type { ModelLoader } from "@august/osrs-engine/model/ModelLoader";
@@ -35,11 +36,39 @@ export type PlayerDesignControllerDeps = {
 export class PlayerDesignController {
     // PlayerDesign (679) is client-side; keep a local editable appearance even before a world player exists.
     private playerDesignAppearance?: PlayerAppearance;
+    // Set once the very first time the design screen is used this session, so
+    // prefetchKitModelsOnce() only fires its warm-up pass a single time.
+    private hasPrefetchedKitModels = false;
 
     constructor(private readonly deps: PlayerDesignControllerDeps) {}
 
     clear(): void {
         this.playerDesignAppearance = undefined;
+    }
+
+    /**
+     * Warms the model cache for every body-kit style up front, so browsing
+     * Design options doesn't repeatedly discover "model not loaded yet" one
+     * click at a time. `models` is a deferred/streamed cache index, so the
+     * first time any given style is selected it can otherwise miss for a
+     * frame while its model streams in. Cheap to call multiple times.
+     */
+    private prefetchKitModelsOnce(): void {
+        if (this.hasPrefetchedKitModels) return;
+        this.hasPrefetchedKitModels = true;
+        try {
+            const idkTypeLoader = this.deps.getIdkTypeLoader();
+            const objTypeLoader = this.deps.getObjTypeLoader();
+            const modelLoader = this.deps.getModelLoader();
+            const textureLoader = this.deps.getTextureLoader();
+            if (!idkTypeLoader || !objTypeLoader || !modelLoader || !textureLoader) return;
+            new PlayerModelLoader(
+                idkTypeLoader,
+                objTypeLoader,
+                modelLoader,
+                textureLoader,
+            ).prefetchAllKitModels();
+        } catch {}
     }
 
     handleWidgetAction(childId: number): boolean {
@@ -81,6 +110,7 @@ export class PlayerDesignController {
 
         const idkTypeLoader = this.deps.getIdkTypeLoader();
         if (!idkTypeLoader) return true;
+        this.prefetchKitModelsOnce();
         const pa = this.getOrInitPlayerDesignAppearance();
         if (!pa) return true;
 

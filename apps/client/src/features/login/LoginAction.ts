@@ -8,6 +8,7 @@ export type LoginAction =
     | { type: "existing_user" }
     | { type: "login" }
     | { type: "select_saved_account"; slot: number }
+    | { type: "remove_saved_account"; slot: number }
     | { type: "cancel" }
     | { type: "try_again" }
     | { type: "forgot_password" }
