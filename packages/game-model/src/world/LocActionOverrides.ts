@@ -7,6 +7,13 @@ export const LOC_ACTION_OVERRIDES: Readonly<Record<number, readonly (string | nu
             "Enter Party",
             "Join Party",
         ]),
+        26505: Object.freeze([
+            "Open",
+            "Peek",
+            "Enter Solo",
+            "Enter Party",
+            "Join Party",
+        ]),
     });
 
 export function resolveLocActions(

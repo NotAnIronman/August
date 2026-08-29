@@ -101,6 +101,8 @@ export interface WeaponSpecialAttackTraitOverrides {
     readonly maximumDamageCap?: number;
     /** Flat damage added after percentage-based minimum/maximum calculations. */
     readonly minimumDamageBonus?: number;
+    /** Replaces the calculated minimum damage without altering the maximum. */
+    readonly minimumDamageOverride?: number;
     readonly maximumDamageBonus?: number;
     /**
      * Number of independent accuracy rolls used to resolve this one hitsplat.

@@ -124,6 +124,9 @@ export class CombatHitEvaluator {
             hitCount: 1,
             accuracyMultiplier: 1,
             damageMultiplier: 1,
+            ignoreProtectionPrayer: attack.traits.effects?.ignoreProtectionPrayer,
+            guaranteedHit: attack.traits.effects?.guaranteedHit,
+            minimumDamageOverride: attack.traits.effects?.minimumHit,
         });
     }
 
@@ -391,6 +394,12 @@ export class CombatHitEvaluator {
             special.minimumDamageBonus ?? 0,
             "special attack minimum damage bonus",
         );
+        if (special.minimumDamageOverride !== undefined) {
+            minimumDamage = this.nonNegativeInteger(
+                special.minimumDamageOverride,
+                "special attack minimum damage override",
+            );
+        }
         maximumDamage += this.nonNegativeInteger(
             special.maximumDamageBonus ?? 0,
             "special attack maximum damage bonus",

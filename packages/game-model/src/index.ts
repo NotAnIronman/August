@@ -6,4 +6,5 @@ export * from "./movement/Direction";
 export * from "./state/vars";
 export * from "./world/instance/InstanceTypes";
 export * from "./world/LocActionOverrides";
+export * from "./world/LocRouteOverrides";
 export * from "./world/Wilderness";

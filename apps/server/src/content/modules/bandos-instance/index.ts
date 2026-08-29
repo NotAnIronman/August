@@ -52,6 +52,15 @@ function openBandosStrongholdDoor({ player, services }: LocInteractionEvent): vo
         return;
     }
 
+    const strength = player.skillSystem.getSkill(SkillId.Strength);
+    if (strength.baseLevel + strength.boost < 70) {
+        services.messaging.sendGameMessage(
+            player,
+            "You need a Strength level of 70 to bang the gong and enter the Bandos Stronghold.",
+        );
+        return;
+    }
+
     const hammer = services.inventory
         .getInventoryItems(player)
         .find((entry) => isBandosDoorHammer(entry.itemId, services));

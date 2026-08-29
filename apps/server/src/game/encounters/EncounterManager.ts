@@ -1,5 +1,7 @@
 import type { NpcHealthChange, NpcState } from "@server/game/npc";
 import type { PlayerState } from "@server/game/player";
+import { CombatAttributes } from "@server/game/combat/state/CombatAttributes";
+import { OverheadType } from "@server/game/prayer/OverheadType";
 import { logger } from "@server/observability/logger";
 import type { CombatAttack, CombatAttackTraits } from "@server/game/combat/model/CombatAttack";
 import { EncounterRegistry } from "@server/game/encounters/EncounterRegistry";
@@ -57,6 +59,8 @@ export class EncounterManager {
             tick: this.currentTick,
             targetId: target.id,
             targetDistance: distance,
+            targetProtectingFromMelee:
+                target.combatAttributes.get(CombatAttributes.ACTIVE_OVERHEAD_PRAYER) === OverheadType.MELEE,
         });
         if (!planned) return undefined;
         const animationId =
