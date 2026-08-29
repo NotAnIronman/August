@@ -154,8 +154,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelBuildLayout): Widge
     const tabActiveAsset =
         layout.tabs?.backgroundHoverAsset ?? layout.skin?.tabs?.activeAsset ??
         NATIVE_UIKIT_SKIN.tabs.activeAsset;
-    const buttonBackgroundAsset = layout.skin?.button?.backgroundAsset;
-    const buttonHoverAsset = layout.skin?.button?.hoverAsset;
+    const buttonBackgroundAsset =
+        layout.skin?.button?.backgroundAsset ?? NATIVE_UIKIT_SKIN.button.backgroundAsset;
+    const buttonHoverAsset =
+        layout.skin?.button?.hoverAsset ?? NATIVE_UIKIT_SKIN.button.hoverAsset;
     const inputBackgroundAsset = layout.skin?.input?.backgroundAsset;
     const inputHoverAsset = layout.skin?.input?.hoverAsset;
     const sidebarWidth =

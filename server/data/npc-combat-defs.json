@@ -2546,7 +2546,12 @@
     },
     "8338": {
       "anims": {
-        "death": 8063
+        "death": 8063,
+        "melee": 8059,
+        "attack": 8059,
+        "spawn": 8061,
+        "ranged": 8059,
+        "block": 8062
       }
     },
     "8354": {
@@ -2597,6 +2602,14 @@
         "attack": 8091,
         "ranged": 8092,
         "death": 8094
+      }
+    },
+    "8370": {
+      "anims": {
+        "spawn": 8111,
+        "magic": 8109,
+        "attack": 8109,
+        "ranged": 8110
       }
     },
     "8387": {
@@ -3178,12 +3191,17 @@
     "15628": {
       "anims": {
         "melee": 13783,
-        "attack": 13785,
+        "attack": 13783,
         "specials": [
           13779
         ],
         "death": 13784,
-        "block": 13787
+        "block": 13787,
+        "namedSpecials": {
+          "charge": 13779,
+          "slam": 13785
+        },
+        "spawn": 13790
       }
     }
   },

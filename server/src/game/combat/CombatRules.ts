@@ -6,6 +6,10 @@ export const RANGED_WEAPON_CATEGORIES = new Set<number>([3, 5, 6, 7, 8, 19]);
 export const MAGIC_WEAPON_CATEGORIES = new Set<number>([18, 24, 29]);
 export const POWERED_STAFF_CATEGORIES = new Set<number>([24]);
 export const SALAMANDER_WEAPON_CATEGORY = 31;
+/** Category 12: Jab/Swipe/Fend (Halberds) — see WeaponInterfaces.ts. */
+export const HALBERD_WEAPON_CATEGORY = 12;
+/** OSRS reach for halberd-class weapons when no cache-supplied range overrides it. */
+export const DEFAULT_HALBERD_MELEE_RANGE = 2;
 export const DEFAULT_NPC_MELEE_RANGE = 1;
 export const DEFAULT_NPC_RANGED_RANGE = 7;
 export const DEFAULT_NPC_MAGIC_RANGE = 10;
@@ -127,6 +131,11 @@ export function resolvePlayerAttackReach(
 
     // Melee
     if (MAGIC_WEAPON_CATEGORIES.has(category)) return 1;
+    if (category === HALBERD_WEAPON_CATEGORY) {
+        // Halberds reach 2 tiles even when the equipped item's cache
+        // definition doesn't carry an explicit param 13 weapon range.
+        return Math.max(DEFAULT_HALBERD_MELEE_RANGE, baseRange ?? DEFAULT_HALBERD_MELEE_RANGE);
+    }
     return Math.max(1, baseRange ?? 1);
 }
 

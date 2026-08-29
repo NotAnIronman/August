@@ -213,6 +213,7 @@ import {
     DEFAULT_SCREEN_WIDTH,
     MOUSE_CROSS_YELLOW,
 } from "./ClientState";
+import { resolveNpcEcsMapSquare } from "./npc/NpcEcsMapSquare";
 import { GameRenderer } from "./GameRenderer";
 import { OsrsRendererType, createRenderer } from "./GameRenderers";
 import { InputManager } from "./InputManager";
@@ -7030,6 +7031,15 @@ export class OsrsClient {
         return getMapSquareId(mapX, mapY);
     }
 
+    /** Bug #1 fix: see NpcEcsMapSquare.ts for why this must be instance-aware. */
+    private getNpcEcsMapSquare(
+        worldTileX: number,
+        worldTileY: number,
+        worldViewId?: number,
+    ): { mapX: number; mapY: number } {
+        return resolveNpcEcsMapSquare(worldTileX, worldTileY, worldViewId);
+    }
+
     private spawnNpcBinary(
         spawn: import("./sync/NpcUpdateDecoder").NpcSpawn,
         loopCycle: number,
@@ -7041,8 +7051,12 @@ export class OsrsClient {
 
         const worldTileX = spawn.tileX | 0;
         const worldTileY = spawn.tileY | 0;
-        const mapX = getMapIndexFromTile(worldTileX);
-        const mapY = getMapIndexFromTile(worldTileY);
+        const spawnWorldViewId: number | undefined = (spawn as any).worldViewId;
+        const { mapX, mapY } = this.getNpcEcsMapSquare(worldTileX, worldTileY, spawnWorldViewId);
+        // occTileX/spawnTileX are self-contained 0..63 bookkeeping fields
+        // (NpcEcs masks them internally) unrelated to which map-square
+        // bucket owns this NPC's world-position decomposition below, so
+        // they stay derived from the raw tile rather than from mapX.
         const localTileX = worldTileX & 63;
         const localTileY = worldTileY & 63;
         const mapBaseX = (mapX << 13) | 0;
@@ -7226,8 +7240,11 @@ export class OsrsClient {
         try {
             const st = this.npcEcs.getServerState(ecsId);
             if (st) {
-                const nextMapX = getMapIndexFromTile(st.tileX | 0);
-                const nextMapY = getMapIndexFromTile(st.tileY | 0);
+                const { mapX: nextMapX, mapY: nextMapY } = this.getNpcEcsMapSquare(
+                    st.tileX | 0,
+                    st.tileY | 0,
+                    this.npcEcs.getWorldViewId(ecsId) | 0,
+                );
                 const nextMapId = getMapSquareId(nextMapX, nextMapY) | 0;
                 if ((nextMapId | 0) !== (mapId | 0)) {
                     // Keep ECS map ownership in sync with movement state so map-bucketed systems

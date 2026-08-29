@@ -1,4 +1,5 @@
 import { SIDE_JOURNAL_GROUP_ID } from "../../../../client/common/ui/sideJournal";
+import { logger } from "../../utils/logger";
 import type { ViewportEnumService } from "./ViewportEnumService";
 import { BaseComponentUids } from "./ViewportEnumService";
 import {
@@ -269,6 +270,22 @@ export function getViewportTrackerFrontUid(displayMode: DisplayMode): number {
 /** Returns the cache-defined HUD mount reserved for encounter health bars. */
 export function getBossHealthBarHudUid(displayMode: DisplayMode): number {
     if (viewportEnumService) {
+        if (!viewportEnumService.hasComponent(BaseComponentUids.HPBAR_HUD, displayMode)) {
+            // BaseComponentUids.HPBAR_HUD (161:44) is itself a resizable-mode
+            // UID. displayMode === RESIZABLE_NORMAL doesn't need a translated
+            // entry (getComponent's baseUid fallback happens to already be
+            // correct there), which is why this can look "fixed" while
+            // testing in that mode specifically. Every other display mode's
+            // enum needs a real 161:44 -> <that mode's boss-hud child> entry;
+            // without one this silently falls back to a 161-rooted UID that
+            // doesn't exist in that mode's actual interface tree, so the bar
+            // never mounts anywhere visible.
+            logger.warn(
+                `[viewport] No boss health bar HUD mapping for display mode ${displayMode}; ` +
+                    "the HP bar will not surface in this mode until the cache enum " +
+                    `(see ViewportEnumIds) is given a 161:44 entry for it.`,
+            );
+        }
         return viewportEnumService.getComponent(BaseComponentUids.HPBAR_HUD, displayMode);
     }
     return (getRootInterfaceId(displayMode) << 16) | (BaseComponentUids.HPBAR_HUD & 0xffff);

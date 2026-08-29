@@ -84,6 +84,17 @@ export const NATIVE_UIKIT_SKIN = {
         previous: CacheUiAssetKey.PAGE_PREVIOUS,
         next: CacheUiAssetKey.PAGE_NEXT,
     },
+    button: {
+        // Not yet promoted to a semantic CacheUiAssetKey name (no ::Rename
+        // has been run on it yet) - raw archive:frame keeps working exactly
+        // like the named aliases above once someone does name it. 293:0 is
+        // already the proven idle background for the Menu Grid buttons in
+        // devUIKitPanels.ts; 294:0 is its already-validated hover partner.
+        // Swap either for "cache.sprite.295.0" (also confirmed to look
+        // correct) if a future revision prefers that frame instead.
+        backgroundAsset: "cache.sprite.293.0",
+        hoverAsset: "cache.sprite.294.0",
+    },
 } as const;
 
 /**

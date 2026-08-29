@@ -1,0 +1,1352 @@
+diff --git a/client/game/OsrsClient.ts b/client/game/OsrsClient.ts
+index 306811e7..e17717c7 100644
+--- a/client/game/OsrsClient.ts
++++ b/client/game/OsrsClient.ts
+@@ -212,7 +212,8 @@ import {
+     DEFAULT_SCREEN_HEIGHT,
+     DEFAULT_SCREEN_WIDTH,
+     MOUSE_CROSS_YELLOW,
+-} from "./ClientState";
++} from "./ClientState";
++import { resolveNpcEcsMapSquare } from "./npc/NpcEcsMapSquare";
+ import { GameRenderer } from "./GameRenderer";
+ import { OsrsRendererType, createRenderer } from "./GameRenderers";
+ import { InputManager } from "./InputManager";
+@@ -7022,14 +7023,23 @@ export class OsrsClient {
+                 return getMapSquareId(ClientState.regionX >> 3, ClientState.regionY >> 3);
+             }
+             const overlayMapX = 200 + (worldViewId | 0);
+-            const overlayMapY = 200 + (worldViewId | 0);
+-            return getMapSquareId(overlayMapX, overlayMapY);
+-        }
+-        const mapX = getMapIndexFromTile(instance.x | 0);
+-        const mapY = getMapIndexFromTile(instance.y | 0);
+-        return getMapSquareId(mapX, mapY);
+-    }
+-
++            const overlayMapY = 200 + (worldViewId | 0);
++            return getMapSquareId(overlayMapX, overlayMapY);
++        }
++        const mapX = getMapIndexFromTile(instance.x | 0);
++        const mapY = getMapIndexFromTile(instance.y | 0);
++        return getMapSquareId(mapX, mapY);
++    }
++
++    /** Bug #1 fix: see NpcEcsMapSquare.ts for why this must be instance-aware. */
++    private getNpcEcsMapSquare(
++        worldTileX: number,
++        worldTileY: number,
++        worldViewId?: number,
++    ): { mapX: number; mapY: number } {
++        return resolveNpcEcsMapSquare(worldTileX, worldTileY, worldViewId);
++    }
++
+     private spawnNpcBinary(
+         spawn: import("./sync/NpcUpdateDecoder").NpcSpawn,
+         loopCycle: number,
+@@ -7041,8 +7051,12 @@ export class OsrsClient {
+ 
+         const worldTileX = spawn.tileX | 0;
+         const worldTileY = spawn.tileY | 0;
+-        const mapX = getMapIndexFromTile(worldTileX);
+-        const mapY = getMapIndexFromTile(worldTileY);
++        const spawnWorldViewId: number | undefined = (spawn as any).worldViewId;
++        const { mapX, mapY } = this.getNpcEcsMapSquare(worldTileX, worldTileY, spawnWorldViewId);
++        // occTileX/spawnTileX are self-contained 0..63 bookkeeping fields
++        // (NpcEcs masks them internally) unrelated to which map-square
++        // bucket owns this NPC's world-position decomposition below, so
++        // they stay derived from the raw tile rather than from mapX.
+         const localTileX = worldTileX & 63;
+         const localTileY = worldTileY & 63;
+         const mapBaseX = (mapX << 13) | 0;
+@@ -7226,8 +7240,11 @@ export class OsrsClient {
+         try {
+             const st = this.npcEcs.getServerState(ecsId);
+             if (st) {
+-                const nextMapX = getMapIndexFromTile(st.tileX | 0);
+-                const nextMapY = getMapIndexFromTile(st.tileY | 0);
++                const { mapX: nextMapX, mapY: nextMapY } = this.getNpcEcsMapSquare(
++                    st.tileX | 0,
++                    st.tileY | 0,
++                    this.npcEcs.getWorldViewId(ecsId) | 0,
++                );
+                 const nextMapId = getMapSquareId(nextMapX, nextMapY) | 0;
+                 if ((nextMapId | 0) !== (mapId | 0)) {
+                     // Keep ECS map ownership in sync with movement state so map-bucketed systems
+diff --git a/client/game/npc/NpcEcsMapSquare.ts b/client/game/npc/NpcEcsMapSquare.ts
+new file mode 100644
+index 00000000..8fed1c18
+--- /dev/null
++++ b/client/game/npc/NpcEcsMapSquare.ts
+@@ -0,0 +1,37 @@
++import { getMapIndexFromTile } from "../../rs/map/MapFileIndex";
++import { ClientState } from "../ClientState";
++
++export interface NpcEcsMapSquare {
++    readonly mapX: number;
++    readonly mapY: number;
++}
++
++/**
++ * Bug #1 (instance boss visual desync): the NPC ECS's own map-square
++ * bucketing (used for its local/mapBase position decomposition, raycast
++ * targeting, and boundary-crossing rebase checks) used plain
++ * getMapIndexFromTile() regardless of instance state, while the parallel
++ * geometry-flush bucketing (OsrsClient.getNpcInstanceRenderMapId) already
++ * special-cased instances to ClientState.regionX>>3 / regionY>>3 - the only
++ * map square actually loaded for an active instance. A world-viewed NPC's
++ * ECS bucket could therefore diverge from the one real loaded map square,
++ * leaving its dynamic/interpolated position keyed off a mismatched or
++ * unloaded map square until a later resync happened to correct it.
++ *
++ * This mirrors getNpcInstanceRenderMapId's bucket choice exactly (same
++ * worldViewId >= 0 && ClientState.inInstance gate) so both subsystems always
++ * agree on which map square an instanced NPC belongs to.
++ */
++export function resolveNpcEcsMapSquare(
++    worldTileX: number,
++    worldTileY: number,
++    worldViewId?: number,
++): NpcEcsMapSquare {
++    if (typeof worldViewId === "number" && worldViewId >= 0 && ClientState.inInstance) {
++        return { mapX: ClientState.regionX >> 3, mapY: ClientState.regionY >> 3 };
++    }
++    return {
++        mapX: getMapIndexFromTile(worldTileX),
++        mapY: getMapIndexFromTile(worldTileY),
++    };
++}
+diff --git a/client/tests/npc-ecs-map-square.test.ts b/client/tests/npc-ecs-map-square.test.ts
+new file mode 100644
+index 00000000..9f17ad1b
+--- /dev/null
++++ b/client/tests/npc-ecs-map-square.test.ts
+@@ -0,0 +1,98 @@
++import assert from "node:assert/strict";
++
++import { getMapIndexFromTile } from "../rs/map/MapFileIndex";
++import { ClientState } from "../game/ClientState";
++import { resolveNpcEcsMapSquare } from "../game/npc/NpcEcsMapSquare";
++
++function resetClientState(): void {
++    ClientState.inInstance = false;
++    ClientState.regionX = -1;
++    ClientState.regionY = -1;
++}
++
++// Bug #1: instanced NPCs were ECS-bucketed using plain getMapIndexFromTile(),
++// which does not correspond to the one real map square an instance actually
++// loads (ClientState.regionX>>3 / regionY>>3), unlike the parallel geometry-
++// flush bucketing (getNpcInstanceRenderMapId) which already special-cased it.
++
++// Outside an instance: falls back to plain per-tile map-square math,
++// identical to the pre-fix behavior.
++resetClientState();
++{
++    const worldTileX = 3200;
++    const worldTileY = 3200;
++    const result = resolveNpcEcsMapSquare(worldTileX, worldTileY, undefined);
++    assert.deepEqual(result, {
++        mapX: getMapIndexFromTile(worldTileX),
++        mapY: getMapIndexFromTile(worldTileY),
++    });
++}
++
++// Outside an instance even with a worldViewId present (e.g. a world-entity
++// overlay, not an instanced room): still plain per-tile math.
++resetClientState();
++{
++    const worldTileX = 3200;
++    const worldTileY = 3200;
++    const result = resolveNpcEcsMapSquare(worldTileX, worldTileY, 4000);
++    assert.deepEqual(result, {
++        mapX: getMapIndexFromTile(worldTileX),
++        mapY: getMapIndexFromTile(worldTileY),
++    });
++}
++
++// Inside an instance but no worldViewId known yet for this NPC: still falls
++// back to plain math (matches getNpcInstanceRenderMapId's own fallback), so
++// this never regresses the ambiguous-view-id case NpcInstanceFlushController
++// already handles via its own safe retry/fallback logic.
++resetClientState();
++{
++    ClientState.inInstance = true;
++    ClientState.regionX = 362;
++    ClientState.regionY = 700;
++    const worldTileX = 2872;
++    const worldTileY = 5358;
++    const result = resolveNpcEcsMapSquare(worldTileX, worldTileY, undefined);
++    assert.deepEqual(result, {
++        mapX: getMapIndexFromTile(worldTileX),
++        mapY: getMapIndexFromTile(worldTileY),
++    });
++}
++
++// Inside an instance with a known worldViewId: uses the instance's real
++// (and only) loaded map square, matching getNpcInstanceRenderMapId exactly -
++// this is the core fix. Deliberately NOT equal to plain per-tile math, to
++// prove the fix actually changes behavior for the buggy case.
++resetClientState();
++{
++    ClientState.inInstance = true;
++    ClientState.regionX = 362;
++    ClientState.regionY = 700;
++    const worldTileX = 2872;
++    const worldTileY = 5358;
++    const result = resolveNpcEcsMapSquare(worldTileX, worldTileY, 4000);
++    assert.deepEqual(result, { mapX: 362 >> 3, mapY: 700 >> 3 });
++    assert.notDeepEqual(result, {
++        mapX: getMapIndexFromTile(worldTileX),
++        mapY: getMapIndexFromTile(worldTileY),
++    });
++}
++
++// A negative worldViewId (explicitly "not in a private view") must not be
++// treated as instance-scoped even while ClientState.inInstance is true.
++resetClientState();
++{
++    ClientState.inInstance = true;
++    ClientState.regionX = 362;
++    ClientState.regionY = 700;
++    const worldTileX = 2872;
++    const worldTileY = 5358;
++    const result = resolveNpcEcsMapSquare(worldTileX, worldTileY, -1);
++    assert.deepEqual(result, {
++        mapX: getMapIndexFromTile(worldTileX),
++        mapY: getMapIndexFromTile(worldTileY),
++    });
++}
++
++resetClientState();
++console.log("npc-ecs-map-square (bug #1) tests passed");
+diff --git a/client/tests/uikit-panel-builder.test.ts b/client/tests/uikit-panel-builder.test.ts
+index 5490992d..b0851891 100644
+--- a/client/tests/uikit-panel-builder.test.ts
++++ b/client/tests/uikit-panel-builder.test.ts
+@@ -48,6 +48,37 @@ const controls = buildUiPanel(groupId + 1, {
+ const controlsUid = (componentId: number) => (((groupId + 1) & 0xffff) << 16) | componentId;
+ assert.equal(controls.widgets.get(controlsUid(ComponentIds.CONTROL_BACKGROUND_BASE))?.actions?.[0], "Select");
+ assert.equal(controls.widgets.get(controlsUid(ComponentIds.CONTROL_LABEL_BASE))?.isHidden, true);
++// Bug #6: buttons/footer buttons previously had no default cacheUiAsset at
++// all (only tabs had one), so any panel that didn't explicitly pass
++// skin.button rendered flat, untextured placeholder rectangles.
++assert.equal(
++    controls.widgets.get(controlsUid(ComponentIds.CONTROL_BACKGROUND_BASE))?.cacheUiAsset,
++    "cache.sprite.293.0",
++);
++assert.equal(
++    controls.widgets.get(controlsUid(ComponentIds.CONTROL_BACKGROUND_BASE))?.cacheUiAssetHover,
++    "cache.sprite.294.0",
++);
++const footer = buildUiPanel(groupId + 4, {
++    width: 520, height: 240, footerButton: true,
++    content: { rowKind: "text", rowHeight: 18, scrollbarWidth: 0 },
++});
++const footerUid = (componentId: number) => (((groupId + 4) & 0xffff) << 16) | componentId;
++assert.equal(
++    footer.widgets.get(footerUid(ComponentIds.FOOTER_BUTTON))?.cacheUiAsset,
++    "cache.sprite.293.0",
++);
++// An explicit skin.button override still wins over the new default.
++const skinnedControls = buildUiPanel(groupId + 5, {
++    width: 520, height: 240, controls: {},
++    content: { rowKind: "text", rowHeight: 18, scrollbarWidth: 0 },
++    skin: { button: { backgroundAsset: "cache.sprite.999.0" } },
++});
++const skinnedUid = (componentId: number) => (((groupId + 5) & 0xffff) << 16) | componentId;
++assert.equal(
++    skinnedControls.widgets.get(skinnedUid(ComponentIds.CONTROL_BACKGROUND_BASE))?.cacheUiAsset,
++    "cache.sprite.999.0",
++);
+ assert.throws(
+     () => buildUiPanel(groupId + 3, {
+         width: 1, height: 1, footerButton: true, controls: {},
+diff --git a/client/widgets/uikit/CacheUiAssets.ts b/client/widgets/uikit/CacheUiAssets.ts
+index c0e1c1b8..1a99f88d 100644
+--- a/client/widgets/uikit/CacheUiAssets.ts
++++ b/client/widgets/uikit/CacheUiAssets.ts
+@@ -84,6 +84,17 @@ export const NATIVE_UIKIT_SKIN = {
+         previous: CacheUiAssetKey.PAGE_PREVIOUS,
+         next: CacheUiAssetKey.PAGE_NEXT,
+     },
++    button: {
++        // Not yet promoted to a semantic CacheUiAssetKey name (no ::Rename
++        // has been run on it yet) - raw archive:frame keeps working exactly
++        // like the named aliases above once someone does name it. 293:0 is
++        // already the proven idle background for the Menu Grid buttons in
++        // devUIKitPanels.ts; 294:0 is its already-validated hover partner.
++        // Swap either for "cache.sprite.295.0" (also confirmed to look
++        // correct) if a future revision prefers that frame instead.
++        backgroundAsset: "cache.sprite.293.0",
++        hoverAsset: "cache.sprite.294.0",
++    },
+ } as const;
+ 
+ /**
+diff --git a/client/widgets/uikit/PanelBuilder.ts b/client/widgets/uikit/PanelBuilder.ts
+index 9316ac5d..c2462389 100644
+--- a/client/widgets/uikit/PanelBuilder.ts
++++ b/client/widgets/uikit/PanelBuilder.ts
+@@ -154,8 +154,10 @@ export function buildUiPanel(groupId: number, layout: UiPanelBuildLayout): Widge
+     const tabActiveAsset =
+         layout.tabs?.backgroundHoverAsset ?? layout.skin?.tabs?.activeAsset ??
+         NATIVE_UIKIT_SKIN.tabs.activeAsset;
+-    const buttonBackgroundAsset = layout.skin?.button?.backgroundAsset;
+-    const buttonHoverAsset = layout.skin?.button?.hoverAsset;
++    const buttonBackgroundAsset =
++        layout.skin?.button?.backgroundAsset ?? NATIVE_UIKIT_SKIN.button.backgroundAsset;
++    const buttonHoverAsset =
++        layout.skin?.button?.hoverAsset ?? NATIVE_UIKIT_SKIN.button.hoverAsset;
+     const inputBackgroundAsset = layout.skin?.input?.backgroundAsset;
+     const inputHoverAsset = layout.skin?.input?.hoverAsset;
+     const sidebarWidth =
+diff --git a/server/src/game/combat/CombatRules.ts b/server/src/game/combat/CombatRules.ts
+index 09abfa65..afaf2cf5 100644
+--- a/server/src/game/combat/CombatRules.ts
++++ b/server/src/game/combat/CombatRules.ts
+@@ -6,6 +6,10 @@ export const RANGED_WEAPON_CATEGORIES = new Set<number>([3, 5, 6, 7, 8, 19]);
+ export const MAGIC_WEAPON_CATEGORIES = new Set<number>([18, 24, 29]);
+ export const POWERED_STAFF_CATEGORIES = new Set<number>([24]);
+ export const SALAMANDER_WEAPON_CATEGORY = 31;
++/** Category 12: Jab/Swipe/Fend (Halberds) — see WeaponInterfaces.ts. */
++export const HALBERD_WEAPON_CATEGORY = 12;
++/** OSRS reach for halberd-class weapons when no cache-supplied range overrides it. */
++export const DEFAULT_HALBERD_MELEE_RANGE = 2;
+ export const DEFAULT_NPC_MELEE_RANGE = 1;
+ export const DEFAULT_NPC_RANGED_RANGE = 7;
+ export const DEFAULT_NPC_MAGIC_RANGE = 10;
+@@ -127,6 +131,11 @@ export function resolvePlayerAttackReach(
+ 
+     // Melee
+     if (MAGIC_WEAPON_CATEGORIES.has(category)) return 1;
++    if (category === HALBERD_WEAPON_CATEGORY) {
++        // Halberds reach 2 tiles even when the equipped item's cache
++        // definition doesn't carry an explicit param 13 weapon range.
++        return Math.max(DEFAULT_HALBERD_MELEE_RANGE, baseRange ?? DEFAULT_HALBERD_MELEE_RANGE);
++    }
+     return Math.max(1, baseRange ?? 1);
+ }
+ 
+diff --git a/server/src/game/combat/engine/CombatHitProcessor.ts b/server/src/game/combat/engine/CombatHitProcessor.ts
+index 3e5732c4..b1b667e0 100644
+--- a/server/src/game/combat/engine/CombatHitProcessor.ts
++++ b/server/src/game/combat/engine/CombatHitProcessor.ts
+@@ -339,7 +339,8 @@ export class CombatHitProcessor {
+                 continue;
+             }
+             const travelDelayTicks = this.resolveTravelDelay(profile, context);
+-            const resolvedAttack = specialAttack ?? dragonfireAttack;
++            const resolvedAttack =
++                specialAttack ?? dragonfireAttack ?? (normalAttack?.targeting ? normalAttack : undefined);
+             const visuals = this.resolveVisuals(profile, context, resolvedAttack);
+             const damageType = resolvedAttack?.damageType ?? attack.traits.type;
+ 
+@@ -438,6 +439,35 @@ export class CombatHitProcessor {
+             return 0;
+         }
+ 
++        const largeTargetHitStages = targeting.largeTargetExtraHits;
++        if (largeTargetHitStages && largeTargetHitStages.length > 0) {
++            const targetSize = Math.max(1, Math.trunc(primaryTarget.size));
++            const qualifyingStages = largeTargetHitStages.filter(
++                (stage) => targetSize >= Math.max(2, Math.trunc(stage.minimumSize)),
++            );
++            if (qualifyingStages.length > 0) {
++                let queuedHits = 0;
++                for (const stage of qualifyingStages) {
++                    const accuracyMultiplier =
++                        Math.max(0, specialAttack.accuracyMultiplier) *
++                        Math.max(0, stage.accuracyMultiplier);
++                    queuedHits += this.queueSpecialSecondaryHit(
++                        primaryAttack,
++                        attacker,
++                        primaryTarget,
++                        primaryTarget,
++                        profile,
++                        specialAttack,
++                        accuracyMultiplier,
++                        currentMapClock,
++                        travelDelayTicks,
++                        Math.max(0, stage.damageMultiplier),
++                    );
++                }
++                return queuedHits;
++            }
++        }
++
+         const largeTargetHit = targeting.largeTargetExtraHit;
+         if (
+             largeTargetHit &&
+@@ -511,6 +541,7 @@ export class CombatHitProcessor {
+         accuracyMultiplier: number,
+         currentMapClock: number,
+         travelDelayTicks: number,
++        damageMultiplierOverride?: number,
+     ): number {
+         const attack: CombatAttack =
+             target === primaryTarget
+@@ -535,6 +566,11 @@ export class CombatHitProcessor {
+                 ...specialAttack,
+                 hitCount: 1,
+                 accuracyMultiplier,
++                damageMultiplier: damageMultiplierOverride ?? specialAttack.damageMultiplier,
++                damageMultiplierStages:
++                    damageMultiplierOverride !== undefined
++                        ? undefined
++                        : specialAttack.damageMultiplierStages,
+                 targeting: undefined,
+             }),
+         );
+diff --git a/server/src/game/combat/engine/CombatInteractionProcessor.ts b/server/src/game/combat/engine/CombatInteractionProcessor.ts
+index 3fc10798..57575cef 100644
+--- a/server/src/game/combat/engine/CombatInteractionProcessor.ts
++++ b/server/src/game/combat/engine/CombatInteractionProcessor.ts
+@@ -13,6 +13,7 @@ import type { CombatAttackTraits } from "../model/CombatAttack";
+ import type { CombatEntityRef } from "../model/CombatEntityRef";
+ import { CombatAttributes } from "../state/CombatAttributes";
+ import { resolvePreferredDistanceTiles } from "./CombatPreferredDistance";
++import { logMeleeApproachDecision } from "./MeleeApproachDebugLog";
+ import { type CombatRangeValidation, CombatRangeValidator } from "./CombatRangeValidator";
+ import {
+     type CombatEntity,
+@@ -171,6 +172,13 @@ export class CombatInteractionProcessor {
+             // not held underneath the larger footprint.
+             attacker.clearPath();
+             this.routes.delete(attacker);
++            logMeleeApproachDecision({
++                tick: currentMapClock,
++                attacker,
++                target,
++                reciprocalBranch: "player-yields",
++                routed: true,
++            });
+             return { status: "moving", target, traits, range };
+         }
+ 
+@@ -195,11 +203,25 @@ export class CombatInteractionProcessor {
+             if (moving) {
+                 target.clearPath();
+                 this.routes.delete(target);
++                logMeleeApproachDecision({
++                    tick: currentMapClock,
++                    attacker,
++                    target,
++                    reciprocalBranch: "npc-yields",
++                    routed: true,
++                });
+                 return { status: "moving", target, traits, range };
+             }
+         }
+ 
+         const moving = this.routeToward(attacker, target, targetReference, traits);
++        logMeleeApproachDecision({
++            tick: currentMapClock,
++            attacker,
++            target,
++            reciprocalBranch: "none",
++            routed: moving,
++        });
+         return {
+             status: moving ? "moving" : "unreachable",
+             target,
+diff --git a/server/src/game/combat/engine/MeleeApproachDebugLog.ts b/server/src/game/combat/engine/MeleeApproachDebugLog.ts
+new file mode 100644
+index 00000000..41fb0bae
+--- /dev/null
++++ b/server/src/game/combat/engine/MeleeApproachDebugLog.ts
+@@ -0,0 +1,83 @@
++import type { Actor } from "../../actor";
++import { NpcState } from "../../npc";
++import { PlayerState } from "../../player";
++import { logger } from "../../../utils/logger";
++
++/**
++ * Set MELEE_APPROACH_DEBUG=1 in the server environment to enable. Off by
++ * default: zero overhead when disabled (checked once at module load, not
++ * per call), and even when enabled, only logs actors that are actively
++ * approaching a melee target (not every combat tick for every entity).
++ *
++ * Purpose: issue #2 ("melee walk loop") could not be reproduced against the
++ * real pathfinder in isolated testing (see
++ * server/tests/combat-reciprocal-melee-real-pathfinding.test.ts), which
++ * strongly suggests the server's authoritative tile positions are not
++ * actually oscillating - if that's confirmed live via this log, the bug is
++ * very likely client-side rendering/interpolation rather than server pathing.
++ *
++ * To capture a repro: set MELEE_APPROACH_DEBUG=1, start the server, engage
++ * a melee NPC, and grep the server log for "melee-approach" while the
++ * visual loop is happening. Send that log back for analysis - specifically
++ * whether `distanceTiles` ever goes UP tick-over-tick for the same pair
++ * (that would confirm a genuine server-side bug) or stays monotonically
++ * non-increasing (confirming the positions are fine and the bug is
++ * client-side).
++ */
++export const MELEE_APPROACH_DEBUG_ENABLED = process.env.MELEE_APPROACH_DEBUG === "1";
++
++interface MeleeApproachLogEntry {
++    lastDistance: number;
++    lastTick: number;
++}
++
++const lastLoggedByAttacker = new WeakMap<Actor, MeleeApproachLogEntry>();
++
++function describeActor(actor: Actor): string {
++    if (actor instanceof PlayerState) {
++        return `player#${actor.id}(${actor.name ?? "?"})`;
++    }
++    if (actor instanceof NpcState) {
++        return `npc#${actor.id}(type=${actor.typeId},size=${actor.size})`;
++    }
++    return "actor#?";
++}
++
++/**
++ * Logs one approach decision. Call this right before/after routing is
++ * decided in CombatInteractionProcessor.process(), for the not-yet-in-range
++ * branch only (approach phase, which is what issue #2 reports).
++ */
++export function logMeleeApproachDecision(params: {
++    tick: number;
++    attacker: Actor;
++    target: Actor;
++    reciprocalBranch: "player-yields" | "npc-yields" | "none";
++    routed: boolean;
++}): void {
++    if (!MELEE_APPROACH_DEBUG_ENABLED) return;
++
++    const { tick, attacker, target, reciprocalBranch, routed } = params;
++    const distanceTiles = Math.max(
++        Math.abs(attacker.tileX - target.tileX),
++        Math.abs(attacker.tileY - target.tileY),
++    );
++
++    const prior = lastLoggedByAttacker.get(attacker);
++    const grew = prior !== undefined && distanceTiles > prior.lastDistance;
++    lastLoggedByAttacker.set(attacker, { lastDistance: distanceTiles, lastTick: tick });
++
++    logger.info(
++        `[melee-approach] tick=${tick} ${describeActor(attacker)} -> ${describeActor(target)} ` +
++            `attackerTile=(${attacker.tileX},${attacker.tileY}) targetTile=(${target.tileX},${target.tileY}) ` +
++            `distanceTiles=${distanceTiles} reciprocalBranch=${reciprocalBranch} routed=${routed}` +
++            (grew
++                ? ` *** DISTANCE GREW from ${prior!.lastDistance} (last logged tick ${prior!.lastTick}) - SERVER-SIDE OSCILLATION ***`
++                : ""),
++    );
++}
++
++/** Clears tracked history for an actor (call on combat end/despawn to avoid stale WeakMap growth concerns in long sessions - WeakMap already GCs on actor collection, this is just for a clean immediate reset). */
++export function resetMeleeApproachLog(actor: Actor): void {
++    lastLoggedByAttacker.delete(actor);
++}
+diff --git a/server/src/game/combat/plugins/WeaponSpecialAttackScript.ts b/server/src/game/combat/plugins/WeaponSpecialAttackScript.ts
+index 4c934cac..2a314230 100644
+--- a/server/src/game/combat/plugins/WeaponSpecialAttackScript.ts
++++ b/server/src/game/combat/plugins/WeaponSpecialAttackScript.ts
+@@ -39,6 +39,19 @@ export interface WeaponSpecialAttackTargeting {
+         readonly minimumSize: number;
+         readonly accuracyMultiplier: number;
+     };
++    /**
++     * Replaces area targeting with a sequence of extra hits against the
++     * primary target once its footprint meets each stage's minimum size.
++     * Stages are cumulative (e.g. Scythe of vitur: a 2x2 target qualifies
++     * for stage 1 only, a 3x3+ target qualifies for stages 1 and 2), and
++     * each stage rolls its own independent accuracy and damage.
++     */
++    readonly largeTargetExtraHits?: readonly {
++        readonly minimumSize: number;
++        readonly accuracyMultiplier: number;
++        /** Overrides the base weapon damageMultiplier for this stage's hit. */
++        readonly damageMultiplier: number;
++    }[];
+ }
+ 
+ /**
+diff --git a/server/src/game/combat/plugins/special-attacks/ScytheOfViturSpec.ts b/server/src/game/combat/plugins/special-attacks/ScytheOfViturSpec.ts
+new file mode 100644
+index 00000000..da17319e
+--- /dev/null
++++ b/server/src/game/combat/plugins/special-attacks/ScytheOfViturSpec.ts
+@@ -0,0 +1,64 @@
++import type { WeaponCombatProfile } from "../WeaponCombatProfile";
++import { WeaponSpecialAttackTargetPattern } from "../WeaponSpecialAttackScript";
++
++/**
++ * Category 14: Reap/Chop/Jab/Block (Scythes) — see WeaponInterfaces.ts.
++ * Matches every scythe of vitur variant (regular, holy, sanguine, corrupted,
++ * charged/uncharged) without needing to hardcode each item id.
++ */
++const SCYTHE_WEAPON_CATEGORY = 14;
++
++/**
++ * Wiki-verified stage multipliers: the 2nd hit rolls at 50% of the base max
++ * hit and the 3rd hit rolls at 25%, each floored and rolled independently.
++ * Example: base max hit 47 on a 3x3 target -> hits of 47, 23 (floor(47*0.5)),
++ * 11 (floor(47*0.25)) -> true max hit 81.
++ */
++const SCYTHE_SECOND_HIT_DAMAGE_MULTIPLIER = 0.5;
++const SCYTHE_THIRD_HIT_DAMAGE_MULTIPLIER = 0.25;
++
++export const SCYTHE_OF_VITUR_TARGETING = Object.freeze({
++    pattern: WeaponSpecialAttackTargetPattern.ForwardLine,
++    // 1x3 arc: the primary target plus up to two other 1x1 targets in front
++    // of the player when not fighting a single large monster.
++    width: 3,
++    maxTargets: 3,
++    // The arc cleave is not restricted to multi-combat areas in OSRS.
++    requiresMultiCombat: false,
++    largeTargetExtraHits: Object.freeze([
++        // 2x2 targets (e.g. Vardorvis) take a second hit at 50% max hit.
++        Object.freeze({
++            minimumSize: 2,
++            accuracyMultiplier: 1,
++            damageMultiplier: SCYTHE_SECOND_HIT_DAMAGE_MULTIPLIER,
++        }),
++        // 3x3+ targets (e.g. dragons, Duke Sucellus) also take a third hit
++        // at 25% max hit, in addition to the 50% second hit above.
++        Object.freeze({
++            minimumSize: 3,
++            accuracyMultiplier: 1,
++            damageMultiplier: SCYTHE_THIRD_HIT_DAMAGE_MULTIPLIER,
++        }),
++    ]),
++});
++
++const SCYTHE_OF_VITUR_NORMAL_ATTACK = Object.freeze({
++    energyCostPercent: 0,
++    hitCount: 1,
++    accuracyMultiplier: 1,
++    damageMultiplier: 1,
++    targeting: SCYTHE_OF_VITUR_TARGETING,
++});
++
++/**
++ * Every scythe swing (not just its special attack) reaches a 1x3 arc in
++ * front of the player. Against a single large monster this instead chains
++ * extra hits onto the same target (see SCYTHE_OF_VITUR_TARGETING); against
++ * ordinary 1x1s it can strike up to two additional targets in the arc, each
++ * rolled at full accuracy and damage independently.
++ */
++export const SCYTHE_OF_VITUR_PROFILE: WeaponCombatProfile = Object.freeze({
++    id: "core:scythe_of_vitur",
++    categoryIds: Object.freeze([SCYTHE_WEAPON_CATEGORY]),
++    handleNormalAttack: () => SCYTHE_OF_VITUR_NORMAL_ATTACK,
++});
+diff --git a/server/src/game/combat/plugins/special-attacks/index.ts b/server/src/game/combat/plugins/special-attacks/index.ts
+index c61ac845..18e71a2a 100644
+--- a/server/src/game/combat/plugins/special-attacks/index.ts
++++ b/server/src/game/combat/plugins/special-attacks/index.ts
+@@ -19,6 +19,7 @@ import { RUNE_CLAWS_PROFILE } from "./RuneClawsSpec";
+ import { SARADOMIN_GODSWORD_PROFILE } from "./SaradominGodswordSpec";
+ import { SARADOMIN_SWORD_PROFILE } from "./SaradominSwordSpec";
+ import { SARADOMINS_BLESSED_SWORD_PROFILE } from "./SaradominsBlessedSwordSpec";
++import { SCYTHE_OF_VITUR_PROFILE } from "./ScytheOfViturSpec";
+ import { TOXIC_BLOWPIPE_PROFILE } from "./ToxicBlowpipeSpec";
+ import { VESTAS_SPEAR_BH_PROFILE } from "./VestasSpearBhSpec";
+ import { WEBWEAVER_BOW_PROFILE } from "./WebweaverBowSpec";
+@@ -306,6 +307,7 @@ export const CORE_SPECIAL_ATTACK_PROFILES: readonly WeaponCombatProfile[] = Obje
+     DRAGON_SPEAR_PROFILE,
+     ROSEWOOD_BLOWPIPE_PROFILE,
+     SARADOMIN_SWORD_PROFILE,
++    SCYTHE_OF_VITUR_PROFILE,
+     VESTAS_SPEAR_BH_PROFILE,
+     WEBWEAVER_BOW_PROFILE,
+ ]);
+diff --git a/server/src/widgets/viewport/ViewportEnumService.ts b/server/src/widgets/viewport/ViewportEnumService.ts
+index 934851c9..7914195b 100644
+--- a/server/src/widgets/viewport/ViewportEnumService.ts
++++ b/server/src/widgets/viewport/ViewportEnumService.ts
+@@ -140,19 +140,35 @@ export class ViewportEnumService {
+      * @returns Component UID for the specified display mode
+      */
+     getComponent(baseUid: number, displayMode: DisplayMode): number {
+-        const mapping =
+-            displayMode === DisplayMode.FIXED
+-                ? this.fixedMapping
+-                : displayMode === DisplayMode.RESIZABLE_LIST
+-                  ? this.resizableListMapping
+-                  : displayMode === DisplayMode.FULLSCREEN
+-                    ? this.fullscreenMapping
+-                    : displayMode === DisplayMode.MOBILE
+-                      ? this.mobileMapping
+-                      : this.resizableMapping;
++        const mapping = this.mappingForDisplayMode(displayMode);
+         return mapping.get(baseUid) ?? baseUid;
+     }
+ 
++    /**
++     * True when the cache enum for this display mode actually defines a
++     * mapping for baseUid. getComponent() falls back to returning baseUid
++     * itself when unmapped, which silently produces a nonsensical UID for
++     * callers that assume the result is always a real, renderable widget
++     * (e.g. the boss health bar HUD, which isn't present in every display
++     * mode's enum) - callers that need to know the difference should check
++     * this first rather than trusting getComponent()'s result blindly.
++     */
++    hasComponent(baseUid: number, displayMode: DisplayMode): boolean {
++        return this.mappingForDisplayMode(displayMode).has(baseUid);
++    }
++
++    private mappingForDisplayMode(displayMode: DisplayMode): Map<number, number> {
++        return displayMode === DisplayMode.FIXED
++            ? this.fixedMapping
++            : displayMode === DisplayMode.RESIZABLE_LIST
++              ? this.resizableListMapping
++              : displayMode === DisplayMode.FULLSCREEN
++                ? this.fullscreenMapping
++                : displayMode === DisplayMode.MOBILE
++                  ? this.mobileMapping
++                  : this.resizableMapping;
++    }
++
+     /**
+      * Extract the child ID from a packed widget UID.
+      * @param uid - Packed widget UID ((groupId << 16) | childId)
+diff --git a/server/src/widgets/viewport/index.ts b/server/src/widgets/viewport/index.ts
+index dee234e6..f516fa60 100644
+--- a/server/src/widgets/viewport/index.ts
++++ b/server/src/widgets/viewport/index.ts
+@@ -1,4 +1,5 @@
+ import { SIDE_JOURNAL_GROUP_ID } from "../../../../client/common/ui/sideJournal";
++import { logger } from "../../utils/logger";
+ import type { ViewportEnumService } from "./ViewportEnumService";
+ import { BaseComponentUids } from "./ViewportEnumService";
+ import {
+@@ -269,6 +270,22 @@ export function getViewportTrackerFrontUid(displayMode: DisplayMode): number {
+ /** Returns the cache-defined HUD mount reserved for encounter health bars. */
+ export function getBossHealthBarHudUid(displayMode: DisplayMode): number {
+     if (viewportEnumService) {
++        if (!viewportEnumService.hasComponent(BaseComponentUids.HPBAR_HUD, displayMode)) {
++            // BaseComponentUids.HPBAR_HUD (161:44) is itself a resizable-mode
++            // UID. displayMode === RESIZABLE_NORMAL doesn't need a translated
++            // entry (getComponent's baseUid fallback happens to already be
++            // correct there), which is why this can look "fixed" while
++            // testing in that mode specifically. Every other display mode's
++            // enum needs a real 161:44 -> <that mode's boss-hud child> entry;
++            // without one this silently falls back to a 161-rooted UID that
++            // doesn't exist in that mode's actual interface tree, so the bar
++            // never mounts anywhere visible.
++            logger.warn(
++                `[viewport] No boss health bar HUD mapping for display mode ${displayMode}; ` +
++                    "the HP bar will not surface in this mode until the cache enum " +
++                    `(see ViewportEnumIds) is given a 161:44 entry for it.`,
++            );
++        }
+         return viewportEnumService.getComponent(BaseComponentUids.HPBAR_HUD, displayMode);
+     }
+     return (getRootInterfaceId(displayMode) << 16) | (BaseComponentUids.HPBAR_HUD & 0xffff);
+diff --git a/server/tests/combat-reciprocal-melee-approach-stress.test.ts b/server/tests/combat-reciprocal-melee-approach-stress.test.ts
+new file mode 100644
+index 00000000..d5baeb49
+--- /dev/null
++++ b/server/tests/combat-reciprocal-melee-approach-stress.test.ts
+@@ -0,0 +1,137 @@
++/**
++ * Extended stress test for reciprocal melee approach: multi-tick simulation
++ * with real position updates (not a single pre-baked step), and both
++ * getCombatants() orderings (NPC-first and player-first), to check for
++ * oscillation (the "walk in, walk out, forever" symptom) across many ticks
++ * rather than just the first tick.
++ *
++ * Run with: npx tsx tests/combat-reciprocal-melee-approach-stress.test.ts
++ */
++import assert from "node:assert/strict";
++
++import { AttackType } from "../src/game/combat/AttackType";
++import { registerSkillConfiguration } from "../src/game/combat/SkillConfigurationProvider";
++import { CombatTickEngine } from "../src/game/combat/engine/CombatTickEngine";
++import type { CombatAttackTraits } from "../src/game/combat/model/CombatAttack";
++import type { GamemodeDefinition } from "../src/game/gamemodes/GamemodeDefinition";
++import { NpcState } from "../src/game/npc";
++import { PlayerState } from "../src/game/player";
++import type { PathService } from "../src/pathfinding/PathService";
++
++const TEST_GAMEMODE = {
++    id: "reciprocal-melee-approach-stress-test",
++    name: "Reciprocal melee approach stress test",
++    initializePlayer: () => undefined,
++    canInteract: () => true,
++} as unknown as GamemodeDefinition;
++
++registerSkillConfiguration({
++    computeCombatLevel: () => 3,
++    skillRestoreIntervalTicks: 100,
++    skillBoostDecayIntervalTicks: 100,
++    hitpointRegenIntervalTicks: 100,
++    hitpointOverhealDecayIntervalTicks: 100,
++    preserveDecayMultiplier: 1.5,
++});
++
++const MELEE_TRAITS: CombatAttackTraits = Object.freeze({
++    type: AttackType.Melee,
++    style: null,
++    rangeTiles: 1,
++    speedTicks: 4,
++});
++
++function stepToward(from: { x: number; y: number }, to: { x: number; y: number }) {
++    const dx = Math.sign(to.x - from.x);
++    const dy = Math.sign(to.y - from.y);
++    return { x: from.x + dx, y: from.y + dy };
++}
++
++/**
++ * Simulates a full engagement: two melee actors starting `startDistance`
++ * tiles apart on the same axis, run to convergence (or a tick budget),
++ * applying each tick's chosen step as a real position update before the
++ * next tick runs. Fails if the actors are ever further apart after a tick
++ * than they were before it started (the "walked away" loop symptom) once
++ * both have a path queued, or if they never converge within the budget.
++ */
++function simulateApproach(combatantOrder: "npc-first" | "player-first"): void {
++    const player = new PlayerState(1, 3200, 3200, 0, TEST_GAMEMODE);
++    const npc = new NpcState(2, 1, 1, -1, -1, 32, { x: 3206, y: 3200, level: 0 }, {
++        maxHitpoints: 10,
++    });
++
++    player.setCombatTarget(npc);
++    npc.engageCombat(player.id, 100, player);
++
++    const pathService = {
++        edgeHasWallBetween: () => false,
++        findPathSteps: (request: { from: { x: number; y: number } }) => {
++            const step = stepToward(request.from, { x: npc.tileX, y: npc.tileY });
++            return { ok: true, steps: [step], end: step };
++        },
++        findNpcPathStep: (from: { x: number; y: number }) =>
++            stepToward(from, { x: player.tileX, y: player.tileY }),
++    } as unknown as PathService;
++
++    const engine = new CombatTickEngine({
++        pathService,
++        getPlayer: (id) => (id === player.id ? player : undefined),
++        getNpc: (id) => (id === npc.id ? npc : undefined),
++        getCombatants: () => (combatantOrder === "npc-first" ? [npc, player] : [player, npc]),
++        resolveAttackTraits: () => MELEE_TRAITS,
++    });
++
++    const distanceHistory: number[] = [];
++    let converged = false;
++    for (let tick = 100; tick < 130; tick++) {
++        const distanceBefore = Math.max(
++            Math.abs(player.tileX - npc.tileX),
++            Math.abs(player.tileY - npc.tileY),
++        );
++        distanceHistory.push(distanceBefore);
++
++        const result = engine.processTick(tick);
++        if ((result.statuses.get("ready") ?? 0) === 2) {
++            converged = true;
++            break;
++        }
++
++        // Simulate movement resolution: apply whichever single step each
++        // actor queued this tick, exactly as the real movement phase would.
++        if (player.hasPath()) {
++            const step = stepToward({ x: player.tileX, y: player.tileY }, { x: npc.tileX, y: npc.tileY });
++            player.teleport(step.x, step.y, 0);
++            player.clearPath();
++        }
++        if (npc.hasPath()) {
++            const step = stepToward({ x: npc.tileX, y: npc.tileY }, { x: player.tileX, y: player.tileY });
++            npc.teleport(step.x, step.y, 0);
++            npc.clearPath();
++        }
++
++        const distanceAfter = Math.max(
++            Math.abs(player.tileX - npc.tileX),
++            Math.abs(player.tileY - npc.tileY),
++        );
++        // Both actors must never simultaneously step past one another back
++        // to (or beyond) their starting separation - that oscillation is
++        // exactly the reported "walk in, walk out, forever" loop.
++        assert.ok(
++            distanceAfter <= distanceBefore,
++            `[${combatantOrder}] distance grew from ${distanceBefore} to ${distanceAfter} on tick ${tick} ` +
++                `(history: ${distanceHistory.join(",")}) - actors walked away from each other`,
++        );
++    }
++
++    assert.ok(
++        converged,
++        `[${combatantOrder}] actors never reached melee range within the tick budget ` +
++            `(history: ${distanceHistory.join(",")})`,
++    );
++}
++
++simulateApproach("npc-first");
++simulateApproach("player-first");
++
++console.log("reciprocal melee approach stress test passed");
+diff --git a/server/tests/combat-reciprocal-melee-real-pathfinding.test.ts b/server/tests/combat-reciprocal-melee-real-pathfinding.test.ts
+new file mode 100644
+index 00000000..6d970de0
+--- /dev/null
++++ b/server/tests/combat-reciprocal-melee-real-pathfinding.test.ts
+@@ -0,0 +1,191 @@
++/**
++ * Reciprocal melee approach test using the REAL pathfinder (not a mocked
++ * pathService), to check whether NpcCombatInteractionHandler/
++ * CombatInteractionProcessor's routing produces oscillation once actual
++ * collision-aware pathfinding and the "dumb" NPC step algorithm
++ * (PathService.findNpcPathStep) are involved, rather than a simplified
++ * mock that always greedily reduces distance.
++ *
++ * Run with: npx tsx tests/combat-reciprocal-melee-real-pathfinding.test.ts
++ */
++import assert from "node:assert/strict";
++
++import { CollisionMap } from "../../client/rs/scene/CollisionMap";
++import { AttackType } from "../src/game/combat/AttackType";
++import { registerSkillConfiguration } from "../src/game/combat/SkillConfigurationProvider";
++import { CombatTickEngine } from "../src/game/combat/engine/CombatTickEngine";
++import type { CombatAttackTraits } from "../src/game/combat/model/CombatAttack";
++import type { GamemodeDefinition } from "../src/game/gamemodes/GamemodeDefinition";
++import { NpcState } from "../src/game/npc";
++import { PlayerState } from "../src/game/player";
++import { PathService } from "../src/pathfinding/PathService";
++import { CollisionFlag } from "../src/pathfinding/legacy/pathfinder/flag/CollisionFlag";
++import type { MapCollisionService, ServerMapSquare } from "../src/world/MapCollisionService";
++
++const TEST_GAMEMODE = {
++    id: "reciprocal-melee-real-pathfinding-test",
++    name: "Reciprocal melee real pathfinding test",
++    initializePlayer: () => undefined,
++    canInteract: () => true,
++} as unknown as GamemodeDefinition;
++
++registerSkillConfiguration({
++    computeCombatLevel: () => 3,
++    skillRestoreIntervalTicks: 100,
++    skillBoostDecayIntervalTicks: 100,
++    hitpointRegenIntervalTicks: 100,
++    hitpointOverhealDecayIntervalTicks: 100,
++    preserveDecayMultiplier: 1.5,
++});
++
++const MELEE_TRAITS: CombatAttackTraits = Object.freeze({
++    type: AttackType.Melee,
++    style: null,
++    rangeTiles: 1,
++    speedTicks: 4,
++});
++
++// A single fully-open (no collision flags) 64x64 map square covering
++// world tiles 3200..3263, matching the pattern already used in
++// temporary-location.test.ts.
++function makeOpenPathService(
++    setupCollision?: (maps: CollisionMap[]) => void,
++): PathService {
++    const collisionMaps = Array.from({ length: 4 }, () => new CollisionMap(64, 64));
++    setupCollision?.(collisionMaps);
++    const mapSquare = {
++        mapX: 50,
++        mapY: 50,
++        borderSize: 0,
++        baseX: 3200,
++        baseY: 3200,
++        size: 64,
++        collisionMaps,
++    } as ServerMapSquare;
++    const mapService = {
++        getMapSquare: (mapX: number, mapY: number) =>
++            mapX === 50 && mapY === 50 ? mapSquare : undefined,
++        getCollisionPlaneAt: () => 0,
++    } as unknown as MapCollisionService;
++    return new PathService(mapService, 16);
++}
++
++/**
++ * Runs a full engagement to convergence using the real pathfinder, applying
++ * each tick's queued step as a real position update before the next tick.
++ * Distance between the two actors must never increase once both are
++ * actively pathing, and they must converge within the tick budget.
++ */
++function simulateApproach(
++    label: string,
++    npcStart: { x: number; y: number },
++    npcSize: number,
++    combatantOrder: "npc-first" | "player-first",
++    setupCollision?: (maps: CollisionMap[]) => void,
++): void {
++    const pathService = makeOpenPathService(setupCollision);
++    const player = new PlayerState(1, 3230, 3230, 0, TEST_GAMEMODE);
++    const npc = new NpcState(2, 1, npcSize, -1, -1, 32, { ...npcStart, level: 0 }, {
++        maxHitpoints: 10,
++    });
++
++    player.setCombatTarget(npc);
++    npc.engageCombat(player.id, 100, player);
++
++    const engine = new CombatTickEngine({
++        pathService,
++        getPlayer: (id) => (id === player.id ? player : undefined),
++        getNpc: (id) => (id === npc.id ? npc : undefined),
++        getCombatants: () => (combatantOrder === "npc-first" ? [npc, player] : [player, npc]),
++        resolveAttackTraits: () => MELEE_TRAITS,
++    });
++
++    const distanceHistory: number[] = [];
++    let converged = false;
++    for (let tick = 100; tick < 160; tick++) {
++        const distanceBefore = Math.max(
++            Math.abs(player.tileX - npc.tileX),
++            Math.abs(player.tileY - npc.tileY),
++        );
++        distanceHistory.push(distanceBefore);
++
++        const result = engine.processTick(tick);
++        if ((result.statuses.get("ready") ?? 0) === 2) {
++            converged = true;
++            break;
++        }
++
++        // Apply whichever single step each actor's real path queued this
++        // tick, exactly as the movement phase would in production.
++        if (player.hasPath()) {
++            const next = player.peekNextStep();
++            if (next) player.teleport(next.x, next.y, 0);
++            player.clearPath();
++        }
++        if (npc.hasPath()) {
++            const next = npc.peekNextStep();
++            if (next) npc.teleport(next.x, next.y, 0);
++            npc.clearPath();
++        }
++
++        const distanceAfter = Math.max(
++            Math.abs(player.tileX - npc.tileX),
++            Math.abs(player.tileY - npc.tileY),
++        );
++        assert.ok(
++            distanceAfter <= distanceBefore,
++            `[${label}/${combatantOrder}] distance grew from ${distanceBefore} to ${distanceAfter} ` +
++                `on tick ${tick} (history: ${distanceHistory.join(",")}) - real-pathfinding loop reproduced`,
++        );
++    }
++
++    assert.ok(
++        converged,
++        `[${label}/${combatantOrder}] never converged within budget (history: ${distanceHistory.join(",")})`,
++    );
++}
++
++// Perfectly diagonal approach (the case my earlier greedy-mock test used).
++simulateApproach("diagonal", { x: 3236, y: 3236 }, 1, "npc-first");
++simulateApproach("diagonal", { x: 3236, y: 3236 }, 1, "player-first");
++
++// Asymmetric offsets designed to stress nearestCardinalApproachTile's tie
++// break: these put the NPC near a diagonal boundary relative to the player
++// where two candidate approach tiles are equidistant, the exact geometry
++// where a per-tick recompute could flip which side it commits to.
++simulateApproach("near-diagonal-tie-a", { x: 3234, y: 3237 }, 1, "npc-first");
++simulateApproach("near-diagonal-tie-a", { x: 3234, y: 3237 }, 1, "player-first");
++simulateApproach("near-diagonal-tie-b", { x: 3237, y: 3233 }, 1, "npc-first");
++simulateApproach("near-diagonal-tie-b", { x: 3237, y: 3233 }, 1, "player-first");
++
++// Large (multi-tile) NPCs widen the candidate approach-tile set, which
++// should make any tie-break instability more likely if it exists.
++simulateApproach("3x3-diagonal", { x: 3236, y: 3236 }, 3, "npc-first");
++simulateApproach("3x3-diagonal", { x: 3236, y: 3236 }, 3, "player-first");
++simulateApproach("4x4-near-tie", { x: 3234, y: 3237 }, 4, "npc-first");
++simulateApproach("4x4-near-tie", { x: 3234, y: 3237 }, 4, "player-first");
++
++// Obstacle scenarios: a single-tile pillar directly between the player's
++// starting position and the NPC's geometrically-nearest approach side.
++// nearestCardinalApproachTile() picks a side using pure Chebyshev distance
++// with no collision awareness, while the player's route uses the real
++// pathfinder - this is where the two systems could disagree about which
++// side is actually reachable, which is far more common in cluttered
++// instance/boss rooms than the open overworld.
++function withPillarBetween(maps: CollisionMap[]): void {
++    // Player starts at (3230,3230); NPC at (3236,3236). Block the direct
++    // diagonal corridor with a short wall so a genuine detour is required.
++    for (const local of [
++        { x: 3233 - 3200, y: 3233 - 3200 },
++        { x: 3233 - 3200, y: 3234 - 3200 },
++        { x: 3234 - 3200, y: 3233 - 3200 },
++    ]) {
++        maps[0].setFlag(local.x, local.y, CollisionFlag.OBJECT);
++    }
++}
++simulateApproach("pillar-obstacle", { x: 3236, y: 3236 }, 1, "npc-first", withPillarBetween);
++simulateApproach("pillar-obstacle", { x: 3236, y: 3236 }, 1, "player-first", withPillarBetween);
++simulateApproach("pillar-obstacle-3x3", { x: 3236, y: 3236 }, 3, "npc-first", withPillarBetween);
++simulateApproach("pillar-obstacle-3x3", { x: 3236, y: 3236 }, 3, "player-first", withPillarBetween);
++
++console.log("reciprocal melee approach (real pathfinding) tests passed");
+diff --git a/server/tests/combat-scythe-of-vitur.test.ts b/server/tests/combat-scythe-of-vitur.test.ts
+new file mode 100644
+index 00000000..689213ac
+--- /dev/null
++++ b/server/tests/combat-scythe-of-vitur.test.ts
+@@ -0,0 +1,159 @@
++import assert from "node:assert/strict";
++
++import { AttackType } from "../src/game/combat/AttackType";
++import { registerSkillConfiguration } from "../src/game/combat/SkillConfigurationProvider";
++import { CombatHitProcessor } from "../src/game/combat/engine/CombatHitProcessor";
++import {
++    CombatAttackStyle,
++    type CombatAttack,
++} from "../src/game/combat/model/CombatAttack";
++import {
++    npcCombatEntityRef,
++    playerCombatEntityRef,
++} from "../src/game/combat/model/CombatEntityRef";
++import { CombatPluginRegistry } from "../src/game/combat/plugins/CombatPluginRegistry";
++import type { ServerServices } from "../src/game/ServerServices";
++import type { GamemodeDefinition } from "../src/game/gamemodes/GamemodeDefinition";
++import { NpcState } from "../src/game/npc";
++import { PlayerState } from "../src/game/player";
++
++const TEST_GAMEMODE = {
++    id: "combat-scythe-of-vitur-test",
++    name: "Combat scythe of vitur test",
++    initializePlayer: () => undefined,
++    canInteract: () => true,
++} as GamemodeDefinition;
++
++registerSkillConfiguration({
++    computeCombatLevel: () => 3,
++    skillRestoreIntervalTicks: 100,
++    skillBoostDecayIntervalTicks: 100,
++    hitpointRegenIntervalTicks: 100,
++    hitpointOverhealDecayIntervalTicks: 100,
++    preserveDecayMultiplier: 1.5,
++});
++
++// Regular (charged) scythe of vitur.
++const SCYTHE_OF_VITUR_ITEM_ID = 22325;
++
++function createPlayer(id: number, x: number, y: number): PlayerState {
++    const player = new PlayerState(id, x, y, 0, TEST_GAMEMODE);
++    player.combat.weaponItemId = SCYTHE_OF_VITUR_ITEM_ID;
++    player.combat.weaponCategory = 14;
++    return player;
++}
++
++function createNpc(id: number, x: number, y: number, size = 1): NpcState {
++    return new NpcState(id, 1, size, -1, -1, 32, { x, y, level: 0 }, {
++        maxHitpoints: 5000,
++        combatLevel: 32,
++    });
++}
++
++// Normal (non-special) melee swing — this is the mechanic that was missing.
++function createAttack(player: PlayerState, target: NpcState): CombatAttack {
++    return Object.freeze({
++        attacker: playerCombatEntityRef(player.id),
++        target: npcCombatEntityRef(target.id),
++        attackClock: 50,
++        traits: Object.freeze({
++            type: AttackType.Melee,
++            style: CombatAttackStyle.Aggressive,
++            rangeTiles: 1,
++            speedTicks: 5,
++            weaponId: SCYTHE_OF_VITUR_ITEM_ID,
++            specialAttack: false,
++        }),
++    });
++}
++
++function processSwing(player: PlayerState, npcs: readonly NpcState[]) {
++    const processor = new CombatHitProcessor({
++        players: {
++            getById: (id: number) => (id === player.id ? player : undefined),
++            getAllPlayersForSync: () => [player],
++        },
++        npcManager: {
++            getById: (id: number) => npcs.find((npc) => npc.id === id),
++            forEach: (callback: (npc: NpcState) => void) => npcs.forEach(callback),
++            hasNpcOption: () => true,
++        },
++        equipmentService: {
++            computeEquipmentStatBonuses: () => new Array<number>(14).fill(0),
++        },
++        messagingService: { queueChatMessage: () => undefined },
++        variableService: { queueVarp: () => undefined },
++        queueCombatState: () => undefined,
++        broadcastService: {
++            enqueueSpotAnimation: () => undefined,
++            queueBroadcastSound: () => undefined,
++        },
++    } as unknown as ServerServices);
++    const result = processor.processPreparedAttacks([createAttack(player, npcs[0])], 50);
++    return { processor, result };
++}
++
++// The category-14 profile resolves for every scythe variant via weapon category,
++// not just the hardcoded item id.
++const profile = CombatPluginRegistry.shared.resolve({
++    weaponId: SCYTHE_OF_VITUR_ITEM_ID,
++    categoryId: 14,
++});
++assert.equal(profile.id, "core:scythe_of_vitur");
++const normalAttackPlan = profile.handleNormalAttack?.(
++    undefined as never,
++    undefined as never,
++    undefined as never,
++);
++assert.ok(normalAttackPlan, "scythe must define a normal-attack plan");
++assert.equal(normalAttackPlan?.targeting?.width, 3);
++assert.equal(normalAttackPlan?.targeting?.requiresMultiCombat, false);
++assert.equal(normalAttackPlan?.targeting?.largeTargetExtraHits?.[0]?.damageMultiplier, 0.5);
++assert.equal(normalAttackPlan?.targeting?.largeTargetExtraHits?.[1]?.damageMultiplier, 0.25);
++
++// Facing north: a 1x1 target only takes the single primary hit, no chaining.
++const soloPlayer = createPlayer(1, 3200, 5700);
++const soloTarget = createNpc(2, 3200, 5702);
++const solo = processSwing(soloPlayer, [soloTarget]);
++assert.equal(solo.result.queuedHits, 1, "a 1x1 target should receive exactly one hit");
++
++// A 2x2 target (e.g. Vardorvis) takes the primary hit plus one 50% second hit.
++const twoByTwoPlayer = createPlayer(10, 3210, 5700);
++const twoByTwoTarget = createNpc(20, 3210, 5702, 2);
++const twoByTwo = processSwing(twoByTwoPlayer, [twoByTwoTarget]);
++assert.equal(
++    twoByTwo.result.queuedHits,
++    2,
++    "a 2x2 target should receive the primary hit plus one extra hit",
++);
++
++// A 3x3+ target (e.g. a dragon) takes the primary hit plus both extra hits.
++const threeByThreePlayer = createPlayer(30, 3220, 5700);
++const threeByThreeTarget = createNpc(40, 3220, 5702, 3);
++const threeByThree = processSwing(threeByThreePlayer, [threeByThreeTarget]);
++assert.equal(
++    threeByThree.result.queuedHits,
++    3,
++    "a 3x3+ target should receive the primary hit plus both extra hits",
++);
++
++// In front of ordinary 1x1s (not one large target), the arc can strike up to
++// two additional separate targets, same as the dragon halberd sweep pattern.
++const arcPlayer = createPlayer(50, 3230, 5700);
++const arcPrimary = createNpc(60, 3230, 5702);
++const arcLeft = createNpc(61, 3229, 5702);
++const arcRight = createNpc(62, 3231, 5702);
++const arc = processSwing(arcPlayer, [arcPrimary, arcLeft, arcRight]);
++assert.equal(
++    arc.result.queuedHits,
++    3,
++    "the 1x3 arc should be able to hit three separate 1x1 targets in front of the player",
++);
++
++// A non-scythe melee weapon (e.g. a plain dagger, category 17) must be
++// completely unaffected by this profile.
++const daggerProfile = CombatPluginRegistry.shared.resolve({ weaponId: 1205, categoryId: 17 });
++assert.notEqual(daggerProfile.id, "core:scythe_of_vitur");
++assert.equal(daggerProfile.handleNormalAttack, undefined);
++
++console.log("scythe of vitur regression tests passed");
+diff --git a/server/tests/halberd-melee-reach.test.ts b/server/tests/halberd-melee-reach.test.ts
+new file mode 100644
+index 00000000..5d164da6
+--- /dev/null
++++ b/server/tests/halberd-melee-reach.test.ts
+@@ -0,0 +1,48 @@
++import assert from "node:assert/strict";
++
++import {
++    DEFAULT_HALBERD_MELEE_RANGE,
++    HALBERD_WEAPON_CATEGORY,
++    resolvePlayerAttackReach,
++} from "../src/game/combat/CombatRules";
++
++// Bug #4: halberds fell back to melee range 1 whenever the equipped item's
++// cache definition had no explicit param 13 weapon range set, making them
++// behave identically to a dagger instead of reaching 2 tiles like OSRS.
++
++// No cache param 13 present at all (the real-world failure case).
++assert.equal(
++    resolvePlayerAttackReach({ weaponCategory: HALBERD_WEAPON_CATEGORY, styleSlot: 0 }),
++    DEFAULT_HALBERD_MELEE_RANGE,
++    "halberd should reach 2 tiles even with no cache-supplied weapon range",
++);
++
++// Explicit baseRange of 0 (falsy / unset) should still fall back to 2, not 1.
++assert.equal(
++    resolvePlayerAttackReach(
++        { weaponCategory: HALBERD_WEAPON_CATEGORY, styleSlot: 0 },
++        { baseRange: 0 },
++    ),
++    DEFAULT_HALBERD_MELEE_RANGE,
++    "a zero/unset baseRange should not collapse halberd reach to 1",
++);
++
++// If the cache (or a future data fix) does supply an explicit range greater
++// than 2, that value should win rather than being clamped down.
++assert.equal(
++    resolvePlayerAttackReach(
++        { weaponCategory: HALBERD_WEAPON_CATEGORY, styleSlot: 0 },
++        { baseRange: 3 },
++    ),
++    3,
++    "an explicit cache range greater than the halberd default should be respected",
++);
++
++// Non-halberd melee weapons must be unaffected by this change.
++assert.equal(
++    resolvePlayerAttackReach({ weaponCategory: 17, styleSlot: 0 }), // stab sword category
++    1,
++    "non-halberd melee weapons should remain range 1 by default",
++);
++
++console.log("halberd-melee-reach.test.ts: all assertions passed");
+diff --git a/server/tests/viewport-enum-boss-hud.test.ts b/server/tests/viewport-enum-boss-hud.test.ts
+new file mode 100644
+index 00000000..168d4592
+--- /dev/null
++++ b/server/tests/viewport-enum-boss-hud.test.ts
+@@ -0,0 +1,49 @@
++import assert from "node:assert/strict";
++
++import { DisplayMode } from "../src/widgets/viewport";
++import { ViewportEnumService, ViewportEnumIds, BaseComponentUids } from "../src/widgets/viewport/ViewportEnumService";
++
++// A fake EnumTypeLoader that only defines a mapping for the RESIZABLE enum,
++// mirroring a cache where the boss-hud slot is only wired up for that one
++// display mode - the exact scenario that made the bar "work sometimes".
++function makeEnumLoader(mappedEnumIds: Set<number>) {
++    return {
++        load: (enumId: number) => {
++            if (!mappedEnumIds.has(enumId)) return undefined;
++            return {
++                outputCount: 1,
++                keys: [BaseComponentUids.HPBAR_HUD],
++                intValues: [(161 << 16) | 44],
++            };
++        },
++    } as never;
++}
++
++// Only the RESIZABLE enum has a boss-hud entry.
++const service = new ViewportEnumService(makeEnumLoader(new Set([ViewportEnumIds.RESIZABLE])));
++
++// Issue #3: resizable mode has a real mapping.
++assert.equal(service.hasComponent(BaseComponentUids.HPBAR_HUD, DisplayMode.RESIZABLE_NORMAL), true);
++
++// Every other display mode's enum has no boss-hud entry in this fixture -
++// hasComponent must report that honestly rather than letting getComponent's
++// silent baseUid fallback hide it.
++assert.equal(service.hasComponent(BaseComponentUids.HPBAR_HUD, DisplayMode.FIXED), false);
++assert.equal(service.hasComponent(BaseComponentUids.HPBAR_HUD, DisplayMode.MOBILE), false);
++assert.equal(service.hasComponent(BaseComponentUids.HPBAR_HUD, DisplayMode.RESIZABLE_LIST), false);
++assert.equal(service.hasComponent(BaseComponentUids.HPBAR_HUD, DisplayMode.FULLSCREEN), false);
++
++// getComponent's existing fallback behavior is unchanged (still returns
++// baseUid when unmapped) - hasComponent is purely an additive diagnostic,
++// not a behavior change, so nothing that already relies on the fallback
++// silently breaks.
++assert.equal(
++    service.getComponent(BaseComponentUids.HPBAR_HUD, DisplayMode.FIXED),
++    BaseComponentUids.HPBAR_HUD,
++);
++assert.equal(
++    service.getComponent(BaseComponentUids.HPBAR_HUD, DisplayMode.RESIZABLE_NORMAL),
++    (161 << 16) | 44,
++);
++
++console.log("viewport-enum-boss-hud (issue #3) tests passed");
