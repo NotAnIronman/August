@@ -10,7 +10,7 @@ import { register } from "@server/content/modules/zamorak-instance";
 assert.deepEqual(resolveLocActions(26505, ["Open"]), [
     "Open", "Peek", "Enter Solo", "Enter Party", "Join Party",
 ]);
-assert.equal(getLocInteractionRangeOverride(26518), 2);
+assert.equal(getLocInteractionRangeOverride(26518), 3);
 
 const handlers = new Map<string, LocInteractionHandler>();
 const registry = {
