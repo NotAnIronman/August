@@ -22,6 +22,8 @@ export type SpecialAttackMultiplierRounding =
 
 export const WeaponSpecialAttackTargetPattern = Object.freeze({
     ForwardLine: "forward_line",
+    TargetSquare: "target_square",
+    AttackerSquare: "attacker_square",
 } as const);
 
 export type WeaponSpecialAttackTargetPattern =
@@ -29,11 +31,13 @@ export type WeaponSpecialAttackTargetPattern =
 
 export interface WeaponSpecialAttackTargeting {
     readonly pattern: WeaponSpecialAttackTargetPattern;
-    /** Odd number of tiles across the line, centred on the primary target. */
+    /** Odd number of tiles across the selected pattern. */
     readonly width: number;
     /** Total target cap, including the primary target. */
     readonly maxTargets: number;
     readonly requiresMultiCombat?: boolean;
+    /** Damage multiplier applied to secondary targets. */
+    readonly secondaryDamageMultiplier?: number;
     /** Replaces area targeting when the primary NPC meets the footprint size. */
     readonly largeTargetExtraHit?: {
         readonly minimumSize: number;

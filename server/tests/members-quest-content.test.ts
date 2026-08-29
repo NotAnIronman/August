@@ -7,7 +7,13 @@ import {
     getMembersQuestContent,
 } from "../gamemodes/vanilla/quests/content/members";
 import { FREE_TO_PLAY_QUEST_CONTENT } from "../gamemodes/vanilla/quests/content/freeToPlay";
-import { VANILLA_QUEST_CATALOG } from "../gamemodes/vanilla/questCatalog";
+import {
+    MINIQUEST_CONTENT,
+    buildMiniquestJournal,
+    buildMiniquestOverview,
+    getMiniquestContent,
+} from "../gamemodes/vanilla/quests/content/miniquests";
+import { VANILLA_MINIQUEST_CATALOG, VANILLA_QUEST_CATALOG } from "../gamemodes/vanilla/questCatalog";
 
 const porcine = getMembersQuestContent("A Porcine of Interest");
 assert.ok(porcine);
@@ -66,4 +72,23 @@ for (const content of MEMBERS_QUEST_CONTENT) {
     assert.ok(buildMembersQuestOverview(content).length > 4, `${content.displayName} overview must render`);
 }
 
-console.log("members quest content tests passed");
+assert.equal(MINIQUEST_CONTENT.length, VANILLA_MINIQUEST_CATALOG.length, "expected complete miniquest coverage");
+const miniquestNames = new Set(MINIQUEST_CONTENT.map((content) => content.displayName));
+assert.equal(miniquestNames.size, MINIQUEST_CONTENT.length, "miniquest content names must be unique");
+assert.equal(new Set(MINIQUEST_CONTENT.map((content) => content.key)).size, MINIQUEST_CONTENT.length, "miniquest content keys must be unique");
+
+for (const miniquest of VANILLA_MINIQUEST_CATALOG) {
+    assert.ok(miniquestNames.has(miniquest.displayName), `${miniquest.displayName} must have miniquest journal content`);
+}
+for (const content of MINIQUEST_CONTENT) {
+    assert.equal(getMiniquestContent(content.key), content, `${content.displayName} must resolve by key`);
+    assert.equal(getMiniquestContent(content.displayName), content, `${content.displayName} must resolve by display name`);
+    assert.ok(content.description.trim(), `${content.displayName} must have a description`);
+    assert.ok(content.overviewStartText.trim(), `${content.displayName} must have start text`);
+    assert.ok(content.rewards.length > 0, `${content.displayName} must have rewards`);
+    assert.ok(content.outline.length > 0, `${content.displayName} must have an outline`);
+    assert.ok(buildMiniquestJournal(content).length > 4, `${content.displayName} journal must render`);
+    assert.ok(buildMiniquestOverview(content).length > 4, `${content.displayName} overview must render`);
+}
+
+console.log("quest and miniquest content tests passed");

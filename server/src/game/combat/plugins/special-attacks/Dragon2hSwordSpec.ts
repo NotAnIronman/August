@@ -1,11 +1,13 @@
 import type { CombatAttack } from "../../model/CombatAttack";
 import {
+    WeaponSpecialAttackTargetPattern,
     type WeaponSpecialAttackScript,
     setWeaponSpecialAttackTraitOverrides,
 } from "../WeaponSpecialAttackScript";
 
 const DRAGON_2H_SWORD_ITEM_ID = 7158;
 const POWERSTAB_ENERGY_COST = 60;
+const POWERSTAB_TARGETING = Object.freeze({ pattern: WeaponSpecialAttackTargetPattern.AttackerSquare, width: 3, maxTargets: 15, requiresMultiCombat: true });
 
 /**
  * Powerstab has no primary-target accuracy or damage modifier. Its OSRS effect
@@ -18,7 +20,7 @@ export class Dragon2hSwordSpec implements WeaponSpecialAttackScript {
     readonly energyCost = POWERSTAB_ENERGY_COST;
 
     modifyAttackTraits(attack: CombatAttack): void {
-        setWeaponSpecialAttackTraitOverrides(attack, { hitCount: 1 });
+        setWeaponSpecialAttackTraitOverrides(attack, { hitCount: 1, targeting: POWERSTAB_TARGETING });
     }
 
     onHitApplied(

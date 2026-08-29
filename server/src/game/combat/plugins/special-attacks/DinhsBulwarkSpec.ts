@@ -4,6 +4,7 @@ import { PlayerState } from "../../../player";
 import { CombatAttackStyle, type CombatAttack } from "../../model/CombatAttack";
 import { CombatEntityType } from "../../model/CombatEntityRef";
 import {
+    WeaponSpecialAttackTargetPattern,
     type WeaponSpecialAttackScript,
     setWeaponSpecialAttackTraitOverrides,
 } from "../WeaponSpecialAttackScript";
@@ -13,6 +14,7 @@ const SHIELD_BASH_ENERGY_COST = 50;
 const SHIELD_BASH_ACCURACY_MULTIPLIER = 1.2;
 const SHIELD_BASH_DEFENSIVE_NPC_ACCURACY_MULTIPLIER = 0.8;
 const SHIELD_BASH_OFFENSIVE_STAT_DRAIN_FRACTION = 0.05;
+const SHIELD_BASH_TARGETING = Object.freeze({ pattern: WeaponSpecialAttackTargetPattern.AttackerSquare, width: 11, maxTargets: 10, requiresMultiCombat: true });
 
 /**
  * Shield Bash uses a 20% accuracy bonus and hits non-player primary targets
@@ -33,6 +35,7 @@ export class DinhsBulwarkSpec implements WeaponSpecialAttackScript {
             accuracyMultiplier: isDefensiveNpcAttack
                 ? SHIELD_BASH_DEFENSIVE_NPC_ACCURACY_MULTIPLIER
                 : SHIELD_BASH_ACCURACY_MULTIPLIER,
+            targeting: SHIELD_BASH_TARGETING,
         });
     }
 

@@ -24,6 +24,8 @@ import {
     getEnchantedBoltEffect,
 } from "../AmmoSystem";
 import { AttackType } from "../AttackType";
+import { combatEffectApplicator } from "../CombatEffectApplicator";
+import { getSpecialAttack, type SpecialAttackDef } from "../SpecialAttackProvider";
 import { DamageType, damageTracker } from "../DamageTracker";
 import {
     STANDARD_DRAGONFIRE_ATTACK,
@@ -148,6 +150,8 @@ export interface CombatHitProcessingResult {
 export class CombatHitProcessor {
     private readonly evaluator: CombatHitEvaluator;
     private readonly deferredHits: DeferredHitQueue;
+    /** Legacy definitions are retained per swing so their hit effects resolve at impact time. */
+    private readonly legacySpecials = new WeakMap<CombatAttack, SpecialAttackDef>();
 
     constructor(
         private readonly services: ServerServices,
@@ -431,9 +435,7 @@ export class CombatHitProcessor {
         const targeting = specialAttack?.targeting;
         if (
             !targeting ||
-            targeting.pattern !== WeaponSpecialAttackTargetPattern.ForwardLine ||
-            !(attacker instanceof PlayerState) ||
-            !(primaryTarget instanceof NpcState)
+            !(attacker instanceof PlayerState)
         ) {
             return 0;
         }
@@ -455,6 +457,7 @@ export class CombatHitProcessor {
                 profile,
                 specialAttack,
                 accuracyMultiplier,
+                1,
                 currentMapClock,
                 travelDelayTicks,
             );
@@ -472,14 +475,18 @@ export class CombatHitProcessor {
             return 0;
         }
 
-        const sweepTiles = this.forwardLineTiles(
-            attacker,
-            primaryTarget,
-            Math.max(1, Math.trunc(targeting.width)),
-        );
+        const width = Math.max(1, Math.trunc(targeting.width));
+        const sweepTiles = targeting.pattern === WeaponSpecialAttackTargetPattern.ForwardLine
+            ? this.forwardLineTiles(attacker, primaryTarget, width)
+            : this.squareTiles(
+                targeting.pattern === WeaponSpecialAttackTargetPattern.AttackerSquare
+                    ? attacker
+                    : primaryTarget,
+                width,
+            );
         const limit = Math.max(0, Math.trunc(targeting.maxTargets) - 1);
         let queuedHits = 0;
-        for (const target of this.findNpcTargetsIntersectingTiles(
+        for (const target of this.findAreaTargetsIntersectingTiles(
             attacker,
             primaryTarget,
             sweepTiles,
@@ -494,6 +501,7 @@ export class CombatHitProcessor {
                 profile,
                 specialAttack,
                 Math.max(0, specialAttack.accuracyMultiplier),
+                Math.max(0, targeting.secondaryDamageMultiplier ?? 1),
                 currentMapClock,
                 travelDelayTicks,
             );
@@ -509,6 +517,7 @@ export class CombatHitProcessor {
         profile: WeaponCombatProfile,
         specialAttack: WeaponSpecialAttack,
         accuracyMultiplier: number,
+        damageMultiplier: number,
         currentMapClock: number,
         travelDelayTicks: number,
     ): number {
@@ -535,6 +544,7 @@ export class CombatHitProcessor {
                 ...specialAttack,
                 hitCount: 1,
                 accuracyMultiplier,
+                damageMultiplier: Math.max(0, specialAttack.damageMultiplier * damageMultiplier),
                 targeting: undefined,
             }),
         );
@@ -590,27 +600,46 @@ export class CombatHitProcessor {
         );
     }
 
-    private findNpcTargetsIntersectingTiles(
+    private squareTiles(
+        centre: CombatEntity,
+        width: number,
+    ): readonly { readonly x: number; readonly y: number }[] {
+        const radius = Math.floor(Math.max(1, width) / 2);
+        const tiles: Array<{ readonly x: number; readonly y: number }> = [];
+        for (let x = centre.tileX - radius; x <= centre.tileX + radius; x++) {
+            for (let y = centre.tileY - radius; y <= centre.tileY + radius; y++) {
+                tiles.push(Object.freeze({ x, y }));
+            }
+        }
+        return Object.freeze(tiles);
+    }
+
+    private findAreaTargetsIntersectingTiles(
         attacker: CombatEntity,
         primaryTarget: CombatEntity,
         tiles: readonly { readonly x: number; readonly y: number }[],
         currentMapClock: number,
         limit: number,
-    ): NpcState[] {
-        const candidates: NpcState[] = [];
-        this.services.npcManager?.forEach((npc) => {
+    ): CombatEntity[] {
+        const candidates: CombatEntity[] = [];
+        const visit = (candidate: CombatEntity): void => {
             if (
                 this.isValidSecondaryAreaTarget(
                     attacker,
                     primaryTarget,
-                    npc,
+                    candidate,
                     currentMapClock,
                 ) &&
-                this.footprintIntersectsTiles(npc, tiles)
+                this.footprintIntersectsTiles(candidate, tiles)
             ) {
-                candidates.push(npc);
+                candidates.push(candidate);
             }
-        });
+        };
+        if (primaryTarget instanceof PlayerState) {
+            for (const player of this.services.players?.getAllPlayersForSync() ?? []) visit(player);
+        } else {
+            this.services.npcManager?.forEach((npc) => visit(npc));
+        }
         return candidates.sort((first, second) => first.id - second.id).slice(0, limit);
     }
 
@@ -833,7 +862,9 @@ export class CombatHitProcessor {
             }
         }
 
-        if (!script && !profileSpecial) {
+        const legacySpecial =
+            !script && !profileSpecial && weaponId !== undefined ? getSpecialAttack(weaponId) : undefined;
+        if (!script && !profileSpecial && !legacySpecial) {
             player.specEnergy.setActivated(false);
             this.syncSpecialAttackUi(player);
             return undefined;
@@ -852,7 +883,8 @@ export class CombatHitProcessor {
         }
 
         const overrides = getWeaponSpecialAttackTraitOverrides(context.attack);
-        let requestedEnergyCost = script?.energyCost ?? profileSpecial?.energyCostPercent ?? 0;
+        let requestedEnergyCost =
+            script?.energyCost ?? profileSpecial?.energyCostPercent ?? legacySpecial?.energyCost ?? 0;
         if (script?.resolveEnergyCost) {
             try {
                 requestedEnergyCost = script.resolveEnergyCost(
@@ -925,17 +957,18 @@ export class CombatHitProcessor {
         }
 
         if (script) markWeaponSpecialAttackExecuted(context.attack);
+        if (legacySpecial) this.legacySpecials.set(context.attack, legacySpecial);
         this.syncSpecialAttackUi(player);
         const resolvedSpecial = Object.freeze({
             ...profileSpecial,
             energyCostPercent: energyCost,
-            hitCount: overrides?.hitCount ?? profileSpecial?.hitCount ?? 1,
+            hitCount: overrides?.hitCount ?? profileSpecial?.hitCount ?? legacySpecial?.hitCount ?? 1,
             accuracyMultiplier:
-                overrides?.accuracyMultiplier ?? profileSpecial?.accuracyMultiplier ?? 1,
+                overrides?.accuracyMultiplier ?? profileSpecial?.accuracyMultiplier ?? legacySpecial?.accuracyMultiplier ?? 1,
             accuracyModel: overrides?.accuracyModel ?? profileSpecial?.accuracyModel,
             accuracyMultiplierStages:
                 overrides?.accuracyMultiplierStages ?? profileSpecial?.accuracyMultiplierStages,
-            damageMultiplier: overrides?.damageMultiplier ?? profileSpecial?.damageMultiplier ?? 1,
+            damageMultiplier: overrides?.damageMultiplier ?? profileSpecial?.damageMultiplier ?? legacySpecial?.damageMultiplier ?? 1,
             attackLevelMultiplier:
                 overrides?.attackLevelMultiplier ?? profileSpecial?.attackLevelMultiplier,
             strengthLevelMultiplier:
@@ -953,7 +986,9 @@ export class CombatHitProcessor {
                 overrides?.defenceRollMultiplier ?? profileSpecial?.defenceRollMultiplier,
             damageType: overrides?.damageType ?? profileSpecial?.damageType,
             ignoreProtectionPrayer:
-                overrides?.ignoreProtectionPrayer ?? profileSpecial?.ignoreProtectionPrayer,
+                overrides?.ignoreProtectionPrayer ??
+                profileSpecial?.ignoreProtectionPrayer ??
+                legacySpecial?.effects?.ignoreProtectionPrayer,
             meleeAttackBonusIndex:
                 overrides?.meleeAttackBonusIndex ?? profileSpecial?.meleeAttackBonusIndex,
             meleeDefenceBonusIndex:
@@ -979,7 +1014,8 @@ export class CombatHitProcessor {
                 profileSpecial?.sharedAccuracyRollAcrossHits,
             guaranteedFirstAccuracyRoll:
                 overrides?.guaranteedFirstAccuracyRoll ??
-                profileSpecial?.guaranteedFirstAccuracyRoll,
+                profileSpecial?.guaranteedFirstAccuracyRoll ??
+                legacySpecial?.effects?.guaranteedFirstHit,
             fixedAccuracyRollMultiplierWhenTargetAtOrBelowMaximumDamage:
                 overrides?.fixedAccuracyRollMultiplierWhenTargetAtOrBelowMaximumDamage ??
                 profileSpecial?.fixedAccuracyRollMultiplierWhenTargetAtOrBelowMaximumDamage,
@@ -995,8 +1031,13 @@ export class CombatHitProcessor {
             guaranteedEnchantedBoltEffect:
                 overrides?.guaranteedEnchantedBoltEffect ??
                 profileSpecial?.guaranteedEnchantedBoltEffect,
-            skipAttack: overrides?.skipAttack ?? profileSpecial?.skipAttack,
+            skipAttack: overrides?.skipAttack ?? profileSpecial?.skipAttack ?? legacySpecial?.hitCount === 0,
             targeting: overrides?.targeting ?? profileSpecial?.targeting,
+            attackAnimation: profileSpecial?.attackAnimation ?? legacySpecial?.animationId,
+            castGraphic: profileSpecial?.castGraphic ?? (legacySpecial?.graphicId ? { id: legacySpecial.graphicId } : undefined),
+            targetGraphic: profileSpecial?.targetGraphic ?? (legacySpecial?.targetGraphicId ? { id: legacySpecial.targetGraphicId } : undefined),
+            attackSoundId: profileSpecial?.attackSoundId ?? legacySpecial?.soundId,
+            impactSoundIds: profileSpecial?.impactSoundIds ?? legacySpecial?.hitSounds,
         });
         this.applySpecialAttackSpeed(player, context.attack, resolvedSpecial);
         return resolvedSpecial;
@@ -1566,6 +1607,37 @@ export class CombatHitProcessor {
 
     private applyWeaponSpecialAttackScript(hit: AppliedCombatHit): void {
         if (!hit.source) return;
+        const legacySpecial = this.legacySpecials.get(hit.pending.attack);
+        if (legacySpecial && hit.source instanceof PlayerState && hit.target instanceof NpcState) {
+            combatEffectApplicator.applySpecialEffects(
+                hit.source,
+                hit.target,
+                hit.pending.damage,
+                legacySpecial.effects,
+                hit.appliedClock,
+            );
+        }
+        if (legacySpecial && hit.source instanceof PlayerState && hit.target instanceof PlayerState) {
+            const effects = legacySpecial.effects;
+            if (effects?.freezeTicks && effects.freezeTicks > 0) {
+                hit.target.applyFreeze(effects.freezeTicks, hit.appliedClock);
+            }
+            if (hit.pending.damage > 0 && effects?.drainRunEnergy) {
+                hit.target.energy.adjustRunEnergyPercent(-effects.drainRunEnergy);
+            }
+            if (hit.pending.damage > 0 && effects?.drainPrayerByDamage) {
+                const prayer = hit.target.skillSystem.getSkill(SkillId.Prayer);
+                hit.target.skillSystem.setSkillBoost(
+                    SkillId.Prayer,
+                    Math.max(0, prayer.baseLevel + prayer.boost - hit.pending.damage),
+                );
+            }
+            if (hit.pending.damage > 0 && effects?.healFraction) {
+                hit.source.skillSystem.applyHitpointsHeal(
+                    Math.floor(hit.pending.damage * effects.healFraction),
+                );
+            }
+        }
         if (!wasWeaponSpecialAttackExecuted(hit.pending.attack)) return;
 
         const weaponId = hit.pending.attack.traits.weaponId;
