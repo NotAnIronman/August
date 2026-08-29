@@ -75,6 +75,7 @@ const doorPlayer = {
     tileY: 5333,
     level: 2,
     faceTile: () => undefined,
+    skillSystem: { getSkill: () => ({ baseLevel: 70, boost: 0 }) },
 };
 const doorItems: Array<{ itemId: number }> = [];
 const doorServices = {

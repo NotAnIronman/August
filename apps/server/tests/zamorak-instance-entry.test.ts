@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 
 import { resolveLocActions } from "@august/game-model/world/LocActionOverrides";
+import { getLocInteractionRangeOverride } from "@august/game-model/world/LocRouteOverrides";
 import { AttackType } from "@server/game/combat/AttackType";
 import { EncounterRegistry } from "@server/game/encounters/EncounterRegistry";
 import type { IScriptRegistry, LocInteractionHandler } from "@server/game/scripts/types";
@@ -9,6 +10,7 @@ import { register } from "@server/content/modules/zamorak-instance";
 assert.deepEqual(resolveLocActions(26505, ["Open"]), [
     "Open", "Peek", "Enter Solo", "Enter Party", "Join Party",
 ]);
+assert.equal(getLocInteractionRangeOverride(26518), 2);
 
 const handlers = new Map<string, LocInteractionHandler>();
 const registry = {
@@ -84,5 +86,12 @@ handlers.get("26518:climb-off")?.({ player: bridgePlayer, services: bridgeServic
 assert.deepEqual(teleports.at(-1), { x: 2885, y: 5347, level: 2 });
 assert.equal(prayer, 0);
 assert.equal(bridgeMessages.at(-1), "Dripping, you climb out of the water.");
+
+bridgePlayer.tileY = 5347;
+bridgePlayer.tileX = 2885;
+prayer = 42;
+handlers.get("26518:climb-off")?.({ player: bridgePlayer, services: bridgeServices, tile: { x: 2885, y: 5347 }, tick: 2 } as never);
+assert.deepEqual(teleports.at(-1), { x: 2885, y: 5331, level: 2 });
+assert.equal(prayer, 42, "returning across the bridge must not drain Prayer");
 
 console.log("zamorak instance entry tests passed");

@@ -118,10 +118,12 @@ function peek({ player, services }: LocInteractionEvent): void {
     services.messaging.sendGameMessage(player, adventurers ? `You can see ${adventurers} adventurer${adventurers === 1 ? "" : "s"} in this room.` : "You cannot see anyone waiting in a joinable Zamorak room.");
 }
 
-function crossIceBridge({ player, services, tile, tick }: LocInteractionEvent): void {
+function crossIceBridge({ player, services, tick }: LocInteractionEvent): void {
     const hitpoints = player.skillSystem.getSkill(SkillId.Hitpoints);
-    if (player.tileY <= tile.y && hitpoints.baseLevel + hitpoints.boost < 70) { services.messaging.sendGameMessage(player, "You need a Hitpoints level of 70 to cross this bridge."); return; }
-    const forward = player.tileY <= tile.y;
+    // The identical bridge loc exists on both banks. Its clicked anchor tile
+    // is therefore not a reliable direction signal; the player's bank is.
+    const forward = player.tileY < 5340;
+    if (forward && hitpoints.baseLevel + hitpoints.boost < 70) { services.messaging.sendGameMessage(player, "You need a Hitpoints level of 70 to cross this bridge."); return; }
     const destination = forward ? BRIDGE_END : BRIDGE_START;
     const startTile = { x: player.tileX, y: player.tileY };
     services.movement.teleportPlayer(player, destination.x, destination.y, destination.level);
