@@ -6,6 +6,7 @@ import { EncounterRegistry, registerEncounter } from "@server/game/encounters/En
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
 import type { PlayerState } from "@server/game/player";
 import { NpcAttackDecision, type IScriptRegistry, type LocInteractionEvent, type NpcAttackEvent, type ScriptServices } from "@server/game/scripts/types";
+import { LockState } from "@server/game/model/LockState";
 
 const ARMADYL_PILLAR_LOC_ID = 26380;
 const ARMADYL_CRATE_LOC_ID = 26519;
@@ -71,6 +72,9 @@ function grapple({ player, services, tick }: LocInteractionEvent): void {
     if (!hasGrappleEquipment(player, services)) { services.messaging.sendGameMessage(player, "You need to wear a crossbow and mithril grapple to do that."); return; }
     const entering = player.tileY >= 5275;
     const destination = entering ? INSIDE_PILLAR : OUTSIDE_PILLAR;
+    const previousLock = player.lock;
+    player.lock = LockState.FULL;
+    services.scheduler.after(3, () => { if (player.lock === LockState.FULL) player.lock = previousLock; }, { kind: "player", id: player.id });
     const startTile = { x: player.tileX, y: player.tileY };
     services.movement.teleportPlayer(player, destination.x, destination.y, destination.level);
     services.movement.queueForcedMovement(player, { startTile, endTile: { x: destination.x, y: destination.y }, endTick: tick + 2, direction: entering ? 0 : 1024 });

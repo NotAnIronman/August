@@ -14,6 +14,7 @@ import {
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { PRAYER_RECHARGE_SOUND_ID } from "@august/osrs-engine/prayer/prayers";
+import { LockState } from "@server/game/model/LockState";
 
 const BANDOS_DOOR_LOC_ID = 26503;
 const BANDOS_STRONGHOLD_DOOR_LOC_ID = 26461;
@@ -73,6 +74,9 @@ function openBandosStrongholdDoor({ player, services }: LocInteractionEvent): vo
     }
 
     player.faceTile(BANDOS_STRONGHOLD_INSIDE.x, BANDOS_STRONGHOLD_INSIDE.y);
+    const previousLock = player.lock;
+    player.lock = LockState.FULL;
+    services.scheduler.after(3, () => { if (player.lock === LockState.FULL) player.lock = previousLock; }, { kind: "player", id: player.id });
     services.animation.playPlayerSeq(player, BANDOS_DOOR_HAMMERING_SEQ);
     services.scheduler.after(
         2,
