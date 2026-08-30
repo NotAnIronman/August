@@ -2922,12 +2922,21 @@
         "specials": [
           9178
         ],
-        "magic": 9189,
-        "attack": 9188,
+        "magic": [
+          9189,
+          9186,
+          9188
+        ],
+        "attack": 9180,
         "melee": 9180,
         "ranged": 9182,
         "block": 9185,
-        "death": 9184
+        "death": 9184,
+        "namedSpecials": {
+          "dash": 9178,
+          "siphon": 9179,
+          "shield": 9183
+        }
       }
     },
     "11911": {
