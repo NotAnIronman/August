@@ -1335,6 +1335,16 @@ export class NpcManager {
      * edge whenever a player is standing inside that footprint. The combat
      * target is preserved so ordinary pursuit and attacks resume immediately.
      */
+    /**
+     * Tracks consecutive ticks an NPC has spent overlapping the SAME player
+     * it's currently fighting. Keyed by npc.id (not the NpcState instance,
+     * since ids persist correctly across a single life — a fresh combat
+     * target or the overlap ending resets the entry regardless).
+     */
+    private readonly combatOverlapHoldTicks = new Map<number, { playerId: number; ticks: number }>();
+    /** After this many consecutive ticks stuck under the same attacker, the NPC gives up on that target and looks for someone else. */
+    private static readonly OVERLAP_RETARGET_AFTER_TICKS = 5;
+
     private queueOverlapEscape(
         npc: NpcState,
         getNearbyPlayers:
@@ -1371,7 +1381,51 @@ export class NpcManager {
                 player.y >= npc.tileY &&
                 player.y <= maxY,
         );
-        if (!overlappingPlayer) return false;
+        if (!overlappingPlayer) {
+            this.combatOverlapHoldTicks.delete(npc.id);
+            return false;
+        }
+
+        // Genuine mutual melee combat is CombatInteractionProcessor's job to
+        // untangle for exactly one tick (it holds this NPC in place and lets
+        // the player's own combat routing be the sole thing moving while
+        // they're overlapping — see the "large NPC overlap" branch in
+        // CombatInteractionProcessor.process()). That one-tick hold is what
+        // keeps the player's and this NPC's own approach-tile choices from
+        // ever landing on the same destination in the same tick.
+        //
+        // But holding indefinitely would let a player permanently stunlock
+        // the NPC by camping under it — a real problem in group content,
+        // since an ally could then fight it risk-free. So this only defers
+        // to that one-tick hold on the FIRST tick of an overlap. From the
+        // second tick onward, the NPC actively tries to path itself off the
+        // overlapped tile (falling through to the normal escape below) so it
+        // keeps working toward a real attack position instead of just
+        // sitting there. And if the SAME player has kept it stuck for more
+        // than OVERLAP_RETARGET_AFTER_TICKS ticks in a row, the NPC gives up
+        // on that target entirely and looks for someone else to fight —
+        // the boss "realizes" it's being played and moves on.
+        if (npc.getCombatTargetPlayerId() === overlappingPlayer.id) {
+            const tracked = this.combatOverlapHoldTicks.get(npc.id);
+            const consecutiveTicks =
+                tracked && tracked.playerId === overlappingPlayer.id ? tracked.ticks + 1 : 1;
+            this.combatOverlapHoldTicks.set(npc.id, {
+                playerId: overlappingPlayer.id,
+                ticks: consecutiveTicks,
+            });
+
+            if (consecutiveTicks > NpcManager.OVERLAP_RETARGET_AFTER_TICKS) {
+                npc.disengageCombat();
+                npc.scheduleNextAggressionCheck(this.currentTick);
+                this.combatOverlapHoldTicks.delete(npc.id);
+                // Fall through — now untargeted, so the escape below just
+                // moves it off the tile like any other unrelated overlap.
+            } else if (consecutiveTicks <= 1) {
+                return false;
+            }
+        } else {
+            this.combatOverlapHoldTicks.delete(npc.id);
+        }
 
         // Prefer the shortest route that moves the whole footprint off the
         // player's tile. Stable tie-breaking prevents visible jitter.
