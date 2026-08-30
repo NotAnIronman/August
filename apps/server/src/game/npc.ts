@@ -244,7 +244,7 @@ export class NpcState extends Actor {
     readonly isAggressive: boolean;
     /** Presentation-only NPCs (such as animation previews) cannot be targeted
      * by combat, but can still receive explicitly queued visual sequences. */
-    readonly isUnattackable: boolean;
+    isUnattackable: boolean;
     /**
      * Aggression radius in tiles. NPCs will target players within this range.
      * OSRS default is typically 3 tiles.
@@ -450,6 +450,12 @@ export class NpcState extends Actor {
     onHealthChange(listener: NpcHealthChangeListener): () => void {
         this.healthChangeListeners.add(listener);
         return () => this.healthChangeListeners.delete(listener);
+    }
+
+    /** Enable or disable combat targeting without changing the NPC's other behaviour. */
+    setUnattackable(value: boolean): void {
+        this.isUnattackable = value;
+        if (this.isUnattackable) this.disengageCombat();
     }
 
     /**

@@ -2,6 +2,9 @@ import type { PlayerState } from "@server/game/player";
 import type { IScriptRegistry, LocInteractionEvent, ScriptServices } from "@server/game/scripts/types";
 import { PRAYER_RECHARGE_SOUND_ID } from "@august/osrs-engine/prayer/prayers";
 import { SkillId } from "@august/osrs-engine/skill/skills";
+import { AttackType } from "@server/game/combat/AttackType";
+import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
+import type { NpcState } from "@server/game/npc";
 
 const KILLCOUNT_DOOR_ID = 42933;
 const BANK_DOOR_ID = 42934;
@@ -24,14 +27,66 @@ const BARRIER_INSIDE = Object.freeze({ x: 2910, y: 5203, level: 0 });
 const BANK_TILE = Object.freeze({ x: 2904, y: 5205, level: 0 });
 const INSTANCE_BASE = Object.freeze({ x: 2856, y: 5152 });
 const NEX_NPCS = Object.freeze([
-    Object.freeze({ id: 11278, offsetX: 2925 - INSTANCE_BASE.x, offsetY: 5203 - INSTANCE_BASE.y, level: 0, direction: 3 }),
-    Object.freeze({ id: 11283, offsetX: 2913 - INSTANCE_BASE.x, offsetY: 5215 - INSTANCE_BASE.y, level: 0 }),
-    Object.freeze({ id: 11284, offsetX: 2937 - INSTANCE_BASE.x, offsetY: 5215 - INSTANCE_BASE.y, level: 0 }),
-    Object.freeze({ id: 11285, offsetX: 2937 - INSTANCE_BASE.x, offsetY: 5191 - INSTANCE_BASE.y, level: 0 }),
-    Object.freeze({ id: 11286, offsetX: 2913 - INSTANCE_BASE.x, offsetY: 5191 - INSTANCE_BASE.y, level: 0 }),
+    Object.freeze({ id: 11278, offsetX: 2924 - INSTANCE_BASE.x, offsetY: 5202 - INSTANCE_BASE.y, level: 0, direction: 3, isAggressive: true, aggressionRadius: 15, attackSpeed: 4 }),
+    Object.freeze({ id: 11283, offsetX: 2913 - INSTANCE_BASE.x, offsetY: 5215 - INSTANCE_BASE.y, level: 0, wanderRadius: 0, isUnattackable: true, isAggressive: true, aggressionRadius: 10, attackSpeed: 5 }),
+    Object.freeze({ id: 11284, offsetX: 2937 - INSTANCE_BASE.x, offsetY: 5215 - INSTANCE_BASE.y, level: 0, wanderRadius: 0, isUnattackable: true, isAggressive: true, aggressionRadius: 10, attackSpeed: 5 }),
+    Object.freeze({ id: 11285, offsetX: 2937 - INSTANCE_BASE.x, offsetY: 5191 - INSTANCE_BASE.y, level: 0, wanderRadius: 0, isUnattackable: true, isAggressive: true, aggressionRadius: 10, attackSpeed: 5 }),
+    Object.freeze({ id: 11286, offsetX: 2913 - INSTANCE_BASE.x, offsetY: 5191 - INSTANCE_BASE.y, level: 0, wanderRadius: 0, isUnattackable: true, isAggressive: true, aggressionRadius: 10, attackSpeed: 5 }),
 ]);
 const altarUses = new WeakMap<PlayerState, number>();
 const ALTAR_COOLDOWN_TICKS = 500;
+
+const PHASE_GATES = Object.freeze([
+    Object.freeze({ hitpoints: 2720, mageId: 11283, name: "Fumus", transition: "Fumus, don't fail me!" }),
+    Object.freeze({ hitpoints: 2040, mageId: 11284, name: "Umbra", transition: "Umbra, don't fail me!" }),
+    Object.freeze({ hitpoints: 1360, mageId: 11285, name: "Cruor", transition: "Cruor, don't fail me!" }),
+    Object.freeze({ hitpoints: 680, mageId: 11286, name: "Glacies", transition: "Glacies, don't fail me!" }),
+]);
+
+interface NexPhaseController {
+    readonly nex: NpcState;
+    readonly mages: Map<number, NpcState>;
+    gateIndex: number;
+    waitingForMageId?: number;
+    readyToAdvance: boolean;
+}
+
+function registerNexEncounters(): void {
+    if (!EncounterRegistry.shared.get("nex")) {
+        registerEncounter({
+            id: "nex",
+            npcTypeIds: [11278],
+            maxHealth: 3400,
+            bossHealthBar: { name: "Nex", npcTypeId: 11278 },
+            movement: { wanderRadius: 10, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
+            immunities: { poison: true, venom: true },
+            // Phase-specific attack pools and specials are intentionally added
+            // after this lifecycle layer. Until then Nex has her authentic
+            // smoke-phase base styles rather than a misleading mixed pool.
+            attacks: [
+                { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 4, maxHit: 27, animation: "melee" },
+                { id: "smoke-magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 33, animation: "magic" },
+            ],
+        });
+    }
+
+    for (const mage of [
+        { id: "fumus", npcTypeId: 11283, maxHealth: 2720 },
+        { id: "umbra", npcTypeId: 11284, maxHealth: 2040 },
+        { id: "cruor", npcTypeId: 11285, maxHealth: 1360 },
+        { id: "glacies", npcTypeId: 11286, maxHealth: 680 },
+    ] as const) {
+        if (EncounterRegistry.shared.get(`nex-${mage.id}`)) continue;
+        registerEncounter({
+            id: `nex-${mage.id}`,
+            npcTypeIds: [mage.npcTypeId],
+            maxHealth: mage.maxHealth,
+            movement: { wanderRadius: 0, aggressionRadius: 10, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 0, retreatInteractionRange: 40 },
+            immunities: { poison: true, venom: true },
+            attacks: [{ id: "ancient-magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 10, speedTicks: 5, maxHit: 29, animation: "magic" }],
+        });
+    }
+}
 
 function crossDoor(
     event: LocInteractionEvent,
@@ -81,7 +136,52 @@ function createRoom(player: PlayerState, services: ScriptServices, access: "solo
         services.messaging.sendGameMessage(player, "The Ancient Prison is unavailable right now.");
         return;
     }
+    installPhaseController(player, services);
     services.instances.markStarted(room.id);
+}
+
+function installPhaseController(player: PlayerState, services: ScriptServices): void {
+    const nex = services.npc.findNearbyNpc(player, 11278, 50);
+    if (!nex) return;
+    const mages = new Map<number, NpcState>();
+    for (const gate of PHASE_GATES) {
+        const mage = services.npc.findNearbyNpc(player, gate.mageId, 50);
+        if (mage) mages.set(gate.mageId, mage);
+    }
+    const controller: NexPhaseController = { nex, mages, gateIndex: 0, readyToAdvance: false };
+
+    nex.onHealthChange((change) => {
+        // Killing a mage only makes the transition available. The next
+        // successful hit on Nex starts the following Ancient Magicks phase.
+        if (controller.readyToAdvance) {
+            controller.readyToAdvance = false;
+            controller.gateIndex++;
+            if (controller.gateIndex === PHASE_GATES.length) {
+                services.npc.queueNpcForcedChat(nex, "NOW, THE POWER OF ZAROS!");
+            }
+        }
+
+        const gate = PHASE_GATES[controller.gateIndex];
+        if (!gate || change.current > gate.hitpoints) return;
+
+        // The clamp is applied during the committed HP event, before death can
+        // be queued. This also catches development commands that would
+        // otherwise skip the entire fight in a single hit.
+        nex.heal(gate.hitpoints - change.current);
+        if (controller.waitingForMageId === gate.mageId) return;
+        controller.waitingForMageId = gate.mageId;
+        const mage = controller.mages.get(gate.mageId);
+        mage?.setUnattackable(false);
+        services.npc.queueNpcForcedChat(nex, gate.transition);
+    });
+
+    for (const [mageId, mage] of mages) {
+        mage.onHealthChange((change) => {
+            if (change.current > 0 || controller.waitingForMageId !== mageId) return;
+            controller.waitingForMageId = undefined;
+            controller.readyToAdvance = true;
+        });
+    }
 }
 
 function showJoinOptions(player: PlayerState, services: ScriptServices): void {
@@ -181,6 +281,7 @@ function prayAtNexAltar({ player, services, tick }: LocInteractionEvent): void {
 }
 
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
+    registerNexEncounters();
     installNexBank(services);
     registry.registerLocInteraction(NEX_ALTAR_ID, prayAtNexAltar, "pray");
     registry.registerLocInteraction(NEX_ALTAR_ID, prayAtNexAltar, "pray-at");
