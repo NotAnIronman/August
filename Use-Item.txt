@@ -1,2 +1,0 @@
-[widget-click] {uid: 9797636, groupId: 149, childId: 32772, fileId: -1, childIndex: 4, …}childId: 32772childIndex: 4contentType: 0cursorX: 1076cursorY: 797fileId: -1groupId: 149itemId: 26374option: "Use"slot: 4source: "menu"target: "<col=ff9040>Zaryte crossbow"type: 5uid: 9797636[[Prototype]]: Object
-WidgetInputBridge.ts:105 [ui-input] unchanged input processed because targets changed count=1 targets=1503 targetVersion=21 prevTargetVersion=20 mouse=1076,797 clickMode2=0 clickMode3=0
