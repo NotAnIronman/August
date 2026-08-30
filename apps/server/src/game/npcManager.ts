@@ -413,6 +413,7 @@ export class NpcManager {
                 combatProfile,
                 isAggressive,
                 isUnattackable: spawn.isUnattackable,
+                respawns: spawn.respawns,
                 aggressionRadius,
                 aggressionToleranceTicks,
                 aggressionSearchDelayTicks,
@@ -1714,6 +1715,7 @@ export class NpcManager {
         for (const [npcId, entry] of Array.from(this.pendingDeaths.entries())) {
             if (currentTick < entry.despawnTick) continue;
             this.pendingDeaths.delete(npcId);
+            const npc = this.npcs.get(npcId);
 
             // Spawn pending drops at despawn time (RSMod parity)
             if (entry.pendingDrops && this.groundItemSpawner) {
@@ -1733,7 +1735,8 @@ export class NpcManager {
                 }
             }
 
-            this.queueRespawn(npcId, entry.respawnTick);
+            if (npc?.respawns) this.queueRespawn(npcId, entry.respawnTick);
+            else this.removeNpc(npcId);
         }
     }
 

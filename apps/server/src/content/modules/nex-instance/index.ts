@@ -151,6 +151,13 @@ function installPhaseController(player: PlayerState, services: ScriptServices): 
     const controller: NexPhaseController = { nex, mages, gateIndex: 0, readyToAdvance: false };
 
     nex.onHealthChange((change) => {
+        if (change.reason === "reset") {
+            controller.gateIndex = 0;
+            controller.waitingForMageId = undefined;
+            controller.readyToAdvance = false;
+            for (const mage of controller.mages.values()) mage.setUnattackable(true);
+            return;
+        }
         // Killing a mage only makes the transition available. The next
         // successful hit on Nex starts the following Ancient Magicks phase.
         if (controller.readyToAdvance) {
@@ -177,6 +184,10 @@ function installPhaseController(player: PlayerState, services: ScriptServices): 
 
     for (const [mageId, mage] of mages) {
         mage.onHealthChange((change) => {
+            if (change.reason === "reset") {
+                mage.setUnattackable(true);
+                return;
+            }
             if (change.current > 0 || controller.waitingForMageId !== mageId) return;
             controller.waitingForMageId = undefined;
             controller.readyToAdvance = true;
