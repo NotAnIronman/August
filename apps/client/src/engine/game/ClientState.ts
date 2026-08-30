@@ -150,6 +150,9 @@ export class ClientState {
     /** Selected item ID */
     static selectedItemId: number = -1;
 
+    /** Timestamp for ignoring the source click that armed an item Use action. */
+    static itemUseSelectionEnteredFrame: number = -1;
+
     // ========================================
     // ENTITY ARRAYS
     // ========================================
@@ -304,6 +307,14 @@ export class ClientState {
         this.selectedItemWidget = 0;
         this.selectedItemSlot = 0;
         this.selectedItemId = -1;
+        this.itemUseSelectionEnteredFrame = -1;
+    }
+
+    /** A context-menu source click must not become an immediate invalid target. */
+    static isItemUseSelectionFresh(): boolean {
+        return this.isItemSelected === 1 &&
+            this.itemUseSelectionEnteredFrame >= 0 &&
+            Date.now() - this.itemUseSelectionEnteredFrame < 50;
     }
 
     /**
@@ -333,6 +344,7 @@ export class ClientState {
         this.selectedSpellActionName = "Use";
         this.selectedSpellName = itemName;
         this.spellTargetEnteredFrame = Date.now();
+        this.itemUseSelectionEnteredFrame = this.spellTargetEnteredFrame;
         this.selectedSpellTargetMask = 0x3f;
         return true;
     }

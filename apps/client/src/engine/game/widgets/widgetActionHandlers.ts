@@ -169,6 +169,9 @@ export function handleWidgetActionTargeting(
             // players). It must never fall through and activate an unrelated
             // interface button, tab, or control while an item is selected.
             if (ClientState.isItemSelected === 1) {
+                // The menu can overlap an unrelated widget. Ignore its source
+                // click if it reaches that widget later in the same frame.
+                if (ClientState.isItemUseSelectionFresh()) return true;
                 deps.clearSelectedSpell();
                 ClientState.clearItemSelection();
                 deps.getInventory()?.setSelectedSlot?.(null);
