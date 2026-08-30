@@ -74,49 +74,17 @@ export function registerNpcHandlers(router: MessageRouter, services: MessageHand
                     const dy = py < minNy ? minNy - py : py > maxNy ? py - maxNy : 0;
                     const dCheb = Math.max(dx, dy);
 
-                    if (sameLevel && dCheb === 1) {
-                        let canBankFromPos = false;
-                        if (px >= minNx && px <= maxNx) {
-                            const ny = py < minNy ? py + 1 : py > maxNy ? py - 1 : py;
-                            const hasWall = services.edgeHasWallBetween(
-                                px,
-                                py,
-                                px,
-                                ny,
-                                player.level,
-                            );
-                            if (!hasWall) canBankFromPos = true;
-                        } else if (py >= minNy && py <= maxNy) {
-                            const nx = px < minNx ? px + 1 : px > maxNx ? px - 1 : px;
-                            const hasWall = services.edgeHasWallBetween(
-                                px,
-                                py,
-                                nx,
-                                py,
-                                player.level,
-                            );
-                            if (!hasWall) canBankFromPos = true;
+                    // Bankers stand behind counters. Banking is intentionally
+                    // allowed across that one-tile barrier (and at the normal
+                    // two-tile counter distance), so do not make the player
+                    // path toward an unreachable NPC first.
+                    if (sameLevel && dCheb <= 2) {
+                        try {
+                            services.startNpcInteraction(ctx.ws, npc, option, modifierFlags);
+                        } catch (err) {
+                            logger.warn("Failed to start NPC bank interaction", err);
                         }
-
-                        if (canBankFromPos) {
-                            try {
-                                services.startNpcInteraction(ctx.ws, npc, option, modifierFlags);
-                            } catch (err) {
-                                logger.warn("Failed to start NPC bank interaction", err);
-                            }
-                            return;
-                        } else {
-                            const isCardinallyAligned =
-                                (px >= minNx && px <= maxNx) || (py >= minNy && py <= maxNy);
-                            if (isCardinallyAligned) {
-                                services.queueChatMessage({
-                                    messageType: "game",
-                                    text: "I can't reach that.",
-                                    targetPlayerIds: [player.id],
-                                });
-                                return;
-                            }
-                        }
+                        return;
                     }
 
                     // Route player to nearest tile around NPC
