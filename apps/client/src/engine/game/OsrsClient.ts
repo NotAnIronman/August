@@ -7551,6 +7551,9 @@ export class OsrsClient {
         if (requiresUseSelection) {
             if (selected === null || selected !== slot) {
                 this.inventory.setSelectedSlot(slot);
+                // Touch/mobile inventory selection must enter the same global
+                // targeting state as a desktop context-menu "Use" action.
+                ClientState.selectItemForUse((149 << 16) | 0, slot, entry.itemId | 0);
                 try {
                     console.log("[inventory] select slot", { slot, item: entry });
                 } catch {}

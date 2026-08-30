@@ -94,6 +94,29 @@ export function handleWidgetActionTargeting(
         }
     }
 
+    const optionLower = String(event.option ?? "").trim().toLowerCase();
+    const targetItemId = event.itemId ?? event.widget.itemId ?? -1;
+    const isInventoryItem = targetItemId >= 0 || groupId === 149;
+
+    // "Use" must always start item targeting. Handle it before an existing
+    // spell/item selection so a stale selection can never redirect the click
+    // into a generic inventory action or item-on-item request.
+    if (isInventoryItem && optionLower === "use") {
+        const targetSlot = event.slot ?? event.widget.childIndex ?? childId;
+        const containerUid = event.widget.parentUid ?? event.widget.uid;
+        if (
+            ClientState.selectItemForUse(
+                containerUid,
+                targetSlot,
+                targetItemId,
+                event.target || event.widget.name || "",
+            )
+        ) {
+            deps.getInventory()?.setSelectedSlot?.(targetSlot);
+        }
+        return true;
+    }
+
     if (ClientState.isSpellSelected) {
         const timeSinceTargeting = Date.now() - ClientState.spellTargetEnteredFrame;
         if (timeSinceTargeting < 50) {
@@ -195,37 +218,6 @@ export function handleWidgetActionTargeting(
             deps.clearSelectedSpell();
             return true;
         }
-    }
-
-    const optionLower = (event.option || "").toLowerCase();
-    const targetItemId = event.itemId ?? event.widget.itemId ?? -1;
-    const isInventoryItem = targetItemId >= 0 || groupId === 149;
-
-    if (isInventoryItem && optionLower === "use") {
-        const targetSlot = event.slot ?? event.widget.childIndex ?? childId;
-        const containerUid = event.widget.parentUid ?? event.widget.uid;
-
-        ClientState.isItemSelected = 1;
-        ClientState.selectedItemWidget = containerUid;
-        ClientState.selectedItemSlot = targetSlot;
-        ClientState.selectedItemId = targetItemId;
-
-        ClientState.isSpellSelected = true;
-        ClientState.selectedSpellWidget = containerUid;
-        ClientState.selectedSpellChildIndex = targetSlot;
-        ClientState.selectedSpellItemId = targetItemId;
-        ClientState.selectedSpellActionName = "Use";
-        ClientState.selectedSpellName = event.target || event.widget.name || "";
-        ClientState.spellTargetEnteredFrame = Date.now();
-        ClientState.selectedSpellTargetMask = 0x3f;
-
-        console.log(
-            `[OsrsClient] Entered item targeting mode: containerUid=${containerUid}, slot=${targetSlot}, itemId=${targetItemId}, name="${
-                ClientState.selectedSpellName
-            }", targetMask=0x${ClientState.selectedSpellTargetMask.toString(16)}`,
-        );
-
-        return true;
     }
 
     const inventoryItemActions = [

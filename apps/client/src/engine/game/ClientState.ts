@@ -307,6 +307,37 @@ export class ClientState {
     }
 
     /**
+     * Enter the shared item-targeting state used by every inventory "Use" entry.
+     * Item selection intentionally mirrors spell selection because the existing
+     * target menus consume that state for item-on-item and item-on-world actions.
+     */
+    static selectItemForUse(
+        widgetId: number,
+        slot: number,
+        itemId: number,
+        itemName: string = "",
+    ): boolean {
+        if (!Number.isInteger(widgetId) || !Number.isInteger(slot) || !Number.isInteger(itemId)) {
+            return false;
+        }
+        if (slot < 0 || itemId <= 0) return false;
+
+        this.isItemSelected = 1;
+        this.selectedItemWidget = widgetId | 0;
+        this.selectedItemSlot = slot | 0;
+        this.selectedItemId = itemId | 0;
+        this.isSpellSelected = true;
+        this.selectedSpellWidget = widgetId | 0;
+        this.selectedSpellChildIndex = slot | 0;
+        this.selectedSpellItemId = itemId | 0;
+        this.selectedSpellActionName = "Use";
+        this.selectedSpellName = itemName;
+        this.spellTargetEnteredFrame = Date.now();
+        this.selectedSpellTargetMask = 0x3f;
+        return true;
+    }
+
+    /**
      * Convert local tile X to world X
      */
     static localToWorldX(localX: number): number {
