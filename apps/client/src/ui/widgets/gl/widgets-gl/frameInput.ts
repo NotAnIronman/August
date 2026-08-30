@@ -16,10 +16,12 @@ export function processWidgetUiInput(
     if (!inputManager) return;
     try {
         const input = ensureWidgetInputBridge(glr);
-        const targetCount = input.getClicks().getTargetCount();
-        if (targetCount > 0) {
-            input.processInput(inputManager);
-        }
+        // Process every input pulse, even when this frame has no registered
+        // click target. The right-click handler performs its own widget-tree
+        // hit-test and provides the Cancel/menu fallback; skipping it here
+        // silently disabled every context menu whenever a partial UI redraw
+        // left the transient target registry empty.
+        input.processInput(inputManager);
     } catch (e) {
         console.error("[widgets-gl] processWidgetUiInput error:", e);
     }
