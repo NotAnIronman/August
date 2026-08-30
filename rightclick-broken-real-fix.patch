@@ -1,0 +1,81 @@
+--- a/apps/client/src/engine/rendering/render/interact/check.ts	2026-08-30 16:33:40.308596820 +0000
++++ b/apps/client/src/engine/rendering/render/interact/check.ts	2026-08-30 16:33:05.302333022 +0000
+@@ -1438,19 +1438,6 @@
+             // opening a Cancel menu here instead consumed the right-click before
+             // the widget layer could build the real widget menu.
+             const pickOverUi = mouseInUIRegion || mouseOverWidget;
+-            // --- TEMP DIAGNOSTIC: remove once the right-click-broken cause is found ---
+-            console.log(
+-                "[rightclick-diag] pick event",
+-                JSON.stringify({
+-                    pickOverUi,
+-                    mouseInUIRegion,
+-                    mouseOverWidget,
+-                    anchorX,
+-                    anchorY,
+-                    willOpenWorldMenu: !pickOverUi,
+-                }),
+-            );
+-            // --- END TEMP DIAGNOSTIC ---
+             if (!pickOverUi) {
+                 host.osrsClient.menuOpen = true;
+                 host.osrsClient.menuOpenedFrame = frameCount;
+--- a/apps/client/src/engine/game/OsrsClient.ts	2026-08-30 16:33:40.283120055 +0000
++++ b/apps/client/src/engine/game/OsrsClient.ts	2026-08-30 16:33:11.483602406 +0000
+@@ -3878,6 +3878,20 @@
+     }
+ 
+     updateWidgets() {
++        // Detect and clear a stuck clickedWidget/dragSourceWidget/etc left over
++        // from a mousedown whose matching mouseup never properly resolved (e.g.
++        // the interface holding that widget closed or rebuilt in between, such
++        // as a server-driven modal closing after selecting an option). Without
++        // this, getWorldClickBlockingWidgetAtPoint() returns that same stale
++        // widget for every future click regardless of where on screen it lands
++        // (its very first check is "is clickedWidget set at all", before it
++        // even looks at click position) — which reads as "right-click doesn't
++        // do anything" since the world menu never gets a chance to open and
++        // every widget click is swallowed by the stale interaction instead.
++        // This recovery already existed (clearStaleWidgetInteractionState /
++        // isWidgetInteractionStale) but nothing was ever calling it.
++        this.widgetInteraction?.clearStaleWidgetInteractionState();
++
+         const widgetManager = this.widgetManager;
+         if (!widgetManager) {
+             return;
+@@ -7620,10 +7634,6 @@
+     // URL/search params are not supported
+ 
+     closeMenu = () => {
+-        // --- TEMP DIAGNOSTIC: remove once the right-click-broken cause is found ---
+-        console.log("[rightclick-diag] closeMenu() called, was menuOpen:", this.menuOpen);
+-        console.trace("[rightclick-diag] closeMenu call site");
+-        // --- END TEMP DIAGNOSTIC ---
+         this.menuOpen = false;
+         this.menuX = -1;
+         this.menuY = -1;
+@@ -7633,6 +7643,24 @@
+         this.menuFrozenSimpleEntriesVersion = 0;
+         this.menuActiveSimpleEntries = [];
+         this.menuState.reset();
++        // Also clear the separate widget-level right-click menu (canvas.__ui.menu).
++        // It's a distinct piece of state from menuOpen above — e.g. right-clicking
++        // an inventory item opens a "widgets"-sourced menu here, not the world one —
++        // and widgetClickGuard blocks ALL widget clicks (including focusing chat to
++        // type) as long as either one reports open. Some ways a widget menu ends
++        // (an underlying interface auto-closing, another right-click elsewhere, etc.)
++        // don't go through ChooseOptionMenu's own close paths, which previously left
++        // it permanently stuck open with no other code responsible for resetting it —
++        // closeMenu() is already called from everywhere as the general "close
++        // whatever might be open" cleanup, so it's the natural single place to
++        // guarantee both menu systems always close together.
++        try {
++            const ui = (this.renderer?.canvas as any)?.__ui;
++            if (ui?.menu) {
++                ui.menu.open = false;
++                ui.menu = undefined;
++            }
++        } catch {}
+         this.renderer.canvas.focus();
+         this.widgetManager?.invalidateAll?.();
+     };
