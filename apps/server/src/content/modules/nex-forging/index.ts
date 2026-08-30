@@ -4,6 +4,7 @@ import type { PlayerState } from "@server/game/player";
 import { LockState } from "@server/game/model/LockState";
 
 const ANCIENT_FORGE = 42966;
+const TORVA_ANVIL = 28563;
 const HAMMER = 2347;
 const IMCANDO_HAMMER = 25644;
 const BANDOS_CHESTPLATE = 11832;
@@ -87,9 +88,8 @@ function breakDownBandos({ player, source, services }: ItemOnLocEvent): void {
     }
 }
 
-function repairTorva(event: ItemOnItemEvent): void {
-    const { player, source, target, services } = event;
-    const damaged = TORVA_REPAIRS.get(source.itemId) ? source.itemId : target.itemId;
+function repairTorva({ player, source, services }: ItemOnLocEvent): void {
+    const damaged = source.itemId;
     const recipe = TORVA_REPAIRS.get(damaged);
     if (!recipe) return;
     if (!player.items.hasItem(BANDOSIAN_COMPONENTS, recipe.components)) return;
@@ -130,8 +130,7 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerItemOnLoc(BANDOS_CHESTPLATE, ANCIENT_FORGE, breakDownBandos);
     registry.registerItemOnLoc(BANDOS_TASSETS, ANCIENT_FORGE, breakDownBandos);
     for (const damaged of TORVA_REPAIRS.keys()) {
-        registry.registerItemOnItem(BANDOSIAN_COMPONENTS, damaged, repairTorva);
-        registry.registerItemOnItem(damaged, BANDOSIAN_COMPONENTS, repairTorva);
+        registry.registerItemOnLoc(damaged, TORVA_ANVIL, repairTorva);
     }
     registry.registerItemOnItem(NIHIL_HORN, ARMADYL_CROSSBOW, createZaryteCrossbow);
     registry.registerItemOnItem(ARMADYL_CROSSBOW, NIHIL_HORN, createZaryteCrossbow);
