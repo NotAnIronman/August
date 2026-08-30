@@ -303,6 +303,10 @@ export class ClientState {
      * Clear item selection
      */
     static clearItemSelection(): void {
+        // Several UI layers can observe the physical click that selected
+        // "Use". Never let that source click immediately undo the selection;
+        // a deliberate follow-up target click occurs after this short window.
+        if (this.isItemUseSelectionFresh()) return;
         this.isItemSelected = 0;
         this.selectedItemWidget = 0;
         this.selectedItemSlot = 0;
@@ -314,7 +318,7 @@ export class ClientState {
     static isItemUseSelectionFresh(): boolean {
         return this.isItemSelected === 1 &&
             this.itemUseSelectionEnteredFrame >= 0 &&
-            Date.now() - this.itemUseSelectionEnteredFrame < 50;
+            Date.now() - this.itemUseSelectionEnteredFrame < 100;
     }
 
     /**

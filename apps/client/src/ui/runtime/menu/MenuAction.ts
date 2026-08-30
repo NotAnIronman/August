@@ -946,7 +946,7 @@ export function menuAction(
     // CLEANUP - Clear item/spell selection
     // ========================================
     if (ClientState.isItemSelected !== 0) {
-        ClientState.isItemSelected = 0;
+        ClientState.clearItemSelection();
         // invalidateWidget(selectedItemWidget)
     }
 
