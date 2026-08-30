@@ -239,6 +239,13 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
         // it opens.
         const uiMenu = (host.app.gl.canvas as any)?.__ui?.menu;
         const widgetMenuOpen = uiMenu?.open === true && uiMenu?.source === "widgets";
+        // A widget context menu is a modal input surface, even where it extends
+        // beyond the source widget (for example long inventory item names).
+        // Let its own handler receive this click; otherwise it would fall
+        // through to the game world before the menu gets a chance to act.
+        if (widgetMenuOpen) {
+            return;
+        }
         if ((host.osrsClient.menuOpen || widgetMenuOpen) && !picked && !leftClicked) {
             return;
         }

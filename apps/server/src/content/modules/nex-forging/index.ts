@@ -1,6 +1,7 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { IScriptRegistry, ItemOnItemEvent, ItemOnLocEvent, ScriptServices } from "@server/game/scripts/types";
 import type { PlayerState } from "@server/game/player";
+import { LockState } from "@server/game/model/LockState";
 
 const ANCIENT_FORGE = 42966;
 const HAMMER = 2347;
@@ -12,6 +13,9 @@ const NIHIL_SHARD = 26231;
 const NIHIL_HORN = 26372;
 const ARMADYL_CROSSBOW = 11785;
 const ZARYTE_CROSSBOW = 26374;
+const SMITHING_ANIMATION = 898;
+const FLETCHING_ANIMATION = 1248;
+const CRAFTING_LOCK_TICKS = 3;
 
 const TORVA_REPAIRS = new Map<number, { components: number; result: number }>([
     [26376, { components: 1, result: 26382 }],
@@ -27,6 +31,15 @@ function hasSmithingHammer(player: PlayerState): boolean {
 
 function restoreInventory(player: PlayerState, snapshot: readonly { itemId: number; quantity: number }[]): void {
     snapshot.forEach((entry, slot) => player.items.setInventorySlot(slot, entry.itemId, entry.quantity));
+}
+
+function lockAndAnimate(player: PlayerState, services: ScriptServices, animation: number): void {
+    const previousLock = player.lock;
+    player.lock = LockState.FULL;
+    services.animation.playPlayerSeq(player, animation);
+    services.scheduler.after(CRAFTING_LOCK_TICKS, () => {
+        if (player.lock === LockState.FULL) player.lock = previousLock;
+    }, { kind: "player", id: player.id });
 }
 
 /**
@@ -93,6 +106,7 @@ function repairTorva(event: ItemOnItemEvent): void {
         { itemId: damaged, quantity: 1 },
         { itemId: BANDOSIAN_COMPONENTS, quantity: recipe.components },
     ], { itemId: recipe.result, quantity: 1 })) {
+        lockAndAnimate(player, services, SMITHING_ANIMATION);
         services.messaging.sendGameMessage(player, "You repair the Torva armour.");
     }
 }
@@ -107,6 +121,7 @@ function createZaryteCrossbow({ player, services }: ItemOnItemEvent): void {
         { itemId: ARMADYL_CROSSBOW, quantity: 1 },
         { itemId: NIHIL_SHARD, quantity: 250 },
     ], { itemId: ZARYTE_CROSSBOW, quantity: 1 })) {
+        lockAndAnimate(player, services, FLETCHING_ANIMATION);
         services.messaging.sendGameMessage(player, "You attach the nihil horn to the Armadyl crossbow.");
     }
 }
