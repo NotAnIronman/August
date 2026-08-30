@@ -22,19 +22,22 @@ register(registry, services as never);
 assert.deepEqual(removals, [
     [{ worldViewId: -1 }, 6084, { x: 2904, y: 5205 }, 0, { oldShape: 10, newShape: 10 }],
 ]);
-assert.deepEqual(spawns, [
-    {
-        id: 11289,
-        x: 2904,
-        y: 5205,
-        level: 0,
-        worldViewId: -1,
-        wanderRadius: 0,
-        isAggressive: false,
-        isUnattackable: true,
-        direction: 0,
-    },
-]);
+assert.deepEqual(spawns[0], {
+    id: 11289,
+    x: 2904,
+    y: 5205,
+    level: 0,
+    worldViewId: -1,
+    wanderRadius: 0,
+    isAggressive: false,
+    isUnattackable: true,
+    direction: 0,
+});
+assert.deepEqual(
+    [11293, 11290, 11291, 11292].map((id) => spawns.filter((spawn) => (spawn as { id: number }).id === id).length),
+    [12, 9, 5, 5],
+    "the Ancient Prison should contain its complete Blood Reaver and spiritual-creature population",
+);
 
 const teleports: unknown[][] = [];
 const player = { tileX: 2861, tileY: 5219 };

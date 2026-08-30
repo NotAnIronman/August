@@ -33,6 +33,15 @@ const NEX_NPCS = Object.freeze([
     Object.freeze({ id: 11285, offsetX: 2937 - INSTANCE_BASE.x, offsetY: 5191 - INSTANCE_BASE.y, level: 0, wanderRadius: 0, isUnattackable: true, isAggressive: true, aggressionRadius: 10, attackSpeed: 5 }),
     Object.freeze({ id: 11286, offsetX: 2913 - INSTANCE_BASE.x, offsetY: 5191 - INSTANCE_BASE.y, level: 0, wanderRadius: 0, isUnattackable: true, isAggressive: true, aggressionRadius: 10, attackSpeed: 5 }),
 ]);
+// The cache revision used by August has the Ancient Prison map but omits its
+// NPC-spawn records.  These are the full live population (12/9/5/5) in the
+// prison's killcount hall; keep them separate from the private Nex encounter.
+const ANCIENT_PRISON_NPCS = Object.freeze([
+    ...[[2864, 5228], [2868, 5225], [2872, 5229], [2876, 5224], [2880, 5228], [2884, 5225], [2888, 5229], [2892, 5224], [2896, 5228], [2900, 5225], [2904, 5229], [2906, 5223]].map(([x, y]) => Object.freeze({ id: 11293, x, y, level: 0, wanderRadius: 3, isAggressive: true, aggressionRadius: 12 })),
+    ...[[2865, 5215], [2870, 5219], [2875, 5213], [2880, 5218], [2885, 5214], [2890, 5219], [2895, 5213], [2900, 5218], [2905, 5214]].map(([x, y]) => Object.freeze({ id: 11290, x, y, level: 0, wanderRadius: 3, isAggressive: true, aggressionRadius: 12 })),
+    ...[[2867, 5208], [2876, 5208], [2885, 5208], [2894, 5208], [2903, 5208]].map(([x, y]) => Object.freeze({ id: 11291, x, y, level: 0, wanderRadius: 3, isAggressive: true, aggressionRadius: 12 })),
+    ...[[2867, 5220], [2876, 5220], [2885, 5220], [2894, 5220], [2903, 5220]].map(([x, y]) => Object.freeze({ id: 11292, x, y, level: 0, wanderRadius: 3, isAggressive: true, aggressionRadius: 12 })),
+]);
 const altarUses = new WeakMap<PlayerState, number>();
 const ALTAR_COOLDOWN_TICKS = 500;
 
@@ -271,6 +280,12 @@ function installNexBank(services: ScriptServices): void {
     });
 }
 
+function spawnAncientPrisonPopulation(services: ScriptServices): void {
+    for (const npc of ANCIENT_PRISON_NPCS) {
+        services.npc.spawnNpc({ ...npc, worldViewId: -1 });
+    }
+}
+
 function prayAtNexAltar({ player, services, tick }: LocInteractionEvent): void {
     if (!isNexInstance(player, services)) return;
     const readyAt = (altarUses.get(player) ?? -Infinity) + ALTAR_COOLDOWN_TICKS;
@@ -294,6 +309,7 @@ function prayAtNexAltar({ player, services, tick }: LocInteractionEvent): void {
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
     registerNexEncounters();
     installNexBank(services);
+    spawnAncientPrisonPopulation(services);
     registry.registerLocInteraction(NEX_ALTAR_ID, prayAtNexAltar, "pray");
     registry.registerLocInteraction(NEX_ALTAR_ID, prayAtNexAltar, "pray-at");
     registry.registerLocInteraction(KILLCOUNT_DOOR_ID, (event) => crossDoor(event, KILLCOUNT_OUTSIDE, KILLCOUNT_INSIDE), "open");
