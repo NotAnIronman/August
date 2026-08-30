@@ -1,0 +1,101 @@
+--- a/apps/server/src/game/combat/CombatAction.ts	2026-08-29 22:13:27.841916099 +0000
++++ b/apps/server/src/game/combat/CombatAction.ts	2026-08-29 22:13:28.374166616 +0000
+@@ -576,6 +576,21 @@
+     const tz = target.tileY;
+     const plane = pawn.level;
+ 
++    // Aim at the target's pre-this-tick position (Lost City's followX/followZ
++    // technique, already used by FollowingHandler.ts) rather than its live
++    // current tile, when the target actually moved this tick. Two melee
++    // combatants closing distance on each other both recompute their
++    // "nearest cardinal attack tile" every tick from the other's current
++    // position; on a diagonal approach that produces a symmetric tie only
++    // resolved by iteration order, which flips which side each one picks and
++    // sends them stepping toward/away from each other forever (the "melee
++    // dance"). Aiming at a one-tick-stale, already-settled position for both
++    // sides breaks that symmetry. Falls back to the live tile when the
++    // target hasn't moved, since followX/followZ would just equal it anyway.
++    const targetMovedThisTick = target.followX !== tx || target.followZ !== tz;
++    const approachTx = targetMovedThisTick ? target.followX : tx;
++    const approachTz = targetMovedThisTick ? target.followZ : tz;
++
+     // NPCs use dumb pathfinder, players use BFS
+     if (pawn instanceof NpcState) {
+         // NPC: Use dumb pathfinder - generates steps one at a time toward target
+@@ -583,11 +598,13 @@
+         const steps: { x: number; y: number }[] = [];
+         let currentX = px;
+         let currentY = pz;
+-        const targetCenterX = tx + Math.floor(targetSize / 2);
+-        const targetCenterY = tz + Math.floor(targetSize / 2);
++        const targetCenterX = approachTx + Math.floor(targetSize / 2);
++        const targetCenterY = approachTz + Math.floor(targetSize / 2);
+ 
+         for (let i = 0; i < 16; i++) {
+             const pawnBounds = toBounds(currentX, currentY, pawnSize, pawnSize);
++            // Arrival/break checks use the target's true current position —
++            // only the approach-tile aim point below uses the stable one.
+             const targetBounds = toBounds(tx, tz, targetSize, targetSize);
+ 
+             if (attackRange <= 1) {
+@@ -610,8 +627,8 @@
+                           currentX,
+                           currentY,
+                           pawnSize,
+-                          tx,
+-                          tz,
++                          approachTx,
++                          approachTz,
+                           targetSize,
+                       ) ?? { x: targetCenterX, y: targetCenterY })
+                     : { x: targetCenterX, y: targetCenterY };
+@@ -642,17 +659,23 @@
+     // RSMod: For melee (!lineOfSight && !projectile), clip diagonal tiles
+     const strategy =
+         attackRange <= 1
+-            ? new CardinalAdjacentRouteStrategy(tx, tz, targetSize, targetSize)
++            ? new CardinalAdjacentRouteStrategy(approachTx, approachTz, targetSize, targetSize)
+             : pawn instanceof PlayerState &&
+                 resolvePlayerAttackType(pawn.combat) !== AttackType.Melee
+               ? new RectWithinRangeLineOfSightRouteStrategy(
+-                    tx,
+-                    tz,
++                    approachTx,
++                    approachTz,
+                     targetSize,
+                     targetSize,
+                     attackRange,
+                 )
+-              : new RectWithinRangeRouteStrategy(tx, tz, targetSize, targetSize, attackRange);
++              : new RectWithinRangeRouteStrategy(
++                    approachTx,
++                    approachTz,
++                    targetSize,
++                    targetSize,
++                    attackRange,
++                );
+ 
+     if (strategy instanceof RectWithinRangeLineOfSightRouteStrategy) {
+         strategy.setProjectileRaycast((from, to) => pathService.projectileRaycast(from, to));
+--- a/apps/server/src/game/systems/MovementSystem.ts	2026-08-29 22:13:28.157916117 +0000
++++ b/apps/server/src/game/systems/MovementSystem.ts	2026-08-29 22:13:28.375424871 +0000
+@@ -20,6 +20,19 @@
+                 bot.followX = bot.tileX;
+                 bot.followZ = bot.tileY;
+             });
++            // NPCs need the same pre-movement snapshot as players so combat's
++            // approach-tile calculation (walkToAttackRange) can path toward an
++            // NPC target's followX/followZ instead of its live tileX/tileY.
++            // Without this, two melee combatants closing distance on each other
++            // both compute their "nearest cardinal attack tile" from the other's
++            // still-updating current position every tick; on a diagonal approach
++            // this produces a symmetric tie that flips which side each one picks,
++            // so they perpetually step toward and away from each other without
++            // ever landing adjacent (the "melee dance").
++            this.npcManager?.forEach((npc) => {
++                npc.followX = npc.tileX;
++                npc.followZ = npc.tileY;
++            });
+         } catch (err) {
+             logger.warn("[movement-system] failed to update follow positions", err);
+         }

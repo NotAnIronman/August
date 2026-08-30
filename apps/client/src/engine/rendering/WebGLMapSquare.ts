@@ -1260,6 +1260,29 @@ export class WebGLMapSquare {
         runMapSquareAction(this.mapX, this.mapY, "npcEcs.destroyNpcsForMap", () =>
             this._npcEcs?.destroyNpcsForMap(this.mapX, this.mapY),
         );
+        this.disposeGpuResources();
+    }
+
+    /**
+     * Frees this map square's GPU resources only, leaving any NPCs currently
+     * tracked at these map-square coordinates untouched.
+     *
+     * Used when a NEW map square is about to occupy the same (mapX, mapY) —
+     * e.g. an old overworld square being replaced by a freshly-loaded
+     * private-instance square at the same coordinates. Instances reuse the
+     * overworld's own map-square id space, so by the time this replacement
+     * happens the instance's own NPCs (Graardor, minions, etc.) may already
+     * be registered under that same map-square bucket. Calling the full
+     * delete() (which also runs destroyNpcsForMap) here would wipe those
+     * brand-new NPCs' server-id mapping, indistinguishable from genuinely
+     * stale NPCs left over from the old map — forcing NpcEcs to lose track
+     * of them the instant they spawn, which is exactly the "NPC visually
+     * offset/duplicated right after entering an instance" bug this guards
+     * against. True removal (a map square leaving relevance entirely, with
+     * nothing replacing it) should keep using delete() so its NPCs really
+     * do get cleaned up.
+     */
+    disposeGpuResources() {
         releaseDrawCallRange(this.drawCall);
         releaseDrawCallRange(this.drawCallAlpha);
         releaseDrawCallRange(this.drawCallLod);
