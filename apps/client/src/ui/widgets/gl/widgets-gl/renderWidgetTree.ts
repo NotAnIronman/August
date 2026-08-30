@@ -1501,6 +1501,16 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                 );
                 const widgetActions = Array.isArray(w.actions) ? (w.actions as any[]) : undefined;
                 const widgetItemId = (w as any).itemId;
+                // Computed early so the shift-click-drop display override below
+                // (which needs to know if this widget even has a Drop action)
+                // can run before the label gets finalized, not just at click time.
+                const hasDropAction =
+                    !!interaction.isInventoryItem &&
+                    !!widgetActions &&
+                    widgetActions.some(
+                        (a: any) =>
+                            a && typeof a === "string" && a.trim().toLowerCase() === "drop",
+                    );
                 if (profileWidgetRender) {
                     clickProbeMs += performance.now() - clickProbeStartMs;
                 }
@@ -1591,19 +1601,22 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                         primaryOptionText = "Continue";
                         primaryTarget = undefined;
                     }
+
+                    // OSRS shift-click drop: while shift is held (and the widget has a
+                    // Drop action), the click-execution path below already switches the
+                    // action that actually runs to "Drop" (see isShiftHeld && hasDropAction
+                    // in the onWidgetAction hook) — but until now nothing updated the
+                    // *displayed* label to match, so the highlighted left-click option kept
+                    // showing the item's normal action (Wear/Wield/Eat/etc.) even though
+                    // shift-clicking it actually dropped it. Same condition, applied here too.
+                    if (inputManager?.shiftDown === true && hasDropAction) {
+                        primaryOptionText = "Drop";
+                    }
                     if (profileWidgetRender) {
                         clickPrimaryResolveMs += performance.now() - clickPrimaryResolveStartMs;
                     }
 
-                    // Check if widget has a Drop action (for shift-click drop)
                     const clickMetaStartMs = profileWidgetRender ? performance.now() : 0;
-                    const hasDropAction =
-                        interaction.isInventoryItem &&
-                        !!widgetActions &&
-                        widgetActions.some(
-                            (a: any) =>
-                                a && typeof a === "string" && a.trim().toLowerCase() === "drop",
-                        );
 
                     // PERF: Update cached metadata object in-place instead of creating new
                     const slot =
