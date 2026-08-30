@@ -193,6 +193,7 @@ export function getWidgetInteractionSnapshot(
         !!w?.__hasOriginalOnRelease;
 
     const widgetItemId = w?.itemId;
+    const isInventorySlot = typeof widgetItemId === "number";
     const widgetGroupId = (w?.groupId ?? (w?.uid != null ? w!.uid >>> 16 : 0)) | 0;
     const isInventoryItem = widgetGroupId === 149 && widgetItemId != null && widgetItemId >= 0;
 
@@ -202,6 +203,7 @@ export function getWidgetInteractionSnapshot(
         !hasActions &&
         !hasOriginalHandlers &&
         !isInventoryItem &&
+        !isInventorySlot &&
         !hasTargetVerbCandidate &&
         !hasButtonTypeInteraction
     ) {
@@ -226,7 +228,7 @@ export function getWidgetInteractionSnapshot(
             }
         }
     }
-    if (!isPauseButtonWidget && buttonType === 6) {
+    if (!isInventorySlot && !isPauseButtonWidget && buttonType === 6) {
         isPauseButtonWidget = true;
     }
 
