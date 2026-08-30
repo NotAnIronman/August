@@ -4,7 +4,10 @@ import type { IScriptRegistry, LocInteractionEvent, ScriptServices } from "@serv
 const KILLCOUNT_DOOR_ID = 42933;
 const BANK_DOOR_ID = 42934;
 const ANCIENT_BARRIER_ID = 42967;
-const BANK_BOOTH_ID = 6084;
+// The current cache exposes the barrier under these IDs.  Keep the requested
+// 42967 registration too, so this content remains valid when its map data is
+// updated to the newer cache revision.
+const ANCIENT_BARRIER_VARIANT_IDS = [42937, 42938, 42939, 42940, ANCIENT_BARRIER_ID] as const;
 const ASHUELOT_REIS_ID = 11289;
 const NEX_DEFINITION_ID = "nex-room";
 
@@ -15,7 +18,6 @@ const BANK_INSIDE = Object.freeze({ x: 2900, y: 5203, level: 0 });
 const BARRIER_OUTSIDE = Object.freeze({ x: 2908, y: 5204, level: 0 });
 const BARRIER_INSIDE = Object.freeze({ x: 2910, y: 5203, level: 0 });
 const BANK_TILE = Object.freeze({ x: 2904, y: 5205, level: 0 });
-const BANKER_TILE = Object.freeze({ x: 2904, y: 5206, level: 0 });
 
 function crossDoor(
     event: LocInteractionEvent,
@@ -120,19 +122,11 @@ function peek({ player, services }: LocInteractionEvent): void {
 }
 
 function installNexBank(services: ScriptServices): void {
-    services.location.replaceTemporaryLoc(
-        { worldViewId: -1 },
-        0,
-        BANK_BOOTH_ID,
-        { x: BANK_TILE.x, y: BANK_TILE.y },
-        BANK_TILE.level,
-        { newShape: 10, newRotation: 0 },
-    );
     services.npc.spawnNpc({
         id: ASHUELOT_REIS_ID,
-        x: BANKER_TILE.x,
-        y: BANKER_TILE.y,
-        level: BANKER_TILE.level,
+        x: BANK_TILE.x,
+        y: BANK_TILE.y,
+        level: BANK_TILE.level,
         worldViewId: -1,
         wanderRadius: 0,
         isAggressive: false,
@@ -147,9 +141,18 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     registry.registerLocInteraction(KILLCOUNT_DOOR_ID, (event) => crossDoor(event, KILLCOUNT_OUTSIDE, KILLCOUNT_INSIDE));
     registry.registerLocInteraction(BANK_DOOR_ID, (event) => crossDoor(event, BANK_OUTSIDE, BANK_INSIDE), "open");
     registry.registerLocInteraction(BANK_DOOR_ID, (event) => crossDoor(event, BANK_OUTSIDE, BANK_INSIDE));
-    registry.registerLocInteraction(ANCIENT_BARRIER_ID, ({ player, services: eventServices }) => showEntryOptions(player, eventServices), "open");
-    registry.registerLocInteraction(ANCIENT_BARRIER_ID, peek, "peek");
-    registry.registerLocInteraction(ANCIENT_BARRIER_ID, ({ player, services: eventServices }) => createRoom(player, eventServices, "solo"), "enter solo");
-    registry.registerLocInteraction(ANCIENT_BARRIER_ID, ({ player, services: eventServices }) => createRoom(player, eventServices, "party"), "enter party");
-    registry.registerLocInteraction(ANCIENT_BARRIER_ID, ({ player, services: eventServices }) => showJoinOptions(player, eventServices), "join party");
+    for (const barrierId of ANCIENT_BARRIER_VARIANT_IDS) {
+        // "Pass" is the live Ancient Barrier action.  The remaining aliases
+        // cover the legacy/custom loc definition and expose the explicit
+        // party controls requested for this instance.
+        for (const action of ["pass", "open", "enter"]) {
+            registry.registerLocInteraction(barrierId, ({ player, services: eventServices }) => showEntryOptions(player, eventServices), action);
+        }
+        registry.registerLocInteraction(barrierId, ({ player, services: eventServices }) => createRoom(player, eventServices, "solo"), "pass (normal)");
+        registry.registerLocInteraction(barrierId, ({ player, services: eventServices }) => createRoom(player, eventServices, "party"), "pass (private)");
+        registry.registerLocInteraction(barrierId, peek, "peek");
+        registry.registerLocInteraction(barrierId, ({ player, services: eventServices }) => createRoom(player, eventServices, "solo"), "enter solo");
+        registry.registerLocInteraction(barrierId, ({ player, services: eventServices }) => createRoom(player, eventServices, "party"), "enter party");
+        registry.registerLocInteraction(barrierId, ({ player, services: eventServices }) => showJoinOptions(player, eventServices), "join party");
+    }
 }
