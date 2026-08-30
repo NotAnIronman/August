@@ -149,6 +149,17 @@ export function handleWidgetActionTargeting(
         }
 
         if (!isInventoryItem) {
+            // Item Use only targets inventory items and world entities (the
+            // world interaction pass handles NPCs, objects, ground items, and
+            // players). It must never fall through and activate an unrelated
+            // interface button, tab, or control while an item is selected.
+            if (ClientState.isItemSelected === 1) {
+                deps.clearSelectedSpell();
+                ClientState.clearItemSelection();
+                deps.getInventory()?.setSelectedSlot?.(null);
+                return true;
+            }
+
             const widgetManager = deps.getWidgetManager();
             const targetFlags =
                 widgetManager?.getWidgetFlags?.(event.widget) ??
@@ -186,6 +197,7 @@ export function handleWidgetActionTargeting(
 
                 deps.clearSelectedSpell();
                 ClientState.clearItemSelection();
+                deps.getInventory()?.setSelectedSlot?.(null);
                 return true;
             }
 
