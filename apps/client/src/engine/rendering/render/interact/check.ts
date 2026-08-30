@@ -1438,19 +1438,6 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
             // opening a Cancel menu here instead consumed the right-click before
             // the widget layer could build the real widget menu.
             const pickOverUi = mouseInUIRegion || mouseOverWidget;
-            // --- TEMP DIAGNOSTIC: remove once the right-click-broken cause is found ---
-            console.log(
-                "[rightclick-diag] pick event",
-                JSON.stringify({
-                    pickOverUi,
-                    mouseInUIRegion,
-                    mouseOverWidget,
-                    anchorX,
-                    anchorY,
-                    willOpenWorldMenu: !pickOverUi,
-                }),
-            );
-            // --- END TEMP DIAGNOSTIC ---
             if (!pickOverUi) {
                 host.osrsClient.menuOpen = true;
                 host.osrsClient.menuOpenedFrame = frameCount;

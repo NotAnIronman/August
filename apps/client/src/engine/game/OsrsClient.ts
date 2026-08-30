@@ -3878,6 +3878,11 @@ export class OsrsClient {
     }
 
     updateWidgets() {
+        // Clear stale widget interaction state before building this frame's menus.
+        // A previous interaction can otherwise leave the UI in a state where
+        // right-click menus are never allowed to open again.
+        this.widgetInteraction?.clearStaleWidgetInteractionState();
+
         const widgetManager = this.widgetManager;
         if (!widgetManager) {
             return;
