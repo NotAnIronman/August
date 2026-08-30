@@ -1,5 +1,7 @@
 import type { PlayerState } from "@server/game/player";
 import type { IScriptRegistry, LocInteractionEvent, ScriptServices } from "@server/game/scripts/types";
+import { PRAYER_RECHARGE_SOUND_ID } from "@august/osrs-engine/prayer/prayers";
+import { SkillId } from "@august/osrs-engine/skill/skills";
 
 const KILLCOUNT_DOOR_ID = 42933;
 const BANK_DOOR_ID = 42934;
@@ -9,6 +11,8 @@ const ANCIENT_BARRIER_ID = 42967;
 // updated to the newer cache revision.
 const ANCIENT_BARRIER_VARIANT_IDS = [42937, 42938, 42939, 42940, ANCIENT_BARRIER_ID] as const;
 const ASHUELOT_REIS_ID = 11289;
+const BANK_BOOTH_ID = 6084;
+const NEX_ALTAR_ID = 42965;
 const NEX_DEFINITION_ID = "nex-room";
 
 const KILLCOUNT_OUTSIDE = Object.freeze({ x: 2861, y: 5219, level: 0 });
@@ -18,6 +22,16 @@ const BANK_INSIDE = Object.freeze({ x: 2900, y: 5203, level: 0 });
 const BARRIER_OUTSIDE = Object.freeze({ x: 2908, y: 5204, level: 0 });
 const BARRIER_INSIDE = Object.freeze({ x: 2910, y: 5203, level: 0 });
 const BANK_TILE = Object.freeze({ x: 2904, y: 5205, level: 0 });
+const INSTANCE_BASE = Object.freeze({ x: 2856, y: 5152 });
+const NEX_NPCS = Object.freeze([
+    Object.freeze({ id: 11278, offsetX: 2925 - INSTANCE_BASE.x, offsetY: 5203 - INSTANCE_BASE.y, level: 0, direction: 3 }),
+    Object.freeze({ id: 11283, offsetX: 2913 - INSTANCE_BASE.x, offsetY: 5215 - INSTANCE_BASE.y, level: 0 }),
+    Object.freeze({ id: 11284, offsetX: 2937 - INSTANCE_BASE.x, offsetY: 5215 - INSTANCE_BASE.y, level: 0 }),
+    Object.freeze({ id: 11285, offsetX: 2937 - INSTANCE_BASE.x, offsetY: 5191 - INSTANCE_BASE.y, level: 0 }),
+    Object.freeze({ id: 11286, offsetX: 2913 - INSTANCE_BASE.x, offsetY: 5191 - INSTANCE_BASE.y, level: 0 }),
+]);
+const altarUses = new WeakMap<PlayerState, number>();
+const ALTAR_COOLDOWN_TICKS = 500;
 
 function crossDoor(
     event: LocInteractionEvent,
@@ -40,14 +54,15 @@ function createRoom(player: PlayerState, services: ScriptServices, access: "solo
         services.messaging.sendGameMessage(player, "You are already inside an instance.");
         return;
     }
-    // The ancient prison occupies the eight-by-eight chunk area beginning at
+    // The ancient prison occupies the eight-by-nine chunk area beginning at
     // 2880,5152. The barrier's instance view begins at 2856,5152, so the
-    // source lands at chunks 3..10 / 0..7 without an offset.
+    // source lands at chunks 3..10 / 0..8 without an offset. The extra north
+    // chunk preserves the arena's upper edge rather than clipping it.
     const templateChunks = services.instances.buildTemplate([{
         sourceBaseX: 2880,
         sourceBaseY: 5152,
         widthChunks: 8,
-        heightChunks: 8,
+        heightChunks: 9,
         sourcePlanes: [0],
         destinationChunkX: 3,
         destinationChunkY: 0,
@@ -60,6 +75,7 @@ function createRoom(player: PlayerState, services: ScriptServices, access: "solo
         templateChunks,
         destination: BARRIER_INSIDE,
         exit: BARRIER_OUTSIDE,
+        npcs: NEX_NPCS,
     });
     if (!room) {
         services.messaging.sendGameMessage(player, "The Ancient Prison is unavailable right now.");
@@ -122,6 +138,15 @@ function peek({ player, services }: LocInteractionEvent): void {
 }
 
 function installNexBank(services: ScriptServices): void {
+    // The booth is part of the base map, not a temporary object created by
+    // this module. Explicitly remove it so Ashuelot is the sole bank access.
+    services.location.removeTemporaryLoc(
+        { worldViewId: -1 },
+        BANK_BOOTH_ID,
+        { x: BANK_TILE.x, y: BANK_TILE.y },
+        BANK_TILE.level,
+        { oldShape: 10, newShape: 10 },
+    );
     services.npc.spawnNpc({
         id: ASHUELOT_REIS_ID,
         x: BANK_TILE.x,
@@ -135,8 +160,30 @@ function installNexBank(services: ScriptServices): void {
     });
 }
 
+function prayAtNexAltar({ player, services, tick }: LocInteractionEvent): void {
+    if (!isNexInstance(player, services)) return;
+    const readyAt = (altarUses.get(player) ?? -Infinity) + ALTAR_COOLDOWN_TICKS;
+    if (tick < readyAt) {
+        services.messaging.sendGameMessage(player, "The gods have already blessed you recently.");
+        return;
+    }
+    const prayer = player.skillSystem.getSkill(SkillId.Prayer);
+    if (prayer.baseLevel + prayer.boost >= prayer.baseLevel) {
+        services.messaging.sendGameMessage(player, "You already have full Prayer points.");
+        return;
+    }
+    services.animation.playPlayerSeq(player, 645);
+    player.skillSystem.setSkillBoost(SkillId.Prayer, prayer.baseLevel);
+    player.prayer.resetDrainAccumulator();
+    services.sound.sendSound(player, PRAYER_RECHARGE_SOUND_ID);
+    altarUses.set(player, tick);
+    services.messaging.sendGameMessage(player, "The gods bless you, restoring your Prayer points.");
+}
+
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
     installNexBank(services);
+    registry.registerLocInteraction(NEX_ALTAR_ID, prayAtNexAltar, "pray");
+    registry.registerLocInteraction(NEX_ALTAR_ID, prayAtNexAltar, "pray-at");
     registry.registerLocInteraction(KILLCOUNT_DOOR_ID, (event) => crossDoor(event, KILLCOUNT_OUTSIDE, KILLCOUNT_INSIDE), "open");
     registry.registerLocInteraction(KILLCOUNT_DOOR_ID, (event) => crossDoor(event, KILLCOUNT_OUTSIDE, KILLCOUNT_INSIDE));
     registry.registerLocInteraction(BANK_DOOR_ID, (event) => crossDoor(event, BANK_OUTSIDE, BANK_INSIDE), "open");

@@ -4,6 +4,7 @@ import { register } from "@server/content/modules/nex-instance";
 import type { IScriptRegistry, LocInteractionHandler } from "@server/game/scripts/types";
 
 const handlers = new Map<string, LocInteractionHandler>();
+const removals: unknown[][] = [];
 const spawns: unknown[] = [];
 const registry = {
     registerLocInteraction: (locId: number, handler: LocInteractionHandler, action?: string) => {
@@ -12,11 +13,15 @@ const registry = {
     },
 } as unknown as IScriptRegistry;
 const services = {
+    location: { removeTemporaryLoc: (...args: unknown[]) => removals.push(args) },
     npc: { spawnNpc: (config: unknown) => { spawns.push(config); return undefined; } },
 };
 
 register(registry, services as never);
 
+assert.deepEqual(removals, [
+    [{ worldViewId: -1 }, 6084, { x: 2904, y: 5205 }, 0, { oldShape: 10, newShape: 10 }],
+]);
 assert.deepEqual(spawns, [
     {
         id: 11289,
@@ -48,5 +53,6 @@ for (const action of ["pass", "pass (normal)", "pass (private)", "peek", "enter 
     assert.ok(handlers.has(`42967:${action}`), `missing Ancient Barrier ${action} handler`);
 }
 assert.ok(handlers.has("42937:pass"), "missing live Ancient Barrier pass handler");
+assert.ok(handlers.has("42965:pray"), "missing Nex altar handler");
 
 console.log("nex instance entry tests passed");
