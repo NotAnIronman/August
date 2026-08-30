@@ -594,6 +594,14 @@ export class ScriptRegistry implements IScriptRegistry {
             : findStackedHandler(this.locTileHandlers, makeLocTileKey(locId, tile));
     }
 
+    hasLocTileInteraction(locId: number): boolean {
+        const prefix = `${locId}#`;
+        for (const key of this.locTileHandlers.keys()) {
+            if (key.startsWith(prefix)) return true;
+        }
+        return false;
+    }
+
     findItemOnItem(
         sourceItemId: number,
         targetItemId: number,

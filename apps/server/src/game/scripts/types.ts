@@ -549,6 +549,8 @@ export interface IScriptRegistry {
         tile: { x: number; y: number; level: number },
         action?: string,
     ): LocInteractionHandler | undefined;
+    /** True when an exact-player-tile loc rule exists for this object id. */
+    hasLocTileInteraction(locId: number): boolean;
     findItemOnItem(
         sourceItemId: number,
         targetItemId: number,

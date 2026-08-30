@@ -157,6 +157,12 @@ export class ScriptRuntime {
             this.registry.findLocTileInteraction(locId, playerTile, scriptEvent.action) ??
             this.registry.findLocInteraction(locId, scriptEvent.action);
         if (!handler) {
+            if (this.registry.hasLocTileInteraction(locId)) {
+                this.services.messaging.sendGameMessage(
+                    scriptEvent.player,
+                    `[objmove] No rule for object ${locId} from ${playerTile.x}, ${playerTile.y}, ${playerTile.level} (action: ${scriptEvent.action || "none"}).`,
+                );
+            }
             this.logger.debug(
                 `[script] no loc handler for id=${locId} action=${scriptEvent.action || "default"}`,
             );
@@ -183,6 +189,12 @@ export class ScriptRuntime {
             this.registry.findLocTileInteraction(locId, playerTile, scriptEvent.action) ??
             this.registry.findLocInteraction(locId, scriptEvent.action);
         if (!handler) {
+            if (this.registry.hasLocTileInteraction(locId)) {
+                this.services.messaging.sendGameMessage(
+                    scriptEvent.player,
+                    `[objmove] No rule for object ${locId} from ${playerTile.x}, ${playerTile.y}, ${playerTile.level} (action: ${scriptEvent.action || "none"}).`,
+                );
+            }
             this.logger.debug(
                 `[script] no loc handler for id=${locId} action=${scriptEvent.action || "default"}`,
             );
@@ -782,6 +794,7 @@ export class ScriptRuntime {
             findLocInteraction: (locId, action) => this.registry.findLocInteraction(locId, action),
             findLocTileInteraction: (locId, tile, action) =>
                 this.registry.findLocTileInteraction(locId, tile, action),
+            hasLocTileInteraction: (locId) => this.registry.hasLocTileInteraction(locId),
             findItemOnItem: (sourceItemId, targetItemId, option) =>
                 this.registry.findItemOnItem(sourceItemId, targetItemId, option),
             findItemOnLoc: (sourceItemId, locId, option) =>
