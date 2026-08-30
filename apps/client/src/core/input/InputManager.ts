@@ -323,6 +323,11 @@ export class InputManager {
         element.addEventListener("touchmove", this.onTouchMove, nonPassive);
         element.addEventListener("touchend", this.onTouchEnd, nonPassive);
         element.addEventListener("contextmenu", this.onContextMenu);
+        // Some rendered UI layers sit above the game canvas. They can receive
+        // the right-button mousedown while still allowing the browser's
+        // context-menu event through. Capture that event at document level as
+        // a fallback so context menus never depend on a particular DOM layer.
+        document.addEventListener("contextmenu", this.onDocumentContextMenu, true);
         element.addEventListener("focusout", this.onFocusOut);
     }
 
@@ -344,6 +349,7 @@ export class InputManager {
         this.element.removeEventListener("touchmove", this.onTouchMove);
         this.element.removeEventListener("touchend", this.onTouchEnd);
         this.element.removeEventListener("contextmenu", this.onContextMenu);
+        document.removeEventListener("contextmenu", this.onDocumentContextMenu, true);
         this.element.removeEventListener("focusout", this.onFocusOut);
         this.removeDocumentGrab();
         this.touchAdapter.destroy();
@@ -923,9 +929,50 @@ export class InputManager {
         event.preventDefault();
     };
 
+    private captureContextMenu(event: MouseEvent): void {
+        if (!this.element || this.clickMode1 === ClickMode.RIGHT) return;
+        const bounds = this.element.getBoundingClientRect();
+        if (
+            event.clientX < bounds.left ||
+            event.clientX > bounds.right ||
+            event.clientY < bounds.top ||
+            event.clientY > bounds.bottom
+        ) {
+            return;
+        }
+        const [x, y] = getMousePos(this.element, event);
+        this.clickMode1 = ClickMode.RIGHT;
+        // This is a fallback for a missed mousedown, so do not leave a held
+        // state behind. The frame pulse is all the menu pipeline requires.
+        this.clickMode2 = ClickMode.NONE;
+        this.clickX = x;
+        this.clickY = y;
+        this.mouseX = x;
+        this.mouseY = y;
+        this.idleTime = 0;
+        this.lastInputTimeMs = this.nowMs();
+    }
+
     private onContextMenu = (event: MouseEvent) => {
+        this.captureContextMenu(event);
         event.preventDefault();
-        // Position already captured in onMouseDown
+    };
+
+    private onDocumentContextMenu = (event: MouseEvent) => {
+        this.captureContextMenu(event);
+        // Suppress the browser menu only when the event belongs to this game
+        // canvas; unrelated page controls retain their normal behavior.
+        if (this.element) {
+            const bounds = this.element.getBoundingClientRect();
+            if (
+                event.clientX >= bounds.left &&
+                event.clientX <= bounds.right &&
+                event.clientY >= bounds.top &&
+                event.clientY <= bounds.bottom
+            ) {
+                event.preventDefault();
+            }
+        }
     };
 
     // === Keyboard handlers - OSRS GameApplet.keyPressed/keyReleased ===
