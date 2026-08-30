@@ -59,6 +59,24 @@ assert.deepEqual(equipmentBeforePlayerBasIsReady, {
     offsetY: 0,
 });
 
+// The bank's View worn items pane uses the same static equipment portrait.
+const bankWornItems = resolvePlayerModelPresentation({
+    groupId: 12,
+    contentType: 328,
+    configuredSequenceId: 424,
+    configuredZoom: 2_000,
+    modelFrame: 7,
+    idleSequenceId: 808,
+    movementSequenceId: 819,
+    movementFrame: 4,
+});
+assert.deepEqual(bankWornItems, {
+    sequenceId: 808,
+    sequenceFrame: 0,
+    zoom: EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM,
+    offsetY: 0,
+});
+
 // Character creator (PlayerDesign, group 679) is a portrait too: it must
 // stay in the idle stance, have its zoom capped (now ~15% smaller than
 // equipment stats' cap), and be nudged down toward the Confirm button

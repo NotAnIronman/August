@@ -399,6 +399,9 @@ export class BankingManager implements BankingProvider {
         if (!(itemId > 0) || !(quantity > 0)) return false;
         const normalizedId = this.normalizeBankItemId(itemId);
         const bank = this.getBank(player);
+        const targetTab = Number.isFinite(tab)
+            ? Math.max(0, Math.min(BankLimits.MAX_TABS, Math.trunc(tab as number)))
+            : 0;
 
         // Try to stack with existing item
         for (const entry of bank) {
@@ -409,7 +412,12 @@ export class BankingManager implements BankingProvider {
             }
         }
 
-        // Find empty slot
+        // Keep occupied entries compact before taking an empty slot. This makes a
+        // new stack append after the existing contents of its tab instead of
+        // filling an earlier hole and appearing in a surprising position.
+        this.compactBankEntries(bank);
+
+        // Find the first free slot after the compacted contents.
         const empty = bank.find(
             (entry) =>
                 entry.itemId <= 0 ||
@@ -423,12 +431,7 @@ export class BankingManager implements BankingProvider {
         empty.quantity = quantity;
         empty.placeholder = false;
         empty.filler = false;
-        const tabNormalized = Number.isFinite(tab) ? Math.max(0, tab as number) : undefined;
-        if (tabNormalized !== undefined) {
-            empty.tab = tabNormalized;
-        } else {
-            empty.tab = 0;
-        }
+        empty.tab = targetTab;
         return true;
     }
 
@@ -687,19 +690,6 @@ export class BankingManager implements BankingProvider {
                 currentSlot++;
             }
 
-            // Fill remaining slots as empty
-            while (currentSlot < capacity) {
-                slots.push({
-                    slot: currentSlot,
-                    itemId: -1,
-                    quantity: 0,
-                    placeholder: false,
-                    filler: false,
-                    tab: 0,
-                });
-                currentSlot++;
-            }
-
             return { kind: "snapshot", capacity, slots };
         } catch (err) {
             this.services.logger.warn("[bank] failed to build snapshot", err);
@@ -788,13 +778,14 @@ export class BankingManager implements BankingProvider {
      */
     depositInventory(player: PlayerState, tab?: number): boolean {
         const inv = this.services.getInventory(player);
+        const targetTab = tab ?? player.bank.getBankCurrentTab();
         let moved = false;
         let bankFull = false;
 
         for (let i = 0; i < inv.length; i++) {
             const entry = inv[i];
             if (!entry || entry.itemId <= 0 || entry.quantity <= 0) continue;
-            if (!this.addItemToBank(player, entry.itemId, entry.quantity, tab)) {
+            if (!this.addItemToBank(player, entry.itemId, entry.quantity, targetTab)) {
                 if (!moved) bankFull = true;
                 break;
             }
@@ -829,6 +820,7 @@ export class BankingManager implements BankingProvider {
         const equipQty = this.services.getEquipQtyArray(player);
         let moved = false;
         let bankFull = false;
+        const targetTab = tab ?? player.bank.getBankCurrentTab();
 
         for (let i = 0; i < equip.length; i++) {
             const itemId = equip[i];
@@ -838,7 +830,7 @@ export class BankingManager implements BankingProvider {
                 i === EquipmentSlot.AMMO
                     ? Math.max(1, qtyRaw)
                     : Math.min(1, Math.max(0, qtyRaw)) || 1;
-            if (!this.addItemToBank(player, itemId, qty, tab)) {
+            if (!this.addItemToBank(player, itemId, qty, targetTab)) {
                 if (!moved) bankFull = true;
                 break;
             }
@@ -855,7 +847,7 @@ export class BankingManager implements BankingProvider {
             });
         }
         if (moved) {
-            this.refreshEquipmentBankState(player, { bankChanged: true, tab });
+            this.refreshEquipmentBankState(player, { bankChanged: true, tab: targetTab });
         }
         return moved;
     }
@@ -875,7 +867,8 @@ export class BankingManager implements BankingProvider {
             equipSlot === EquipmentSlot.AMMO
                 ? Math.max(1, qtyRaw)
                 : Math.min(1, Math.max(0, qtyRaw)) || 1;
-        if (!this.addItemToBank(player, itemId, quantity, tab)) {
+        const targetTab = tab ?? player.bank.getBankCurrentTab();
+        if (!this.addItemToBank(player, itemId, quantity, targetTab)) {
             this.services.queueChatMessage({
                 messageType: "game",
                 text: "Your bank is full.",
@@ -886,7 +879,7 @@ export class BankingManager implements BankingProvider {
 
         equip[equipSlot] = -1;
         equipQty[equipSlot] = 0;
-        this.refreshEquipmentBankState(player, { bankChanged: true, tab });
+        this.refreshEquipmentBankState(player, { bankChanged: true, tab: targetTab });
         return true;
     }
 
@@ -947,7 +940,9 @@ export class BankingManager implements BankingProvider {
 
         const amount = Math.min(entry.quantity, quantity);
         const tabNormalized =
-            Number.isFinite(tab) && tab! > 0 ? Math.max(0, tab as number) : undefined;
+            Number.isFinite(tab) && tab! > 0
+                ? Math.max(0, tab as number)
+                : player.bank.getBankCurrentTab();
         if (!this.addItemToBank(player, entry.itemId, amount, tabNormalized)) {
             return { ok: false, message: "Your bank is full." };
         }
@@ -1382,6 +1377,30 @@ export class BankingManager implements BankingProvider {
         return true;
     }
 
+    /** Reorder two populated tabs exactly like dragging one tab icon onto another. */
+    private moveTab(player: PlayerState, fromTab: number, toTab: number): boolean {
+        if (fromTab < 1 || fromTab > BankLimits.MAX_TABS || toTab < 1 || toTab > BankLimits.MAX_TABS) return false;
+        if (fromTab === toTab || player.bank.getBankTabSize(fromTab) <= 0 || player.bank.getBankTabSize(toTab) <= 0) return false;
+
+        for (const entry of this.getBank(player)) {
+            if (!entry || entry.itemId <= 0 || entry.filler) continue;
+            const tab = entry.tab ?? 0;
+            if (tab === fromTab) entry.tab = toTab;
+            else if (fromTab < toTab && tab > fromTab && tab <= toTab) entry.tab = tab - 1;
+            else if (fromTab > toTab && tab >= toTab && tab < fromTab) entry.tab = tab + 1;
+        }
+
+        const currentTab = player.bank.getBankCurrentTab();
+        if (currentTab === fromTab) player.bank.setBankCurrentTab(toTab);
+        else if (fromTab < toTab && currentTab > fromTab && currentTab <= toTab) player.bank.setBankCurrentTab(currentTab - 1);
+        else if (fromTab > toTab && currentTab >= toTab && currentTab < fromTab) player.bank.setBankCurrentTab(currentTab + 1);
+
+        this.queueBankSnapshot(player);
+        this.sendBankTabVarbits(player);
+        this.services.queueVarbit(player.id, BankVarbit.CURRENT_TAB, player.bank.getBankCurrentTab());
+        return true;
+    }
+
     setTabDisplayMode(player: PlayerState, mode: number): boolean {
         if (!Number.isFinite(mode)) return false;
         const normalized = Math.max(0, Math.min(3, Math.trunc(mode)));
@@ -1587,6 +1606,19 @@ export class BankingManager implements BankingProvider {
             targetGroup === WidgetGroup.BANK_MAIN
                 ? this.tabIndexFromDragTarget(targetChild, targetSlot)
                 : undefined;
+
+        // Bank tab icons are draggable even when they already hold items.
+        if (
+            sourceGroup === WidgetGroup.BANK_MAIN &&
+            sourceChild === BankMainChild.TABS &&
+            targetGroup === WidgetGroup.BANK_MAIN &&
+            targetChild === BankMainChild.TABS
+        ) {
+            const fromTab = slotToTabIndex(sourceSlot);
+            const toTab = slotToTabIndex(targetSlot);
+            this.moveTab(player, fromTab, toTab);
+            return;
+        }
 
         if (targetTabIndex !== undefined) {
             if (sourceGroup === WidgetGroup.BANK_SIDE && sourceChild === BankSideChild.ITEMS) {
