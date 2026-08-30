@@ -286,13 +286,15 @@ export abstract class GameRenderer<T extends MapSquare = MapSquare> extends Rend
             }
         }
 
-        // Toggle hover devoverlay with F3
-        if (inputManager.isKeyDownEvent("F3")) {
+        // Toggle hover devoverlay with Numpad1/Numpad2 (moved off F3 — F-keys
+        // conflict with browser/OS shortcuts and are easy to hit by accident).
+        if (inputManager.isKeyDownEvent("Numpad1") || inputManager.isKeyDownEvent("Numpad2")) {
             this.osrsClient.hoverOverlayEnabled = !this.osrsClient.hoverOverlayEnabled;
         }
 
-        // Toggle middle-mouse camera drag direction with F4 (see ClientPreferences.invertCameraDragX)
-        if (inputManager.isKeyDownEvent("F4")) {
+        // Toggle middle-mouse camera drag direction with Numpad3 (moved off F4;
+        // see ClientPreferences.invertCameraDragX)
+        if (inputManager.isKeyDownEvent("Numpad3")) {
             const next = !getClientPreference("invertCameraDragX");
             setClientPreference("invertCameraDragX", next);
             chatHistory.addMessage(

@@ -7629,6 +7629,24 @@ export class OsrsClient {
         this.menuFrozenSimpleEntriesVersion = 0;
         this.menuActiveSimpleEntries = [];
         this.menuState.reset();
+        // Also clear the separate widget-level right-click menu (canvas.__ui.menu).
+        // It's a distinct piece of state from menuOpen above — e.g. right-clicking
+        // an inventory item opens a "widgets"-sourced menu here, not the world one —
+        // and widgetClickGuard blocks ALL widget clicks (including focusing chat to
+        // type) as long as either one reports open. Some ways a widget menu ends
+        // (an underlying interface auto-closing, another right-click elsewhere, etc.)
+        // don't go through ChooseOptionMenu's own close paths, which previously left
+        // it permanently stuck open with no other code responsible for resetting it —
+        // closeMenu() is already called from everywhere as the general "close
+        // whatever might be open" cleanup, so it's the natural single place to
+        // guarantee both menu systems always close together.
+        try {
+            const ui = (this.renderer?.canvas as any)?.__ui;
+            if (ui?.menu) {
+                ui.menu.open = false;
+                ui.menu = undefined;
+            }
+        } catch {}
         this.renderer.canvas.focus();
         this.widgetManager?.invalidateAll?.();
     };

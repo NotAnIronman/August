@@ -7,9 +7,8 @@ import {
 } from "@august/osrs-engine/skill/skills";
 import { getEquipmentItemDefinition, getItemDefinition } from "@server/data/items";
 import { SpellbookName } from "@server/data/spellWidgetLoader";
-import { getCollectionLogItems } from "@server/game/collectionlog";
 import { clearAutocastState } from "@server/game/combat/AutocastState";
-import { ALL_RUNE_ITEM_IDS, RUNE_IDS } from "@server/game/data/RuneDataProvider";
+import { ALL_RUNE_ITEM_IDS } from "@server/game/data/RuneDataProvider";
 import {
     isDeveloperInstakillEnabled,
     isDeveloperGodmodeEnabled,
@@ -30,30 +29,6 @@ import {
 } from "@server/game/commands/CommandDispatch";
 import type { DialogueTreeJson } from "@server/game/dialogue/DialogueTree";
 
-const DEBUG_SCROLL_TITLE = "Clue Compass";
-const DEBUG_SCROLL_OPTIONS = [
-    "Arceuus Library",
-    "Barrows",
-    "Catherby",
-    "Champions' Guild",
-    "Draynor Village",
-    "Falador Park",
-    "Fishing Guild",
-    "Hosidius Kitchen",
-    "Karamja Volcano",
-    "Lighthouse",
-    "Lumbridge Swamp",
-    "Mort'ton",
-    "Musa Point",
-    "Port Sarim",
-    "Seers' Village",
-    "Shayzien",
-    "Varrock Palace",
-    "Waterbirth Island",
-    "Yanille",
-    "Zanaris",
-];
-
 const DEFAULT_CHAT_PREFIX = "";
 
 // Keep the developer command usable while a gamemode's rune provider is still
@@ -70,17 +45,6 @@ function getAllRuneItemIdsForCommand(): readonly number[] {
         (itemId) => Number.isInteger(itemId) && itemId > 0,
     );
     return configuredRuneIds.length > 0 ? configuredRuneIds : DEFAULT_ALL_RUNE_ITEM_IDS;
-}
-
-function pickRandomUnownedCollectionLogItemId(player: PlayerState): number | null {
-    const candidates = Array.from(getCollectionLogItems()).filter(
-        (itemId) => !player.collectionLog.hasItem(itemId),
-    );
-    if (candidates.length <= 0) {
-        return null;
-    }
-    const index = Math.floor(Math.random() * candidates.length);
-    return candidates[index] ?? null;
 }
 
 type InventoryLoadoutEntry = {
@@ -107,6 +71,64 @@ function replaceInventoryContents(
     }
 
     return true;
+}
+
+const SPELLBOOK_MENU_OPTIONS: ReadonlyArray<{ label: string; name: SpellbookName }> = [
+    { label: "Standard", name: SpellbookName.Standard },
+    { label: "Ancient Magicks", name: SpellbookName.Ancient },
+    { label: "Lunar", name: SpellbookName.Lunar },
+    { label: "Arceuus", name: SpellbookName.Arceuus },
+];
+
+// Varbit 4070 controls the active spellbook in CS2 scripts:
+// 0 = standard, 1 = ancient, 2 = lunar, 3 = arceuus
+const SPELLBOOK_VALUES: Record<SpellbookName, number> = {
+    standard: 0,
+    ancient: 1,
+    lunar: 2,
+    arceuus: 3,
+};
+
+function switchSpellbook(
+    player: PlayerState,
+    spellbookName: SpellbookName,
+    services: MessageHandlerServices,
+): void {
+    const value = SPELLBOOK_VALUES[spellbookName];
+    // Update server-side state
+    player.varps.setVarbitValue(VARBIT_ACTIVE_SPELLBOOK, value);
+    // Transmit varbit to client
+    services.queueVarbit(player.id, VARBIT_ACTIVE_SPELLBOOK, value);
+
+    // Clear autocast when switching to a spellbook that doesn't contain the
+    // current autocast spell.
+    if (player.combat.autocastEnabled && player.combat.spellId > 0) {
+        const autocastSpellData = getSpellData(player.combat.spellId);
+        if (!autocastSpellData || autocastSpellData.spellbook !== spellbookName) {
+            clearAutocastState(player, {
+                sendVarbit: (p, varbitId, varbitValue) => services.queueVarbit(p.id, varbitId, varbitValue),
+            });
+        }
+    }
+    // Run CS2 script 2610 to redraw the spellbook interface, passing the
+    // varbit inline so the script sees it immediately.
+    const SCRIPT_MAGIC_SPELLBOOK_REDRAW = 2610;
+    const SPELLBOOK_REDRAW_ARGS: (number | string)[] = [
+        14286851, 14287045, 14287054, 14286849, 14287051, 14287052, 14287053, 14286850, 14287047,
+        14287050, 0, "Info", "Filters",
+    ];
+    services.queueWidgetEvent(player.id, {
+        action: "run_script",
+        scriptId: SCRIPT_MAGIC_SPELLBOOK_REDRAW,
+        args: SPELLBOOK_REDRAW_ARGS,
+        varbits: { [VARBIT_ACTIVE_SPELLBOOK]: value },
+    });
+    services.queueChatMessage({
+        messageType: "game",
+        text: `Switched to the ${spellbookName} spellbook.`,
+        targetPlayerIds: [player.id],
+    });
+    logger.info(`[cmd] ::spellbook - Player ${player.id} switched to ${spellbookName} spellbook`);
 }
 
 // ========== Quest unlock data ==========
@@ -364,7 +386,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     return;
                 }
 
-                if (root === "help" || root === "commands") {
+                if (root === "commands") {
                     const available = listAvailableCommands(
                         services.getPlayerPermission(sender),
                         services.listRegisteredCommands(),
@@ -573,7 +595,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     return;
                 }
 
-                if (root === "allrunes") {
+                if (root === "runes") {
                     const quantityArg = parts[1];
                     const quantity =
                         quantityArg === undefined
@@ -582,7 +604,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     if (!Number.isFinite(quantity) || quantity <= 0) {
                         services.queueChatMessage({
                             messageType: "game",
-                            text: "Usage: ::allrunes [quantity]",
+                            text: "Usage: ::runes [quantity]",
                             targetPlayerIds: [sender.id],
                         });
                         return;
@@ -591,7 +613,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     try {
                         services.clearActionsInGroup(sender.id, "inventory");
                     } catch (err) {
-                        logger.warn("Failed to clear inventory actions on ::allrunes command", err);
+                        logger.warn("Failed to clear inventory actions on ::runes command", err);
                     }
 
                     const runeItemIds = getAllRuneItemIdsForCommand();
@@ -602,7 +624,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     if (!replaceInventoryContents(sender, runeLoadout)) {
                         services.queueChatMessage({
                             messageType: "game",
-                            text: "Unable to load ::allrunes into your inventory.",
+                            text: "Unable to load ::runes into your inventory.",
                             targetPlayerIds: [sender.id],
                         });
                         return;
@@ -619,39 +641,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     return;
                 }
 
-                if (root === "randomitem") {
-                    const itemId = pickRandomUnownedCollectionLogItemId(sender);
-                    if (typeof itemId !== "number" || !Number.isFinite(itemId) || itemId <= 0) {
-                        services.queueChatMessage({
-                            messageType: "game",
-                            text: "No unowned collection log items remain for ::randomitem.",
-                            targetPlayerIds: [sender.id],
-                        });
-                        return;
-                    }
-
-                    const addResult = sender.items.addItem(itemId, 1, {
-                        assureFullInsertion: true,
-                    });
-                    if (addResult.completed !== 1) {
-                        services.queueChatMessage({
-                            messageType: "game",
-                            text: "Not enough inventory space for ::randomitem.",
-                            targetPlayerIds: [sender.id],
-                        });
-                        return;
-                    }
-
-                    services.trackCollectionLogItem(sender, itemId);
-
-                    const itemName = getItemDefinition(itemId)?.name?.trim() || `Item ${itemId}`;
-                    logger.info(
-                        `[cmd] ::randomitem - Gave player ${sender.id} collection log item ${itemId} (${itemName})`,
-                    );
-                    return;
-                }
-
-                if (root === "maxall") {
+                if (root === "max") {
                     const targetXp = getXpForLevel(MAX_REAL_LEVEL);
                     let changed = 0;
                     for (const skillId of SKILL_IDS) {
@@ -679,12 +669,12 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                         targetPlayerIds: [sender.id],
                     });
                     logger.info(
-                        `[cmd] ::maxall - Player ${sender.id} set all ${SKILL_IDS.length} skills to level 99 (${changed} level-up event(s))`,
+                        `[cmd] ::max - Player ${sender.id} set all ${SKILL_IDS.length} skills to level 99 (${changed} level-up event(s))`,
                     );
                     return;
                 }
 
-                if (root === "resetstats") {
+                if (root === "reset") {
                     // Restore genuine level-1 defaults, with the standard
                     // level-10 Hitpoints start.  This deliberately clears
                     // temporary boosts as well, so a test starts from a
@@ -707,116 +697,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                         text: "All stats reset to their normal starting levels.",
                         targetPlayerIds: [sender.id],
                     });
-                    logger.info(`[cmd] ::resetstats - Reset all stats for player ${sender.id}`);
-                    return;
-                }
-
-                if (root === "smithing") {
-                    const levelArgRaw = parts[1];
-                    const levelArg = levelArgRaw ? parseInt(levelArgRaw, 10) : NaN;
-                    if (!Number.isFinite(levelArg)) {
-                        services.queueChatMessage({
-                            messageType: "game",
-                            text: "Usage: ::smithing <1-99>",
-                            targetPlayerIds: [sender.id],
-                        });
-                        return;
-                    }
-
-                    const targetLevel = Math.min(MAX_REAL_LEVEL, Math.max(1, Math.floor(levelArg)));
-                    const previousLevel = sender.skillSystem.getSkill(SkillId.Smithing).baseLevel;
-                    sender.skillSystem.setSkillXp(SkillId.Smithing, getXpForLevel(targetLevel));
-
-                    if (targetLevel > previousLevel && services.eventBus) {
-                        services.eventBus.emit("skill:levelUp", {
-                            player: sender,
-                            skillId: SkillId.Smithing,
-                            oldLevel: previousLevel,
-                            newLevel: targetLevel,
-                        });
-                    }
-
-                    services.queueChatMessage({
-                        messageType: "game",
-                        text: `Your Smithing level is now ${targetLevel}.`,
-                        targetPlayerIds: [sender.id],
-                    });
-                    logger.info(
-                        `[cmd] ::smithing - Player ${sender.id} set Smithing to ${targetLevel}`,
-                    );
-                    return;
-                }
-
-                if (root === "rubytest") {
-                    const grants: Array<{ itemId: number; quantity: number }> = [
-                        { itemId: 9339, quantity: 100 },
-                        { itemId: RUNE_IDS.COSMIC, quantity: 20 },
-                        { itemId: RUNE_IDS.FIRE, quantity: 100 },
-                        { itemId: RUNE_IDS.BLOOD, quantity: 20 },
-                    ];
-                    const added: Array<{ itemId: number; quantity: number }> = [];
-
-                    for (const grant of grants) {
-                        const tx = sender.items.addItem(grant.itemId, grant.quantity, {
-                            assureFullInsertion: true,
-                        });
-                        if (tx?.completed < grant.quantity) {
-                            for (const prior of added) {
-                                sender.items.removeItem(prior.itemId, prior.quantity, {
-                                    assureFullRemoval: false,
-                                });
-                            }
-                            services.queueChatMessage({
-                                messageType: "game",
-                                text: "Not enough inventory space for ::rubytest.",
-                                targetPlayerIds: [sender.id],
-                            });
-                            return;
-                        }
-                        added.push({ itemId: grant.itemId, quantity: grant.quantity });
-                    }
-
-                    const beforeMagic = sender.skillSystem.getSkill(SkillId.Magic).baseLevel;
-                    if (beforeMagic < 49) {
-                        sender.skillSystem.setSkillXp(SkillId.Magic, getXpForLevel(49));
-                    }
-
-                    services.queueChatMessage({
-                        messageType: "game",
-                        text: "Ruby enchant test pack added: ruby bolts + runes (10 sets).",
-                        targetPlayerIds: [sender.id],
-                    });
-                    logger.info(
-                        `[cmd] ::rubytest - Gave player ${
-                            sender.id
-                        } ruby enchant test pack; magic ${beforeMagic}->${Math.max(
-                            beforeMagic,
-                            49,
-                        )}`,
-                    );
-                    return;
-                }
-
-                if (root === "scroll") {
-                    services.openIndexedMenu(sender, {
-                        title: DEBUG_SCROLL_TITLE,
-                        options: DEBUG_SCROLL_OPTIONS,
-                        onSelect: (player, optionIndex, optionLabel) => {
-                            services.queueChatMessage({
-                                messageType: "game",
-                                text: `Selected ${optionIndex + 1}: ${optionLabel}`,
-                                targetPlayerIds: [player.id],
-                            });
-                            logger.info(
-                                `[cmd] ::scroll - Player ${player.id} selected option ${
-                                    optionIndex + 1
-                                } (${optionLabel})`,
-                            );
-                        },
-                    });
-                    logger.info(
-                        `[cmd] ::scroll - Opened menu_indexed test menu for player ${sender.id}`,
-                    );
+                    logger.info(`[cmd] ::reset - Reset all stats for player ${sender.id}`);
                     return;
                 }
 
@@ -901,7 +782,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     return;
                 }
 
-                if (root === "bank" || root === "devbank") {
+                if (root === "devbank") {
                     const banking = services.getGamemodeServices().banking as
                         | BankingServices
                         | undefined;
@@ -927,41 +808,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     return;
                 }
 
-                if (cmd === "levelup") {
-                    const skillIds = [
-                        0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-                        22, 23,
-                    ];
-                    const randomSkill = skillIds[Math.floor(Math.random() * skillIds.length)];
-                    const skill = sender.skillSystem.getSkill(randomSkill as SkillId);
-                    const currentLevel = skill.baseLevel;
-                    const newLevel = Math.min(99, currentLevel + 1);
-                    if (newLevel > currentLevel && sender.skillSystem.setSkillXp) {
-                        const newXp = getXpForLevel(newLevel);
-                        sender.skillSystem.setSkillXp(randomSkill, newXp);
-                        if (services.eventBus) {
-                            services.eventBus.emit("skill:levelUp", {
-                                player: sender,
-                                skillId: randomSkill as any,
-                                oldLevel: currentLevel,
-                                newLevel,
-                            });
-                        }
-                        logger.info(
-                            `[cmd] ::levelup - Player ${sender.id} leveled up skill ${randomSkill} to ${newLevel}`,
-                        );
-                    }
-                } else if (cmd === "whip") {
-                    const tx = sender.items.addItem(4151, 1, { assureFullInsertion: true });
-                    if (tx.completed === 1) {
-                        logger.info(`[cmd] ::whip - Gave player ${sender.id} an Abyssal whip`);
-                    }
-                } else if (cmd === "bond") {
-                    const tx = sender.items.addItem(50000, 1, { assureFullInsertion: true });
-                    if (tx.completed === 1) {
-                        logger.info(`[cmd] ::bond - Gave player ${sender.id} a $5 Bond`);
-                    }
-                } else if (cmd.startsWith("item ")) {
+                if (cmd.startsWith("item ")) {
                     const parts = cmd.split(" ").filter((p) => p.length > 0);
                     const itemId = parseInt(parts[1], 10);
                     const quantity = parseInt(parts[2], 10) || 1;
@@ -975,18 +822,7 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                             );
                         }
                     }
-                } else if (cmd === "kill") {
-                    logger.info(`[cmd] ::kill - Player ${sender.id} killed themselves`);
-                    sender.skillSystem.setHitpointsCurrent(0);
-                } else if (cmd === "onehealth") {
-                    sender.skillSystem.setHitpointsCurrent(1);
-                    services.queueChatMessage({
-                        messageType: "game",
-                        text: "Your Hitpoints have been set to 1.",
-                        targetPlayerIds: [sender.id],
-                    });
-                    logger.info(`[cmd] ::onehealth - Player ${sender.id} set Hitpoints to 1`);
-                } else if (root === "godmode") {
+                } else if (root === "gm") {
                     const requestedState = parts[1];
                     const currentlyEnabled = isDeveloperGodmodeEnabled(sender);
                     const enabled =
@@ -1014,9 +850,9 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                         targetPlayerIds: [sender.id],
                     });
                     logger.info(
-                        `[cmd] ::godmode - Player ${sender.id} ${enabled ? "enabled" : "disabled"} developer godmode`,
+                        `[cmd] ::gm - Player ${sender.id} ${enabled ? "enabled" : "disabled"} developer godmode`,
                     );
-                } else if (root === "instakill") {
+                } else if (root === "insta") {
                     const requestedState = parts[1];
                     const currentlyEnabled = isDeveloperInstakillEnabled(sender);
                     const enabled =
@@ -1034,73 +870,19 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                         targetPlayerIds: [sender.id],
                     });
                     logger.info(
-                        `[cmd] ::instakill - Player ${sender.id} ${enabled ? "enabled" : "disabled"} developer instakill`,
+                        `[cmd] ::insta - Player ${sender.id} ${enabled ? "enabled" : "disabled"} developer instakill`,
                     );
-                } else if (
-                    root === SpellbookName.Standard ||
-                    root === SpellbookName.Ancient ||
-                    root === SpellbookName.Lunar ||
-                    root === SpellbookName.Arceuus
-                ) {
-                    // Varbit 4070 controls the active spellbook in CS2 scripts
-                    // 0 = standard, 1 = ancient, 2 = lunar, 3 = arceuus
-                    // Note: "::normal" is intercepted client-side by the OSRS CS2 chatbox
-                    // script (it toggles display mode), so we use "::standard" instead.
-                    const SPELLBOOK_VALUES: Record<string, number> = {
-                        standard: 0,
-                        ancient: 1,
-                        lunar: 2,
-                        arceuus: 3,
-                    };
-                    const value = SPELLBOOK_VALUES[root]!;
-                    // Update server-side state
-                    sender.varps.setVarbitValue(VARBIT_ACTIVE_SPELLBOOK, value);
-                    // Transmit varbit to client
-                    services.queueVarbit(sender.id, VARBIT_ACTIVE_SPELLBOOK, value);
-
-                    // Clear autocast when switching to a spellbook
-                    // that doesn't contain the current autocast spell.
-                    if (sender.combat.autocastEnabled && sender.combat.spellId > 0) {
-                        const autocastSpellData = getSpellData(sender.combat.spellId);
-                        if (!autocastSpellData || autocastSpellData.spellbook !== root) {
-                            clearAutocastState(sender, {
-                                sendVarbit: (player, varbitId, varbitValue) =>
-                                    services.queueVarbit(player.id, varbitId, varbitValue),
-                            });
-                        }
-                    }
-                    // Run CS2 script 2610 to redraw the spellbook interface,
-                    // passing the varbit inline so the script sees it immediately
-                    const SCRIPT_MAGIC_SPELLBOOK_REDRAW = 2610;
-                    const SPELLBOOK_REDRAW_ARGS: (number | string)[] = [
-                        14286851,
-                        14287045,
-                        14287054,
-                        14286849,
-                        14287051,
-                        14287052,
-                        14287053,
-                        14286850,
-                        14287047,
-                        14287050,
-                        0,
-                        "Info",
-                        "Filters",
-                    ];
-                    services.queueWidgetEvent(sender.id, {
-                        action: "run_script",
-                        scriptId: SCRIPT_MAGIC_SPELLBOOK_REDRAW,
-                        args: SPELLBOOK_REDRAW_ARGS,
-                        varbits: { [VARBIT_ACTIVE_SPELLBOOK]: value },
+                } else if (root === "spellbook") {
+                    services.openIndexedMenu(sender, {
+                        title: "Select Spellbook",
+                        options: SPELLBOOK_MENU_OPTIONS.map((o) => o.label),
+                        onSelect: (player, optionIndex) => {
+                            const choice = SPELLBOOK_MENU_OPTIONS[optionIndex];
+                            if (!choice) return;
+                            switchSpellbook(player, choice.name, services);
+                        },
                     });
-                    services.queueChatMessage({
-                        messageType: "game",
-                        text: `Switched to the ${root} spellbook.`,
-                        targetPlayerIds: [sender.id],
-                    });
-                    logger.info(
-                        `[cmd] ::${root} - Player ${sender.id} switched to ${root} spellbook`,
-                    );
+                    logger.info(`[cmd] ::spellbook - Opened spellbook menu for player ${sender.id}`);
                     return;
                 }
 
