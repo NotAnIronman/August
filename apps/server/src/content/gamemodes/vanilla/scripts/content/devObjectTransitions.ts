@@ -148,12 +148,21 @@ export function registerDevObjectTransitions(registry: IScriptRegistry, services
         for (const registration of registrations.values()) registration.unregister();
         registrations.clear();
         for (const transition of catalog.transitions) {
-            registrations.set(transition.id, registry.registerLocTileInteraction(
-                transition.locId,
-                transition.from,
-                (event) => executeTransition(event, transition),
-                transition.action,
-            ));
+            const handler = (event: LocInteractionEvent) => executeTransition(event, transition);
+            const actionRegistration = registry.registerLocTileInteraction(
+                transition.locId, transition.from, handler, transition.action,
+            );
+            // Keep a narrow, source-tile-only fallback for packets that arrive
+            // without an action label. It cannot affect other copies of the loc.
+            const fallbackRegistration = registry.registerLocTileInteraction(
+                transition.locId, transition.from, handler,
+            );
+            registrations.set(transition.id, {
+                unregister: () => {
+                    actionRegistration.unregister();
+                    fallbackRegistration.unregister();
+                },
+            });
         }
     };
 

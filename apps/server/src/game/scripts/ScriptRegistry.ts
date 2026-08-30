@@ -585,7 +585,13 @@ export class ScriptRegistry implements IScriptRegistry {
         tile: { x: number; y: number; level: number },
         action?: string,
     ): LocInteractionHandler | undefined {
-        return findStackedHandler(this.locTileHandlers, makeLocTileKey(locId, tile, action));
+        const direct = findStackedHandler(this.locTileHandlers, makeLocTileKey(locId, tile, action));
+        if (direct) return direct;
+        // Object packets occasionally omit their textual action. A tile rule
+        // may deliberately use an action-agnostic fallback for that case.
+        return action === undefined
+            ? undefined
+            : findStackedHandler(this.locTileHandlers, makeLocTileKey(locId, tile));
     }
 
     findItemOnItem(
