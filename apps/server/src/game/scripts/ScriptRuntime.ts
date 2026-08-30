@@ -148,7 +148,14 @@ export class ScriptRuntime {
         const scriptEvent: LocInteractionEvent = { ...event, services: this.services };
         const locId = scriptEvent.locId;
         const tick = scriptEvent.tick;
-        const handler = this.registry.findLocInteraction(locId, scriptEvent.action);
+        const playerTile = {
+            x: scriptEvent.player.tileX,
+            y: scriptEvent.player.tileY,
+            level: scriptEvent.player.level,
+        };
+        const handler =
+            this.registry.findLocTileInteraction(locId, playerTile, scriptEvent.action) ??
+            this.registry.findLocInteraction(locId, scriptEvent.action);
         if (!handler) {
             this.logger.debug(
                 `[script] no loc handler for id=${locId} action=${scriptEvent.action || "default"}`,
@@ -167,7 +174,14 @@ export class ScriptRuntime {
     runLocInteractionNow(event: Omit<LocInteractionEvent, "services">): boolean {
         const scriptEvent: LocInteractionEvent = { ...event, services: this.services };
         const locId = scriptEvent.locId;
-        const handler = this.registry.findLocInteraction(locId, scriptEvent.action);
+        const playerTile = {
+            x: scriptEvent.player.tileX,
+            y: scriptEvent.player.tileY,
+            level: scriptEvent.player.level,
+        };
+        const handler =
+            this.registry.findLocTileInteraction(locId, playerTile, scriptEvent.action) ??
+            this.registry.findLocInteraction(locId, scriptEvent.action);
         if (!handler) {
             this.logger.debug(
                 `[script] no loc handler for id=${locId} action=${scriptEvent.action || "default"}`,
@@ -681,6 +695,8 @@ export class ScriptRuntime {
                 track(this.registry.registerNpcAttack(npcId, handler)),
             registerLocInteraction: (locId, handler, action) =>
                 track(this.registry.registerLocInteraction(locId, handler, action)),
+            registerLocTileInteraction: (locId, tile, handler, action) =>
+                track(this.registry.registerLocTileInteraction(locId, tile, handler, action)),
             registerLocScript: (params) => track(this.registry.registerLocScript(params)),
             registerLocAction: (action, handler) =>
                 track(this.registry.registerLocAction(action, handler)),
@@ -764,6 +780,8 @@ export class ScriptRuntime {
             findNpcMagicHit: (npcId) => this.registry.findNpcMagicHit(npcId),
             findNpcAttack: (npcId) => this.registry.findNpcAttack(npcId),
             findLocInteraction: (locId, action) => this.registry.findLocInteraction(locId, action),
+            findLocTileInteraction: (locId, tile, action) =>
+                this.registry.findLocTileInteraction(locId, tile, action),
             findItemOnItem: (sourceItemId, targetItemId, option) =>
                 this.registry.findItemOnItem(sourceItemId, targetItemId, option),
             findItemOnLoc: (sourceItemId, locId, option) =>

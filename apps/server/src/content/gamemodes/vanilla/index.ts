@@ -64,6 +64,7 @@ import { registerWizardTowerAreaHandlers } from "@server/content/gamemodes/vanil
 import { registerBobHandlers } from "@server/content/gamemodes/vanilla/scripts/content/bob";
 import { registerClimbingHandlers } from "@server/content/gamemodes/vanilla/scripts/content/climbing";
 import { registerDefaultTalkHandlers } from "@server/content/gamemodes/vanilla/scripts/content/defaultTalk";
+import { registerDevObjectTransitions } from "@server/content/gamemodes/vanilla/scripts/content/devObjectTransitions";
 import { registerDemoInteractionHandlers } from "@server/content/gamemodes/vanilla/scripts/content/demoInteractions";
 import { registerDoorHandlers } from "@server/content/gamemodes/vanilla/scripts/content/doors";
 import { registerKeyDoorHandlers } from "@server/content/gamemodes/vanilla/scripts/content/key-doors";
@@ -312,6 +313,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerVanillaCommandHandlers(registry, services);
         registerDevUIKitMenu(registry, services);
         registerDevDialogueEditor(registry, services);
+        registerDevObjectTransitions(registry, services);
 
         // Content
         registerClimbingHandlers(registry, services);

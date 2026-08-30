@@ -50,6 +50,12 @@ const makeNpcKey = (npcId: number, option?: string): RegistryKey =>
 const makeLocKey = (locId: number, action?: string): RegistryKey =>
     `${locId}#${normalizeOption(action)}`;
 
+const makeLocTileKey = (
+    locId: number,
+    tile: { x: number; y: number; level: number },
+    action?: string,
+): RegistryKey => `${makeLocKey(locId, action)}#${tile.x}#${tile.y}#${tile.level}`;
+
 const makeItemKey = (sourceItemId: number, targetItemId?: number, option?: string): RegistryKey => {
     const secondary = targetItemId !== undefined ? `${targetItemId}` : "";
     return `${sourceItemId}#${secondary}#${normalizeOption(option)}`;
@@ -155,6 +161,7 @@ function combineRegistrations(
 export class ScriptRegistry implements IScriptRegistry {
     private readonly npcHandlers: HandlerStackMap<RegistryKey, NpcInteractionHandler> = new Map();
     private readonly locHandlers: HandlerStackMap<RegistryKey, LocInteractionHandler> = new Map();
+    private readonly locTileHandlers: HandlerStackMap<RegistryKey, LocInteractionHandler> = new Map();
     private readonly locActionHandlers: HandlerStackMap<string, LocInteractionHandler> = new Map();
     private readonly npcActionHandlers: HandlerStackMap<string, NpcInteractionHandler> = new Map();
     private readonly npcPreDeathHandlers: HandlerStackMap<number, NpcPreDeathHandler> = new Map();
@@ -229,6 +236,20 @@ export class ScriptRegistry implements IScriptRegistry {
     ): ScriptRegistrationResult {
         const key = makeLocKey(locId, action);
         return registerStackedHandler(this.locHandlers, key, handler, "loc");
+    }
+
+    registerLocTileInteraction(
+        locId: number,
+        tile: { x: number; y: number; level: number },
+        handler: LocInteractionHandler,
+        action?: string,
+    ): ScriptRegistrationResult {
+        return registerStackedHandler(
+            this.locTileHandlers,
+            makeLocTileKey(locId, tile, action),
+            handler,
+            "loc-tile",
+        );
     }
 
     registerLocScript(params: {
@@ -559,6 +580,14 @@ export class ScriptRegistry implements IScriptRegistry {
         return actionHandler;
     }
 
+    findLocTileInteraction(
+        locId: number,
+        tile: { x: number; y: number; level: number },
+        action?: string,
+    ): LocInteractionHandler | undefined {
+        return findStackedHandler(this.locTileHandlers, makeLocTileKey(locId, tile, action));
+    }
+
     findItemOnItem(
         sourceItemId: number,
         targetItemId: number,
@@ -739,6 +768,7 @@ export class ScriptRegistry implements IScriptRegistry {
     clearAll(): void {
         this.npcHandlers.clear();
         this.locHandlers.clear();
+        this.locTileHandlers.clear();
         this.locActionHandlers.clear();
         this.npcActionHandlers.clear();
         this.npcPreDeathHandlers.clear();
