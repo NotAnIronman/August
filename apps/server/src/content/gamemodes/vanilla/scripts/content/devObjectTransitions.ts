@@ -72,6 +72,25 @@ function saveCatalog(catalog: ObjectTransitionFile): void {
     fs.writeFileSync(CATALOG_PATH, `${JSON.stringify(catalog, null, 2)}\n`, "utf8");
 }
 
+/** Convert the first development build's verbose IDs into short stable IDs. */
+function normalizeRuleIds(catalog: ObjectTransitionFile): boolean {
+    let changed = false;
+    let next = 1;
+    const used = new Set<string>();
+    for (const transition of catalog.transitions) {
+        if (/^rule-\d+$/i.test(transition.id) && !used.has(transition.id.toLowerCase())) {
+            used.add(transition.id.toLowerCase());
+            continue;
+        }
+        while (used.has(`rule-${next}`)) next += 1;
+        transition.id = `rule-${next}`;
+        used.add(transition.id);
+        next += 1;
+        changed = true;
+    }
+    return changed;
+}
+
 function tileLabel(tile: Tile): string {
     return `${tile.x}, ${tile.y}, ${tile.level}`;
 }
@@ -122,6 +141,7 @@ function executeTransition(event: LocInteractionEvent, transition: ObjectTransit
  */
 export function registerDevObjectTransitions(registry: IScriptRegistry, services: ScriptServices): void {
     let catalog = readCatalog();
+    if (normalizeRuleIds(catalog)) saveCatalog(catalog);
     const registrations = new Map<string, ScriptRegistrationResult>();
 
     const refresh = (): void => {
@@ -142,14 +162,43 @@ export function registerDevObjectTransitions(registry: IScriptRegistry, services
         refresh();
     };
 
+    const nextRuleId = (): string => {
+        const highest = catalog.transitions.reduce((highestId, rule) => {
+            const match = /^rule-(\d+)$/i.exec(rule.id);
+            return match ? Math.max(highestId, Number(match[1])) : highestId;
+        }, 0);
+        return `rule-${highest + 1}`;
+    };
+
+    const addRule = (
+        locId: number,
+        option: number,
+        from: Tile,
+        to: Tile,
+        animationId?: number,
+    ): string => {
+        const locAction = resolveAction(locId, option, services);
+        if (!locAction) return `Object ${locId} does not have option ${option} in this cache.`;
+        if (catalog.transitions.some((rule) => rule.locId === locId && rule.option === option && sameTile(rule.from, from))) {
+            return "A movement rule already exists for that object option and source tile.";
+        }
+        const id = nextRuleId();
+        catalog.transitions.push({ id, locId, option, action: locAction.toLowerCase(), from, to, animationId });
+        persist();
+        return `Saved ${id}: ${tileLabel(from)} -> ${tileLabel(to)} using ${locAction}.`;
+    };
+
     const help = (): string => [
         "::objmove add <locId> <option> <fromX> <fromY> <fromLevel> <toX> <toY> <toLevel> [animationId]",
+        "::objmove addhere <locId> <option> <toX> <toY> <toLevel> [animationId] — uses your current tile",
+        "::objmove setfrom|setto <ruleId> <x> <y> <level>",
+        "::objmove preview <animationId> — play an animation before assigning it",
         "::objmove animation <ruleId> <animationId|none>; ::objmove message <ruleId> <text>",
         "::objmove require <ruleId> <inventory|equipped> <itemId> [quantity]",
         "::objmove unrequire <ruleId> <inventory|equipped> <itemId>; ::objmove list; ::objmove remove <ruleId>",
     ].join("\n");
 
-    const command: CommandHandler = ({ args }) => {
+    const command: CommandHandler = ({ player, args }) => {
         const action = args[0]?.toLowerCase();
         if (!action || action === "help") return help();
         if (action === "list") {
@@ -159,6 +208,12 @@ export function registerDevObjectTransitions(registry: IScriptRegistry, services
                     `${rule.id}: loc ${rule.locId} option ${rule.option} (${rule.action}) ${tileLabel(rule.from)} -> ${tileLabel(rule.to)}`,
                 ).join("\n");
         }
+        if (action === "preview") {
+            const animationId = parseInteger(args[1]);
+            if (animationId === undefined) return "Usage: ::objmove preview <animationId>";
+            services.animation.playPlayerSeq(player, animationId);
+            return `Playing animation ${animationId}.`;
+        }
         if (action === "add") {
             const locId = parseInteger(args[1], 1);
             const option = parseInteger(args[2], 1);
@@ -166,19 +221,32 @@ export function registerDevObjectTransitions(registry: IScriptRegistry, services
             const to = parseTile(args, 6);
             const animationId = args[9] === undefined ? undefined : parseInteger(args[9]);
             if (!locId || !option || !from || !to || (args[9] !== undefined && animationId === undefined)) return help();
-            const locAction = resolveAction(locId, option, services);
-            if (!locAction) return `Object ${locId} does not have option ${option} in this cache.`;
-            if (catalog.transitions.some((rule) => rule.locId === locId && rule.option === option && sameTile(rule.from, from))) {
-                return "A movement rule already exists for that object option and source tile.";
-            }
-            const id = `move-${locId}-${option}-${from.x}-${from.y}-${from.level}`;
-            catalog.transitions.push({ id, locId, option, action: locAction.toLowerCase(), from, to, animationId });
-            persist();
-            return `Saved ${id}: ${tileLabel(from)} -> ${tileLabel(to)} using ${locAction}.`;
+            return addRule(locId, option, from, to, animationId);
+        }
+        if (action === "addhere") {
+            const locId = parseInteger(args[1], 1);
+            const option = parseInteger(args[2], 1);
+            const to = parseTile(args, 3);
+            const animationId = args[6] === undefined ? undefined : parseInteger(args[6]);
+            if (!locId || !option || !to || (args[6] !== undefined && animationId === undefined)) return help();
+            return addRule(
+                locId,
+                option,
+                { x: player.tileX, y: player.tileY, level: player.level },
+                to,
+                animationId,
+            );
         }
         const id = args[1];
         const transition = catalog.transitions.find((rule) => rule.id === id);
         if (!transition) return `Unknown movement rule '${id}'. Use ::objmove list.`;
+        if (action === "setfrom" || action === "setto") {
+            const tile = parseTile(args, 2);
+            if (!tile) return `Usage: ::objmove ${action} <ruleId> <x> <y> <level>`;
+            transition[action === "setfrom" ? "from" : "to"] = tile;
+            persist();
+            return `Saved ${action === "setfrom" ? "source" : "destination"} ${tileLabel(tile)} for ${id}.`;
+        }
         if (action === "message") {
             const message = args.slice(2).join(" ").trim();
             if (!message) return "Usage: ::objmove message <ruleId> <text>";

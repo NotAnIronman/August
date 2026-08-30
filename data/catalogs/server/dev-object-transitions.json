@@ -2,7 +2,7 @@
   "version": 1,
   "transitions": [
     {
-      "id": "move-5052-1-3480-9837-0",
+      "id": "rule-1",
       "locId": 5052,
       "option": 1,
       "action": "search",
@@ -10,7 +10,7 @@
       "to": { "x": 3480, "y": 9836, "level": 0 }
     },
     {
-      "id": "move-5052-1-3480-9836-0",
+      "id": "rule-2",
       "locId": 5052,
       "option": 1,
       "action": "search",
