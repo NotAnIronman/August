@@ -33,6 +33,57 @@
         "level": 0
       },
       "message": "You clicked on the wall"
+    },
+    {
+      "id": "rule-3",
+      "locId": 5052,
+      "option": 1,
+      "action": "search",
+      "from": {
+        "x": 3480,
+        "y": 2937,
+        "level": 0
+      },
+      "to": {
+        "x": 3480,
+        "y": 9836,
+        "level": 0
+      },
+      "animationId": 881
+    },
+    {
+      "id": "rule-4",
+      "locId": 5052,
+      "option": 1,
+      "action": "search",
+      "from": {
+        "x": 3480,
+        "y": 9838,
+        "level": 0
+      },
+      "to": {
+        "x": 3480,
+        "y": 9836,
+        "level": 0
+      },
+      "animationId": 818
+    },
+    {
+      "id": "rule-5",
+      "locId": 5052,
+      "option": 1,
+      "action": "search",
+      "from": {
+        "x": 3480,
+        "y": 9835,
+        "level": 0
+      },
+      "to": {
+        "x": 3480,
+        "y": 9837,
+        "level": 0
+      },
+      "animationId": 818
     }
   ]
 }
