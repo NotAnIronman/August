@@ -7624,7 +7624,8 @@ export class OsrsClient {
 
     // URL/search params are not supported
 
-    closeMenu = () => {
+    /** Close only the map/world menu state, preserving any widget menu being opened. */
+    closeWorldMenu = () => {
         this.menuOpen = false;
         this.menuX = -1;
         this.menuY = -1;
@@ -7634,6 +7635,13 @@ export class OsrsClient {
         this.menuFrozenSimpleEntriesVersion = 0;
         this.menuActiveSimpleEntries = [];
         this.menuState.reset();
+        this.renderer.canvas.focus();
+        this.widgetManager?.invalidateAll?.();
+    };
+
+    /** Close every context menu, including any widget-level Choose Option menu. */
+    closeMenu = () => {
+        this.closeWorldMenu();
         // Also clear the separate widget-level right-click menu (canvas.__ui.menu).
         // It's a distinct piece of state from menuOpen above — e.g. right-clicking
         // an inventory item opens a "widgets"-sourced menu here, not the world one —
@@ -7652,8 +7660,6 @@ export class OsrsClient {
                 ui.menu = undefined;
             }
         } catch {}
-        this.renderer.canvas.focus();
-        this.widgetManager?.invalidateAll?.();
     };
 
     resetMenu = () => {
