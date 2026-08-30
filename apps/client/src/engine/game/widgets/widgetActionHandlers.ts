@@ -98,11 +98,44 @@ export function handleWidgetActionTargeting(
     const targetItemId = event.itemId ?? event.widget.itemId ?? -1;
     const isInventoryItem = targetItemId >= 0 || groupId === 149;
 
-    // "Use" must always start item targeting. Handle it before an existing
-    // spell/item selection so a stale selection can never redirect the click
-    // into a generic inventory action or item-on-item request.
+    const targetSlot = event.slot ?? event.widget.childIndex ?? childId;
+
+    // A selected item always owns the next inventory click. This must run
+    // before interpreting the target's own "Use" option, since target menus
+    // deliberately show "Use <source> -> <target>" while an item is armed.
+    if (ClientState.isItemSelected === 1 && isInventoryItem) {
+        if (targetSlot < 0 || targetItemId <= 0) {
+            deps.clearSelectedSpell();
+            ClientState.clearItemSelection();
+            deps.getInventory()?.setSelectedSlot?.(null);
+            return true;
+        }
+        const isSameItem =
+            targetSlot === ClientState.selectedItemSlot &&
+            targetItemId === ClientState.selectedItemId;
+        if (isSameItem) {
+            deps.clearSelectedSpell();
+            ClientState.clearItemSelection();
+            deps.getInventory()?.setSelectedSlot?.(null);
+            return true;
+        }
+
+        sendInventoryUseOn({
+            slot: ClientState.selectedItemSlot,
+            itemId: ClientState.selectedItemId,
+            target: { kind: "inv", slot: targetSlot, itemId: targetItemId },
+        });
+        // Dispatch is complete from the client's perspective. The server now
+        // resolves the registered item-on-item interaction, and the source
+        // selection must not leak to the next click.
+        deps.clearSelectedSpell();
+        ClientState.clearItemSelection();
+        deps.getInventory()?.setSelectedSlot?.(null);
+        return true;
+    }
+
+    // With no item already armed, "Use" starts a fresh item-targeting action.
     if (isInventoryItem && optionLower === "use") {
-        const targetSlot = event.slot ?? event.widget.childIndex ?? childId;
         const containerUid = event.widget.parentUid ?? event.widget.uid;
         if (
             ClientState.selectItemForUse(
@@ -127,26 +160,8 @@ export function handleWidgetActionTargeting(
         }
 
         const targetItemId = event.itemId ?? event.widget.itemId ?? -1;
-        const targetSlot = event.slot ?? event.widget.childIndex ?? childId;
         const targetWidgetUid = event.widget.uid;
         const isInventoryItem = targetItemId >= 0 || groupId === 149;
-
-        if (ClientState.isItemSelected === 1 && isInventoryItem) {
-            const isSameItem =
-                targetSlot === ClientState.selectedItemSlot &&
-                targetItemId === ClientState.selectedItemId;
-            if (isSameItem) {
-                console.log(
-                    `[OsrsClient] Item clicked on itself - cancelling selection (slot=${targetSlot}, itemId=${targetItemId})`,
-                );
-                deps.clearSelectedSpell();
-                ClientState.isItemSelected = 0;
-                ClientState.selectedItemWidget = 0;
-                ClientState.selectedItemSlot = 0;
-                ClientState.selectedItemId = -1;
-                return true;
-            }
-        }
 
         if (!isInventoryItem) {
             // Item Use only targets inventory items and world entities (the
@@ -180,27 +195,6 @@ export function handleWidgetActionTargeting(
         }
 
         if (isInventoryItem) {
-            if (ClientState.isItemSelected === 1) {
-                console.log(
-                    `[OsrsClient] Item-on-item: "${ClientState.selectedSpellName}" (slot=${ClientState.selectedItemSlot}, itemId=${ClientState.selectedItemId}) -> item=${targetItemId}, slot=${targetSlot}`,
-                );
-
-                sendInventoryUseOn({
-                    slot: ClientState.selectedItemSlot,
-                    itemId: ClientState.selectedItemId,
-                    target: {
-                        kind: "inv",
-                        slot: targetSlot,
-                        itemId: targetItemId,
-                    },
-                });
-
-                deps.clearSelectedSpell();
-                ClientState.clearItemSelection();
-                deps.getInventory()?.setSelectedSlot?.(null);
-                return true;
-            }
-
             deps.normalizeSelectedSpellState();
             const selection = buildSelectedSpellPayload(
                 ClientState.selectedSpellWidget,
