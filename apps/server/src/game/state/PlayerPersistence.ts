@@ -265,7 +265,10 @@ function mergeStates(
     }
     const bankCapacitySource = overrides?.bankCapacity ?? defaults?.bankCapacity;
     if (bankCapacitySource !== undefined && bankCapacitySource > 0) {
-        result.bankCapacity = bankCapacitySource;
+        // Existing accounts may have been saved under an older, smaller bank
+        // limit. Raise them to the current default on load instead of leaving
+        // those players permanently constrained by the legacy capacity.
+        result.bankCapacity = Math.max(DEFAULT_BANK_CAPACITY, bankCapacitySource);
     } else if (result.bank) {
         result.bankCapacity = DEFAULT_BANK_CAPACITY;
     }

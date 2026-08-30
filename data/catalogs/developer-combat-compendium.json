@@ -1,0 +1,8789 @@
+{
+  "schemaVersion": 1,
+  "criteria": {
+    "combatGear": "Equippable, unnoted gear with a combat requirement of 60+ or a high-end combat bonus of 60+.",
+    "potions": "Every four-dose consumable currently implemented by the server.",
+    "food": "Every currently implemented food that heals 12 or more hitpoints."
+  },
+  "defaultBankCapacity": 2000,
+  "entries": [
+    {
+      "itemId": 20011,
+      "name": "3rd age axe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12424,
+      "name": "3rd age bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23342,
+      "name": "3rd age druidic staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28226,
+      "name": "3rd age felling axe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12426,
+      "name": "3rd age longsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20014,
+      "name": "3rd age pickaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12422,
+      "name": "3rd age wand",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13263,
+      "name": "Abyssal bludgeon",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13265,
+      "name": "Abyssal dagger",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27861,
+      "name": "Abyssal dagger (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27863,
+      "name": "Abyssal dagger (bh)(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27865,
+      "name": "Abyssal dagger (bh)(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27867,
+      "name": "Abyssal dagger (bh)(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13267,
+      "name": "Abyssal dagger (p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13269,
+      "name": "Abyssal dagger (p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13271,
+      "name": "Abyssal dagger (p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12006,
+      "name": "Abyssal tentacle",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 26484,
+      "name": "Abyssal tentacle (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4151,
+      "name": "Abyssal whip",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4178,
+      "name": "Abyssal whip",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20405,
+      "name": "Abyssal whip",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 26482,
+      "name": "Abyssal whip (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27665,
+      "name": "Accursed sceptre",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 9183,
+      "name": "Adamant crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4710,
+      "name": "Ahrim's staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23653,
+      "name": "Ahrim's staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4862,
+      "name": "Ahrim's staff 100",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4865,
+      "name": "Ahrim's staff 25",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4864,
+      "name": "Ahrim's staff 50",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4863,
+      "name": "Ahrim's staff 75",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 26233,
+      "name": "Ancient godsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27184,
+      "name": "Ancient godsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27624,
+      "name": "Ancient sceptre",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27626,
+      "name": "Ancient sceptre (l)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 19675,
+      "name": "Arclight",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30955,
+      "name": "Arkan blade",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11785,
+      "name": "Armadyl crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23611,
+      "name": "Armadyl crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11802,
+      "name": "Armadyl godsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20593,
+      "name": "Armadyl godsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29605,
+      "name": "Armadyl godsword (deadman)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20368,
+      "name": "Armadyl godsword (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11804,
+      "name": "Bandos godsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20782,
+      "name": "Bandos godsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21060,
+      "name": "Bandos godsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20370,
+      "name": "Bandos godsword (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 10887,
+      "name": "Barrelchest anchor",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27855,
+      "name": "Barrelchest anchor (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 31248,
+      "name": "Belle's folly",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11959,
+      "name": "Black chinchompa",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 10148,
+      "name": "Black salamander",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23995,
+      "name": "Blade of saeldor",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24551,
+      "name": "Blade of saeldor (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25870,
+      "name": "Blade of saeldor (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25872,
+      "name": "Blade of saeldor (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25874,
+      "name": "Blade of saeldor (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25876,
+      "name": "Blade of saeldor (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25878,
+      "name": "Blade of saeldor (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25880,
+      "name": "Blade of saeldor (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25882,
+      "name": "Blade of saeldor (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23997,
+      "name": "Blade of saeldor (inactive)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24699,
+      "name": "Blisterwood flail",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28260,
+      "name": "Blood ancient sceptre",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28473,
+      "name": "Blood ancient sceptre (l)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28988,
+      "name": "Blue moon spear",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29849,
+      "name": "Blue moon spear",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28792,
+      "name": "Bone mace",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28794,
+      "name": "Bone shortbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25865,
+      "name": "Bow of faerdhinen",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25867,
+      "name": "Bow of faerdhinen (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25884,
+      "name": "Bow of faerdhinen (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25886,
+      "name": "Bow of faerdhinen (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25888,
+      "name": "Bow of faerdhinen (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25890,
+      "name": "Bow of faerdhinen (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25892,
+      "name": "Bow of faerdhinen (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25894,
+      "name": "Bow of faerdhinen (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25896,
+      "name": "Bow of faerdhinen (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27187,
+      "name": "Bow of faerdhinen (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 33021,
+      "name": "Bow of faerdhinen (c)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29577,
+      "name": "Burning claws",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27021,
+      "name": "Colossal blade",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28537,
+      "name": "Corrupted armadyl godsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23856,
+      "name": "Corrupted bow (attuned)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23855,
+      "name": "Corrupted bow (basic)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23857,
+      "name": "Corrupted bow (perfected)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29599,
+      "name": "Corrupted dark bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23850,
+      "name": "Corrupted halberd (attuned)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23849,
+      "name": "Corrupted halberd (basic)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23851,
+      "name": "Corrupted halberd (perfected)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28543,
+      "name": "Corrupted scythe of vitur",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28545,
+      "name": "Corrupted scythe of vitur (uncharged)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23853,
+      "name": "Corrupted staff (attuned)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23852,
+      "name": "Corrupted staff (basic)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23854,
+      "name": "Corrupted staff (perfected)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28531,
+      "name": "Corrupted voidwaker",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22550,
+      "name": "Craw's bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22547,
+      "name": "Craw's bow (u)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23673,
+      "name": "Crystal axe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23862,
+      "name": "Crystal axe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23675,
+      "name": "Crystal axe (inactive)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23983,
+      "name": "Crystal bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24123,
+      "name": "Crystal bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23902,
+      "name": "Crystal bow (attuned)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23901,
+      "name": "Crystal bow (basic)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23985,
+      "name": "Crystal bow (inactive)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23903,
+      "name": "Crystal bow (perfected)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4223,
+      "name": "Crystal bow 1/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4222,
+      "name": "Crystal bow 2/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4221,
+      "name": "Crystal bow 3/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4220,
+      "name": "Crystal bow 4/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4219,
+      "name": "Crystal bow 5/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4218,
+      "name": "Crystal bow 6/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4217,
+      "name": "Crystal bow 7/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4216,
+      "name": "Crystal bow 8/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4215,
+      "name": "Crystal bow 9/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4214,
+      "name": "Crystal bow full",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28577,
+      "name": "Crystal chime",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30340,
+      "name": "Crystal dagger (perfected)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28220,
+      "name": "Crystal felling axe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28223,
+      "name": "Crystal felling axe (inactive)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24000,
+      "name": "Crystal grail",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23987,
+      "name": "Crystal halberd",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24125,
+      "name": "Crystal halberd",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23896,
+      "name": "Crystal halberd (attuned)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23895,
+      "name": "Crystal halberd (basic)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23989,
+      "name": "Crystal halberd (inactive)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23897,
+      "name": "Crystal halberd (perfected)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13101,
+      "name": "Crystal halberd 1/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13090,
+      "name": "Crystal halberd 1/10 (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13100,
+      "name": "Crystal halberd 2/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13089,
+      "name": "Crystal halberd 2/10 (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13099,
+      "name": "Crystal halberd 3/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13088,
+      "name": "Crystal halberd 3/10 (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13098,
+      "name": "Crystal halberd 4/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13087,
+      "name": "Crystal halberd 4/10 (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13097,
+      "name": "Crystal halberd 5/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13086,
+      "name": "Crystal halberd 5/10 (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13096,
+      "name": "Crystal halberd 6/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13085,
+      "name": "Crystal halberd 6/10 (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13095,
+      "name": "Crystal halberd 7/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13084,
+      "name": "Crystal halberd 7/10 (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13094,
+      "name": "Crystal halberd 8/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13083,
+      "name": "Crystal halberd 8/10 (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13093,
+      "name": "Crystal halberd 9/10",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13082,
+      "name": "Crystal halberd 9/10 (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13092,
+      "name": "Crystal halberd full",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13081,
+      "name": "Crystal halberd full (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23762,
+      "name": "Crystal harpoon",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23864,
+      "name": "Crystal harpoon",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23764,
+      "name": "Crystal harpoon (inactive)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23680,
+      "name": "Crystal pickaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23863,
+      "name": "Crystal pickaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23682,
+      "name": "Crystal pickaxe (inactive)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23861,
+      "name": "Crystal sceptre",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23899,
+      "name": "Crystal staff (attuned)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23898,
+      "name": "Crystal staff (basic)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23900,
+      "name": "Crystal staff (perfected)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11235,
+      "name": "Dark bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12765,
+      "name": "Dark bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12766,
+      "name": "Dark bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12767,
+      "name": "Dark bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12768,
+      "name": "Dark bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20408,
+      "name": "Dark bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27853,
+      "name": "Dark bow (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29611,
+      "name": "Dark bow (deadman)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4718,
+      "name": "Dharok's greataxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25516,
+      "name": "Dharok's greataxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4886,
+      "name": "Dharok's greataxe 100",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4889,
+      "name": "Dharok's greataxe 25",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4888,
+      "name": "Dharok's greataxe 50",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4887,
+      "name": "Dharok's greataxe 75",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28682,
+      "name": "Dinh's blazing bulwark",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21015,
+      "name": "Dinh's bulwark",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 7158,
+      "name": "Dragon 2h sword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20559,
+      "name": "Dragon 2h sword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28051,
+      "name": "Dragon 2h sword (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 6739,
+      "name": "Dragon axe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25378,
+      "name": "Dragon axe (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30352,
+      "name": "Dragon axe (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 1377,
+      "name": "Dragon battleaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28037,
+      "name": "Dragon battleaxe (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27810,
+      "name": "Dragon candle dagger",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12373,
+      "name": "Dragon cane",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13652,
+      "name": "Dragon claws",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20784,
+      "name": "Dragon claws",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28039,
+      "name": "Dragon claws (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 26708,
+      "name": "Dragon claws (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21902,
+      "name": "Dragon crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28053,
+      "name": "Dragon crossbow (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 1215,
+      "name": "Dragon dagger",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20407,
+      "name": "Dragon dagger",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28019,
+      "name": "Dragon dagger (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28021,
+      "name": "Dragon dagger (p)(cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28023,
+      "name": "Dragon dagger (p+)(cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28025,
+      "name": "Dragon dagger (p++)(cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 1231,
+      "name": "Dragon dagger(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 5680,
+      "name": "Dragon dagger(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 5698,
+      "name": "Dragon dagger(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11230,
+      "name": "Dragon dart",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11231,
+      "name": "Dragon dart(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11233,
+      "name": "Dragon dart(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11234,
+      "name": "Dragon dart(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28217,
+      "name": "Dragon felling axe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 3204,
+      "name": "Dragon halberd",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28049,
+      "name": "Dragon halberd (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21028,
+      "name": "Dragon harpoon",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25373,
+      "name": "Dragon harpoon (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30349,
+      "name": "Dragon harpoon (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22731,
+      "name": "Dragon hasta",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22743,
+      "name": "Dragon hasta(kp)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22734,
+      "name": "Dragon hasta(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22737,
+      "name": "Dragon hasta(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22740,
+      "name": "Dragon hasta(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21012,
+      "name": "Dragon hunter crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25918,
+      "name": "Dragon hunter crossbow (b)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25916,
+      "name": "Dragon hunter crossbow (t)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22978,
+      "name": "Dragon hunter lance",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30070,
+      "name": "Dragon hunter wand",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22804,
+      "name": "Dragon knife",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27157,
+      "name": "Dragon knife",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22806,
+      "name": "Dragon knife(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22808,
+      "name": "Dragon knife(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22810,
+      "name": "Dragon knife(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 1305,
+      "name": "Dragon longsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27859,
+      "name": "Dragon longsword (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28033,
+      "name": "Dragon longsword (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 1434,
+      "name": "Dragon mace",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27857,
+      "name": "Dragon mace (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28027,
+      "name": "Dragon mace (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11920,
+      "name": "Dragon pickaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12797,
+      "name": "Dragon pickaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23677,
+      "name": "Dragon pickaxe (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25376,
+      "name": "Dragon pickaxe (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30351,
+      "name": "Dragon pickaxe (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4587,
+      "name": "Dragon scimitar",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20406,
+      "name": "Dragon scimitar",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28031,
+      "name": "Dragon scimitar (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20000,
+      "name": "Dragon scimitar (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 1249,
+      "name": "Dragon spear",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28041,
+      "name": "Dragon spear (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28043,
+      "name": "Dragon spear (p)(cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28045,
+      "name": "Dragon spear (p+)(cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28047,
+      "name": "Dragon spear (p++)(cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 3176,
+      "name": "Dragon spear(kp)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 1263,
+      "name": "Dragon spear(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 5716,
+      "name": "Dragon spear(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 5730,
+      "name": "Dragon spear(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30611,
+      "name": "Dragon staff of collection",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21009,
+      "name": "Dragon sword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21206,
+      "name": "Dragon sword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28029,
+      "name": "Dragon sword (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20849,
+      "name": "Dragon thrownaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21207,
+      "name": "Dragon thrownaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13576,
+      "name": "Dragon warhammer",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20785,
+      "name": "Dragon warhammer",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28035,
+      "name": "Dragon warhammer (cr)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 26710,
+      "name": "Dragon warhammer (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28997,
+      "name": "Dual macuahuitl",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29850,
+      "name": "Dual macuahuitl",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30957,
+      "name": "Earthbound tecpatl",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30568,
+      "name": "Echo ahrim's staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30570,
+      "name": "Echo ahrim's staff 100",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30573,
+      "name": "Echo ahrim's staff 25",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30572,
+      "name": "Echo ahrim's staff 50",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30571,
+      "name": "Echo ahrim's staff 75",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30434,
+      "name": "Echo venator bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30436,
+      "name": "Echo venator bow (uncharged)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29000,
+      "name": "Eclipse atlatl",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29851,
+      "name": "Eclipse atlatl",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20601,
+      "name": "Elder maul",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21003,
+      "name": "Elder maul",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21205,
+      "name": "Elder maul",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27100,
+      "name": "Elder maul (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24425,
+      "name": "Eldritch nightmare staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29589,
+      "name": "Emberlight",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 31113,
+      "name": "Eye of ayak",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12774,
+      "name": "Frozen abyssal whip",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22324,
+      "name": "Ghrazi rapier",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23628,
+      "name": "Ghrazi rapier",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20155,
+      "name": "Gilded 2h sword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29889,
+      "name": "Glacial temotli",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21646,
+      "name": "Granite longsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4153,
+      "name": "Granite maul",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12848,
+      "name": "Granite maul",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20557,
+      "name": "Granite maul",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24225,
+      "name": "Granite maul",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24227,
+      "name": "Granite maul",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4726,
+      "name": "Guthan's warspear",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4910,
+      "name": "Guthan's warspear 100",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4913,
+      "name": "Guthan's warspear 25",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4912,
+      "name": "Guthan's warspear 50",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4911,
+      "name": "Guthan's warspear 75",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 2416,
+      "name": "Guthix staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24423,
+      "name": "Harmonised nightmare staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 19481,
+      "name": "Heavy ballista",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23630,
+      "name": "Heavy ballista",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 26712,
+      "name": "Heavy ballista (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20756,
+      "name": "Hill giant club",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25734,
+      "name": "Holy ghrazi rapier",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25736,
+      "name": "Holy scythe of vitur",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25738,
+      "name": "Holy scythe of vitur (uncharged)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29305,
+      "name": "Hunter's spear",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28869,
+      "name": "Hunters' sunlight crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28262,
+      "name": "Ice ancient sceptre",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28474,
+      "name": "Ice ancient sceptre (l)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24417,
+      "name": "Inquisitor's mace",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22398,
+      "name": "Ivandis flail",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4734,
+      "name": "Karil's crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4934,
+      "name": "Karil's crossbow 100",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4937,
+      "name": "Karil's crossbow 25",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4936,
+      "name": "Karil's crossbow 50",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4935,
+      "name": "Karil's crossbow 75",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30891,
+      "name": "Keris partisan of amascut",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27287,
+      "name": "Keris partisan of corruption",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27291,
+      "name": "Keris partisan of the sun",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23626,
+      "name": "Kodai wand",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20727,
+      "name": "Leaf-bladed battleaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11902,
+      "name": "Leaf-bladed sword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 19478,
+      "name": "Light ballista",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27188,
+      "name": "Light ballista",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 9084,
+      "name": "Lunar staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 9091,
+      "name": "Lunar staff - pt1",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 9092,
+      "name": "Lunar staff - pt2",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 9093,
+      "name": "Lunar staff - pt3",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 10284,
+      "name": "Magic comp bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 859,
+      "name": "Magic longbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 861,
+      "name": "Magic shortbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20558,
+      "name": "Magic shortbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12788,
+      "name": "Magic shortbow (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 6914,
+      "name": "Master wand",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 9181,
+      "name": "Mith crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22636,
+      "name": "Morrigan's javelin",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23619,
+      "name": "Morrigan's javelin",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27916,
+      "name": "Morrigan's javelin (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22634,
+      "name": "Morrigan's throwing axe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27912,
+      "name": "Morrigan's throwing axe (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4212,
+      "name": "New crystal bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11748,
+      "name": "New crystal bow (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13091,
+      "name": "New crystal halberd full",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 13080,
+      "name": "New crystal halberd full (i)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24422,
+      "name": "Nightmare staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29796,
+      "name": "Noxious halberd",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 26219,
+      "name": "Osmumten's fang",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27246,
+      "name": "Osmumten's fang (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29594,
+      "name": "Purging staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 10034,
+      "name": "Red chinchompa",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 10147,
+      "name": "Red salamander",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 31583,
+      "name": "Rosewood blowpipe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 1319,
+      "name": "Rune 2h sword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20555,
+      "name": "Rune 2h sword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 1373,
+      "name": "Rune battleaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20552,
+      "name": "Rune battleaxe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 9185,
+      "name": "Rune crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23601,
+      "name": "Rune crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 26486,
+      "name": "Rune crossbow (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 3202,
+      "name": "Rune halberd",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 1347,
+      "name": "Rune warhammer",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25739,
+      "name": "Sanguine scythe of vitur",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 25741,
+      "name": "Sanguine scythe of vitur (uncharged)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22323,
+      "name": "Sanguinesti staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22481,
+      "name": "Sanguinesti staff (uncharged)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23528,
+      "name": "Sarachnis cudgel",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 10440,
+      "name": "Saradomin crozier",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11806,
+      "name": "Saradomin godsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20372,
+      "name": "Saradomin godsword (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 2415,
+      "name": "Saradomin staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11838,
+      "name": "Saradomin sword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12809,
+      "name": "Saradomin's blessed sword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29591,
+      "name": "Scorching bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22325,
+      "name": "Scythe of vitur",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22486,
+      "name": "Scythe of vitur (uncharged)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 6724,
+      "name": "Seercull",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28266,
+      "name": "Shadow ancient sceptre",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28476,
+      "name": "Shadow ancient sceptre (l)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 21255,
+      "name": "Slayer's staff (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28264,
+      "name": "Smoke ancient sceptre",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28475,
+      "name": "Smoke ancient sceptre (l)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30759,
+      "name": "Soulflame horn",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28338,
+      "name": "Soulreaper axe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24144,
+      "name": "Staff of balance",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22296,
+      "name": "Staff of light",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11791,
+      "name": "Staff of the dead",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23613,
+      "name": "Staff of the dead",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22622,
+      "name": "Statius's warhammer",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23620,
+      "name": "Statius's warhammer",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27908,
+      "name": "Statius's warhammer (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29084,
+      "name": "Sulphur blades",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28834,
+      "name": "Tecu salamander",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22555,
+      "name": "Thammaron's sceptre",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22552,
+      "name": "Thammaron's sceptre (u)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 6526,
+      "name": "Toktz-mej-tal",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 6523,
+      "name": "Toktz-xil-ak",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 6525,
+      "name": "Toktz-xil-ek",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 6522,
+      "name": "Toktz-xil-ul",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28922,
+      "name": "Tonalztics of ralos",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28919,
+      "name": "Tonalztics of ralos (uncharged)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4747,
+      "name": "Torag's hammers",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4958,
+      "name": "Torag's hammers 100",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12926,
+      "name": "Toxic blowpipe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 33036,
+      "name": "Toxic staff (deadman)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12902,
+      "name": "Toxic staff (uncharged)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 33035,
+      "name": "Toxic staff (uncharged)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12904,
+      "name": "Toxic staff of the dead",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11907,
+      "name": "Trident of the seas",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22288,
+      "name": "Trident of the seas (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11905,
+      "name": "Trident of the seas (full)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12899,
+      "name": "Trident of the swamp",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22292,
+      "name": "Trident of the swamp (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27275,
+      "name": "Tumeken's shadow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 30634,
+      "name": "Twinflame staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20997,
+      "name": "Twisted bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 6527,
+      "name": "Tzhaar-ket-em",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 6528,
+      "name": "Tzhaar-ket-om",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23235,
+      "name": "Tzhaar-ket-om (t)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22294,
+      "name": "Uncharged toxic trident (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11908,
+      "name": "Uncharged trident",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22290,
+      "name": "Uncharged trident (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27660,
+      "name": "Ursine chainmace",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27657,
+      "name": "Ursine chainmace (u)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27610,
+      "name": "Venator bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27612,
+      "name": "Venator bow (uncharged)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4988,
+      "name": "Verac's brassard 100",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4991,
+      "name": "Verac's brassard 25",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4990,
+      "name": "Verac's brassard 50",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4989,
+      "name": "Verac's brassard 75",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4755,
+      "name": "Verac's flail",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4982,
+      "name": "Verac's flail 100",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4985,
+      "name": "Verac's flail 25",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4984,
+      "name": "Verac's flail 50",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 4983,
+      "name": "Verac's flail 75",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24617,
+      "name": "Vesta's blighted longsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22613,
+      "name": "Vesta's longsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23615,
+      "name": "Vesta's longsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27904,
+      "name": "Vesta's longsword (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22610,
+      "name": "Vesta's spear",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27900,
+      "name": "Vesta's spear (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22545,
+      "name": "Viggora's chainmace",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22542,
+      "name": "Viggora's chainmace (u)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27690,
+      "name": "Voidwaker",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27869,
+      "name": "Voidwaker",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 29607,
+      "name": "Voidwaker (deadman)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 24424,
+      "name": "Volatile nightmare staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 12773,
+      "name": "Volcanic abyssal whip",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28585,
+      "name": "Warped sceptre",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27655,
+      "name": "Webweaver bow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27652,
+      "name": "Webweaver bow (u)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11808,
+      "name": "Zamorak godsword",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 20374,
+      "name": "Zamorak godsword (or)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 2417,
+      "name": "Zamorak staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11889,
+      "name": "Zamorakian hasta",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 11824,
+      "name": "Zamorakian spear",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 26374,
+      "name": "Zaryte crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27186,
+      "name": "Zaryte crossbow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 28810,
+      "name": "Zombie axe",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 22647,
+      "name": "Zuriel's staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 23617,
+      "name": "Zuriel's staff",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 27920,
+      "name": "Zuriel's staff (bh)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons"
+    },
+    {
+      "itemId": 9143,
+      "name": "Adamant bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9290,
+      "name": "Adamant bolts (p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9297,
+      "name": "Adamant bolts(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9304,
+      "name": "Adamant bolts(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 829,
+      "name": "Adamant javelin",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 835,
+      "name": "Adamant javelin(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 5646,
+      "name": "Adamant javelin(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 5652,
+      "name": "Adamant javelin(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21316,
+      "name": "Amethyst broad bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21318,
+      "name": "Amethyst javelin",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21320,
+      "name": "Amethyst javelin(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21322,
+      "name": "Amethyst javelin(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21324,
+      "name": "Amethyst javelin(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 22230,
+      "name": "Barbed arrow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 22229,
+      "name": "Blunt arrow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 11875,
+      "name": "Broad bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 22227,
+      "name": "Bullet arrow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 30694,
+      "name": "Castle wars arrow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 30696,
+      "name": "Castle wars bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 30384,
+      "name": "Crystal blessing",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9340,
+      "name": "Diamond bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9243,
+      "name": "Diamond bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 23649,
+      "name": "Diamond bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21969,
+      "name": "Diamond dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21946,
+      "name": "Diamond dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 11212,
+      "name": "Dragon arrow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 20389,
+      "name": "Dragon arrow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 11227,
+      "name": "Dragon arrow(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 11228,
+      "name": "Dragon arrow(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 11229,
+      "name": "Dragon arrow(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 11237,
+      "name": "Dragon arrowtips",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9341,
+      "name": "Dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21905,
+      "name": "Dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9244,
+      "name": "Dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21924,
+      "name": "Dragon bolts (p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21926,
+      "name": "Dragon bolts (p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21928,
+      "name": "Dragon bolts (p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 11217,
+      "name": "Dragon fire arrows",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 11222,
+      "name": "Dragon fire arrows",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 19484,
+      "name": "Dragon javelin",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 23648,
+      "name": "Dragon javelin",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 19486,
+      "name": "Dragon javelin(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 19488,
+      "name": "Dragon javelin(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 19490,
+      "name": "Dragon javelin(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21971,
+      "name": "Dragonstone dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21948,
+      "name": "Dragonstone dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9338,
+      "name": "Emerald bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9241,
+      "name": "Emerald bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21965,
+      "name": "Emerald dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21942,
+      "name": "Emerald dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 22228,
+      "name": "Field arrow",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 28837,
+      "name": "Irit tar",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21957,
+      "name": "Jade dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21934,
+      "name": "Jade dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9142,
+      "name": "Mithril bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9289,
+      "name": "Mithril bolts (p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9296,
+      "name": "Mithril bolts(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9303,
+      "name": "Mithril bolts(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 828,
+      "name": "Mithril javelin",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 834,
+      "name": "Mithril javelin(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 5645,
+      "name": "Mithril javelin(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 5651,
+      "name": "Mithril javelin(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 28878,
+      "name": "Moonlight antler bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9342,
+      "name": "Onyx bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9245,
+      "name": "Onyx bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21973,
+      "name": "Onyx dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21950,
+      "name": "Onyx dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21955,
+      "name": "Opal dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21932,
+      "name": "Opal dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 27192,
+      "name": "Opal dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21959,
+      "name": "Pearl dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21936,
+      "name": "Pearl dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9339,
+      "name": "Ruby bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9242,
+      "name": "Ruby bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21967,
+      "name": "Ruby dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21944,
+      "name": "Ruby dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 4803,
+      "name": "Rune brutal",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 830,
+      "name": "Rune javelin",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 836,
+      "name": "Rune javelin(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 5647,
+      "name": "Rune javelin(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 5653,
+      "name": "Rune javelin(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9144,
+      "name": "Runite bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9291,
+      "name": "Runite bolts (p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9298,
+      "name": "Runite bolts(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9305,
+      "name": "Runite bolts(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9337,
+      "name": "Sapphire bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9240,
+      "name": "Sapphire bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21963,
+      "name": "Sapphire dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21940,
+      "name": "Sapphire dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9141,
+      "name": "Steel bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9288,
+      "name": "Steel bolts (p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9295,
+      "name": "Steel bolts(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9302,
+      "name": "Steel bolts(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 827,
+      "name": "Steel javelin",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 833,
+      "name": "Steel javelin(p)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 5644,
+      "name": "Steel javelin(p+)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 5650,
+      "name": "Steel javelin(p++)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9336,
+      "name": "Topaz bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 9239,
+      "name": "Topaz bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21961,
+      "name": "Topaz dragon bolts",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 21938,
+      "name": "Topaz dragon bolts (e)",
+      "quantity": 1,
+      "tab": 0,
+      "category": "Weapons and ammunition"
+    },
+    {
+      "itemId": 10350,
+      "name": "3rd age full helmet",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 10342,
+      "name": "3rd age mage hat",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27183,
+      "name": "3rd age mage hat",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 10334,
+      "name": "3rd age range coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27201,
+      "name": "3rd age range coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4708,
+      "name": "Ahrim's hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4856,
+      "name": "Ahrim's hood 100",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4859,
+      "name": "Ahrim's hood 25",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4858,
+      "name": "Ahrim's hood 50",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4857,
+      "name": "Ahrim's hood 75",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 21018,
+      "name": "Ancestral hat",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 25518,
+      "name": "Ancestral hat",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12496,
+      "name": "Ancient coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12512,
+      "name": "Armadyl coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 13169,
+      "name": "Armadyl dragonhide set",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12476,
+      "name": "Armadyl full helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 24192,
+      "name": "Armadyl halo",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 24194,
+      "name": "Armadyl halo (l)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11826,
+      "name": "Armadyl helmet",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 26714,
+      "name": "Armadyl helmet (or)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11810,
+      "name": "Armadyl hilt",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12259,
+      "name": "Armadyl mitre",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 13052,
+      "name": "Armadyl rune armour set (lg)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 13054,
+      "name": "Armadyl rune armour set (sk)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 21900,
+      "name": "Assembler max hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 9749,
+      "name": "Attack hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12504,
+      "name": "Bandos coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 13167,
+      "name": "Bandos dragonhide set",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12486,
+      "name": "Bandos full helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 24195,
+      "name": "Bandos halo",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 24197,
+      "name": "Bandos halo (l)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11812,
+      "name": "Bandos hilt",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12271,
+      "name": "Bandos mitre",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 13056,
+      "name": "Bandos rune armour set (lg)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 13058,
+      "name": "Bandos rune armour set (sk)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12871,
+      "name": "Black dragonhide set",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29028,
+      "name": "Blood moon helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29047,
+      "name": "Blood moon helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29848,
+      "name": "Blood moon helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29073,
+      "name": "Blood moon helm (broken)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 25413,
+      "name": "Bloodbark helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29019,
+      "name": "Blue moon helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29041,
+      "name": "Blue moon helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29845,
+      "name": "Blue moon helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29064,
+      "name": "Blue moon helm (broken)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23842,
+      "name": "Corrupted helm (perfected)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11758,
+      "name": "Crystal bow 1/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11757,
+      "name": "Crystal bow 2/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11756,
+      "name": "Crystal bow 3/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11755,
+      "name": "Crystal bow 4/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11754,
+      "name": "Crystal bow 5/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11753,
+      "name": "Crystal bow 6/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11752,
+      "name": "Crystal bow 7/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11751,
+      "name": "Crystal bow 8/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11750,
+      "name": "Crystal bow 9/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11749,
+      "name": "Crystal bow full (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23911,
+      "name": "Crystal crown",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23913,
+      "name": "Crystal crown",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23915,
+      "name": "Crystal crown",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23917,
+      "name": "Crystal crown",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23919,
+      "name": "Crystal crown",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23921,
+      "name": "Crystal crown",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23923,
+      "name": "Crystal crown",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23925,
+      "name": "Crystal crown",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 31760,
+      "name": "Crystal glider's hat",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23971,
+      "name": "Crystal helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27705,
+      "name": "Crystal helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27717,
+      "name": "Crystal helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27729,
+      "name": "Crystal helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27741,
+      "name": "Crystal helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27753,
+      "name": "Crystal helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27765,
+      "name": "Crystal helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27777,
+      "name": "Crystal helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 33031,
+      "name": "Crystal helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23887,
+      "name": "Crystal helm (attuned)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23886,
+      "name": "Crystal helm (basic)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 25495,
+      "name": "Crystal helm (beta)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23973,
+      "name": "Crystal helm (inactive)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27707,
+      "name": "Crystal helm (inactive)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27719,
+      "name": "Crystal helm (inactive)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27731,
+      "name": "Crystal helm (inactive)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27743,
+      "name": "Crystal helm (inactive)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27755,
+      "name": "Crystal helm (inactive)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27767,
+      "name": "Crystal helm (inactive)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27779,
+      "name": "Crystal helm (inactive)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 33033,
+      "name": "Crystal helm (inactive)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23888,
+      "name": "Crystal helm (perfected)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11769,
+      "name": "Crystal shield 1/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11768,
+      "name": "Crystal shield 2/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11767,
+      "name": "Crystal shield 3/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11766,
+      "name": "Crystal shield 4/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11765,
+      "name": "Crystal shield 5/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11764,
+      "name": "Crystal shield 6/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11763,
+      "name": "Crystal shield 7/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11762,
+      "name": "Crystal shield 8/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11761,
+      "name": "Crystal shield 9/10 (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11760,
+      "name": "Crystal shield full (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 24288,
+      "name": "Dagon'hai hat",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27123,
+      "name": "Dagon'hai hat (or)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11001,
+      "name": "Dagon'hai history",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 9755,
+      "name": "Defence hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4716,
+      "name": "Dharok's helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23639,
+      "name": "Dharok's helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4880,
+      "name": "Dharok's helm 100",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4883,
+      "name": "Dharok's helm 25",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4882,
+      "name": "Dharok's helm 50",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4881,
+      "name": "Dharok's helm 75",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12534,
+      "name": "Dragon chainbody ornament kit",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11232,
+      "name": "Dragon dart tip",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11335,
+      "name": "Dragon full helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12417,
+      "name": "Dragon full helm (g)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12538,
+      "name": "Dragon full helm ornament kit",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11256,
+      "name": "Dragon impling jar",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12536,
+      "name": "Dragon legs/skirt ornament kit",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 1149,
+      "name": "Dragon med helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 6967,
+      "name": "Dragon med helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 28057,
+      "name": "Dragon med helm (cr)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12800,
+      "name": "Dragon pickaxe upgrade kit",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12532,
+      "name": "Dragon sq shield ornament kit",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29010,
+      "name": "Eclipse moon helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29035,
+      "name": "Eclipse moon helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29842,
+      "name": "Eclipse moon helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 29055,
+      "name": "Eclipse moon helm (broken)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4724,
+      "name": "Guthan's helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23638,
+      "name": "Guthan's helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4904,
+      "name": "Guthan's helm 100",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4907,
+      "name": "Guthan's helm 25",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4906,
+      "name": "Guthan's helm 50",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4905,
+      "name": "Guthan's helm 75",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 10382,
+      "name": "Guthix coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 9770,
+      "name": "Hitpoints hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 30073,
+      "name": "Hueycoatl hide coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 21786,
+      "name": "Imbued guthix max hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 21778,
+      "name": "Imbued saradomin max hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 21782,
+      "name": "Imbued zamorak max hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 24419,
+      "name": "Inquisitor's great helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27195,
+      "name": "Inquisitor's great helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 22326,
+      "name": "Justiciar faceguard",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4732,
+      "name": "Karil's coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4928,
+      "name": "Karil's coif 100",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4931,
+      "name": "Karil's coif 25",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4930,
+      "name": "Karil's coif 50",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4929,
+      "name": "Karil's coif 75",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 9096,
+      "name": "Lunar helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12405,
+      "name": "Lunar isle teleport",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 9764,
+      "name": "Magic hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27366,
+      "name": "Masori assembler max hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 26217,
+      "name": "Masori headdress",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27226,
+      "name": "Masori mask",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 27235,
+      "name": "Masori mask (f)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 22638,
+      "name": "Morrigan's coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 24857,
+      "name": "Mythical max hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 24271,
+      "name": "Neitiznot faceguard",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 11759,
+      "name": "New crystal shield (i)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 30750,
+      "name": "Oathplate helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 21298,
+      "name": "Obsidian helmet",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 9761,
+      "name": "Prayer hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 30777,
+      "name": "Radiant oathplate helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 9758,
+      "name": "Ranging hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12869,
+      "name": "Red dragonhide set",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 28254,
+      "name": "Sanguine torva full helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12808,
+      "name": "Sara's blessed sword (full)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 10390,
+      "name": "Saradomin coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 12931,
+      "name": "Serpentine helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 22625,
+      "name": "Statius's full helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 9752,
+      "name": "Strength hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 28933,
+      "name": "Sunfire fanatic helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4961,
+      "name": "Torag's hammers 25",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4960,
+      "name": "Torag's hammers 50",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4959,
+      "name": "Torag's hammers 75",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4745,
+      "name": "Torag's helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23637,
+      "name": "Torag's helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4952,
+      "name": "Torag's helm 100",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4955,
+      "name": "Torag's helm 25",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4954,
+      "name": "Torag's helm 50",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4953,
+      "name": "Torag's helm 75",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 26382,
+      "name": "Torva full helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 30302,
+      "name": "Torva full helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 26376,
+      "name": "Torva full helm (damaged)",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 24664,
+      "name": "Twisted ancestral hat",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4753,
+      "name": "Verac's helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23636,
+      "name": "Verac's helm",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4976,
+      "name": "Verac's helm 100",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4979,
+      "name": "Verac's helm 25",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4978,
+      "name": "Verac's helm 50",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 4977,
+      "name": "Verac's helm 75",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 10374,
+      "name": "Zamorak coif",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 22650,
+      "name": "Zuriel's hood",
+      "quantity": 1,
+      "tab": 1,
+      "category": "Head armour"
+    },
+    {
+      "itemId": 23336,
+      "name": "3rd age druidic robe top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10348,
+      "name": "3rd age platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10330,
+      "name": "3rd age range top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27199,
+      "name": "3rd age range top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10338,
+      "name": "3rd age robe top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 1111,
+      "name": "Adamant chainbody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 1123,
+      "name": "Adamant platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 20415,
+      "name": "Adamant platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 2607,
+      "name": "Adamant platebody (g)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23392,
+      "name": "Adamant platebody (h1)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23395,
+      "name": "Adamant platebody (h2)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23398,
+      "name": "Adamant platebody (h3)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23401,
+      "name": "Adamant platebody (h4)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23404,
+      "name": "Adamant platebody (h5)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 2599,
+      "name": "Adamant platebody (t)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4712,
+      "name": "Ahrim's robetop",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 20598,
+      "name": "Ahrim's robetop",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4868,
+      "name": "Ahrim's robetop 100",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4871,
+      "name": "Ahrim's robetop 25",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4870,
+      "name": "Ahrim's robetop 50",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4869,
+      "name": "Ahrim's robetop 75",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 21021,
+      "name": "Ancestral robe top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27193,
+      "name": "Ancestral robe top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 12492,
+      "name": "Ancient d'hide",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 12460,
+      "name": "Ancient platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 11828,
+      "name": "Armadyl chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 26715,
+      "name": "Armadyl chestplate (or)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 12508,
+      "name": "Armadyl d'hide",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 12470,
+      "name": "Armadyl platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 12253,
+      "name": "Armadyl robe top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 11832,
+      "name": "Bandos chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 26718,
+      "name": "Bandos chestplate (or)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 12500,
+      "name": "Bandos d'hide",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 12480,
+      "name": "Bandos platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 12265,
+      "name": "Bandos robe top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29022,
+      "name": "Blood moon chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29043,
+      "name": "Blood moon chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29846,
+      "name": "Blood moon chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29067,
+      "name": "Blood moon chestplate (broken)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 25404,
+      "name": "Bloodbark body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29013,
+      "name": "Blue moon chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29037,
+      "name": "Blue moon chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29843,
+      "name": "Blue moon chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29058,
+      "name": "Blue moon chestplate (broken)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 26721,
+      "name": "Centurion cuirass",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 26722,
+      "name": "Centurion cuirass (l)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23844,
+      "name": "Corrupted body (attuned)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23843,
+      "name": "Corrupted body (basic)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23845,
+      "name": "Corrupted body (perfected)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23975,
+      "name": "Crystal body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27697,
+      "name": "Crystal body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27709,
+      "name": "Crystal body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27721,
+      "name": "Crystal body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27733,
+      "name": "Crystal body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27745,
+      "name": "Crystal body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27757,
+      "name": "Crystal body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27769,
+      "name": "Crystal body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 33023,
+      "name": "Crystal body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23890,
+      "name": "Crystal body (attuned)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23889,
+      "name": "Crystal body (basic)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 25496,
+      "name": "Crystal body (beta)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23977,
+      "name": "Crystal body (inactive)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27699,
+      "name": "Crystal body (inactive)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27711,
+      "name": "Crystal body (inactive)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27723,
+      "name": "Crystal body (inactive)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27735,
+      "name": "Crystal body (inactive)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27747,
+      "name": "Crystal body (inactive)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27759,
+      "name": "Crystal body (inactive)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27771,
+      "name": "Crystal body (inactive)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 33025,
+      "name": "Crystal body (inactive)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23891,
+      "name": "Crystal body (perfected)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 31762,
+      "name": "Crystal glider's jacket",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 24291,
+      "name": "Dagon'hai robe top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27125,
+      "name": "Dagon'hai robe top (or)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4509,
+      "name": "Decorative armour",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 24158,
+      "name": "Decorative armour (l)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4720,
+      "name": "Dharok's platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 25515,
+      "name": "Dharok's platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4892,
+      "name": "Dharok's platebody 100",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4895,
+      "name": "Dharok's platebody 25",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4894,
+      "name": "Dharok's platebody 50",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4893,
+      "name": "Dharok's platebody 75",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 3140,
+      "name": "Dragon chainbody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 20428,
+      "name": "Dragon chainbody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 28065,
+      "name": "Dragon chainbody (cr)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 12414,
+      "name": "Dragon chainbody (g)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 21892,
+      "name": "Dragon platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 22242,
+      "name": "Dragon platebody (g)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 24037,
+      "name": "Dragonstone platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 30447,
+      "name": "Echo ahrim's robetop",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 30521,
+      "name": "Echo ahrim's robetop 100",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 30539,
+      "name": "Echo ahrim's robetop 25",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 30533,
+      "name": "Echo ahrim's robetop 50",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 30527,
+      "name": "Echo ahrim's robetop 75",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29004,
+      "name": "Eclipse moon chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29031,
+      "name": "Eclipse moon chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29840,
+      "name": "Eclipse moon chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29049,
+      "name": "Eclipse moon chestplate (broken)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 26753,
+      "name": "Elite calamity chest",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 26754,
+      "name": "Elite calamity chest (l)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10551,
+      "name": "Fighter torso",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 24175,
+      "name": "Fighter torso (l)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 28069,
+      "name": "Fighter torso (l)(or)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 28067,
+      "name": "Fighter torso (or)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 20149,
+      "name": "Gilded chainbody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 3481,
+      "name": "Gilded platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10564,
+      "name": "Granite body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4728,
+      "name": "Guthan's platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4916,
+      "name": "Guthan's platebody 100",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4919,
+      "name": "Guthan's platebody 25",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4918,
+      "name": "Guthan's platebody 50",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4917,
+      "name": "Guthan's platebody 75",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10378,
+      "name": "Guthix dragonhide",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10794,
+      "name": "Guthix dragonhide",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 2669,
+      "name": "Guthix platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 30076,
+      "name": "Hueycoatl hide body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 24420,
+      "name": "Inquisitor's hauberk",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27196,
+      "name": "Inquisitor's hauberk",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 22327,
+      "name": "Justiciar chestguard",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4736,
+      "name": "Karil's leathertop",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23632,
+      "name": "Karil's leathertop",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4940,
+      "name": "Karil's leathertop 100",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4943,
+      "name": "Karil's leathertop 25",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4942,
+      "name": "Karil's leathertop 50",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4941,
+      "name": "Karil's leathertop 75",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 9097,
+      "name": "Lunar torso",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27229,
+      "name": "Masori body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27238,
+      "name": "Masori body (f)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 25969,
+      "name": "Masori chestplate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 29280,
+      "name": "Mixed hide top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 22641,
+      "name": "Morrigan's leather body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27837,
+      "name": "Morrigan's leather body (bh)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 30753,
+      "name": "Oathplate chest",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 21301,
+      "name": "Obsidian platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 9674,
+      "name": "Proselyte hauberk",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 20564,
+      "name": "Proselyte hauberk",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 30779,
+      "name": "Radiant oathplate chest",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 2501,
+      "name": "Red d'hide body",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 6129,
+      "name": "Rock-shell plate",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 1113,
+      "name": "Rune chainbody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 1127,
+      "name": "Rune platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 20421,
+      "name": "Rune platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 2615,
+      "name": "Rune platebody (g)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10798,
+      "name": "Rune platebody (g)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23209,
+      "name": "Rune platebody (h1)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23212,
+      "name": "Rune platebody (h2)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23215,
+      "name": "Rune platebody (h3)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23218,
+      "name": "Rune platebody (h4)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23221,
+      "name": "Rune platebody (h5)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 2623,
+      "name": "Rune platebody (t)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10800,
+      "name": "Rune platebody (t)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 20038,
+      "name": "Samurai shirt",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 28256,
+      "name": "Sanguine torva platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10386,
+      "name": "Saradomin d'hide",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10792,
+      "name": "Saradomin d'hide",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 2661,
+      "name": "Saradomin platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 22628,
+      "name": "Statius's platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27834,
+      "name": "Statius's platebody (bh)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 28936,
+      "name": "Sunfire fanatic cuirass",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4749,
+      "name": "Torag's platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4964,
+      "name": "Torag's platebody 100",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4967,
+      "name": "Torag's platebody 25",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4966,
+      "name": "Torag's platebody 50",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4965,
+      "name": "Torag's platebody 75",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 26384,
+      "name": "Torva platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 30303,
+      "name": "Torva platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 26378,
+      "name": "Torva platebody (damaged)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 24666,
+      "name": "Twisted ancestral robe top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 13107,
+      "name": "Varrock armour 4",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 4757,
+      "name": "Verac's brassard",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 22616,
+      "name": "Vesta's chainbody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27831,
+      "name": "Vesta's chainbody (bh)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10370,
+      "name": "Zamorak d'hide",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 10790,
+      "name": "Zamorak d'hide",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 2653,
+      "name": "Zamorak platebody",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 22653,
+      "name": "Zuriel's robe top",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 27840,
+      "name": "Zuriel's robe top (bh)",
+      "quantity": 1,
+      "tab": 2,
+      "category": "Body armour"
+    },
+    {
+      "itemId": 23339,
+      "name": "3rd age druidic robe bottoms",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 10346,
+      "name": "3rd age platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23242,
+      "name": "3rd age plateskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 10332,
+      "name": "3rd age range legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27200,
+      "name": "3rd age range legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 10340,
+      "name": "3rd age robe",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4714,
+      "name": "Ahrim's robeskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4874,
+      "name": "Ahrim's robeskirt 100",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4877,
+      "name": "Ahrim's robeskirt 25",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4876,
+      "name": "Ahrim's robeskirt 50",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4875,
+      "name": "Ahrim's robeskirt 75",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 21024,
+      "name": "Ancestral robe bottom",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27194,
+      "name": "Ancestral robe bottom",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12494,
+      "name": "Ancient chaps",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 11830,
+      "name": "Armadyl chainskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 26716,
+      "name": "Armadyl chainskirt (or)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12510,
+      "name": "Armadyl chaps",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12472,
+      "name": "Armadyl platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12474,
+      "name": "Armadyl plateskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12255,
+      "name": "Armadyl robe legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12502,
+      "name": "Bandos chaps",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12482,
+      "name": "Bandos platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12484,
+      "name": "Bandos plateskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12267,
+      "name": "Bandos robe legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 11834,
+      "name": "Bandos tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23646,
+      "name": "Bandos tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 26719,
+      "name": "Bandos tassets (or)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29025,
+      "name": "Blood moon tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29045,
+      "name": "Blood moon tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29847,
+      "name": "Blood moon tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29070,
+      "name": "Blood moon tassets (broken)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 25416,
+      "name": "Bloodbark legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29016,
+      "name": "Blue moon tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29039,
+      "name": "Blue moon tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29844,
+      "name": "Blue moon tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29061,
+      "name": "Blue moon tassets (broken)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23847,
+      "name": "Corrupted legs (attuned)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23848,
+      "name": "Corrupted legs (perfected)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 31764,
+      "name": "Crystal glider's trousers",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23979,
+      "name": "Crystal legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27701,
+      "name": "Crystal legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27713,
+      "name": "Crystal legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27725,
+      "name": "Crystal legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27737,
+      "name": "Crystal legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27749,
+      "name": "Crystal legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27761,
+      "name": "Crystal legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27773,
+      "name": "Crystal legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 33027,
+      "name": "Crystal legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23893,
+      "name": "Crystal legs (attuned)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23892,
+      "name": "Crystal legs (basic)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 25497,
+      "name": "Crystal legs (beta)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23981,
+      "name": "Crystal legs (inactive)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27703,
+      "name": "Crystal legs (inactive)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27715,
+      "name": "Crystal legs (inactive)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27727,
+      "name": "Crystal legs (inactive)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27739,
+      "name": "Crystal legs (inactive)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27751,
+      "name": "Crystal legs (inactive)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27763,
+      "name": "Crystal legs (inactive)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27775,
+      "name": "Crystal legs (inactive)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 33029,
+      "name": "Crystal legs (inactive)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23894,
+      "name": "Crystal legs (perfected)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 24294,
+      "name": "Dagon'hai robe bottom",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27127,
+      "name": "Dagon'hai robe bottom (or)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4722,
+      "name": "Dharok's platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23633,
+      "name": "Dharok's platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4898,
+      "name": "Dharok's platelegs 100",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4901,
+      "name": "Dharok's platelegs 25",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4900,
+      "name": "Dharok's platelegs 50",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4899,
+      "name": "Dharok's platelegs 75",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4087,
+      "name": "Dragon platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4180,
+      "name": "Dragon platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 20429,
+      "name": "Dragon platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 28061,
+      "name": "Dragon platelegs (cr)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12415,
+      "name": "Dragon platelegs (g)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4585,
+      "name": "Dragon plateskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 28063,
+      "name": "Dragon plateskirt (cr)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 12416,
+      "name": "Dragon plateskirt (g)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29007,
+      "name": "Eclipse moon tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29033,
+      "name": "Eclipse moon tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29841,
+      "name": "Eclipse moon tassets",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29052,
+      "name": "Eclipse moon tassets (broken)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 6809,
+      "name": "Granite legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4730,
+      "name": "Guthan's chainskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4922,
+      "name": "Guthan's chainskirt 100",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4925,
+      "name": "Guthan's chainskirt 25",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4924,
+      "name": "Guthan's chainskirt 50",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4923,
+      "name": "Guthan's chainskirt 75",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 10380,
+      "name": "Guthix chaps",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 30079,
+      "name": "Hueycoatl hide chaps",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 24421,
+      "name": "Inquisitor's plateskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27197,
+      "name": "Inquisitor's plateskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 22328,
+      "name": "Justiciar legguards",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4738,
+      "name": "Karil's leatherskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4946,
+      "name": "Karil's leatherskirt 100",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4949,
+      "name": "Karil's leatherskirt 25",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4948,
+      "name": "Karil's leatherskirt 50",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4947,
+      "name": "Karil's leatherskirt 75",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 9098,
+      "name": "Lunar legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 25971,
+      "name": "Masori chainskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27232,
+      "name": "Masori chaps",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27241,
+      "name": "Masori chaps (f)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 29283,
+      "name": "Mixed hide legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 22644,
+      "name": "Morrigan's leather chaps",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 30756,
+      "name": "Oathplate legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 21304,
+      "name": "Obsidian platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 10555,
+      "name": "Penance skirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 24176,
+      "name": "Penance skirt (l)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 30781,
+      "name": "Radiant oathplate legs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 2495,
+      "name": "Red d'hide chaps",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 28258,
+      "name": "Sanguine torva platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 10388,
+      "name": "Saradomin chaps",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 22631,
+      "name": "Statius's platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 27835,
+      "name": "Statius's platelegs (bh)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 28939,
+      "name": "Sunfire fanatic chausses",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4751,
+      "name": "Torag's platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23634,
+      "name": "Torag's platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4970,
+      "name": "Torag's platelegs 100",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4973,
+      "name": "Torag's platelegs 25",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4972,
+      "name": "Torag's platelegs 50",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4971,
+      "name": "Torag's platelegs 75",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 26386,
+      "name": "Torva platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 30304,
+      "name": "Torva platelegs",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 26380,
+      "name": "Torva platelegs (damaged)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 24668,
+      "name": "Twisted ancestral robe bottom",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4759,
+      "name": "Verac's plateskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 23635,
+      "name": "Verac's plateskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4994,
+      "name": "Verac's plateskirt 100",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4997,
+      "name": "Verac's plateskirt 25",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4996,
+      "name": "Verac's plateskirt 50",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 4995,
+      "name": "Verac's plateskirt 75",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 22619,
+      "name": "Vesta's plateskirt",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 10372,
+      "name": "Zamorak chaps",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 22656,
+      "name": "Zuriel's robe bottom",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Leg armour"
+    },
+    {
+      "itemId": 10352,
+      "name": "3rd age kiteshield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23197,
+      "name": "Ancient d'hide shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 21633,
+      "name": "Ancient wyvern shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 21634,
+      "name": "Ancient wyvern shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 32879,
+      "name": "Aquanite hopper",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12825,
+      "name": "Arcane spirit shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23200,
+      "name": "Armadyl d'hide shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12478,
+      "name": "Armadyl kiteshield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12617,
+      "name": "Armadyl page 1",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12618,
+      "name": "Armadyl page 2",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12619,
+      "name": "Armadyl page 3",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12620,
+      "name": "Armadyl page 4",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 22322,
+      "name": "Avernic defender",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 24186,
+      "name": "Avernic defender (l)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23203,
+      "name": "Bandos d'hide shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12488,
+      "name": "Bandos kiteshield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12613,
+      "name": "Bandos page 1",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12614,
+      "name": "Bandos page 2",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12615,
+      "name": "Bandos page 3",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12616,
+      "name": "Bandos page 4",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12831,
+      "name": "Blessed spirit shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23642,
+      "name": "Blessed spirit shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23991,
+      "name": "Crystal shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 24127,
+      "name": "Crystal shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23993,
+      "name": "Crystal shield (inactive)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4234,
+      "name": "Crystal shield 1/10",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4233,
+      "name": "Crystal shield 2/10",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4232,
+      "name": "Crystal shield 3/10",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4231,
+      "name": "Crystal shield 4/10",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4230,
+      "name": "Crystal shield 5/10",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4229,
+      "name": "Crystal shield 6/10",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4228,
+      "name": "Crystal shield 7/10",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4227,
+      "name": "Crystal shield 8/10",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4226,
+      "name": "Crystal shield 9/10",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4225,
+      "name": "Crystal shield full",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12954,
+      "name": "Dragon defender",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23597,
+      "name": "Dragon defender",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 24143,
+      "name": "Dragon defender (l)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 27008,
+      "name": "Dragon defender (l)(t)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 19722,
+      "name": "Dragon defender (t)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 21895,
+      "name": "Dragon kiteshield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 22244,
+      "name": "Dragon kiteshield (g)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 1187,
+      "name": "Dragon sq shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 28059,
+      "name": "Dragon sq shield (cr)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12418,
+      "name": "Dragon sq shield (g)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 11283,
+      "name": "Dragonfire shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 22002,
+      "name": "Dragonfire ward",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 22003,
+      "name": "Dragonfire ward",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 27251,
+      "name": "Elidinis' ward (f)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 27253,
+      "name": "Elidinis' ward (or)",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12817,
+      "name": "Elysian spirit shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 19559,
+      "name": "Elysian spirit shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 3122,
+      "name": "Granite shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23188,
+      "name": "Guthix d'hide shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 6889,
+      "name": "Mage's book",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23652,
+      "name": "Mage's book",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 4224,
+      "name": "New crystal shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 22281,
+      "name": "Red d'hide shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23191,
+      "name": "Saradomin d'hide shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 12821,
+      "name": "Spectral spirit shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 6524,
+      "name": "Toktz-ket-xil",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 21000,
+      "name": "Twisted buckler",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 23194,
+      "name": "Zamorak d'hide shield",
+      "quantity": 1,
+      "tab": 3,
+      "category": "Shields"
+    },
+    {
+      "itemId": 10344,
+      "name": "3rd age amulet",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 23345,
+      "name": "3rd age druidic cloak",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 10336,
+      "name": "3rd age vambraces",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 29801,
+      "name": "Amulet of rancour",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 12490,
+      "name": "Ancient bracers",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 12506,
+      "name": "Armadyl bracers",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 12261,
+      "name": "Armadyl cloak",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 19930,
+      "name": "Armadyl d'hide boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 87,
+      "name": "Armadyl pendant",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 12257,
+      "name": "Armadyl stole",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 21898,
+      "name": "Assembler max cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24135,
+      "name": "Assembler max cape (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9747,
+      "name": "Attack cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9748,
+      "name": "Attack cape(t)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 22109,
+      "name": "Ava's assembler",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24222,
+      "name": "Ava's assembler (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 31088,
+      "name": "Avernic treads",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 11836,
+      "name": "Bandos boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 26720,
+      "name": "Bandos boots (or)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 12498,
+      "name": "Bandos bracers",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 12273,
+      "name": "Bandos cloak",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 19924,
+      "name": "Bandos d'hide boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 12269,
+      "name": "Bandos stole",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 7462,
+      "name": "Barrows gloves",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 23593,
+      "name": "Barrows gloves",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 27112,
+      "name": "Barrows gloves (wrapped)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 25410,
+      "name": "Bloodbark boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 25407,
+      "name": "Bloodbark gauntlets",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 22986,
+      "name": "Bonecrusher necklace",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 22951,
+      "name": "Boots of brimstone",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 31106,
+      "name": "Confliction gauntlets",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 31766,
+      "name": "Crystal glider's shoes",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 3208,
+      "name": "Crystal pendant",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9753,
+      "name": "Defence cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 22954,
+      "name": "Devout boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 28951,
+      "name": "Dizana's quiver",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 11840,
+      "name": "Dragon boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 28055,
+      "name": "Dragon boots (cr)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 22234,
+      "name": "Dragon boots (g)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 11117,
+      "name": "Dragon bracelet",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 7461,
+      "name": "Dragon gloves",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 1664,
+      "name": "Dragon necklace",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 22111,
+      "name": "Dragonbone necklace",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 28945,
+      "name": "Echo boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 23644,
+      "name": "Eternal boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 22981,
+      "name": "Ferocious gloves",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24134,
+      "name": "Fire max cape (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 21733,
+      "name": "Guardian boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 10376,
+      "name": "Guthix bracers",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 2413,
+      "name": "Guthix cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9768,
+      "name": "Hitpoints cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9769,
+      "name": "Hitpoints cape(t)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 30082,
+      "name": "Hueycoatl hide vambraces",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24249,
+      "name": "Imbued guthix cape (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 21784,
+      "name": "Imbued guthix max cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24234,
+      "name": "Imbued guthix max cape (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24248,
+      "name": "Imbued saradomin cape (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 21776,
+      "name": "Imbued saradomin max cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24232,
+      "name": "Imbued saradomin max cape (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24250,
+      "name": "Imbued zamorak cape (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 21780,
+      "name": "Imbued zamorak max cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24233,
+      "name": "Imbued zamorak max cape (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24133,
+      "name": "Infernal max cape (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9102,
+      "name": "Lunar amulet",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9100,
+      "name": "Lunar boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9101,
+      "name": "Lunar cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9099,
+      "name": "Lunar gloves",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9104,
+      "name": "Lunar ring",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9762,
+      "name": "Magic cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9763,
+      "name": "Magic cape(t)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 25973,
+      "name": "Masori amulet",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 27374,
+      "name": "Masori assembler",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 27376,
+      "name": "Masori assembler (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 27363,
+      "name": "Masori assembler max cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 27365,
+      "name": "Masori assembler max cape (l)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 29286,
+      "name": "Mixed hide boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 29289,
+      "name": "Mixed hide cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 24855,
+      "name": "Mythical max cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 22249,
+      "name": "Necklace of anguish (or)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 6568,
+      "name": "Obsidian cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 20050,
+      "name": "Obsidian cape (r)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 23654,
+      "name": "Occult necklace",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 13237,
+      "name": "Pegasian boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9759,
+      "name": "Prayer cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9760,
+      "name": "Prayer cape(t)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 13239,
+      "name": "Primordial boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9756,
+      "name": "Ranging cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9757,
+      "name": "Ranging cape(t)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 2489,
+      "name": "Red d'hide vamb",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 19550,
+      "name": "Ring of suffering",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 10384,
+      "name": "Saradomin bracers",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 2412,
+      "name": "Saradomin cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 19933,
+      "name": "Saradomin d'hide boots",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 10470,
+      "name": "Saradomin stole",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 25344,
+      "name": "Soul cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 25346,
+      "name": "Soul cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9750,
+      "name": "Strength cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 9751,
+      "name": "Strength cape(t)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 23444,
+      "name": "Tormented bracelet (or)",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 10368,
+      "name": "Zamorak bracers",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 2414,
+      "name": "Zamorak cape",
+      "quantity": 1,
+      "tab": 4,
+      "category": "Accessories"
+    },
+    {
+      "itemId": 2458,
+      "name": "Antifire potion(1)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 2452,
+      "name": "Antifire potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 2428,
+      "name": "Attack potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 24598,
+      "name": "Blighted super restore(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 24600,
+      "name": "Blighted super restore(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 9739,
+      "name": "Combat potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 2432,
+      "name": "Defence potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 3014,
+      "name": "Energy potion(1)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 3008,
+      "name": "Energy potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 11957,
+      "name": "Extended antifire (1)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 4417,
+      "name": "Guthix rest(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 3040,
+      "name": "Magic potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 2434,
+      "name": "Prayer potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 2444,
+      "name": "Ranging potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 10925,
+      "name": "Sanfew serum(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 12625,
+      "name": "Stamina potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 113,
+      "name": "Strength potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 21987,
+      "name": "Super antifire potion(1)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 2436,
+      "name": "Super attack(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 12695,
+      "name": "Super combat potion(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 2442,
+      "name": "Super defence(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 3024,
+      "name": "Super restore(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 2440,
+      "name": "Super strength(4)",
+      "quantity": 25,
+      "tab": 5,
+      "category": "Four-dose potions"
+    },
+    {
+      "itemId": 13441,
+      "name": "Anglerfish",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    },
+    {
+      "itemId": 365,
+      "name": "Bass",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    },
+    {
+      "itemId": 3144,
+      "name": "Cooked karambwan",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    },
+    {
+      "itemId": 2011,
+      "name": "Curry",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    },
+    {
+      "itemId": 11936,
+      "name": "Dark crab",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    },
+    {
+      "itemId": 6311,
+      "name": "Gout tuber",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    },
+    {
+      "itemId": 379,
+      "name": "Lobster",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    },
+    {
+      "itemId": 391,
+      "name": "Manta ray",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    },
+    {
+      "itemId": 7946,
+      "name": "Monkfish",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    },
+    {
+      "itemId": 385,
+      "name": "Shark",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    },
+    {
+      "itemId": 373,
+      "name": "Swordfish",
+      "quantity": 100,
+      "tab": 6,
+      "category": "Food healing 12+"
+    }
+  ]
+}

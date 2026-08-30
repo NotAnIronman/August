@@ -46,7 +46,7 @@ export class PlayerInventoryState {
         tab?: number;
         filler?: boolean;
     }> = [];
-    bankCapacity: number = 800;
+    bankCapacity: number = 2000;
     bankWithdrawNoteMode: boolean = false;
     bankInsertMode: boolean = false;
     bankQuantityMode: number = 0;

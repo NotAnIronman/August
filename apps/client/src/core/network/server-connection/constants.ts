@@ -3,7 +3,7 @@ import { getDefaultWsUrl } from "@client/core/config/clientEnv";
 export const WS_GLOBAL_KEY = "__OSRS_CLIENT_WS_SINGLETON__";
 export const WS_SUPPRESS_RECONNECT_KEY = "__OSRS_CLIENT_WS_SUPPRESS_RECONNECT__";
 export const INVENTORY_SLOT_COUNT = 28;
-export const BANK_SLOT_COUNT_FALLBACK = 1410;
+export const BANK_SLOT_COUNT_FALLBACK = 2000;
 export const CLIENT_TICK_MS = 20;
 export const RUN_ENERGY_MAX_UNITS = 10000;
 export const DEFAULT_SERVER_TICK_MS = 600;
