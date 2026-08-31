@@ -1,4 +1,101 @@
 {
   "version": 1,
-  "rules": []
+  "rules": [
+    {
+      "area": {
+        "minX": 3570,
+        "minY": 3294,
+        "maxX": 3580,
+        "maxY": 3302,
+        "level": 0
+      },
+      "to": {
+        "x": 3556,
+        "y": 9718,
+        "level": 3
+      },
+      "id": "dig-1",
+      "animationId": 831
+    },
+    {
+      "area": {
+        "minX": 3573,
+        "minY": 3279,
+        "maxX": 3580,
+        "maxY": 3286,
+        "level": 0
+      },
+      "to": {
+        "x": 3534,
+        "y": 9704,
+        "level": 3
+      },
+      "animationId": 831,
+      "id": "dig-2"
+    },
+    {
+      "area": {
+        "minX": 3561,
+        "minY": 3273,
+        "maxX": 3569,
+        "maxY": 3279,
+        "level": 0
+      },
+      "to": {
+        "x": 3546,
+        "y": 9684,
+        "level": 3
+      },
+      "animationId": 831,
+      "id": "dig-3"
+    },
+    {
+      "area": {
+        "minX": 3549,
+        "minY": 3279,
+        "maxX": 3557,
+        "maxY": 3286,
+        "level": 0
+      },
+      "to": {
+        "x": 3568,
+        "y": 9683,
+        "level": 3
+      },
+      "animationId": 831,
+      "id": "dig-4"
+    },
+    {
+      "area": {
+        "minX": 3552,
+        "minY": 3294,
+        "maxX": 3561,
+        "maxY": 3302,
+        "level": 0
+      },
+      "to": {
+        "x": 3578,
+        "y": 9706,
+        "level": 3
+      },
+      "animationId": 831,
+      "id": "dig-5"
+    },
+    {
+      "area": {
+        "minX": 3560,
+        "minY": 3285,
+        "maxX": 3569,
+        "maxY": 3292,
+        "level": 0
+      },
+      "to": {
+        "x": 3557,
+        "y": 9703,
+        "level": 3
+      },
+      "animationId": 831,
+      "id": "dig-6"
+    }
+  ]
 }
