@@ -1,4 +1,6 @@
 import type { PlayerState } from "@server/game/player";
+import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
+import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
 import { AttackType } from "@server/game/combat/AttackType";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
@@ -14,10 +16,12 @@ const MOONLIGHT_MOTHS = [12771, 12772, 12773] as const;
 const STATUES = [51372, 51373, 51374] as const;
 const CHEST_TILE = { x: 1513, y: 9578, level: 0 };
 type Moon = "blood" | "eclipse" | "blue";
-const MOONS: Record<Moon, { id: number; entry: { x: number; y: number; level: number }; boss: { x: number; y: number; level: number }; next: Moon }> = {
-    blood: { id: 13011, entry: { x: 1406, y: 9632, level: 0 }, boss: { x: 1391, y: 9631, level: 0 }, next: "eclipse" },
-    eclipse: { id: 13012, entry: { x: 1475, y: 9632, level: 0 }, boss: { x: 1487, y: 9631, level: 0 }, next: "blue" },
-    blue: { id: 13013, entry: { x: 1440, y: 9666, level: 0 }, boss: { x: 1439, y: 9679, level: 0 }, next: "blood" },
+const MOONS: Record<Moon, { id: number; entry: { x: number; y: number; level: number }; outside: { x: number; y: number; level: number }; grave: { x: number; y: number; level: number }; boss: { x: number; y: number; level: number }; sourceBaseX: number; sourceBaseY: number; next: Moon }> = {
+    // Each chamber needs its own map slice. Copying all three into one 104x104
+    // view cut off Blood/Eclipse and displaced their terrain vertically.
+    blood: { id: 13011, entry: { x: 1406, y: 9632, level: 0 }, outside: { x: 1413, y: 9632, level: 0 }, grave: { x: 1414, y: 9632, level: 0 }, boss: { x: 1391, y: 9631, level: 0 }, sourceBaseX: 1368, sourceBaseY: 9608, next: "eclipse" },
+    eclipse: { id: 13012, entry: { x: 1475, y: 9632, level: 0 }, outside: { x: 1466, y: 9632, level: 0 }, grave: { x: 1465, y: 9632, level: 0 }, boss: { x: 1487, y: 9631, level: 0 }, sourceBaseX: 1440, sourceBaseY: 9608, next: "blue" },
+    blue: { id: 13013, entry: { x: 1440, y: 9666, level: 0 }, outside: { x: 1440, y: 9658, level: 0 }, grave: { x: 1440, y: 9657, level: 0 }, boss: { x: 1439, y: 9679, level: 0 }, sourceBaseX: 1408, sourceBaseY: 9640, next: "blood" },
 };
 type Run = { killed: Set<Moon>; active?: Moon; instanceId: string };
 const runs = new Map<number, Run>();
@@ -25,7 +29,7 @@ const runs = new Map<number, Run>();
 function registerEncounters(): void {
     for (const [key, moon] of Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>) {
         if (EncounterRegistry.shared.get(`moon-${key}`)) continue;
-        registerEncounter({ id: `moon-${key}`, npcTypeIds: [moon.id], maxHealth: 500, bossHealthBar: { name: `${key[0].toUpperCase()}${key.slice(1)} Moon`, npcTypeId: moon.id }, movement: { wanderRadius: 0, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 60, retreatInteractionRange: 60 }, attacks: [{ id: "attack", type: AttackType.Melee, rangeTiles: 30, preferredDistance: 1, speedTicks: 4, maxHit: 20, animation: "attack" }] });
+        registerEncounter({ id: `moon-${key}`, npcTypeIds: [moon.id], maxHealth: 500, bossHealthBar: { name: `${key[0].toUpperCase()}${key.slice(1)} Moon`, npcTypeId: moon.id }, movement: { wanderRadius: 0, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 60, retreatInteractionRange: 60 }, attacks: [{ id: "attack", type: AttackType.Melee, rangeTiles: 30, preferredDistance: 30, speedTicks: 4, maxHit: 20, animation: "attack" }] });
     }
 }
 
@@ -38,15 +42,22 @@ function spawnMoon(player: PlayerState, services: ScriptServices, moon: Moon): v
     const run = runs.get(player.id); if (!run || run.active || run.killed.has(moon)) return;
     const def = MOONS[moon];
     services.movement.teleportPlayer(player, def.entry.x, def.entry.y, def.entry.level);
-    const npc = services.npc.spawnNpc({ id: def.id, x: def.boss.x, y: def.boss.y, level: 0, worldViewId: player.worldViewId, ownerPlayerId: player.id, wanderRadius: 0, isAggressive: true, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, respawns: false });
+    const npc = services.npc.spawnNpc({ id: def.id, x: def.boss.x, y: def.boss.y, level: 0, worldViewId: player.worldViewId, ownerPlayerId: player.id, wanderRadius: 0, attackSpeed: 4, isAggressive: true, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, respawns: false });
     if (!npc) { services.messaging.sendGameMessage(player, "The Moon fails to awaken. Please try again."); return; }
     run.active = moon; services.npc.engageCombat(npc, player);
 }
 
 function createRun(player: PlayerState, services: ScriptServices, first: Moon, access: "solo" | "party" = "solo"): void {
     if (services.instances.get(player.id)) { services.messaging.sendGameMessage(player, "You are already inside an instance."); return; }
-    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: 1392, sourceBaseY: 9616, widthChunks: 13, heightChunks: 13, sourcePlanes: [0], destinationChunkX: 0, destinationChunkY: 0 }]);
-    const room = services.instances.create(player, { definitionId: "moons-of-peril", access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party", templateChunks, destination: MOONS.blue.entry, exit: CHEST_TILE });
+    const existing = runs.get(player.id);
+    if (existing?.killed.size) {
+        if (existing.killed.has(first)) { services.messaging.sendGameMessage(player, `You have already defeated the ${first} Moon this run.`); return; }
+        resumeRun(player, services, first);
+        return;
+    }
+    const def = MOONS[first];
+    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: def.sourceBaseX, sourceBaseY: def.sourceBaseY, widthChunks: 8, heightChunks: 8, sourcePlanes: [0], destinationChunkX: 2, destinationChunkY: 3 }]);
+    const room = services.instances.create(player, { definitionId: "moons-of-peril", access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party", templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
     if (!room) { services.messaging.sendGameMessage(player, "The Moon chamber is unavailable right now."); return; }
     runs.set(player.id, { killed: new Set(), instanceId: room.id }); services.instances.markStarted(room.id); spawnMoon(player, services, first);
 }
@@ -55,8 +66,9 @@ function createRun(player: PlayerState, services: ScriptServices, first: Moon, a
 function resumeRun(player: PlayerState, services: ScriptServices, next: Moon): void {
     const run = runs.get(player.id);
     if (!run || services.instances.get(player.id)) return;
-    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: 1392, sourceBaseY: 9616, widthChunks: 13, heightChunks: 13, sourcePlanes: [0], destinationChunkX: 0, destinationChunkY: 0 }]);
-    const room = services.instances.create(player, { definitionId: "moons-of-peril", access: "solo", maxPlayers: 1, templateChunks, destination: MOONS[next].entry, exit: CHEST_TILE });
+    const def = MOONS[next];
+    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: def.sourceBaseX, sourceBaseY: def.sourceBaseY, widthChunks: 8, heightChunks: 8, sourcePlanes: [0], destinationChunkX: 2, destinationChunkY: 3 }]);
+    const room = services.instances.create(player, { definitionId: "moons-of-peril", access: "solo", maxPlayers: 1, templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
     if (!room) { services.messaging.sendGameMessage(player, "The Moon chamber is unavailable right now."); return; }
     run.instanceId = room.id;
     services.instances.markStarted(room.id);
@@ -73,6 +85,8 @@ function showJoinOptions(player: PlayerState, services: ScriptServices): void {
 
 function statue(player: PlayerState, services: ScriptServices, moon: Moon): void {
     if (services.instances.get(player.id)?.definitionId === "moons-of-peril") { services.instances.leave(player, CHEST_TILE); return; }
+    const killed = [...(runs.get(player.id)?.killed ?? [])];
+    if (killed.length) services.messaging.sendGameMessage(player, `Defeated this run: ${killed.map(name => `${name[0].toUpperCase()}${name.slice(1)} Moon`).join(", ")}.`);
     services.dialog.openDialogOptions(player, { id: `moon-enter-${moon}`, title: `Enter the ${moon} Moon chamber`, options: ["Enter solo", "Create a party instance", "Join a party instance"], modal: true, onSelect: choice => { if (choice === 0) createRun(player, services, moon); else if (choice === 1) createRun(player, services, moon, "party"); else if (choice === 2) showJoinOptions(player, services); } });
 }
 
@@ -104,16 +118,51 @@ function searchChest(player: PlayerState, services: ScriptServices): void {
 function giveIfMissing(player: PlayerState, services: ScriptServices, itemId: number, quantity = 1): void {
     if (!player.items.hasItem(itemId, 1)) addOrDrop(player, services, itemId, quantity);
 }
+function giveSupplySet(player: PlayerState, services: ScriptServices, choice: number): void {
+    if (choice === 0) giveIfMissing(player, services, NET);
+    if (choice === 1) { giveIfMissing(player, services, ROPE); giveIfMissing(player, services, BUTTERFLY_NET); }
+    if (choice === 2) { giveIfMissing(player, services, PESTLE); giveIfMissing(player, services, VIAL, 2); }
+    services.inventory.snapshotInventoryImmediate(player);
+}
 function takeSupplies(player: PlayerState, services: ScriptServices): void {
     services.dialog.openDialogOptions(player, { id: "moon-supplies", title: "Take supplies", options: ["Fishing supplies", "Hunting supplies", "Herblore supplies"], modal: true, onSelect: choice => {
-        if (choice === 0) giveIfMissing(player, services, NET);
-        if (choice === 1) { giveIfMissing(player, services, ROPE); giveIfMissing(player, services, BUTTERFLY_NET); }
-        if (choice === 2) { giveIfMissing(player, services, PESTLE); giveIfMissing(player, services, VIAL, 2); }
-        services.inventory.snapshotInventoryImmediate(player);
+        giveSupplySet(player, services, choice);
     } });
 }
 
 function skillLevel(player: PlayerState, skill: SkillId): number { return player.skillSystem.getSkill(skill).baseLevel; }
+
+function sameTile(player: PlayerState, tile: { x: number; y: number; level: number }, worldViewId: number): boolean {
+    return player.tileX === tile.x && player.tileY === tile.y && player.level === tile.level && player.worldViewId === worldViewId;
+}
+
+function startFishing(player: PlayerState, services: ScriptServices): void {
+    if (!player.items.hasItem(NET, 1)) { services.messaging.sendGameMessage(player, "You need a small fishing net to fish here."); return; }
+    const start = { x: player.tileX, y: player.tileY, level: player.level };
+    const worldViewId = player.worldViewId;
+    const catchBream = (): void => {
+        if (!sameTile(player, start, worldViewId) || player.items.getFreeSlotCount() <= 0) return;
+        services.animation.playPlayerSeq(player, 621);
+        addOrDrop(player, services, BREAM, 1);
+        services.inventory.snapshotInventoryImmediate(player);
+        if (player.items.getFreeSlotCount() > 0) services.scheduler.after(3, catchBream, { kind: "player", id: player.id });
+    };
+    catchBream();
+}
+
+function startCookingBream(player: PlayerState, services: ScriptServices): void {
+    const start = { x: player.tileX, y: player.tileY, level: player.level };
+    const worldViewId = player.worldViewId;
+    const cookNext = (): void => {
+        if (!sameTile(player, start, worldViewId) || !player.items.hasItem(BREAM, 1)) return;
+        if (player.items.removeItem(BREAM, 1, { assureFullRemoval: true }).completed !== 1) return;
+        services.animation.playPlayerSeq(player, 897);
+        addOrDrop(player, services, COOKED_BREAM, 1);
+        services.inventory.snapshotInventoryImmediate(player);
+        if (player.items.hasItem(BREAM, 1)) services.scheduler.after(3, cookNext, { kind: "player", id: player.id });
+    };
+    cookNext();
+}
 function drinkMoonlightPotion(player: PlayerState, services: ScriptServices, itemId: number): void {
     const doses = 29083 - itemId + 1;
     if (doses < 1 || doses > 4 || player.items.removeItem(itemId, 1, { assureFullRemoval: true }).completed !== 1) return;
@@ -144,27 +193,35 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
         registry.registerLocInteraction(id, ({ player, services }) => showJoinOptions(player, services), "join party");
         registry.registerLocInteraction(id, handler);
     });
-    registry.registerLocInteraction(CHEST, ({ player, services }) => searchChest(player, services), "search"); registry.registerLocInteraction(CHEST, ({ player, services }) => searchChest(player, services));
+    for (const action of ["search", "claim", "open"]) registry.registerLocInteraction(CHEST, ({ player, services }) => searchChest(player, services), action);
+    registry.registerLocInteraction(CHEST, ({ player, services }) => searchChest(player, services));
     registry.registerLocInteraction(CRATE, ({ player, services }) => takeSupplies(player, services), "take-from");
+    for (const [choice, label] of ["fishing", "hunting", "herblore"].entries()) {
+        const direct = ({ player, services }: { player: PlayerState; services: ScriptServices }) => giveSupplySet(player, services, choice);
+        registry.registerLocInteraction(CRATE, direct, `take-from ${label}`);
+        registry.registerLocInteraction(CRATE, direct, `take-from <col=00ffff>${label}`);
+    }
     registry.registerLocInteraction(SAPLING, ({ player, services }) => { addOrDrop(player, services, GRUB, 2); services.inventory.snapshotInventoryImmediate(player); }, "collect-from");
-    const fish = ({ player, services }: { player: PlayerState; services: ScriptServices }) => { if (!player.items.hasItem(NET, 1)) return services.messaging.sendGameMessage(player, "You need a small fishing net to fish here."); const fishing = skillLevel(player, SkillId.Fishing); addOrDrop(player, services, BREAM, fishing >= 50 && Math.random() < Math.min(0.8, fishing / 120) ? 2 : 1); services.inventory.snapshotInventoryImmediate(player); };
+    const fish = ({ player, services }: { player: PlayerState; services: ScriptServices }) => startFishing(player, services);
     for (const locId of FISHING_SPOTS) {
         for (const action of ["net", "fish", "small-net"]) registry.registerLocInteraction(locId, fish, action);
         registry.registerLocInteraction(locId, fish);
     }
     registry.registerItemOnItem(GRUB, PESTLE, ({ player, services }) => { if (player.items.removeItem(GRUB, 1, { assureFullRemoval: true }).completed) { addOrDrop(player, services, PASTE, 1); services.inventory.snapshotInventoryImmediate(player); } });
     registry.registerItemOnItem(PASTE, VIAL, ({ player, services }) => { if (player.items.removeItem(PASTE, 1, { assureFullRemoval: true }).completed && player.items.removeItem(VIAL, 1, { assureFullRemoval: true }).completed) { addOrDrop(player, services, 29080, 1); services.inventory.snapshotInventoryImmediate(player); } });
-    registry.registerItemOnLoc(BREAM, STOVE, ({ player, services }) => { if (player.items.removeItem(BREAM, 1, { assureFullRemoval: true }).completed) { const cooking = skillLevel(player, SkillId.Cooking); addOrDrop(player, services, COOKED_BREAM, cooking >= 50 && Math.random() < Math.min(0.8, cooking / 120) ? 2 : 1); services.inventory.snapshotInventoryImmediate(player); } });
+    registry.registerItemOnLoc(BREAM, STOVE, ({ player, services }) => startCookingBream(player, services));
     for (const potion of [29080, 29081, 29082, 29083]) registry.registerItemAction(potion, ({ player, services }) => drinkMoonlightPotion(player, services, potion), "drink");
     for (const mothId of MOONLIGHT_MOTHS) registry.registerNpcScript({ npcId: mothId, option: "catch", handler: ({ player, services }) => {
-        if (!player.items.hasItem(BUTTERFLY_NET, 1)) { services.messaging.sendGameMessage(player, "You need a butterfly net to catch this moth."); return; }
+        if (services.equipment.getEquippedItem(player, EquipmentSlot.WEAPON) !== BUTTERFLY_NET) { services.messaging.sendGameMessage(player, "You need to wield a butterfly net to catch this moth."); return; }
+        services.animation.playPlayerSeq(player, 660);
         const prayer = player.skillSystem.getSkill(SkillId.Prayer);
         const current = Math.max(0, prayer.baseLevel + prayer.boost);
         player.skillSystem.setSkillBoost(SkillId.Prayer, Math.min(prayer.baseLevel, current + 22));
         player.prayer.resetDrainAccumulator();
         services.messaging.sendGameMessage(player, "You catch the moonlight moth and feel your Prayer points restored.");
     } });
-    for (const escape of [53003, 53004]) registry.registerLocInteraction(escape, ({ player, services }) => { const run = runs.get(player.id); if (!run) return; services.instances.leave(player, CHEST_TILE); services.messaging.sendGameMessage(player, "You escape the Moon chamber. Your progress remains with the Lunar chest."); }, "escape");
-    for (const [moon, def] of Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>) registry.registerNpcPreDeath(def.id, event => { const player = event.killer, run = player && runs.get(player.id); if (!player || !run || run.active !== moon || event.npc.ownerPlayerId !== player.id) return NpcPreDeathDecision.Allow; run.killed.add(moon); run.active = undefined; if (run.killed.size === 3) { servicesAfter(event, player, CHEST_TILE); } else spawnMoon(player, event.services, def.next); return NpcPreDeathDecision.Allow; });
+    const escape = ({ player, services }: { player: PlayerState; services: ScriptServices }) => { const run = runs.get(player.id); if (!run) return; const current = run.active ? MOONS[run.active] : undefined; services.instances.leave(player, current?.outside ?? CHEST_TILE); services.messaging.sendGameMessage(player, "You escape the Moon chamber. Your progress remains with the Lunar chest."); };
+    for (const escapeId of [53003, 53004]) { for (const action of ["escape", "exit", "climb-up"]) registry.registerLocInteraction(escapeId, escape, action); registry.registerLocInteraction(escapeId, escape); }
+    for (const [moon, def] of Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>) registry.registerNpcPreDeath(def.id, event => { const player = event.killer, run = player && runs.get(player.id); if (!player || !run || run.active !== moon || event.npc.ownerPlayerId !== player.id) return NpcPreDeathDecision.Allow; run.killed.add(moon); run.active = undefined; if (run.killed.size === 3) { servicesAfter(event, player, CHEST_TILE); } else { event.services.instances.leave(player, MOONS[def.next].outside); event.services.messaging.sendGameMessage(player, `${moon[0].toUpperCase()}${moon.slice(1)} Moon defeated. Choose another Moon statue to continue this run.`); } return NpcPreDeathDecision.Allow; });
 }
 function servicesAfter(event: { services: ScriptServices }, player: PlayerState, tile: { x: number; y: number; level: number }): void { event.services.instances.leave(player, tile); event.services.messaging.sendGameMessage(player, "All three Moons have been defeated. You may now search the Lunar chest."); }
