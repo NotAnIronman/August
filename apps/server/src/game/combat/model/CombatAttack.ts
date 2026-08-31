@@ -21,6 +21,8 @@ export interface CombatAttackEffects {
     readonly poisonDamage?: number;
     /** Fraction of the target's current Prayer points removed after a hit. */
     readonly prayerDrainFraction?: number;
+    /** Use this combat type for the target's defence roll while retaining the attack's hit type. */
+    readonly defenceRollAttackType?: AttackType;
 }
 
 /** Immutable traits selected for one attack cycle. */

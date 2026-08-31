@@ -275,6 +275,16 @@ export class InstancedAreaManager {
         return runtime ? this.toHandle(runtime) : undefined;
     }
 
+    /** Resolve the current live members for instance-scoped encounter effects. */
+    getMemberPlayers(instanceId: string): readonly PlayerState[] {
+        const runtime = this.instancesById.get(instanceId);
+        if (!runtime) return Object.freeze([]);
+        const players = [...runtime.memberPlayerIds]
+            .map((playerId) => this.services.players?.getById(playerId))
+            .filter((player): player is PlayerState => player !== undefined);
+        return Object.freeze(players);
+    }
+
     listJoinable(definitionId?: string): readonly QuestInstanceHandle[] {
         const matches: QuestInstanceHandle[] = [];
         for (const runtime of this.instancesById.values()) {

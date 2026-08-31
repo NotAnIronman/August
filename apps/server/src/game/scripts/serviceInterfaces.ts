@@ -777,6 +777,8 @@ export interface InstanceFacade {
     create(player: PlayerState, spec: QuestInstanceSpec): QuestInstanceHandle | undefined;
     get(playerId: number): QuestInstanceHandle | undefined;
     getById(instanceId: string): QuestInstanceHandle | undefined;
+    /** Returns the live players currently assigned to this private instance. */
+    getMemberPlayers(instanceId: string): readonly PlayerState[];
     listJoinable(definitionId?: string): readonly QuestInstanceHandle[];
     join(player: PlayerState, instanceId: string): QuestInstanceHandle | undefined;
     markStarted(instanceId: string): boolean;

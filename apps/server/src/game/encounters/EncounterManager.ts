@@ -61,6 +61,10 @@ export class EncounterManager {
             targetDistance: distance,
             targetProtectingFromMelee:
                 target.combatAttributes.get(CombatAttributes.ACTIVE_OVERHEAD_PRAYER) === OverheadType.MELEE,
+            targetIsAttackingNpc: (() => {
+                const combatTarget = target.combatAttributes.get(CombatAttributes.COMBAT_TARGET);
+                return combatTarget?.type === "npc" && combatTarget.id === npc.id;
+            })(),
         });
         if (!planned) return undefined;
         const animationId =

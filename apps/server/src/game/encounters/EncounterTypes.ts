@@ -32,6 +32,8 @@ export interface EncounterContext {
     readonly phaseId: string;
     readonly previousAttackId?: string;
     readonly targetProtectingFromMelee: boolean;
+    /** Whether the current target is actively attacking this NPC. */
+    readonly targetIsAttackingNpc: boolean;
 }
 
 export type EncounterAnimationReference =
