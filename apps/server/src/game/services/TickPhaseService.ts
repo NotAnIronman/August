@@ -127,7 +127,14 @@ export class TickPhaseService {
             this.svc.npcManager?.forEach((npc) => {
                 if (blocked || npc.worldViewId !== entity.worldViewId || npc.level !== entity.level) return;
                 if (npc.typeId !== 13011 && npc.typeId !== 13012 && npc.typeId !== 13013) return;
-                blocked = tileX >= npc.tileX && tileX < npc.tileX + 3 && tileY >= npc.tileY && tileY < npc.tileY + 3;
+                // Moon map coordinates are the visual centre of the model.
+                // Reserve the complete 3x3 square around that centre, not
+                // only the actor's south-west anchor tile.
+                blocked =
+                    tileX >= npc.tileX - 1 &&
+                    tileX <= npc.tileX + 1 &&
+                    tileY >= npc.tileY - 1 &&
+                    tileY <= npc.tileY + 1;
             });
             return blocked;
         });
@@ -1060,12 +1067,12 @@ export class TickPhaseService {
             type,
             style,
             // Moon bosses expose their whole 3x3 footprint: melee can strike
-            // from three tiles beyond its edge (five from the spawn tile).
+            // from five tiles beyond its edge.
             rangeTiles:
                 target instanceof NpcState &&
                 type === AttackType.Melee &&
                 (target.typeId === 13011 || target.typeId === 13012 || target.typeId === 13013)
-                    ? 3
+                    ? 5
                     : Math.max(1, Math.trunc(service.getPlayerAttackReach(attacker))),
             speedTicks,
             weaponId: weaponId > 0 ? weaponId : undefined,

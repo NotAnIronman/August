@@ -376,9 +376,9 @@ export class NpcCombatInteractionHandler {
     }
 
     getPlayerAttackReach(player: PlayerState, npc?: NpcState): number {
-        // Moons of Peril are stationary 3x3 targets. A reach of three from
-        // their footprint reaches exactly five tiles from the spawn origin.
-        if (npc && (npc.typeId === 13011 || npc.typeId === 13012 || npc.typeId === 13013) && resolvePlayerAttackType(player.combat) === AttackType.Melee) return 3;
+        // Moons are stationary 3x3 targets, but their bespoke melee rule is
+        // five tiles beyond that footprint rather than normal adjacency.
+        if (npc && (npc.typeId === 13011 || npc.typeId === 13012 || npc.typeId === 13013) && resolvePlayerAttackType(player.combat) === AttackType.Melee) return 5;
         if (player.combat.weaponItemId === 12926) {
             const style = getAttackStyle(12926, player.combat.styleSlot ?? 0);
             return style === AttackStyle.LONGRANGE ? 7 : 5;

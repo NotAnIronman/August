@@ -157,11 +157,13 @@ export class LocInteractionHandler {
             // tile as their source. Do not path them toward the loc: a wall
             // transition is commonly unreachable from the very side that
             // needs to activate it.
-            bypassRoute: this.scriptRuntime?.hasLocTileInteractionAt(
-                data.id,
-                { x: me.tileX, y: me.tileY, level: me.level },
-                data.action,
-            ) ?? false,
+            bypassRoute:
+                data.action?.trim().toLowerCase() === "quick-escape" ||
+                (this.scriptRuntime?.hasLocTileInteractionAt(
+                    data.id,
+                    { x: me.tileX, y: me.tileY, level: me.level },
+                    data.action,
+                ) ?? false),
         };
         const resolved = this.resolvePendingLocInteraction(me, pending);
 

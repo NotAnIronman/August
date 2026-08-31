@@ -1007,7 +1007,7 @@ export class CombatActionHandler {
             resolvePlayerAttackType(player.combat) === AttackType.Melee &&
             (npc.typeId === 13011 || npc.typeId === 13012 || npc.typeId === 13013);
         const reach = isMoonMelee
-            ? 3
+            ? 5
             : Math.max(1, this.svc.playerCombatService!.getPlayerAttackReach(player));
         const pathService = this.svc.pathService;
 
