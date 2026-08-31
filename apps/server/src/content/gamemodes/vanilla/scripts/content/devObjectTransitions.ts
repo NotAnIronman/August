@@ -30,6 +30,12 @@ type ObjectTransitionFile = { version: 1; transitions: ObjectTransition[] };
 
 const CATALOG_PATH = serverCatalogPath("dev-object-transitions.json");
 const DEFAULT_FILE: ObjectTransitionFile = { version: 1, transitions: [] };
+let reloadActiveTransitions: (() => void) | undefined;
+
+/** Lets the Transport Object editor apply catalog edits without a restart. */
+export function reloadDevObjectTransitions(): void {
+    reloadActiveTransitions?.();
+}
 
 function parseInteger(value: string | undefined, minimum = 0): number | undefined {
     if (!value || !/^-?\d+$/.test(value)) return undefined;
@@ -168,6 +174,11 @@ export function registerDevObjectTransitions(registry: IScriptRegistry, services
 
     const persist = (): void => {
         saveCatalog(catalog);
+        refresh();
+    };
+    reloadActiveTransitions = (): void => {
+        catalog = readCatalog();
+        if (normalizeRuleIds(catalog)) saveCatalog(catalog);
         refresh();
     };
 

@@ -91,6 +91,7 @@ import { registerDiaryJournalWidgetHandlers } from "@server/content/gamemodes/va
 import { achievementTaskTracker } from "@server/content/gamemodes/vanilla/diary-tasks/AchievementTaskTracker";
 import { registerDevUIKitMenu } from "@server/content/gamemodes/vanilla/widgets/devUIKitMenu";
 import { registerDevDialogueEditor } from "@server/content/gamemodes/vanilla/widgets/devDialogueEditor";
+import { registerTransportObjectEditor } from "@server/content/gamemodes/vanilla/widgets/transportObjectEditor";
 import { registerEmoteWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/emoteWidgets";
 import { registerMinimapWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/minimapWidgets";
 import { registerNpcDropTableWidgetHandlers, type NpcDropViewer } from "@server/content/gamemodes/vanilla/widgets/npcDropTableWidgets";
@@ -313,6 +314,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerVanillaCommandHandlers(registry, services);
         registerDevUIKitMenu(registry, services);
         registerDevDialogueEditor(registry, services);
+        registerTransportObjectEditor(registry, services);
         registerDevObjectTransitions(registry, services);
 
         // Content
