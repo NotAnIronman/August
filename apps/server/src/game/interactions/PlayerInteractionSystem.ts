@@ -1026,11 +1026,22 @@ export class PlayerInteractionSystem {
 
     private extractValidatedStrategyPathSteps(
         actor: { tileX: number; tileY: number; level: number },
-        res: { ok: boolean; steps?: { x: number; y: number }[]; end?: { x: number; y: number } },
+        res: { ok: boolean; steps?: { x: number; y: number }[]; end?: { x: number; y: number }; clamped?: boolean },
         strategy: { hasArrived(x: number, y: number, level: number): boolean },
     ): { x: number; y: number }[] | undefined {
         if (!res.ok || !Array.isArray(res.steps)) {
             return undefined;
+        }
+        // A clamped result means the real destination was outside the local
+        // search graph - this path is deliberate, genuine progress toward
+        // it, not arrival. Accepting it (as long as it actually moves the
+        // actor) is what lets far clicks work in hops instead of failing
+        // outright. Only require true hasArrived for in-range results,
+        // which preserves the original protection against settling for a
+        // "closest reachable but functionally wrong" tile (e.g. the wrong
+        // side of an object) when the target was reachable in one search.
+        if (res.clamped) {
+            return res.steps.length > 0 ? res.steps : undefined;
         }
         const selectedEnd =
             res.steps.length > 0

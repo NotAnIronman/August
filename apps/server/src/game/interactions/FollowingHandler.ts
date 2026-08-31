@@ -683,11 +683,16 @@ export class FollowingHandler {
 
     private extractValidatedStrategyPathSteps(
         actor: { tileX: number; tileY: number; level: number },
-        res: { ok: boolean; steps?: { x: number; y: number }[]; end?: { x: number; y: number } },
+        res: { ok: boolean; steps?: { x: number; y: number }[]; end?: { x: number; y: number }; clamped?: boolean },
         strategy: RouteStrategy,
     ): { x: number; y: number }[] | undefined {
         if (!res.ok || !Array.isArray(res.steps)) {
             return undefined;
+        }
+
+        // See the identical note in PlayerInteractionSystem.extractValidatedStrategyPathSteps.
+        if (res.clamped) {
+            return res.steps.length > 0 ? res.steps : undefined;
         }
 
         const selectedEnd =

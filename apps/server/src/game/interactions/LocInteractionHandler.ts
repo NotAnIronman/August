@@ -97,7 +97,7 @@ export interface LocInteractionSystemBridge {
     resolveRunMode(player: PlayerState, modifierFlags?: number): boolean;
     extractValidatedStrategyPathSteps(
         actor: { tileX: number; tileY: number; level: number },
-        res: { ok: boolean; steps?: { x: number; y: number }[]; end?: { x: number; y: number } },
+        res: { ok: boolean; steps?: { x: number; y: number }[]; end?: { x: number; y: number }; clamped?: boolean },
         strategy: RouteStrategy,
     ): { x: number; y: number }[] | undefined;
     applyPathSteps(actor: Actor, steps: { x: number; y: number }[], run: boolean): boolean;
