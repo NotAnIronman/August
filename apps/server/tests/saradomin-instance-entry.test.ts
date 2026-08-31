@@ -28,6 +28,10 @@ const replacements: unknown[][] = [];
 let ropes = 2;
 const ropePlayer = {
     skillSystem: { getSkill: () => ({ baseLevel: 70, boost: 0 }) },
+    varps: {
+        getVarpValue: () => 0,
+        setVarpValue: () => undefined,
+    },
     items: {
         hasItem: () => ropes > 0,
         removeItem: () => { ropes--; return { completed: 1 }; },
@@ -37,6 +41,7 @@ const ropeServices = {
     messaging: { sendGameMessage: (_player: unknown, message: string) => messages.push(message) },
     inventory: { snapshotInventoryImmediate: () => undefined },
     location: { replaceTemporaryLoc: (...args: unknown[]) => { replacements.push(args); return {}; } },
+    variables: { sendVarp: () => undefined },
 };
 handlers.get("26561:tie-rope")?.({ player: ropePlayer, services: ropeServices, locId: 26561, tile: { x: 2912, y: 5300 }, level: 2 } as never);
 assert.equal(ropes, 1);

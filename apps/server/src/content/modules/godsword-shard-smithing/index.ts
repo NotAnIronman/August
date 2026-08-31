@@ -1,4 +1,5 @@
 import { ANY_LOC_ID, type IScriptRegistry, type ItemOnLocEvent, type ScriptServices } from "@server/game/scripts/types";
+import { LockState } from "@server/game/model/LockState";
 
 const HAMMER = 2347;
 const SHARD_ONE = 11818;
@@ -46,6 +47,10 @@ function combine(event: ItemOnLocEvent): void {
         if (first.completed !== 1 || second.completed !== 1) { restore(); return; }
         const made = player.items.addItem(recipe.result, 1, { assureFullInsertion: true });
         if (made.completed !== 1) { restore(); services.messaging.sendGameMessage(player, "You need an empty inventory space to make that."); return; }
+        const previousLock = player.lock;
+        player.lock = LockState.FULL;
+        services.animation.playPlayerSeq(player, 898);
+        services.scheduler.after(3, () => { if (player.lock === LockState.FULL) player.lock = previousLock; }, { kind: "player", id: player.id });
         services.inventory.snapshotInventoryImmediate(player);
         services.messaging.sendGameMessage(player, "You carefully smith the godsword shards together.");
     } catch {

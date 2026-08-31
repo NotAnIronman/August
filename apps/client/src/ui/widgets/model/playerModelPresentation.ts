@@ -1,4 +1,6 @@
 export const EQUIPMENT_STATS_GROUP_ID = 84;
+/** Bank group: its worn-items panel is another equipment portrait. */
+export const BANK_GROUP_ID = 12;
 export const EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM = 600;
 /** PlayerDesign / character creator (cache interface group 679). */
 export const CHARACTER_CREATOR_GROUP_ID = 679;
@@ -18,6 +20,7 @@ export const DEFAULT_PLAYER_IDLE_SEQUENCE_ID = 808;
  */
 const PORTRAIT_PLAYER_MODEL_MAX_ZOOM: Readonly<Record<number, number>> = {
     [EQUIPMENT_STATS_GROUP_ID]: EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM,
+    [BANK_GROUP_ID]: EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM,
     [CHARACTER_CREATOR_GROUP_ID]: CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM,
 };
 

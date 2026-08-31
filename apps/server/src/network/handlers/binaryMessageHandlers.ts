@@ -167,6 +167,17 @@ function createWidgetActionHandler(services: BinaryHandlerExtServices): MessageH
             return;
         }
 
+        // The bank item grids use the same item metadata as the inventory.
+        // Their clicks must reach the bank widget handlers before the generic
+        // inventory-action fallback, otherwise a potion is drunk (or a key is
+        // assembled) instead of being withdrawn/deposited.
+        if (groupId === 12 || groupId === 15) {
+            services
+                .getWidgetDialogHandler()
+                .handleWidgetActionMessage(ctx.ws, { ...payload, groupId, opId, childId });
+            return;
+        }
+
         if (groupId === 219) {
             services.getWidgetDialogHandler().handleDialogOptionClick(ctx.ws, player.id, childId);
         } else {

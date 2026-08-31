@@ -325,7 +325,15 @@ export function deriveMenuEntriesForWidget(
         (e) =>
             e.option && e.option.toLowerCase() !== "cancel" && e.option.toLowerCase() !== "examine",
     );
-    if (!hasActionableEntry && isPauseButtonWidget(w, getWidgetFlags, getWidgetByUid)) {
+    // Dynamic inventory children inherit properties from their parent. An
+    // empty bank/inventory slot can therefore inherit buttonType=Continue,
+    // but it is not a dialogue pause button and must not offer that action.
+    const isInventorySlot = typeof w?.itemId === "number";
+    if (
+        !hasActionableEntry &&
+        !isInventorySlot &&
+        isPauseButtonWidget(w, getWidgetFlags, getWidgetByUid)
+    ) {
         entries.unshift({ option: "Continue", target: "" });
     }
     entries.push({ option: "Cancel" });
