@@ -5,11 +5,51 @@ import { registerUiPanel } from "@client/ui/widgets/uikit/registry";
 
 export const REWARD_DISPLAY_SLOT_BASE = 1000;
 const SLOT_COUNT = 12;
-const SLOT_SIZE = 38;
-const SLOT_GAP = 7;
+const SLOT_SIZE = 32;
+const SLOT_GAP = 8;
+
+/** Real, catalog-validated "Casket" item (id 405). Rendered as a type-6 3D
+ *  model rather than the flat type-5 sprite - the item definition carries
+ *  its own OSRS-authentic camera angles (xan2d/yan2d/zan2d) and zoom, and
+ *  the widget renderer self-normalizes that zoom against rawWidth, so this
+ *  scales crisply to whatever box we give it instead of a blown-up icon. */
+const CHEST_DECORATION_ITEM_ID = 405;
+// 850 sits clear of every shared ComponentIds range this panel doesn't use
+// (icon-row bases top out at 799, FOOTER_BUTTON starts at 900) so it can't
+// collide if this panel later opts into buildUiPanel's footer/search/etc.
+const CHEST_COMPONENT_ID = 850;
+
+const CHEST_X = 18;
+const CHEST_Y = 84;
+const CHEST_WIDTH = 140;
+const CHEST_HEIGHT = 140;
+
+// Row 1 spans the full panel width above the chest, mirroring the reference
+// layout's top strip of reward icons. Rows 2-3 sit to the right of the
+// chest instead of on top of it. 6 + 3 + 3 = SLOT_COUNT.
+const ROW1_COLUMNS = 6;
+const ROW1_X = 20;
+const ROW1_Y = 44;
+const SIDE_COLUMNS = 3;
+const SIDE_X = CHEST_X + CHEST_WIDTH + SLOT_GAP;
+const SIDE_ROW2_Y = CHEST_Y;
+const SIDE_ROW3_Y = CHEST_Y + SLOT_SIZE + SLOT_GAP;
 
 function uid(componentId: number): number {
     return ((REWARD_DISPLAY_PANEL_GROUP_ID & 0xffff) << 16) | (componentId & 0xffff);
+}
+
+function slotPosition(slot: number): { x: number; y: number } {
+    if (slot < ROW1_COLUMNS) {
+        return { x: ROW1_X + slot * (SLOT_SIZE + SLOT_GAP), y: ROW1_Y };
+    }
+    const sideIndex = slot - ROW1_COLUMNS;
+    const column = sideIndex % SIDE_COLUMNS;
+    const row = Math.floor(sideIndex / SIDE_COLUMNS);
+    return {
+        x: SIDE_X + column * (SLOT_SIZE + SLOT_GAP),
+        y: (row === 0 ? SIDE_ROW2_Y : SIDE_ROW3_Y),
+    };
 }
 
 function slotWidget(componentId: number, parentUid: number, x: number, y: number, type: number): WidgetNode {
@@ -22,7 +62,23 @@ function slotWidget(componentId: number, parentUid: number, x: number, y: number
         scrollWidth: 0, scrollHeight: 0, isHidden: false, hidden: false, cachedHidden: false,
         rootIndex: -1, cycle: -1, modelFrame: 0, modelFrameCycle: 0, aspectWidth: 1,
         aspectHeight: 1, itemId: -1, itemQuantity: 0,
-        ...(type === 3 ? { filled: true, color: 0x24201a, transparency: 32 } : { itemQuantityMode: 2, noClickThrough: true }),
+        // Near-invisible backing instead of a harsh bordered grid cell -
+        // transparency is 0=opaque/255=fully transparent on WidgetNode.
+        ...(type === 3 ? { filled: true, color: 0x24201a, transparency: 235 } : { itemQuantityMode: 2, noClickThrough: true }),
+    };
+}
+
+function chestWidget(parentUid: number): WidgetNode {
+    const cuid = uid(CHEST_COMPONENT_ID);
+    return {
+        uid: cuid, id: cuid, childIndex: -1, parentUid,
+        groupId: REWARD_DISPLAY_PANEL_GROUP_ID, fileId: CHEST_COMPONENT_ID, isIf3: true, type: 6,
+        contentType: 0, rawX: CHEST_X, rawY: CHEST_Y, rawWidth: CHEST_WIDTH, rawHeight: CHEST_HEIGHT,
+        width: CHEST_WIDTH, height: CHEST_HEIGHT, widthMode: 0, heightMode: 0,
+        xPositionMode: 0, yPositionMode: 0, x: CHEST_X, y: CHEST_Y, scrollX: 0, scrollY: 0,
+        scrollWidth: 0, scrollHeight: 0, isHidden: false, hidden: false, cachedHidden: false,
+        rootIndex: -1, cycle: -1, modelFrame: 0, modelFrameCycle: 0, aspectWidth: 1,
+        aspectHeight: 1, itemId: CHEST_DECORATION_ITEM_ID, itemQuantity: 1, noClickThrough: false,
     };
 }
 
@@ -36,11 +92,9 @@ registerUiPanel({
         const root = built.root;
         if (!root) return built;
         const rootUid = root.uid;
+        built.widgets.set(uid(CHEST_COMPONENT_ID), chestWidget(rootUid));
         for (let slot = 0; slot < SLOT_COUNT; slot += 1) {
-            const column = slot % 4;
-            const row = Math.floor(slot / 4);
-            const x = 64 + column * (SLOT_SIZE + SLOT_GAP);
-            const y = 66 + row * (SLOT_SIZE + SLOT_GAP);
+            const { x, y } = slotPosition(slot);
             const backgroundId = REWARD_DISPLAY_SLOT_BASE + slot * 2;
             const itemId = backgroundId + 1;
             built.widgets.set(uid(backgroundId), slotWidget(backgroundId, rootUid, x, y, 3));
