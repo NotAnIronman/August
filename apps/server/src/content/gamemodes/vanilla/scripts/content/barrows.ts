@@ -2,7 +2,7 @@ import type { PlayerState } from "@server/game/player";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { CollisionFlag } from "@august/game-model/collision/CollisionFlag";
 import { NpcAttackDecision, NpcPreDeathDecision, type IScriptRegistry, type NpcAttackEvent, type ScriptServices } from "@server/game/scripts/types";
-import { createLootPickupNotification } from "@server/game/notifications/LootPickupNotification";
+import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
 
 /**
  * The Barrows run is deliberately player-owned rather than instance-owned.
@@ -12,6 +12,7 @@ import { createLootPickupNotification } from "@server/game/notifications/LootPic
 const CRYPT_TILE = { x: 3551, y: 9691, level: 0 };
 const EXIT_TILE = { x: 3565, y: 3307, level: 0 };
 const FINAL_CHEST_ID = 20973;
+const BARROWS_CHEST_COLLECTION_LOG_STRUCT_ID = 477;
 
 type BrotherKey = "ahrim" | "dharok" | "guthan" | "karil" | "torag" | "verac";
 type Brother = {
@@ -67,6 +68,16 @@ function findSafeSpawnTile(player: PlayerState, services: ScriptServices): { x: 
         // for a summoned brother, even if an NPC can technically overlap it.
         const collision = pathService?.getCollisionFlagAt(x, y, player.level, player.worldViewId);
         if (collision !== undefined && (collision & (CollisionFlag.OBJECT | CollisionFlag.FLOOR_BLOCKED)) !== 0) continue;
+        const route = pathService?.findPathSteps(
+            {
+                from: { x: player.tileX, y: player.tileY, plane: player.level },
+                to: { x, y },
+                size: 1,
+                worldViewId: player.worldViewId,
+            },
+            { maxSteps: 4 },
+        );
+        if (route && (!route.ok || route.end?.x !== x || route.end?.y !== y)) continue;
         return { x, y };
     }
     return undefined;
@@ -171,19 +182,10 @@ function rewardChest(player: PlayerState, services: ScriptServices, run: Barrows
         }
     }
     services.inventory.snapshotInventoryImmediate(player);
-    const rewardLines = rewards.map((reward) => {
-        const name = services.data.getItemDefinition(reward.itemId)?.name ?? `Item ${reward.itemId}`;
-        return `${reward.quantity > 1 ? `${reward.quantity.toLocaleString()} x ` : ""}${name}`;
-    });
-    const first = rewards[0];
-    if (first) {
-        services.messaging.queueNotification(player.id, {
-            ...createLootPickupNotification(first.itemId, "Barrows chest", first.quantity),
-            title: "Barrows chest",
-            message: `You find:<br><br><col=ffffff>${rewardLines.join("<br>")}</col>`,
-            durationMs: 6_000,
-        });
-    }
+    for (const reward of rewards) services.collectionLog.trackCollectionLogItem(player, reward.itemId);
+    player.collectionLog.incrementCategoryStat(BARROWS_CHEST_COLLECTION_LOG_STRUCT_ID);
+    services.collectionLog.sendCollectionLogSnapshot(player);
+    openRewardDisplay(player, services, "Barrows chest", rewards);
     services.messaging.sendGameMessage(player, `You search the chest. ${killedCount} Barrows brother${killedCount === 1 ? "" : "s"} defeated.`);
 }
 
@@ -200,6 +202,12 @@ function searchTomb(player: PlayerState, services: ScriptServices, brother: Brot
     spawnBrother(player, services, brother);
 }
 
+function finishChest(player: PlayerState, services: ScriptServices, run: BarrowsRun): void {
+    rewardChest(player, services, run);
+    runs.delete(player.id);
+    services.movement.teleportPlayer(player, EXIT_TILE.x, EXIT_TILE.y, EXIT_TILE.level);
+}
+
 function searchChest(player: PlayerState, services: ScriptServices): void {
     const run = runFor(player);
     const tunnelBrother = brotherFor(run.tunnelBrother);
@@ -207,9 +215,27 @@ function searchChest(player: PlayerState, services: ScriptServices): void {
         spawnBrother(player, services, tunnelBrother);
         return;
     }
-    rewardChest(player, services, run);
-    runs.delete(player.id);
-    services.movement.teleportPlayer(player, EXIT_TILE.x, EXIT_TILE.y, EXIT_TILE.level);
+    if (run.killed.size >= BROTHERS.length) {
+        finishChest(player, services, run);
+        return;
+    }
+    services.dialog.openDialogOptions(player, {
+        id: "barrows-chest-choice",
+        title: "The chest awaits.",
+        options: ["Loot the chest", "Summon another brother", "Leave the chest"],
+        modal: true,
+        onSelect: (choice) => {
+            if (choice === 0) {
+                finishChest(player, services, run);
+                return;
+            }
+            if (choice === 1) {
+                const remaining = BROTHERS.filter((brother) => !run.killed.has(brother.key));
+                const candidate = remaining.filter((brother) => brother.key !== run.tunnelBrother);
+                spawnBrother(player, services, random(candidate.length > 0 ? candidate : remaining));
+            }
+        },
+    });
 }
 
 function scheduleSuccessfulHitEffect(

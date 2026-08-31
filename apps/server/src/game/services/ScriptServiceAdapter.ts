@@ -1092,6 +1092,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             },
         },
         collectionLog: {
+            trackCollectionLogItem: (player, itemId) =>
+                deps.collectionLogService.trackCollectionLogItem(player, itemId),
             sendCollectionLogSnapshot: (player) =>
                 deps.collectionLogService.sendCollectionLogSnapshot(player),
             openCollectionLog: (player) => deps.collectionLogService.openCollectionLog(player),

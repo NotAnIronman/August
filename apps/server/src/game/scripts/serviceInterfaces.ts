@@ -966,6 +966,7 @@ export interface NpcFacade {
 }
 
 export interface CollectionLogFacade {
+    trackCollectionLogItem(player: PlayerState, itemId: number): void;
     sendCollectionLogSnapshot(player: PlayerState): void;
     openCollectionLog(player: PlayerState): void;
     openCollectionOverview(player: PlayerState): void;
