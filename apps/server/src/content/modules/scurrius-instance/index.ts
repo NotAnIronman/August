@@ -15,6 +15,7 @@ const ENTRANCE_LOC_ID = 14203;
 const EXIT_LOC_ID = 14204;
 const SCURRIUS_ID = 7222;
 const RAT_ID = 7223;
+const FOOD_PILE_IDS = [14205, 14206] as const;
 const INSTANCE_ID = "scurrius-lair";
 const ENTRANCE = Object.freeze({ x: 3281, y: 9868, level: 0 });
 const INSIDE = Object.freeze({ x: 3290, y: 9868, level: 0 });
@@ -38,6 +39,7 @@ interface ScurriusState {
 }
 
 const states = new WeakMap<NpcState, ScurriusState>();
+const cheeseCreditsByPlayer = new WeakMap<PlayerState, number>();
 
 function stateFor(npc: NpcState): ScurriusState {
     let state = states.get(npc);
@@ -91,7 +93,50 @@ function createRoom(player: PlayerState, services: ScriptServices, access: "solo
         npcs: [{ id: SCURRIUS_ID, offsetX: BOSS_TILE.x - baseX, offsetY: BOSS_TILE.y - baseY, level: 0, attackSpeed: 5, isAggressive: true, aggressionRadius: 15 }],
     });
     if (!room) { services.messaging.sendGameMessage(player, "Scurrius' lair is unavailable right now."); return; }
+    const scurrius = services.npc.findNearbyNpc(player, SCURRIUS_ID, 30);
+    if (scurrius) {
+        installScurriusHealthController(scurrius, room.id, services);
+        services.npc.queueNpcSeq(scurrius, 10686);
+    }
     services.instances.markStarted(room.id);
+}
+
+function beginEating(npc: NpcState, state: ScurriusState, roomId: string, services: ScriptServices): void {
+    if (state.fed || npc.getHitpoints() <= 0) return;
+    state.fed = true;
+    state.eating = true;
+    state.bites = 0;
+    const pile = FOOD_PILES[Math.floor(Math.random() * FOOD_PILES.length)] ?? FOOD_PILES[0];
+    // Movement can fail if a previous chase route is still resolving. The
+    // fallback keeps the phase reliable while preserving the usual run there.
+    if (!services.npc.moveNpcTo(npc, pile, true)) services.npc.teleportNpc(npc, pile);
+    const takeBite = (): void => {
+        if (!state.eating || npc.getHitpoints() <= 0 || state.bites >= 5) { state.eating = false; return; }
+        services.npc.queueNpcSeq(npc, state.bites === 0 ? 10688 : 10689);
+        npc.heal((5 + Math.floor(Math.random() * 2) * 5) * Math.max(1, services.instances.getMemberPlayers(roomId).length));
+        state.bites++;
+        if (state.bites >= 5) { state.eating = false; return; }
+        services.scheduler.after(4, takeBite, { kind: "npc", id: npc.id });
+    };
+    services.scheduler.after(4, takeBite, { kind: "npc", id: npc.id });
+}
+
+function installScurriusHealthController(npc: NpcState, roomId: string, services: ScriptServices): void {
+    npc.onHealthChange((change) => {
+        const state = stateFor(npc);
+        if (change.reason === "reset") {
+            states.set(npc, { fed: false, finalPhase: false, eating: false, bites: 0, summonReadyAt: 0, rockReadyAt: 0, ratIds: new Set() });
+            return;
+        }
+        if (change.current <= 0) return;
+        const healthPercent = (change.current / Math.max(1, npc.getMaxHitpoints())) * 100;
+        if (healthPercent <= 80) beginEating(npc, state, roomId, services);
+        if (!state.finalPhase && healthPercent <= 30) {
+            state.finalPhase = true;
+            state.eating = false;
+            if (!services.npc.moveNpcTo(npc, CENTRE_TILE, true)) services.npc.teleportNpc(npc, CENTRE_TILE);
+        }
+    });
 }
 
 function showJoinOptions(player: PlayerState, services: ScriptServices): void {
@@ -157,19 +202,7 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     if (room?.definitionId !== INSTANCE_ID) return;
     const state = stateFor(npc);
     const healthPercent = (npc.getHitpoints() / Math.max(1, npc.getMaxHitpoints())) * 100;
-    if (!state.fed && healthPercent <= 80) {
-        state.fed = true; state.eating = true; state.bites = 0;
-        const pile = FOOD_PILES[Math.floor(Math.random() * FOOD_PILES.length)] ?? FOOD_PILES[0];
-        services.npc.moveNpcTo(npc, pile, true);
-        const takeBite = (): void => {
-            if (!state.eating || npc.getHitpoints() <= 0 || state.bites >= 5) { state.eating = false; return; }
-            npc.heal((5 + Math.floor(Math.random() * 2) * 5) * Math.max(1, services.instances.getMemberPlayers(room.id).length));
-            state.bites++;
-            if (state.bites >= 5) { state.eating = false; return; }
-            services.scheduler.after(4, takeBite, { kind: "npc", id: npc.id });
-        };
-        services.scheduler.after(4, takeBite, { kind: "npc", id: npc.id });
-    }
+    if (!state.fed && healthPercent <= 80) beginEating(npc, state, room.id, services);
     if (!state.finalPhase && healthPercent <= 30) { state.finalPhase = true; state.eating = false; services.npc.moveNpcTo(npc, CENTRE_TILE, true); }
     if (tick >= state.summonReadyAt && Math.random() < 1 / 12) { state.summonReadyAt = tick + 30; services.npc.queueNpcSeq(npc, 10700); summonRats(npc, services, state); }
     if (tick >= state.rockReadyAt && Math.random() < (state.finalPhase ? 1 / 4 : 1 / 10)) { state.rockReadyAt = tick + 10; fallingRocks(npc, services, room.id); }
@@ -188,6 +221,19 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     return NpcAttackDecision.Prevent;
 }
 
+function eatCheese({ player, services }: { player: PlayerState; services: ScriptServices }): void {
+    if (!isScurriusRoom(player, services)) return;
+    const credits = cheeseCreditsByPlayer.get(player) ?? 0;
+    if (credits <= 0) { services.messaging.sendGameMessage(player, "You need to defeat Scurrius before you can eat from the food pile again."); return; }
+    const current = player.skillSystem.getHitpointsCurrent();
+    const maximum = player.skillSystem.getHitpointsMax();
+    if (current >= maximum) { services.messaging.sendGameMessage(player, "You are already at full health."); return; }
+    player.skillSystem.setHitpointsCurrent(Math.min(maximum, current + 25));
+    cheeseCreditsByPlayer.set(player, credits - 1);
+    services.animation.playPlayerSeq(player, 829);
+    services.messaging.sendGameMessage(player, "You eat some cheese from the food pile.");
+}
+
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     registerEncounters();
     registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services }) => entryOptions(player, services), "open");
@@ -200,5 +246,10 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services }) => showJoinOptions(player, services), "join party");
     for (const action of ["cross", "quick-escape", "exit"]) registry.registerLocInteraction(EXIT_LOC_ID, ({ player, services }) => { if (isScurriusRoom(player, services)) services.instances.leave(player, ENTRANCE); else services.movement.teleportPlayer(player, INSIDE.x, INSIDE.y, INSIDE.level); }, action);
     registry.registerLocInteraction(EXIT_LOC_ID, ({ player, services }) => { if (isScurriusRoom(player, services)) services.instances.leave(player, ENTRANCE); else services.movement.teleportPlayer(player, INSIDE.x, INSIDE.y, INSIDE.level); });
+    for (const locId of FOOD_PILE_IDS) registry.registerLocInteraction(locId, eatCheese, "eat");
     registry.registerNpcAttack(SCURRIUS_ID, scurriusAttack);
+    _services.combat.registerOnNpcKilled?.((killer, npc) => {
+        if (npc.typeId !== SCURRIUS_ID || !isScurriusRoom(killer, _services)) return;
+        cheeseCreditsByPlayer.set(killer, (cheeseCreditsByPlayer.get(killer) ?? 0) + 1);
+    });
 }
