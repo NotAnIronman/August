@@ -119,7 +119,18 @@ export class TickPhaseService {
         if (!this.svc.pathService) {
             throw new Error("MovementProcessor requires PathService initialization.");
         }
-        this.movementProcessor = new MovementProcessor(this.svc.pathService);
+        this.movementProcessor = new MovementProcessor(this.svc.pathService, (entity, tileX, tileY) => {
+            // The Moons are stationary 3x3 encounters. Their footprint is a
+            // real player collision area, rather than merely a combat rule.
+            if (!(entity instanceof PlayerState)) return false;
+            let blocked = false;
+            this.svc.npcManager?.forEach((npc) => {
+                if (blocked || npc.worldViewId !== entity.worldViewId || npc.level !== entity.level) return;
+                if (npc.typeId !== 13011 && npc.typeId !== 13012 && npc.typeId !== 13013) return;
+                blocked = tileX >= npc.tileX && tileX < npc.tileX + 3 && tileY >= npc.tileY && tileY < npc.tileY + 3;
+            });
+            return blocked;
+        });
         return this.movementProcessor;
     }
 
@@ -1048,7 +1059,14 @@ export class TickPhaseService {
         return {
             type,
             style,
-            rangeTiles: Math.max(1, Math.trunc(service.getPlayerAttackReach(attacker))),
+            // Moon bosses expose their whole 3x3 footprint: melee can strike
+            // from three tiles beyond its edge (five from the spawn tile).
+            rangeTiles:
+                target instanceof NpcState &&
+                type === AttackType.Melee &&
+                (target.typeId === 13011 || target.typeId === 13012 || target.typeId === 13013)
+                    ? 3
+                    : Math.max(1, Math.trunc(service.getPlayerAttackReach(attacker))),
             speedTicks,
             weaponId: weaponId > 0 ? weaponId : undefined,
             spellId: type === AttackType.Magic && spellId > 0 ? spellId : undefined,

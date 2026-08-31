@@ -19,7 +19,11 @@ interface PlannedStep extends Tile {
 
 /** Executes RSMod-style validated walk/run frames for players and NPCs. */
 export class MovementProcessor {
-    constructor(private readonly pathService: PathService) {}
+    constructor(
+        private readonly pathService: PathService,
+        /** Optional actor-aware occupancy rule for authored encounter space. */
+        private readonly isStepBlocked?: (entity: Actor, tileX: number, tileY: number) => boolean,
+    ) {}
 
     processMovementTicks(
         entities: Iterable<Actor>,
@@ -76,6 +80,7 @@ export class MovementProcessor {
             const reservation = reservations[index];
             if (!this.matchesReservation(candidate, reservation)) break;
             if (!validator.canMove(currentX, currentY, candidate.x, candidate.y, direction)) break;
+            if (this.isStepBlocked?.(entity, candidate.x, candidate.y)) break;
 
             planned.push({ ...candidate, direction });
             currentX = candidate.x;
