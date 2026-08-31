@@ -28,6 +28,15 @@ export const LOC_ACTION_OVERRIDES: Readonly<Record<number, readonly (string | nu
             "Enter Party",
             "Join Party",
         ]),
+        // Scurrius' native bars use normal/private/peek wording.  The lair
+        // follows the same explicit party-instance contract as the GWD doors.
+        14203: Object.freeze([
+            "Open",
+            "Peek",
+            "Enter Solo",
+            "Enter Party",
+            "Join Party",
+        ]),
     });
 
 export function resolveLocActions(

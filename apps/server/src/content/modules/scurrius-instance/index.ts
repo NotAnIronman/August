@@ -180,10 +180,15 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
 
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     registerEncounters();
-    for (const action of ["enter", "open", "climb-through", "enter solo"]) registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services }) => { if (action === "enter solo") createRoom(player, services, "solo"); else entryOptions(player, services); }, action);
+    registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services }) => entryOptions(player, services), "open");
+    registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services }) => {
+        const count = services.instances.listJoinable(INSTANCE_ID).reduce((total, room) => total + room.memberPlayerIds.length, 0);
+        services.messaging.sendGameMessage(player, count > 0 ? `You can see ${count} adventurer${count === 1 ? "" : "s"} in a Scurrius lair.` : "You cannot see anyone waiting in a joinable Scurrius lair.");
+    }, "peek");
+    registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services }) => createRoom(player, services, "solo"), "enter solo");
     registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services }) => createRoom(player, services, "party"), "enter party");
     registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services }) => showJoinOptions(player, services), "join party");
-    registry.registerLocInteraction(EXIT_LOC_ID, ({ player, services }) => { if (isScurriusRoom(player, services)) services.instances.leave(player, ENTRANCE); else services.movement.teleportPlayer(player, INSIDE.x, INSIDE.y, INSIDE.level); }, "exit");
+    for (const action of ["cross", "quick-escape", "exit"]) registry.registerLocInteraction(EXIT_LOC_ID, ({ player, services }) => { if (isScurriusRoom(player, services)) services.instances.leave(player, ENTRANCE); else services.movement.teleportPlayer(player, INSIDE.x, INSIDE.y, INSIDE.level); }, action);
     registry.registerLocInteraction(EXIT_LOC_ID, ({ player, services }) => { if (isScurriusRoom(player, services)) services.instances.leave(player, ENTRANCE); else services.movement.teleportPlayer(player, INSIDE.x, INSIDE.y, INSIDE.level); });
     registry.registerNpcAttack(SCURRIUS_ID, scurriusAttack);
 }
