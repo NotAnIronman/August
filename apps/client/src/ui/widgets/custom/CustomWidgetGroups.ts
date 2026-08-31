@@ -14,6 +14,7 @@ import "@client/ui/widgets/custom/devUIKitPanels";
 import "@client/ui/widgets/custom/npcDropTablePanel";
 import "@client/ui/widgets/custom/npcAnimationReviewPanel";
 import "@client/ui/widgets/custom/transportObjectPanel";
+import "@client/ui/widgets/custom/digPanel";
 import { buildSmithingBarModalGroup } from "@client/ui/widgets/custom/smithing.cs2";
 
 type WidgetGroupLoadResult = { root: WidgetNode | undefined; widgets: Map<number, WidgetNode> };

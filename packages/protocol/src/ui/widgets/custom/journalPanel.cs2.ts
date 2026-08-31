@@ -35,3 +35,5 @@ export const NPC_DROP_TABLE_PANEL_GROUP_ID = 30031;
 export const NPC_ANIMATION_REVIEW_PANEL_GROUP_ID = 30032;
 /** Developer-only authoring panel for simple object transports (::to). */
 export const DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID = 30033;
+/** Developer-only editor for player-location spade digs (::dig). */
+export const DEV_DIG_PANEL_GROUP_ID = 30034;
