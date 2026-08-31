@@ -248,6 +248,7 @@ export function handleWidgetActionTargeting(
         "fill",
         "craft",
         "check",
+        "assemble",
     ];
     if (isInventoryItem && inventoryItemActions.includes(optionLower)) {
         const targetSlot = event.slot ?? event.widget.childIndex ?? childId;

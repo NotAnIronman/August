@@ -283,24 +283,6 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
         handleDisembarkTick(ctx.player, ctx.services);
         return { ok: true };
     });
-
-    registry.registerCommand("sail", (event) => {
-        const playerName = event.player.name ?? "You";
-        handleBoardingTick1(event.player, { playerName }, services);
-        handleBoardingTick2(event.player, services);
-    }, {
-        permission: "developer",
-        owner: "content:vanilla:sailing",
-    });
-
-    // Developer escape hatch for `::sail`, which otherwise bypasses the normal
-    // gangplank interaction that exposes disembark.
-    registry.registerCommand("unsail", (event) => {
-        handleDisembarkTick(event.player, services);
-    }, {
-        permission: "developer",
-        owner: "content:vanilla:sailing",
-    });
 }
 
 function createNpcDialogFn(

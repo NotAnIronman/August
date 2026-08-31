@@ -92,6 +92,10 @@ const MULTI_COMBAT_ZONES: CombatZone[] = [
         isMultiCombat: true,
         name: "God Wars Dungeon",
     },
+    {
+        minX: 2848, minY: 5152, maxX: 2943, maxY: 5247,
+        plane: 0, isMultiCombat: true, name: "Ancient Prison",
+    },
 
     // Corporeal Beast
     {

@@ -17,6 +17,8 @@ import {
 import { Opcodes } from "@client/engine/cs2/Opcodes";
 import type { HandlerMap } from "@client/engine/cs2/handlers/HandlerTypes";
 
+const FROZEN_KEY_PIECE_IDS = new Set([26358, 26360, 26362, 26364]);
+
 export function registerConfigOps(handlers: HandlerMap): void {
     // === ObjType (Item) ===
     handlers.set(Opcodes.OC_NAME, (ctx) => {
@@ -35,6 +37,10 @@ export function registerConfigOps(handlers: HandlerMap): void {
     handlers.set(Opcodes.OC_IOP, (ctx) => {
         const opIndex = ctx.intStack[--ctx.intStackSize];
         const itemId = ctx.intStack[--ctx.intStackSize];
+        if (opIndex === 1 && FROZEN_KEY_PIECE_IDS.has(itemId)) {
+            ctx.pushString("Assemble");
+            return;
+        }
         const obj = ctx.objTypeLoader?.load(itemId);
         ctx.pushString(obj?.inventoryActions?.[opIndex - 1] ?? "");
     });

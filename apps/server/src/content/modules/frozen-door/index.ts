@@ -7,7 +7,9 @@ import type { IScriptRegistry, LocInteractionEvent, ScriptServices } from "@serv
 const FROZEN_KEY = 26356;
 const KEY_PIECES = [26358, 26360, 26362, 26364] as const;
 const FROZEN_DOORS = [42840, 42841] as const;
-const DESTINATION = { x: 2855, y: 5277, level: 0 };
+const DESTINATION = { x: 2855, y: 5227, level: 0 };
+const NEX_ACCESS_DOORS = [42931, 42923] as const;
+const NEX_ACCESS_DESTINATION = { x: 2883, y: 5280, level: 2 };
 
 const frozenDoorQuest: QuestDefinition = {
     key: "the frozen door", name: "The Frozen Door", varpId: VARP_FROZEN_DOOR_COMPLETE,
@@ -49,8 +51,20 @@ function openDoor({ player, services }: LocInteractionEvent): void {
     services.movement.teleportPlayer(player, DESTINATION.x, DESTINATION.y, DESTINATION.level);
 }
 
+function enterNexAntechamber({ player, services }: LocInteractionEvent): void {
+    services.movement.teleportPlayer(player, NEX_ACCESS_DESTINATION.x, NEX_ACCESS_DESTINATION.y, NEX_ACCESS_DESTINATION.level);
+}
+
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     ensureQuestRegistered();
-    for (const itemId of KEY_PIECES) registry.registerItemAction(itemId, assemble, "assemble");
+    for (const itemId of KEY_PIECES) {
+        registry.registerItemAction(itemId, assemble, "assemble");
+        registry.registerItemAction(itemId, assemble);
+    }
     for (const doorId of FROZEN_DOORS) registry.registerLocInteraction(doorId, openDoor, "open");
+    registry.registerLocInteraction(NEX_ACCESS_DOORS[0], enterNexAntechamber, "open");
+    // 42923 is a cache alias with Inspect/Remove-trophy actions in the current
+    // data, so both possible operations intentionally lead to the antechamber.
+    registry.registerLocInteraction(NEX_ACCESS_DOORS[1], enterNexAntechamber, "inspect");
+    registry.registerLocInteraction(NEX_ACCESS_DOORS[1], enterNexAntechamber, "remove-trophy");
 }

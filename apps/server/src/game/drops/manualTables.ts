@@ -44,6 +44,77 @@ const IMP_NPC_TYPE_IDS = [5007, 3134] as const;
 const SCORPION_NPC_TYPE_IDS = [3024, 5242, 2480, 2479] as const;
 
 export const MANUAL_NPC_DROP_OVERRIDES: ManualNpcDropOverride[] = [
+    // The Wiki import marks Nex's table incomplete because it cannot represent
+    // one of the ammunition variants.  Keep the complete, cache-ID based table
+    // here so the encounter always awards its regular loot as well as uniques.
+    {
+        npcTypeIds: [11278],
+        table: {
+            always: [{ itemId: 532, quantity: 1, rarity: "Always" }],
+            pools: [
+                {
+                    kind: "weighted",
+                    category: "main",
+                    rolls: 1,
+                    entries: [
+                        { itemId: 26370, quantity: 1, rarity: "1/516" },
+                        { itemId: 26372, quantity: 1, rarity: "1/258" },
+                        { itemId: 26376, quantity: 1, rarity: "1/258" },
+                        { itemId: 26378, quantity: 1, rarity: "1/258" },
+                        { itemId: 26380, quantity: 1, rarity: "1/258" },
+                        { itemId: 26235, quantity: 1, rarity: "1/172" },
+                        { itemId: 574, quantity: [6, 100], rarity: "Common" },
+                        { itemId: 454, quantity: [23, 2354], rarity: "Uncommon" },
+                        { itemId: 452, quantity: [2, 30], rarity: "Uncommon" },
+                        { itemId: 1620, quantity: [3, 80], rarity: "Common" },
+                        { itemId: 1618, quantity: [3, 64], rarity: "Common" },
+                        { itemId: 246, quantity: [4, 64], rarity: "Common" },
+                        { itemId: 385, quantity: 10, rarity: "Common" },
+                        { itemId: 2434, quantity: 3, rarity: "Common" },
+                        { itemId: 6685, quantity: [1, 10], rarity: "Common" },
+                        { itemId: 3024, quantity: [1, 5], rarity: "Common" },
+                    ],
+                },
+                {
+                    kind: "weighted",
+                    category: "runes_ammo",
+                    rolls: 1,
+                    entries: [
+                        { itemId: 556, quantity: [123, 10_000], rarity: "Uncommon" },
+                        { itemId: 554, quantity: [1, 10_000], rarity: "Uncommon" },
+                        { itemId: 565, quantity: [84, 876], rarity: "Common" },
+                        { itemId: 560, quantity: [85, 986], rarity: "Common" },
+                        { itemId: 555, quantity: [193, 10_000], rarity: "Uncommon" },
+                        { itemId: 566, quantity: [86, 592], rarity: "Common" },
+                        { itemId: 21930, quantity: [12, 283], rarity: "Common" },
+                        { itemId: 9245, quantity: [11, 29], rarity: "Uncommon" },
+                    ],
+                },
+                {
+                    kind: "weighted",
+                    category: "other",
+                    rolls: 1,
+                    entries: [
+                        { itemId: 26390, quantity: [1, 2], rarity: "1/82" },
+                        { itemId: 995, quantity: [8539, 26748], rarity: "Uncommon" },
+                        { itemId: 1289, quantity: 1, rarity: "1/209" },
+                        { itemId: 26388, quantity: [6, 39], rarity: "Common" },
+                        { itemId: 26231, quantity: [80, 85], rarity: "5/82" },
+                        { itemId: 26231, quantity: [85, 95], rarity: "8/209" },
+                    ],
+                },
+                {
+                    kind: "independent",
+                    category: "tertiary",
+                    rolls: 1,
+                    entries: [
+                        { itemId: 12073, quantity: 1, rarity: "1/48" },
+                        { itemId: 26348, quantity: 1, rarity: "1/500" },
+                    ],
+                },
+            ],
+        },
+    },
     // Safety-net tables for the live GWD spawns. The full imported table takes
     // priority whenever its required source is available; these merely retain
     // the previously working guaranteed drop if that source is misconfigured.

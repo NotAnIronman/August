@@ -159,6 +159,8 @@ export interface NpcSpawnConfig {
     isAggressive?: boolean;
     /** Optional override for presentation-only NPCs that must never enter combat. */
     isUnattackable?: boolean;
+    /** Set false for a one-life NPC, such as a completed instanced encounter. */
+    respawns?: boolean;
     /** Server-authored HealthBarDefinition id (HIT_MASK). Defaults to 0. */
     healthBarDefId?: number;
     /** World view this NPC belongs to. -1 is the top-level world. */
@@ -244,7 +246,8 @@ export class NpcState extends Actor {
     readonly isAggressive: boolean;
     /** Presentation-only NPCs (such as animation previews) cannot be targeted
      * by combat, but can still receive explicitly queued visual sequences. */
-    readonly isUnattackable: boolean;
+    isUnattackable: boolean;
+    readonly respawns: boolean;
     /**
      * Aggression radius in tiles. NPCs will target players within this range.
      * OSRS default is typically 3 tiles.
@@ -327,6 +330,7 @@ export class NpcState extends Actor {
             isAggressive?: boolean;
             /** Whether combat targeting this NPC is disabled. Default: false */
             isUnattackable?: boolean;
+            respawns?: boolean;
             /** Aggression radius in tiles. Default: 3 */
             aggressionRadius?: number;
             /** Tolerance timer in ticks before this NPC stops auto-aggroing a player. */
@@ -374,6 +378,7 @@ export class NpcState extends Actor {
         // Aggression: default false unless explicitly set
         this.isAggressive = options.isAggressive ?? false;
         this.isUnattackable = options.isUnattackable ?? false;
+        this.respawns = options.respawns ?? true;
         // OSRS default aggression radius is typically 3 tiles
         this.aggressionRadius = Math.max(0, options.aggressionRadius ?? 3);
         this.aggressionToleranceTicks = Math.trunc(
@@ -450,6 +455,12 @@ export class NpcState extends Actor {
     onHealthChange(listener: NpcHealthChangeListener): () => void {
         this.healthChangeListeners.add(listener);
         return () => this.healthChangeListeners.delete(listener);
+    }
+
+    /** Enable or disable combat targeting without changing the NPC's other behaviour. */
+    setUnattackable(value: boolean): void {
+        this.isUnattackable = value;
+        if (this.isUnattackable) this.disengageCombat();
     }
 
     /**
