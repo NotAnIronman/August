@@ -346,7 +346,7 @@ export class NpcManager {
 
         const idleSeqId = npcType.getIdleSeqId(this.basTypeLoader);
         const walkSeqId = npcType.getWalkSeqId(this.basTypeLoader);
-        const size = Math.max(1, npcType.size);
+        const size = Math.max(1, Math.trunc(spawn.size ?? npcType.size));
         const rotationSpeed = Math.max(1, npcType.rotationSpeed);
         const encounterDefinition = EncounterRegistry.shared.findByNpcTypeId(spawn.id);
         const encounterMovement = encounterDefinition?.movement;

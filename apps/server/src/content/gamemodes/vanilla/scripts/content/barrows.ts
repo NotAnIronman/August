@@ -167,7 +167,11 @@ function rewardChest(player: PlayerState, services: ScriptServices, run: Barrows
     const rewards: Array<{ itemId: number; quantity: number }> = [];
 
     for (let roll = 0; roll < rolls; roll += 1) {
-        const eligible = killedBrothers.flatMap((brother) => brother.equipment).filter((itemId) => !awarded.has(itemId));
+        const allEligible = killedBrothers.flatMap((brother) => brother.equipment).filter((itemId) => !awarded.has(itemId));
+        // Prefer collection-log gaps; once every eligible piece is unlocked,
+        // the regular Barrows duplicate behaviour resumes.
+        const missingEligible = allEligible.filter((itemId) => !player.collectionLog.hasItem(itemId));
+        const eligible = missingEligible.length > 0 ? missingEligible : allEligible;
         if (eligible.length > 0 && Math.random() < uniqueChance) {
             const itemId = random(eligible);
             awarded.add(itemId);

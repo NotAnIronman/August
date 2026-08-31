@@ -143,6 +143,8 @@ export interface NpcSpawnConfig {
     x: number;
     y: number;
     level: number;
+    /** Overrides cache footprint for authored encounters with bespoke collision. */
+    size?: number;
     /** Explicit attack cadence for authored encounter spawns. */
     attackSpeed?: number;
     wanderRadius?: number;

@@ -139,7 +139,7 @@ export class NpcCombatInteractionHandler {
 
         this.interactions.set(ws, state);
 
-        const attackReach = Math.max(1, this.getPlayerAttackReach(me));
+        const attackReach = Math.max(1, this.getPlayerAttackReach(me, npc));
         if (this.isWithinAttackReach(me, npc)) {
             me.clearPath();
             return { ok: true };
@@ -375,7 +375,10 @@ export class NpcCombatInteractionHandler {
         return true;
     }
 
-    getPlayerAttackReach(player: PlayerState): number {
+    getPlayerAttackReach(player: PlayerState, npc?: NpcState): number {
+        // Moons of Peril are stationary 3x3 targets. A reach of three from
+        // their footprint reaches exactly five tiles from the spawn origin.
+        if (npc && (npc.typeId === 13011 || npc.typeId === 13012 || npc.typeId === 13013) && resolvePlayerAttackType(player.combat) === AttackType.Melee) return 3;
         if (player.combat.weaponItemId === 12926) {
             const style = getAttackStyle(12926, player.combat.styleSlot ?? 0);
             return style === AttackStyle.LONGRANGE ? 7 : 5;
@@ -403,7 +406,7 @@ export class NpcCombatInteractionHandler {
      * Used to determine if player needs to move closer or find LoS.
      */
     isWithinAttackDistance(player: PlayerState, npc: NpcState): boolean {
-        const reach = this.getPlayerAttackReach(player);
+        const reach = this.getPlayerAttackReach(player, npc);
         const size = Math.max(1, npc.size);
         const minX = npc.tileX;
         const minY = npc.tileY;
@@ -437,7 +440,7 @@ export class NpcCombatInteractionHandler {
      * For a 2x2 NPC at (10,10), a player at (12,10) is distance 1 from tile (11,10).
      */
     isWithinAttackReach(player: PlayerState, npc: NpcState): boolean {
-        const reach = this.getPlayerAttackReach(player);
+        const reach = this.getPlayerAttackReach(player, npc);
         const size = Math.max(1, npc.size);
         const minX = npc.tileX;
         const minY = npc.tileY;
