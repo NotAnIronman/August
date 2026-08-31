@@ -64,6 +64,7 @@ export class EncounterRuntime {
         tick: number;
         targetId: number;
         targetDistance: number;
+        targetProtectingFromMelee?: boolean;
     }): PlannedEncounterAttack | undefined {
         if (this.lifecycle === "dead" || this.lifecycle === "disposed") return undefined;
         if (this.plannedAttack?.targetId === input.targetId) {
@@ -96,7 +97,12 @@ export class EncounterRuntime {
             (attack) => (attack.priority ?? 0) === highestPriority,
         );
         const selected = prioritized[
-            this.random.weightedIndex(prioritized.map((attack) => attack.weight ?? 1))
+            this.random.weightedIndex(
+                prioritized.map((attack) => {
+                    const weight = typeof attack.weight === "function" ? attack.weight(context) : attack.weight;
+                    return Math.max(0, Number.isFinite(weight) ? (weight ?? 1) : 0);
+                }),
+            )
         ];
         if (!selected) return undefined;
         const traits: CombatAttackTraits = Object.freeze({
@@ -113,6 +119,7 @@ export class EncounterRuntime {
                     ? undefined
                     : Math.max(0, Math.trunc(selected.maxHit)),
             specialAttack: selected.special,
+            effects: selected.effects,
         });
         this.lifecycle = "engaged";
         this.plannedAttack = Object.freeze({
@@ -224,6 +231,7 @@ export class EncounterRuntime {
         tick: number;
         targetId: number;
         targetDistance: number;
+        targetProtectingFromMelee?: boolean;
     }): EncounterContext {
         return {
             tick: Math.trunc(input.tick),
@@ -237,6 +245,7 @@ export class EncounterRuntime {
             healthPercent: this.healthPercent,
             phaseId: this.phaseId,
             previousAttackId: this.previousAttackId,
+            targetProtectingFromMelee: input.targetProtectingFromMelee === true,
         };
     }
 

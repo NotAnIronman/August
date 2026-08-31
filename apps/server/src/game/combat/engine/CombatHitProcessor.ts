@@ -1425,6 +1425,7 @@ export class CombatHitProcessor {
 
     private onHitApplied(hit: AppliedCombatHit, frame: TickFrame): void {
         this.playImpactVisuals(hit);
+        this.applyEncounterAttackEffects(hit);
         this.applyEnchantedBoltEffect(hit);
         this.applyAncientGodswordBloodSacrificeHeal(hit);
         this.applyWeaponSpecialAttackScript(hit);
@@ -1449,6 +1450,23 @@ export class CombatHitProcessor {
         });
         this.invokePlugin(profile.id, "onHitApplied", () => profile.onHitApplied?.(hit, context));
         this.queueDueSaradominSwordLightnings(hit.appliedClock);
+    }
+
+    private applyEncounterAttackEffects(hit: AppliedCombatHit): void {
+        const effects = hit.pending.attack.traits.effects;
+        if (!(hit.source instanceof NpcState) || !(hit.target instanceof PlayerState) || !effects) return;
+        if (effects.poisonDamage !== undefined && hit.pending.landed) {
+            hit.target.skillSystem.inflictPoison(effects.poisonDamage, hit.appliedClock);
+        }
+        if (effects.prayerDrainFraction !== undefined && hit.amount > 0) {
+            const prayer = hit.target.skillSystem.getSkill(SkillId.Prayer);
+            const current = Math.max(0, prayer.baseLevel + prayer.boost);
+            hit.target.skillSystem.setSkillBoost(
+                SkillId.Prayer,
+                Math.max(0, current - Math.floor(current * effects.prayerDrainFraction)),
+            );
+            hit.target.prayer.resetDrainAccumulator();
+        }
     }
 
     private transformIncomingDamage(

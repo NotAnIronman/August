@@ -1,5 +1,5 @@
 import type { AttackType } from "@server/game/combat/AttackType";
-import type { CombatAttackStyle, CombatAttackTraits } from "@server/game/combat/model/CombatAttack";
+import type { CombatAttackEffects, CombatAttackStyle, CombatAttackTraits } from "@server/game/combat/model/CombatAttack";
 import type { NpcEffectImmunityProfile } from "@server/game/combat/NpcEffectImmunity";
 
 export type EncounterLifecycle =
@@ -31,6 +31,7 @@ export interface EncounterContext {
     readonly healthPercent: number;
     readonly phaseId: string;
     readonly previousAttackId?: string;
+    readonly targetProtectingFromMelee: boolean;
 }
 
 export type EncounterAnimationReference =
@@ -55,7 +56,8 @@ export interface EncounterAttackDefinition {
     readonly preferredDistance?: number;
     readonly speedTicks: number;
     readonly maxHit?: number;
-    readonly weight?: number;
+    /** Static or context-sensitive selection weight. */
+    readonly weight?: number | ((context: EncounterContext) => number);
     readonly priority?: number;
     readonly cooldownTicks?: number;
     readonly minDistance?: number;
@@ -68,6 +70,7 @@ export interface EncounterAttackDefinition {
     readonly graphicId?: number;
     readonly soundId?: number;
     readonly special?: boolean;
+    readonly effects?: Readonly<CombatAttackEffects>;
     readonly condition?: (context: EncounterContext) => boolean;
 }
 

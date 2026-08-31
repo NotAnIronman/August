@@ -12,6 +12,17 @@ export const CombatAttackStyle = Object.freeze({
 
 export type CombatAttackStyle = (typeof CombatAttackStyle)[keyof typeof CombatAttackStyle];
 
+/** Effects authored by encounters and applied to a successful NPC hit. */
+export interface CombatAttackEffects {
+    readonly ignoreProtectionPrayer?: boolean;
+    readonly guaranteedHit?: boolean;
+    /** Absolute minimum damage for a landed hit; unlike a bonus it does not raise its maximum. */
+    readonly minimumHit?: number;
+    readonly poisonDamage?: number;
+    /** Fraction of the target's current Prayer points removed after a hit. */
+    readonly prayerDrainFraction?: number;
+}
+
 /** Immutable traits selected for one attack cycle. */
 export interface CombatAttackTraits {
     readonly type: AttackType;
@@ -29,6 +40,7 @@ export interface CombatAttackTraits {
     readonly weaponId?: number;
     readonly spellId?: number;
     readonly specialAttack?: boolean;
+    readonly effects?: Readonly<CombatAttackEffects>;
     readonly autocast?: boolean;
 }
 

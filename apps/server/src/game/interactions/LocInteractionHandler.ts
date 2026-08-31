@@ -1,6 +1,7 @@
 import type { WebSocket } from "ws";
 
 import { LocModelType } from "@august/osrs-engine/config/loctype/LocModelType";
+import { getLocInteractionRangeOverride } from "@august/game-model/world/LocRouteOverrides";
 import type { LocType } from "@august/osrs-engine/config/loctype/LocType";
 import type { LocTypeLoader } from "@august/osrs-engine/config/loctype/LocTypeLoader";
 import { PathService } from "@server/pathfinding/PathService";
@@ -503,6 +504,12 @@ export class LocInteractionHandler {
     getLocRouteProfile(locId: number): LocRouteProfile {
         const cached = this.locRouteProfileCache.get(locId);
         if (cached) return cached;
+        const rangeOverride = getLocInteractionRangeOverride(locId);
+        if (rangeOverride !== undefined) {
+            const profile: LocRouteProfile = { kind: "range", distance: rangeOverride };
+            this.locRouteProfileCache.set(locId, profile);
+            return profile;
+        }
         const profile = this.deriveLocRouteProfile(locId);
         this.locRouteProfileCache.set(locId, profile);
         return profile;
