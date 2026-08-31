@@ -86,6 +86,8 @@ export interface PendingLocInteraction {
     level?: number;
     action?: string;
     modifierFlags?: number;
+    /** A source-tile script can intentionally bypass normal object routing. */
+    bypassRoute?: boolean;
 }
 
 export interface InteractionTickNpcLookup {

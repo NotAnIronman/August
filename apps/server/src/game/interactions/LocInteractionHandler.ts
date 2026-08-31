@@ -150,6 +150,15 @@ export class LocInteractionHandler {
             level: data.level,
             action: data.action,
             modifierFlags: this.bridge.normalizeModifierFlags(data.modifierFlags),
+            // Tile-specific scripts deliberately use the player's current
+            // tile as their source. Do not path them toward the loc: a wall
+            // transition is commonly unreachable from the very side that
+            // needs to activate it.
+            bypassRoute: this.scriptRuntime?.hasLocTileInteractionAt(
+                data.id,
+                { x: me.tileX, y: me.tileY, level: me.level },
+                data.action,
+            ) ?? false,
         };
         const resolved = this.resolvePendingLocInteraction(me, pending);
 
@@ -159,7 +168,7 @@ export class LocInteractionHandler {
         // popPendingSeq BEFORE the delayed teleport fires in the combat phase.
         // This also matches the OSRS packet dump where the player is "idle"
         // (not walking) when the interaction fires — it always waits a tick.
-        if (!resolved.hasArrived) {
+        if (!pending.bypassRoute && !resolved.hasArrived) {
             this.applyLocInteractionRoute(me, pending, resolved);
         }
         this.pendingLocInteractions.set(ws, pending);
@@ -352,6 +361,20 @@ export class LocInteractionHandler {
                 me.tileY <= rect.tile.y + routeSizeY - 1;
 
             const arrived = resolved.hasArrived;
+            if (info.bypassRoute) {
+                this.executeLocInteraction(
+                    me,
+                    info,
+                    interactionLevel,
+                    rect.tile,
+                    routeSizeX,
+                    routeSizeY,
+                    tick,
+                    false,
+                );
+                this.pendingLocInteractions.delete(ws);
+                continue;
+            }
             // If we've satisfied the route strategy (including wall checks), interact immediately.
             if (arrived) {
                 this.executeLocInteraction(

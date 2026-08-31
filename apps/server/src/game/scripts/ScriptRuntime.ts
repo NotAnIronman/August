@@ -86,6 +86,20 @@ export class ScriptRuntime {
         return this.services;
     }
 
+    /**
+     * Whether an exact player-source-tile loc script owns this interaction.
+     * These scripts model transitions such as squeezing through a wall, where
+     * routing to the object's collision tile would be both unnecessary and
+     * impossible from one side.
+     */
+    hasLocTileInteractionAt(
+        locId: number,
+        tile: { x: number; y: number; level: number },
+        action?: string,
+    ): boolean {
+        return this.registry.findLocTileInteraction(locId, tile, action) !== undefined;
+    }
+
     registerHandlers(
         id: string,
         fn: (registry: IScriptRegistry, services: ScriptServices) => void,
