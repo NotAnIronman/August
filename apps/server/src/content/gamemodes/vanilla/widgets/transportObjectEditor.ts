@@ -7,7 +7,7 @@ import type { PlayerState } from "@server/game/player";
 import { serverCatalogPath } from "@server/paths";
 import { reloadDevObjectTransitions } from "@server/content/gamemodes/vanilla/scripts/content/devObjectTransitions";
 import { registerUiPanelActions } from "@server/content/gamemodes/vanilla/uikit/actions";
-import { openUiPanel, sendUiActivateSignal, sendUiControls, sendUiRowClickZones, sendUiTextRows } from "@server/content/gamemodes/vanilla/uikit/panelData";
+import { openUiPanel, sendUiActivateSignal, sendUiControls, sendUiRowActions, sendUiRowClickZones, sendUiSearchLabel, sendUiTextRows } from "@server/content/gamemodes/vanilla/uikit/panelData";
 
 type Tile = { x: number; y: number; level: number };
 type Transition = { id: string; locId: number; option: number; action: string; from: Tile; to: Tile; animationId?: number; message?: string };
@@ -37,6 +37,9 @@ function tile(value: string): Tile | undefined {
 function stepPrompt(step: Step): string {
     return ({ locId: "Enter Object ID", option: "Enter selection option (1-5)", from: "Enter start coordinates: x, y, level", to: "Enter end coordinates: x, y, level", animation: "Enter animation ID, or 'none'" })[step];
 }
+function inputLabel(step: Step): string {
+    return ({ locId: "Object ID:", option: "Option:", from: "Start x, y, z:", to: "End x, y, z:", animation: "Animation:" })[step];
+}
 function nextId(entries: readonly Transition[]): string {
     return `rule-${entries.reduce((high, entry) => Math.max(high, Number(/^rule-(\d+)$/i.exec(entry.id)?.[1] ?? 0)), 0) + 1}`;
 }
@@ -59,9 +62,25 @@ function render(player: PlayerState, services: ScriptServices): void {
     if (value.transitions.length === 0) { rows.push({ kind: "text", text: "No transport rules yet. Click Add to create one." }); current.rowIds.push(undefined); }
     sendUiTextRows(services, player.id, DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, rows);
     sendUiRowClickZones(services, player.id, DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, rows.length);
+    // Match the dialogue editor: right-click edits the row, while the
+    // per-row X deletes it. Header/prompt rows intentionally get neither.
+    sendUiRowActions(services, player.id, DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, current.rowIds.map((id) => id !== undefined));
+    for (let index = 0; index < ComponentIds.INLINE_ROW_ACTION_CAPACITY; index++) {
+        for (const base of [ComponentIds.ROW_MOVE_UP_BASE, ComponentIds.ROW_MOVE_DOWN_BASE]) {
+            services.dialog.queueWidgetEvent(player.id, { action: "set_hidden", uid: ((DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID & 0xffff) << 16) | (base + index), hidden: true });
+        }
+    }
+    sendUiSearchLabel(
+        services,
+        player.id,
+        DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID,
+        current.pending
+            ? `${inputLabel(current.pending.step)}${current.pending.editId ? " Enter = keep" : ""}`
+            : "Select Add or right-click a rule:",
+    );
     sendUiControls(services, player.id, DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, [
-        { label: "Add" }, current.selectedId ? { label: "Edit" } : undefined, current.selectedId ? { label: "Delete" } : undefined, { label: "Close" },
-    ], 4);
+        { label: "Add" }, { label: "Close" },
+    ], 2);
     sendUiActivateSignal(services, player.id, DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, !!current.pending);
 }
 function open(player: PlayerState, services: ScriptServices): void { openUiPanel(services, player, DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, "Transport Object"); render(player, services); }
@@ -74,11 +93,12 @@ function acceptInput(player: PlayerState, services: ScriptServices, text: string
     const current = state(player); const pending = current.pending;
     if (!pending) return "Click Add or Edit first.";
     const invalid = () => `Invalid value. ${stepPrompt(pending.step)}.`;
-    if (pending.step === "locId") { const locId = Number(text); if (!Number.isInteger(locId) || locId <= 0) return invalid(); pending.draft.locId = locId; pending.step = "option"; }
-    else if (pending.step === "option") { const option = Number(text); if (!Number.isInteger(option) || option < 1 || option > 5 || !pending.draft.locId) return invalid(); const action = actionFor(services, pending.draft.locId, option); if (!action) return `Object ${pending.draft.locId} does not have option ${option}.`; pending.draft.option = option; pending.draft.action = action.toLowerCase(); pending.step = "from"; }
-    else if (pending.step === "from") { const value = tile(text); if (!value) return invalid(); pending.draft.from = value; pending.step = "to"; }
-    else if (pending.step === "to") { const value = tile(text); if (!value) return invalid(); pending.draft.to = value; pending.step = "animation"; }
-    else { if (text.toLowerCase() !== "none") { const animationId = Number(text); if (!Number.isInteger(animationId) || animationId < 0) return invalid(); pending.draft.animationId = animationId; } else delete pending.draft.animationId; const complete = pending.draft as Transition; const value = catalog(); if (pending.editId) value.transitions = value.transitions.map((entry) => entry.id === pending.editId ? { ...complete, id: pending.editId } : entry); else value.transitions.push({ ...complete, id: nextId(value.transitions) }); save(value); current.selectedId = pending.editId ?? nextId(value.transitions.slice(0, -1)); current.pending = undefined; }
+    const keep = pending.editId !== undefined && text.length === 0;
+    if (pending.step === "locId") { const locId = keep ? pending.draft.locId : Number(text); if (!Number.isInteger(locId) || locId <= 0) return invalid(); pending.draft.locId = locId; pending.step = "option"; }
+    else if (pending.step === "option") { const option = keep ? pending.draft.option : Number(text); if (!Number.isInteger(option) || option < 1 || option > 5 || !pending.draft.locId) return invalid(); const action = actionFor(services, pending.draft.locId, option); if (!action) return `Object ${pending.draft.locId} does not have option ${option}.`; pending.draft.option = option; pending.draft.action = action.toLowerCase(); pending.step = "from"; }
+    else if (pending.step === "from") { const value = keep ? pending.draft.from : tile(text); if (!value) return invalid(); pending.draft.from = value; pending.step = "to"; }
+    else if (pending.step === "to") { const value = keep ? pending.draft.to : tile(text); if (!value) return invalid(); pending.draft.to = value; pending.step = "animation"; }
+    else { if (!keep) { if (text.toLowerCase() !== "none") { const animationId = Number(text); if (!Number.isInteger(animationId) || animationId < 0) return invalid(); pending.draft.animationId = animationId; } else delete pending.draft.animationId; } const complete = pending.draft as Transition; const value = catalog(); if (pending.editId) value.transitions = value.transitions.map((entry) => entry.id === pending.editId ? { ...complete, id: pending.editId } : entry); else value.transitions.push({ ...complete, id: nextId(value.transitions) }); save(value); current.selectedId = pending.editId ?? nextId(value.transitions.slice(0, -1)); current.pending = undefined; }
     render(player, services); return undefined;
 }
 
@@ -94,8 +114,15 @@ export function registerTransportObjectEditor(registry: IScriptRegistry, service
     registry.registerCommand("to", command, { permission: "developer", owner: "developer:transport-object-editor", summary: "Open the Transport Object editor." });
     registerUiPanelActions(registry, services, DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, [
         { componentId: ComponentIds.CONTROL_BACKGROUND_BASE, actionId: "transport_add", handle: ({ player }) => begin(player, services) },
-        { componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 1, actionId: "transport_edit", handle: ({ player }) => { const id = state(player).selectedId; if (id) begin(player, services, id); } },
-        { componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 2, actionId: "transport_delete", handle: ({ player }) => { const current = state(player); if (!current.selectedId) return; const value = catalog(); value.transitions = value.transitions.filter((entry) => entry.id !== current.selectedId); save(value); current.selectedId = undefined; render(player, services); } },
-        { componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 3, actionId: "transport_close", handle: ({ player }) => services.dialog.getInterfaceService()?.closeModal(player) },
+        { componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 1, actionId: "transport_close", handle: ({ player }) => services.dialog.getInterfaceService()?.closeModal(player) },
     ]);
+    for (let row = 0; row < ComponentIds.INLINE_ROW_ACTION_CAPACITY; row++) {
+        registry.onButton(DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, ComponentIds.ROW_DELETE_BASE + row, (event) => {
+            if (!services.dialog.getInterfaceService()?.isModalOpen(event.player, DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID)) return;
+            const current = state(event.player); const id = current.rowIds[row]; if (!id) return;
+            const value = catalog(); value.transitions = value.transitions.filter((entry) => entry.id !== id); save(value);
+            if (current.selectedId === id) current.selectedId = undefined;
+            render(event.player, services);
+        });
+    }
 }

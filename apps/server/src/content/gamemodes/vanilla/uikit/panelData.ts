@@ -365,6 +365,20 @@ export function sendUiFooterButton(
     }
 }
 
+/** Updates the optional static label placed immediately left of a panel input. */
+export function sendUiSearchLabel(
+    services: ScriptServices,
+    playerId: number,
+    groupId: number,
+    text: string,
+): void {
+    services.dialog.queueWidgetEvent(playerId, {
+        action: "set_text",
+        uid: packUid(groupId, ComponentIds.SEARCH_LABEL),
+        text,
+    });
+}
+
 /** Populates the optional generic action-button strip (layout.controls). */
 export function sendUiControls(
     services: ScriptServices,

@@ -17,9 +17,9 @@ registerUiPanel({
     build: () => buildUiPanel(DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, {
         width: 640,
         height: 430,
-        content: { rowKind: "text", rowHeight: ROW_HEIGHT, scrollbarWidth: 16, clickableRows: true },
-        controls: { count: 4, width: 92, height: 28, gap: 6 },
-        search: { placeholder: "Enter the requested value, then press Enter", width: 330 },
+        content: { rowKind: "text", rowHeight: ROW_HEIGHT, scrollbarWidth: 16, clickableRows: true, inlineRowActions: true },
+        controls: { count: 2, width: 92, height: 28, gap: 6 },
+        search: { placeholder: "Enter the requested value, then press Enter", width: 280, label: "Input:", labelWidth: 100 },
     }),
     scrollController: createScrollController(DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, "text", ROW_HEIGHT),
     searchController: (() => {
@@ -29,7 +29,10 @@ registerUiPanel({
         () => {},
         (value) => {
             const text = value.trim();
-            if (text) sendChat(`::to input ${text}`);
+            // Keep authoring continuous: Enter clears the previous field and
+            // retains focus while the server advances the wizard.
+            searchController?.setQuery("", true);
+            sendChat(`::to input ${text}`);
         },
             120,
         );
