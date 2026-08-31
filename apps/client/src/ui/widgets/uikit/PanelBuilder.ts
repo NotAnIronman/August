@@ -372,12 +372,13 @@ export function buildUiPanel(groupId: number, layout: UiPanelBuildLayout): Widge
         );
         const searchY = tabsBottom + 4;
         if (layout.search.label) {
-            widgets.push(makeWidget(groupId, ComponentIds.SEARCH_LABEL, rootUid, {
+            const label = makeWidget(groupId, ComponentIds.SEARCH_LABEL, rootUid, {
                 type: 4, rawX: contentLeft + searchInset, rawY: searchY, rawWidth: searchLabelWidth,
                 rawHeight: 22, width: searchLabelWidth, height: 22,
                 text: `<col=ffcf70>${layout.search.label}</col>`, fontId: FONT_PLAIN_12,
                 textColor: 0xe8ded0, textShadowed: true, xTextAlignment: 0, yTextAlignment: 1,
-            }));
+            });
+            widgets.set(label.uid, label);
         }
         const background = makeWidget(groupId, ComponentIds.SEARCH_BACKGROUND, rootUid, {
             type: 3, rawX: contentLeft + searchInset + searchLabelWidth, rawY: searchY, rawWidth: searchWidth,
