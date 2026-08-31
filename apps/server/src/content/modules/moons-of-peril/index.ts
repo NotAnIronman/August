@@ -16,12 +16,12 @@ const MOONLIGHT_MOTHS = [12771, 12772, 12773] as const;
 const STATUES = [51372, 51373, 51374] as const;
 const CHEST_TILE = { x: 1513, y: 9578, level: 0 };
 type Moon = "blood" | "eclipse" | "blue";
-const MOONS: Record<Moon, { id: number; entry: { x: number; y: number; level: number }; outside: { x: number; y: number; level: number }; grave: { x: number; y: number; level: number }; boss: { x: number; y: number; level: number }; sourceBaseX: number; sourceBaseY: number; next: Moon }> = {
+const MOONS: Record<Moon, { id: number; entry: { x: number; y: number; level: number }; outside: { x: number; y: number; level: number }; grave: { x: number; y: number; level: number }; boss: { x: number; y: number; level: number }; sourceBaseX: number; sourceBaseY: number; destinationChunkX: number; destinationChunkY: number; next: Moon }> = {
     // Each chamber needs its own map slice. Copying all three into one 104x104
     // view cut off Blood/Eclipse and displaced their terrain vertically.
-    blood: { id: 13011, entry: { x: 1396, y: 9632, level: 0 }, outside: { x: 1413, y: 9632, level: 0 }, grave: { x: 1414, y: 9632, level: 0 }, boss: { x: 1392, y: 9632, level: 0 }, sourceBaseX: 1368, sourceBaseY: 9608, next: "eclipse" },
-    eclipse: { id: 13012, entry: { x: 1484, y: 9632, level: 0 }, outside: { x: 1466, y: 9632, level: 0 }, grave: { x: 1465, y: 9632, level: 0 }, boss: { x: 1488, y: 9632, level: 0 }, sourceBaseX: 1440, sourceBaseY: 9608, next: "blue" },
-    blue: { id: 13013, entry: { x: 1440, y: 9676, level: 0 }, outside: { x: 1440, y: 9658, level: 0 }, grave: { x: 1440, y: 9657, level: 0 }, boss: { x: 1440, y: 9680, level: 0 }, sourceBaseX: 1408, sourceBaseY: 9640, next: "blood" },
+    blood: { id: 13011, entry: { x: 1396, y: 9632, level: 0 }, outside: { x: 1413, y: 9632, level: 0 }, grave: { x: 1414, y: 9632, level: 0 }, boss: { x: 1392, y: 9632, level: 0 }, sourceBaseX: 1368, sourceBaseY: 9608, destinationChunkX: 3, destinationChunkY: 3, next: "eclipse" },
+    eclipse: { id: 13012, entry: { x: 1484, y: 9632, level: 0 }, outside: { x: 1466, y: 9632, level: 0 }, grave: { x: 1465, y: 9632, level: 0 }, boss: { x: 1488, y: 9632, level: 0 }, sourceBaseX: 1440, sourceBaseY: 9608, destinationChunkX: 1, destinationChunkY: 3, next: "blue" },
+    blue: { id: 13013, entry: { x: 1440, y: 9676, level: 0 }, outside: { x: 1440, y: 9658, level: 0 }, grave: { x: 1440, y: 9657, level: 0 }, boss: { x: 1440, y: 9680, level: 0 }, sourceBaseX: 1408, sourceBaseY: 9640, destinationChunkX: 2, destinationChunkY: 2, next: "blood" },
 };
 type Run = { killed: Set<Moon>; active?: Moon; instanceId: string };
 const runs = new Map<number, Run>();
@@ -56,7 +56,7 @@ function createRun(player: PlayerState, services: ScriptServices, first: Moon, a
         return;
     }
     const def = MOONS[first];
-    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: def.sourceBaseX, sourceBaseY: def.sourceBaseY, widthChunks: 8, heightChunks: 8, sourcePlanes: [0], destinationChunkX: 2, destinationChunkY: 3 }]);
+    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: def.sourceBaseX, sourceBaseY: def.sourceBaseY, widthChunks: 8, heightChunks: 8, sourcePlanes: [0], destinationChunkX: def.destinationChunkX, destinationChunkY: def.destinationChunkY }]);
     const room = services.instances.create(player, { definitionId: "moons-of-peril", access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party", templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
     if (!room) { services.messaging.sendGameMessage(player, "The Moon chamber is unavailable right now."); return; }
     runs.set(player.id, { killed: new Set(), instanceId: room.id }); services.instances.markStarted(room.id); spawnMoon(player, services, first);
@@ -67,7 +67,7 @@ function resumeRun(player: PlayerState, services: ScriptServices, next: Moon): v
     const run = runs.get(player.id);
     if (!run || services.instances.get(player.id)) return;
     const def = MOONS[next];
-    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: def.sourceBaseX, sourceBaseY: def.sourceBaseY, widthChunks: 8, heightChunks: 8, sourcePlanes: [0], destinationChunkX: 2, destinationChunkY: 3 }]);
+    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: def.sourceBaseX, sourceBaseY: def.sourceBaseY, widthChunks: 8, heightChunks: 8, sourcePlanes: [0], destinationChunkX: def.destinationChunkX, destinationChunkY: def.destinationChunkY }]);
     const room = services.instances.create(player, { definitionId: "moons-of-peril", access: "solo", maxPlayers: 1, templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
     if (!room) { services.messaging.sendGameMessage(player, "The Moon chamber is unavailable right now."); return; }
     run.instanceId = room.id;
@@ -97,6 +97,12 @@ function appendReward(rewards: Array<{ itemId: number; quantity: number }>, item
     const existing = rewards.find(reward => reward.itemId === itemId);
     if (existing) existing.quantity += quantity; else rewards.push({ itemId, quantity });
 }
+function noteBulkReward(services: ScriptServices, itemId: number, quantity: number): number {
+    if (quantity <= 1) return itemId;
+    const noteId = services.data.getItemDefinition(itemId)?.noteId ?? -1;
+    const note = noteId > 0 ? services.data.getItemDefinition(noteId) : undefined;
+    return note?.noted ? noteId : itemId;
+}
 function chooseMoonPiece(player: PlayerState, moon: Moon): number {
     const pieces = MOON_EQUIPMENT[moon];
     const missing = pieces.filter(itemId => !player.collectionLog.hasItem(itemId));
@@ -114,7 +120,7 @@ function reward(player: PlayerState, services: ScriptServices): void {
     }
     if (!uniqueAwarded) {
         const rolls = count === 1 ? 1 : count === 2 ? 3 : 6;
-        for (let roll = 0; roll < rolls; roll += 1) { const resource = resources[Math.floor(Math.random() * resources.length)]!; appendReward(rewards, resource.itemId, resource.quantity); }
+        for (let roll = 0; roll < rolls; roll += 1) { const resource = resources[Math.floor(Math.random() * resources.length)]!; appendReward(rewards, noteBulkReward(services, resource.itemId, resource.quantity), resource.quantity); }
     }
     for (const item of rewards) addOrDrop(player, services, item.itemId, item.quantity);
     services.inventory.snapshotInventoryImmediate(player); for (const item of rewards) services.collectionLog.trackCollectionLogItem(player, item.itemId);
@@ -191,9 +197,9 @@ function drinkMoonlightPotion(player: PlayerState, services: ScriptServices, ite
     if (doses < 1 || doses > 4 || player.items.removeItem(itemId, 1, { assureFullRemoval: true }).completed !== 1) return;
     if (doses > 1) addOrDrop(player, services, itemId + 1, 1); else addOrDrop(player, services, VIAL, 1);
     for (const skill of [SkillId.Attack, SkillId.Strength, SkillId.Defence] as const) {
-        const current = player.skillSystem.getSkill(skill).baseLevel + player.skillSystem.getSkill(skill).boost;
-        const boost = Math.floor(skillLevel(player, skill) * 0.15) + 3;
-        player.skillSystem.setSkillBoost(skill, current + boost);
+        const level = skillLevel(player, skill);
+        const boost = Math.floor(level * 0.15) + 3;
+        player.skillSystem.setSkillBoost(skill, level + boost);
     }
     const prayer = player.skillSystem.getSkill(SkillId.Prayer);
     const currentPrayer = Math.max(0, prayer.baseLevel + prayer.boost);
@@ -226,6 +232,8 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
         registry.registerLocInteraction(CRATE, direct, `take-from <col=00ffff>${label}`);
     }
     registry.registerLocInteraction(SAPLING, ({ player, services }) => { addOrDrop(player, services, GRUB, 2); services.inventory.snapshotInventoryImmediate(player); }, "collect-from");
+    registry.registerLocInteraction(STOVE, ({ player, services }) => startCookingBream(player, services), "cook");
+    registry.registerLocInteraction(STOVE, ({ player, services }) => startCookingBream(player, services));
     const fish = ({ player, services }: { player: PlayerState; services: ScriptServices }) => startFishing(player, services);
     for (const locId of FISHING_SPOTS) {
         for (const action of ["net", "fish", "small-net"]) registry.registerLocInteraction(locId, fish, action);
