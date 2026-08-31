@@ -2,88 +2,21 @@
   "version": 1,
   "transitions": [
     {
-      "id": "rule-1",
-      "locId": 5052,
+      "locId": 5054,
       "option": 1,
-      "action": "search",
+      "action": "climb-up",
       "from": {
-        "x": 3480,
-        "y": 9837,
+        "x": 3477,
+        "y": 9845,
         "level": 0
       },
       "to": {
-        "x": 3480,
-        "y": 9836,
-        "level": 0
-      }
-    },
-    {
-      "id": "rule-2",
-      "locId": 5052,
-      "option": 1,
-      "action": "search",
-      "from": {
-        "x": 3480,
-        "y": 9836,
+        "x": 3495,
+        "y": 3465,
         "level": 0
       },
-      "to": {
-        "x": 3480,
-        "y": 9837,
-        "level": 0
-      },
-      "message": "You clicked on the wall"
-    },
-    {
-      "id": "rule-3",
-      "locId": 5052,
-      "option": 1,
-      "action": "search",
-      "from": {
-        "x": 3480,
-        "y": 2937,
-        "level": 0
-      },
-      "to": {
-        "x": 3480,
-        "y": 9836,
-        "level": 0
-      },
-      "animationId": 881
-    },
-    {
-      "id": "rule-4",
-      "locId": 5052,
-      "option": 1,
-      "action": "search",
-      "from": {
-        "x": 3480,
-        "y": 9838,
-        "level": 0
-      },
-      "to": {
-        "x": 3480,
-        "y": 9836,
-        "level": 0
-      },
-      "animationId": 818
-    },
-    {
-      "id": "rule-5",
-      "locId": 5052,
-      "option": 1,
-      "action": "search",
-      "from": {
-        "x": 3480,
-        "y": 9835,
-        "level": 0
-      },
-      "to": {
-        "x": 3480,
-        "y": 9837,
-        "level": 0
-      },
-      "animationId": 818
+      "animationId": 881,
+      "id": "rule-1"
     }
   ]
 }
