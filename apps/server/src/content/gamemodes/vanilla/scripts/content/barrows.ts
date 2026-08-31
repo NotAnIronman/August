@@ -1,5 +1,8 @@
 import type { PlayerState } from "@server/game/player";
-import { NpcPreDeathDecision, type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
+import { SkillId } from "@august/osrs-engine/skill/skills";
+import { CollisionFlag } from "@august/game-model/collision/CollisionFlag";
+import { NpcAttackDecision, NpcPreDeathDecision, type IScriptRegistry, type NpcAttackEvent, type ScriptServices } from "@server/game/scripts/types";
+import { createLootPickupNotification } from "@server/game/notifications/LootPickupNotification";
 
 /**
  * The Barrows run is deliberately player-owned rather than instance-owned.
@@ -54,24 +57,43 @@ function brotherFor(key: BrotherKey): Brother {
     return BROTHERS.find((brother) => brother.key === key)!;
 }
 
+function findSafeSpawnTile(player: PlayerState, services: ScriptServices): { x: number; y: number } | undefined {
+    const pathService = services.movement.getPathService();
+    const offsets = [[0, -2], [-2, 0], [2, 0], [0, 2], [-1, -2], [1, -2], [-2, -1], [2, -1], [-2, 1], [2, 1], [-1, 2], [1, 2]] as const;
+    for (const [xOffset, yOffset] of offsets) {
+        const x = player.tileX + xOffset;
+        const y = player.tileY + yOffset;
+        // A blocked tile is invariably scenery/wall geometry; never use it
+        // for a summoned brother, even if an NPC can technically overlap it.
+        const collision = pathService?.getCollisionFlagAt(x, y, player.level, player.worldViewId);
+        if (collision !== undefined && (collision & (CollisionFlag.OBJECT | CollisionFlag.FLOOR_BLOCKED)) !== 0) continue;
+        return { x, y };
+    }
+    return undefined;
+}
+
 function spawnBrother(player: PlayerState, services: ScriptServices, brother: Brother): void {
     const run = runFor(player);
     if (run.activeNpcId !== undefined && services.combat.getNpc(run.activeNpcId)) {
         services.messaging.sendGameMessage(player, "You are already fighting a Barrows brother.");
         return;
     }
-    const offsets = [[2, 0], [-2, 0], [0, 2], [0, -2]] as const;
-    const [xOffset, yOffset] = random(offsets);
+    const spawnTile = findSafeSpawnTile(player, services);
+    if (!spawnTile) {
+        services.messaging.sendGameMessage(player, "There is not enough space for the brother to appear here.");
+        return;
+    }
     const npc = services.npc.spawnNpc({
         id: brother.npcId,
         name: brother.name,
-        x: player.tileX + xOffset,
-        y: player.tileY + yOffset,
+        x: spawnTile.x,
+        y: spawnTile.y,
         level: player.level,
         worldViewId: player.worldViewId,
         ownerPlayerId: player.id,
         wanderRadius: 0,
         isAggressive: true,
+        respawns: false,
         lifetimeTicks: 2_000,
     });
     if (!npc) {
@@ -131,6 +153,7 @@ function rewardChest(player: PlayerState, services: ScriptServices, run: Barrows
     const rolls = 1 + killedCount;
     const uniqueChance = 1 / (450 - 58 * killedCount);
     const awarded = new Set<number>();
+    const rewards: Array<{ itemId: number; quantity: number }> = [];
 
     for (let roll = 0; roll < rolls; roll += 1) {
         const eligible = killedBrothers.flatMap((brother) => brother.equipment).filter((itemId) => !awarded.has(itemId));
@@ -138,12 +161,29 @@ function rewardChest(player: PlayerState, services: ScriptServices, run: Barrows
             const itemId = random(eligible);
             awarded.add(itemId);
             addOrDrop(player, services, itemId, 1);
+            rewards.push({ itemId, quantity: 1 });
         } else {
             const reward = nonUniqueReward(rolls);
             addOrDrop(player, services, reward.itemId, reward.quantity);
+            const existing = rewards.find((entry) => entry.itemId === reward.itemId);
+            if (existing) existing.quantity += reward.quantity;
+            else rewards.push(reward);
         }
     }
     services.inventory.snapshotInventoryImmediate(player);
+    const rewardLines = rewards.map((reward) => {
+        const name = services.data.getItemDefinition(reward.itemId)?.name ?? `Item ${reward.itemId}`;
+        return `${reward.quantity > 1 ? `${reward.quantity.toLocaleString()} x ` : ""}${name}`;
+    });
+    const first = rewards[0];
+    if (first) {
+        services.messaging.queueNotification(player.id, {
+            ...createLootPickupNotification(first.itemId, "Barrows chest", first.quantity),
+            title: "Barrows chest",
+            message: `You find:<br><br><col=ffffff>${rewardLines.join("<br>")}</col>`,
+            durationMs: 6_000,
+        });
+    }
     services.messaging.sendGameMessage(player, `You search the chest. ${killedCount} Barrows brother${killedCount === 1 ? "" : "s"} defeated.`);
 }
 
@@ -172,6 +212,76 @@ function searchChest(player: PlayerState, services: ScriptServices): void {
     services.movement.teleportPlayer(player, EXIT_TILE.x, EXIT_TILE.y, EXIT_TILE.level);
 }
 
+function scheduleSuccessfulHitEffect(
+    event: NpcAttackEvent,
+    effect: (damage: number) => void,
+): void {
+    const hpBefore = event.target.skillSystem.getHitpointsCurrent();
+    event.services.scheduler.after(2, () => {
+        const damage = Math.max(0, hpBefore - event.target.skillSystem.getHitpointsCurrent());
+        if (damage > 0) effect(damage);
+    }, { kind: "player", id: event.target.id });
+}
+
+/** Barrows' armour effects apply on one in four successful attacks. */
+function barrowsSpecialAttack(event: NpcAttackEvent, brother: Brother): NpcAttackDecision | void {
+    if (event.npc.ownerPlayerId !== event.target.id || Math.random() >= 0.25) return;
+    switch (brother.key) {
+        case "ahrim":
+            scheduleSuccessfulHitEffect(event, () => {
+                const strength = event.target.skillSystem.getSkill(SkillId.Strength);
+                const current = Math.max(0, Math.floor(strength.baseLevel + strength.boost));
+                event.target.skillSystem.setSkillBoost(SkillId.Strength, Math.max(0, current - 5));
+                event.services.messaging.sendGameMessage(event.target, "Ahrim's magic weakens your strength.");
+            });
+            return;
+        case "guthan":
+            scheduleSuccessfulHitEffect(event, (damage) => {
+                event.npc.heal(damage);
+            });
+            return;
+        case "karil":
+            scheduleSuccessfulHitEffect(event, () => {
+                const agility = event.target.skillSystem.getSkill(SkillId.Agility);
+                const current = Math.max(0, Math.floor(agility.baseLevel + agility.boost));
+                event.target.skillSystem.setSkillBoost(SkillId.Agility, Math.max(0, current - Math.floor(current * 0.2)));
+                event.services.messaging.sendGameMessage(event.target, "Karil's attack drains your agility.");
+            });
+            return;
+        case "torag":
+            scheduleSuccessfulHitEffect(event, () => {
+                event.target.energy.adjustRunEnergyPercent(-20);
+                event.services.messaging.sendGameMessage(event.target, "Torag's attack drains your run energy.");
+            });
+            return;
+        case "verac":
+            // Verac's special ignores armour and Protect from Melee. This is
+            // deliberately resolved as a direct hit; normal attacks retain
+            // the canonical accuracy and prayer calculation.
+            event.services.npc.queueNpcSeq(event.npc, 2062);
+            event.services.scheduler.after(1, () => {
+                if (event.npc.getHitpoints() <= 0) return;
+                event.services.combat.applyNpcDamageToPlayer(event.npc, event.target, 0, Math.floor(Math.random() * 26), event.tick + 1);
+            }, { kind: "player", id: event.target.id });
+            return NpcAttackDecision.Prevent;
+        default:
+            return;
+    }
+}
+
+function dharokAttack(event: NpcAttackEvent): NpcAttackDecision {
+    if (event.npc.ownerPlayerId !== event.target.id) return NpcAttackDecision.Allow;
+    const missingHp = event.npc.getMaxHitpoints() - event.npc.getHitpoints();
+    const maxHit = Math.min(57, Math.floor(29 * (1 + missingHp / event.npc.getMaxHitpoints())));
+    event.services.npc.queueNpcSeq(event.npc, 2067);
+    event.services.scheduler.after(1, () => {
+        if (event.npc.getHitpoints() <= 0) return;
+        const protectedFromMelee = event.target.prayer.activePrayers.has("protect_from_melee");
+        event.services.combat.applyNpcDamageToPlayer(event.npc, event.target, 0, protectedFromMelee ? 0 : Math.floor(Math.random() * (maxHit + 1)), event.tick + 1);
+    }, { kind: "player", id: event.target.id });
+    return NpcAttackDecision.Prevent;
+}
+
 export function registerBarrowsHandlers(registry: IScriptRegistry, _services: ScriptServices): void {
     for (const brother of BROTHERS) {
         registry.registerLocInteraction(brother.tombId, ({ player, services }) => searchTomb(player, services, brother), "search");
@@ -186,6 +296,8 @@ export function registerBarrowsHandlers(registry: IScriptRegistry, _services: Sc
             event.services.messaging.sendGameMessage(player, `You have defeated ${brother.name}.`);
             return NpcPreDeathDecision.Allow;
         });
+        if (brother.key === "dharok") registry.registerNpcAttack(brother.npcId, dharokAttack);
+        else registry.registerNpcAttack(brother.npcId, (event) => barrowsSpecialAttack(event, brother));
     }
     // Cache revisions label this chest differently, so accept both the normal
     // first action and the expected search wording.

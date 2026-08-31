@@ -1,7 +1,10 @@
 import type { WebSocket } from "ws";
 
 import { LocModelType } from "@august/osrs-engine/config/loctype/LocModelType";
-import { getLocInteractionRangeOverride } from "@august/game-model/world/LocRouteOverrides";
+import {
+    getLocInteractionApproachOverride,
+    getLocInteractionRangeOverride,
+} from "@august/game-model/world/LocRouteOverrides";
 import type { LocType } from "@august/osrs-engine/config/loctype/LocType";
 import type { LocTypeLoader } from "@august/osrs-engine/config/loctype/LocTypeLoader";
 import { PathService } from "@server/pathfinding/PathService";
@@ -186,6 +189,18 @@ export class LocInteractionHandler {
         hasArrived: boolean;
     } {
         const level = pending.level !== undefined ? normalizeInt(pending.level) : player.level;
+        const approachOverride = getLocInteractionApproachOverride(pending.id, level);
+        if (approachOverride) {
+            const strategy = new RectRouteStrategy(approachOverride.x, approachOverride.y, 1, 1);
+            return {
+                interactionLevel: level,
+                rect: { tile: { x: approachOverride.x, y: approachOverride.y }, sizeX: 1, sizeY: 1 },
+                routeSizeX: 1,
+                routeSizeY: 1,
+                strategy,
+                hasArrived: strategy.hasArrived(player.tileX, player.tileY, player.level),
+            };
+        }
         const visibleLoc = this.resolveVisibleLocRouteState(player, pending.id);
         const tile = this.resolveDoorRouteTile(
             visibleLoc.locId,
