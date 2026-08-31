@@ -352,6 +352,18 @@ export function widgetEntriesToSimple(
                 return false;
             }
         };
+        if (lower === "use") {
+            return (_gx?: number, _gy?: number, clickCtx?: MenuClickContext) => {
+                // A floating context menu may sit above another widget. Close
+                // every menu/input layer first, then arm the item after that
+                // cleanup has completed so the source click cannot cancel its
+                // own newly-created item selection.
+                closeMenus();
+                queueMicrotask(() => {
+                    dispatchWidgetAction(clickCtx);
+                });
+            };
+        }
         if (typeof e.onClick === "function" && opSubIndex === undefined) {
             const entryOnClick = e.onClick;
             return (gx?: number, gy?: number, clickCtx?: MenuClickContext) => {

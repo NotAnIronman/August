@@ -33,3 +33,9 @@ export const DEV_UIKIT_DIALOGUE_PANEL_GROUP_ID = 30030;
 export const NPC_DROP_TABLE_PANEL_GROUP_ID = 30031;
 /** Developer-only animation-review panel (opened with ::npcreview <npc id>). */
 export const NPC_ANIMATION_REVIEW_PANEL_GROUP_ID = 30032;
+/** Developer-only authoring panel for simple object transports (::to). */
+export const DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID = 30033;
+/** Developer-only editor for player-location spade digs (::dig). */
+export const DEV_DIG_PANEL_GROUP_ID = 30034;
+/** Reusable player-facing 4x3 visual reward grid (clues, chests, etc.). */
+export const REWARD_DISPLAY_PANEL_GROUP_ID = 30035;

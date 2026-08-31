@@ -63,10 +63,10 @@ export class NpcHitHandler {
      * almost always need the full player object and CombatActionServices
      * already has a getPlayer lookup right here.
      */
-    private onNpcKilled?: (killer: PlayerState, npc: NpcState, tick: number) => void;
+    private readonly onNpcKilled = new Set<(killer: PlayerState, npc: NpcState, tick: number) => void>();
 
     registerOnNpcKilled(fn: (killer: PlayerState, npc: NpcState, tick: number) => void): void {
-        this.onNpcKilled = fn;
+        this.onNpcKilled.add(fn);
     }
 
     constructor(
@@ -296,9 +296,11 @@ export class NpcHitHandler {
         this.services.log("info", `[combat] NPC ${npc.id} (type ${npc.typeId}) died`);
         npc.clearInteractionTarget();
 
-        if (this.onNpcKilled) {
+        if (this.onNpcKilled.size > 0) {
             const killerPlayer = this.services.getPlayer(killerPlayerId);
-            if (killerPlayer) this.onNpcKilled(killerPlayer, npc, tick);
+            if (killerPlayer) {
+                for (const callback of this.onNpcKilled) callback(killerPlayer, npc, tick);
+            }
         }
 
         // Prepare drops for delayed spawning (RSMod parity)

@@ -440,6 +440,13 @@ export interface IScriptRegistry {
         handler: LocInteractionHandler,
         action?: string,
     ): ScriptRegistrationResult;
+    /** Registers an interaction for one exact player source tile. */
+    registerLocTileInteraction(
+        locId: number,
+        tile: { x: number; y: number; level: number },
+        handler: LocInteractionHandler,
+        action?: string,
+    ): ScriptRegistrationResult;
     registerLocScript(params: {
         locId: number;
         action?: string;
@@ -537,6 +544,13 @@ export interface IScriptRegistry {
     /** Lookup a generic npc action handler (e.g., talk-to) */
     findNpcAction(option?: string): NpcInteractionHandler | undefined;
     findLocInteraction(locId: number, action?: string): LocInteractionHandler | undefined;
+    findLocTileInteraction(
+        locId: number,
+        tile: { x: number; y: number; level: number },
+        action?: string,
+    ): LocInteractionHandler | undefined;
+    /** True when an exact-player-tile loc rule exists for this object id. */
+    hasLocTileInteraction(locId: number): boolean;
     findItemOnItem(
         sourceItemId: number,
         targetItemId: number,

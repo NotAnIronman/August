@@ -1,7 +1,8 @@
 import type { BankEntry, BankSnapshotEntry } from "@server/game/player";
 import type { PlayerInventoryState } from "@server/game/state/PlayerInventoryState";
 
-export const DEFAULT_BANK_CAPACITY = 800;
+/** Generous default so normal players and developer test banks are never constrained by space. */
+export const DEFAULT_BANK_CAPACITY = 2000;
 
 function createEmptyBank(capacity: number): BankEntry[] {
     return Array.from({ length: capacity }, () => ({
@@ -20,7 +21,7 @@ export class PlayerBankSystem {
     }
 
     setBankCapacity(capacity: number): void {
-        const normalized = Math.max(1, Math.min(1410, Math.floor(capacity)));
+        const normalized = Math.max(1, Math.min(2000, Math.floor(capacity)));
         if (normalized === this.items.bankCapacity && this.items.bank.length === normalized) {
             return;
         }

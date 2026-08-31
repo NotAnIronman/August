@@ -2292,15 +2292,31 @@
       "name": "Scurrius",
       "anims": {
         "attack": 10692,
-        "block": 424,
+        "block": 10694,
         "death": 10705,
-        "melee": 10693,
-        "ranged": 10695,
+        "melee": [
+          10693,
+          10692
+        ],
+        "ranged": [
+          10695,
+          10694
+        ],
         "magic": 10696,
         "specials": [
           10698,
           10700
-        ]
+        ],
+        "namedSpecials": {
+          "idle": 10687,
+          "walk": 10690,
+          "run": 10691,
+          "eat": 10688,
+          "eat-fast": 10689,
+          "jump": 10698,
+          "spawn": 10700
+        },
+        "spawn": 10686
       }
     },
     "7223": {

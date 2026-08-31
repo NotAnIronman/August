@@ -86,6 +86,20 @@ export class ScriptRuntime {
         return this.services;
     }
 
+    /**
+     * Whether an exact player-source-tile loc script owns this interaction.
+     * These scripts model transitions such as squeezing through a wall, where
+     * routing to the object's collision tile would be both unnecessary and
+     * impossible from one side.
+     */
+    hasLocTileInteractionAt(
+        locId: number,
+        tile: { x: number; y: number; level: number },
+        action?: string,
+    ): boolean {
+        return this.registry.findLocTileInteraction(locId, tile, action) !== undefined;
+    }
+
     registerHandlers(
         id: string,
         fn: (registry: IScriptRegistry, services: ScriptServices) => void,
@@ -148,8 +162,21 @@ export class ScriptRuntime {
         const scriptEvent: LocInteractionEvent = { ...event, services: this.services };
         const locId = scriptEvent.locId;
         const tick = scriptEvent.tick;
-        const handler = this.registry.findLocInteraction(locId, scriptEvent.action);
+        const playerTile = {
+            x: scriptEvent.player.tileX,
+            y: scriptEvent.player.tileY,
+            level: scriptEvent.player.level,
+        };
+        const handler =
+            this.registry.findLocTileInteraction(locId, playerTile, scriptEvent.action) ??
+            this.registry.findLocInteraction(locId, scriptEvent.action);
         if (!handler) {
+            if (this.registry.hasLocTileInteraction(locId)) {
+                this.services.messaging.sendGameMessage(
+                    scriptEvent.player,
+                    `[objmove] No rule for object ${locId} from ${playerTile.x}, ${playerTile.y}, ${playerTile.level} (action: ${scriptEvent.action || "none"}).`,
+                );
+            }
             this.logger.debug(
                 `[script] no loc handler for id=${locId} action=${scriptEvent.action || "default"}`,
             );
@@ -167,8 +194,21 @@ export class ScriptRuntime {
     runLocInteractionNow(event: Omit<LocInteractionEvent, "services">): boolean {
         const scriptEvent: LocInteractionEvent = { ...event, services: this.services };
         const locId = scriptEvent.locId;
-        const handler = this.registry.findLocInteraction(locId, scriptEvent.action);
+        const playerTile = {
+            x: scriptEvent.player.tileX,
+            y: scriptEvent.player.tileY,
+            level: scriptEvent.player.level,
+        };
+        const handler =
+            this.registry.findLocTileInteraction(locId, playerTile, scriptEvent.action) ??
+            this.registry.findLocInteraction(locId, scriptEvent.action);
         if (!handler) {
+            if (this.registry.hasLocTileInteraction(locId)) {
+                this.services.messaging.sendGameMessage(
+                    scriptEvent.player,
+                    `[objmove] No rule for object ${locId} from ${playerTile.x}, ${playerTile.y}, ${playerTile.level} (action: ${scriptEvent.action || "none"}).`,
+                );
+            }
             this.logger.debug(
                 `[script] no loc handler for id=${locId} action=${scriptEvent.action || "default"}`,
             );
@@ -681,6 +721,8 @@ export class ScriptRuntime {
                 track(this.registry.registerNpcAttack(npcId, handler)),
             registerLocInteraction: (locId, handler, action) =>
                 track(this.registry.registerLocInteraction(locId, handler, action)),
+            registerLocTileInteraction: (locId, tile, handler, action) =>
+                track(this.registry.registerLocTileInteraction(locId, tile, handler, action)),
             registerLocScript: (params) => track(this.registry.registerLocScript(params)),
             registerLocAction: (action, handler) =>
                 track(this.registry.registerLocAction(action, handler)),
@@ -764,6 +806,9 @@ export class ScriptRuntime {
             findNpcMagicHit: (npcId) => this.registry.findNpcMagicHit(npcId),
             findNpcAttack: (npcId) => this.registry.findNpcAttack(npcId),
             findLocInteraction: (locId, action) => this.registry.findLocInteraction(locId, action),
+            findLocTileInteraction: (locId, tile, action) =>
+                this.registry.findLocTileInteraction(locId, tile, action),
+            hasLocTileInteraction: (locId) => this.registry.hasLocTileInteraction(locId),
             findItemOnItem: (sourceItemId, targetItemId, option) =>
                 this.registry.findItemOnItem(sourceItemId, targetItemId, option),
             findItemOnLoc: (sourceItemId, locId, option) =>

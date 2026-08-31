@@ -25,6 +25,12 @@
 # Runtime state (target layout)
 /apps/server/var/
 
+# Local database exports used for account/testing data
+/game.sqlite
+/game.sqlite-wal
+/game.sqlite-shm
+/game.sqlite*.zip
+
 # Temporary files, logs, and editor recovery files
 /.tmp/
 /tmp/

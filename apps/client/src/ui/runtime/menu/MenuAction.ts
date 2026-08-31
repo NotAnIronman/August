@@ -929,21 +929,7 @@ export function menuAction(
         // arg0 = child index / slot
         // itemId = item ID of the selected item
 
-        // Enter item selection/targeting mode
-        ClientState.isItemSelected = 1;
-        ClientState.selectedItemWidget = arg1;
-        ClientState.selectedItemSlot = arg0;
-        ClientState.selectedItemId = itemId;
-
-        // Also set spell selection state for display purposes
-        ClientState.isSpellSelected = true;
-        ClientState.selectedSpellWidget = arg1;
-        ClientState.selectedSpellChildIndex = arg0;
-        ClientState.selectedSpellItemId = itemId;
-        ClientState.selectedSpellActionName = action || "Use";
-        ClientState.selectedSpellName = target || "";
-        // Item "Use" can target all standard target types.
-        ClientState.selectedSpellTargetMask = 0x3f;
+        ClientState.selectItemForUse(arg1, arg0, itemId, target || "");
 
         const groupId = (arg1 >>> 16) & 0xffff;
         const childId = arg1 & 0xffff;
@@ -960,7 +946,7 @@ export function menuAction(
     // CLEANUP - Clear item/spell selection
     // ========================================
     if (ClientState.isItemSelected !== 0) {
-        ClientState.isItemSelected = 0;
+        ClientState.clearItemSelection();
         // invalidateWidget(selectedItemWidget)
     }
 

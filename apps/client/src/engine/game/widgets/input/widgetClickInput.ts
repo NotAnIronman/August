@@ -23,6 +23,19 @@ export function processWidgetClickInput(
 ): void {
     const { input, collectFromAllRoots, getWidgetFlags } = frame;
     if (isNewClick) {
+        // The context menu is rendered as an overlay and may extend outside
+        // its source widget. It owns this click; do not let the underlying
+        // widget input path act on the same coordinates and cancel a newly
+        // armed item "Use" selection.
+        const widgetMenu = (input.element as any)?.__ui?.menu;
+        if (widgetMenu?.open === true && widgetMenu?.source === "widgets") {
+            widgetInteraction.clickedWidget = null;
+            widgetInteraction.clickedWidgetParent = null;
+            widgetInteraction.clickedWidgetHandled = false;
+            widgetInteraction.deferredWidgetAction = null;
+            return;
+        }
+
         // New click - reset drag state
         widgetInteraction.widgetDragDuration = 0;
         widgetInteraction.isDraggingWidget = false;

@@ -6,6 +6,7 @@ export const NOOP = () => {};
 
 // PERF: Cached cancel selection handler to avoid closure allocation per widget
 export const CANCEL_SELECTION_HANDLER = () => {
+    if (ClientState.isItemUseSelectionFresh()) return;
     ClientState.clearSpellSelection();
     ClientState.clearItemSelection();
 };

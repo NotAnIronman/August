@@ -3878,6 +3878,11 @@ export class OsrsClient {
     }
 
     updateWidgets() {
+        // Clear stale widget interaction state before building this frame's menus.
+        // A previous interaction can otherwise leave the UI in a state where
+        // right-click menus are never allowed to open again.
+        this.widgetInteraction?.clearStaleWidgetInteractionState();
+
         const widgetManager = this.widgetManager;
         if (!widgetManager) {
             return;
@@ -7546,6 +7551,9 @@ export class OsrsClient {
         if (requiresUseSelection) {
             if (selected === null || selected !== slot) {
                 this.inventory.setSelectedSlot(slot);
+                // Touch/mobile inventory selection must enter the same global
+                // targeting state as a desktop context-menu "Use" action.
+                ClientState.selectItemForUse((149 << 16) | 0, slot, entry.itemId | 0);
                 try {
                     console.log("[inventory] select slot", { slot, item: entry });
                 } catch {}
@@ -7619,7 +7627,8 @@ export class OsrsClient {
 
     // URL/search params are not supported
 
-    closeMenu = () => {
+    /** Close only the map/world menu state, preserving any widget menu being opened. */
+    closeWorldMenu = () => {
         this.menuOpen = false;
         this.menuX = -1;
         this.menuY = -1;
@@ -7629,6 +7638,13 @@ export class OsrsClient {
         this.menuFrozenSimpleEntriesVersion = 0;
         this.menuActiveSimpleEntries = [];
         this.menuState.reset();
+        this.renderer.canvas.focus();
+        this.widgetManager?.invalidateAll?.();
+    };
+
+    /** Close every context menu, including any widget-level Choose Option menu. */
+    closeMenu = () => {
+        this.closeWorldMenu();
         // Also clear the separate widget-level right-click menu (canvas.__ui.menu).
         // It's a distinct piece of state from menuOpen above — e.g. right-clicking
         // an inventory item opens a "widgets"-sourced menu here, not the world one —
@@ -7647,8 +7663,6 @@ export class OsrsClient {
                 ui.menu = undefined;
             }
         } catch {}
-        this.renderer.canvas.focus();
-        this.widgetManager?.invalidateAll?.();
     };
 
     resetMenu = () => {

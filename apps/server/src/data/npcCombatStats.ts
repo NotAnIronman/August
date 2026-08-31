@@ -76,6 +76,21 @@ function resolveNpcAggressionIndexPath(): string | undefined {
     return fs.existsSync(candidate) ? candidate : undefined;
 }
 
+/**
+ * Combat data for authored encounters that is not yet present in the exported
+ * cache table. Keeping this narrow supplement here means NPC spawning still
+ * goes through the canonical combat-profile pipeline (accuracy, prayers,
+ * attack cadence, and hitpoint syncing) instead of using ad-hoc damage.
+ */
+const AUTHORED_NPC_COMBAT_STATS: Readonly<Record<number, NpcCombatStats>> = {
+    1672: { name: "Ahrim the Blighted", combatLevel: 98, hitpoints: 100, attackLevel: 1, strengthLevel: 1, defenceLevel: 100, magicLevel: 100, rangedLevel: 1, attackSpeed: 4, attackType: "magic" as AttackType, maxHit: 20, aggressive: true, magicBonus: 90, defenceBonuses: { stab: 0, slash: 0, crush: 0, magic: 100, ranged: 0 }, species: ["undead"], isBoss: true },
+    1673: { name: "Dharok the Wretched", combatLevel: 115, hitpoints: 100, attackLevel: 100, strengthLevel: 100, defenceLevel: 100, magicLevel: 1, rangedLevel: 1, attackSpeed: 4, attackType: "melee" as AttackType, attackStyle: "slash", maxHit: 29, aggressive: true, attackBonus: 110, strengthBonus: 80, defenceBonuses: { stab: 100, slash: 100, crush: 100, magic: 0, ranged: 100 }, species: ["undead"], isBoss: true },
+    1674: { name: "Guthan the Infested", combatLevel: 115, hitpoints: 100, attackLevel: 100, strengthLevel: 100, defenceLevel: 100, magicLevel: 1, rangedLevel: 1, attackSpeed: 4, attackType: "melee" as AttackType, attackStyle: "crush", maxHit: 26, aggressive: true, attackBonus: 70, strengthBonus: 60, defenceBonuses: { stab: 100, slash: 100, crush: 100, magic: 0, ranged: 100 }, species: ["undead"], isBoss: true },
+    1675: { name: "Karil the Tainted", combatLevel: 98, hitpoints: 100, attackLevel: 1, strengthLevel: 1, defenceLevel: 100, magicLevel: 1, rangedLevel: 100, attackSpeed: 4, attackType: "ranged" as AttackType, maxHit: 20, aggressive: true, rangedBonus: 90, defenceBonuses: { stab: 0, slash: 0, crush: 0, magic: 100, ranged: 0 }, species: ["undead"], isBoss: true },
+    1676: { name: "Torag the Corrupted", combatLevel: 115, hitpoints: 100, attackLevel: 100, strengthLevel: 100, defenceLevel: 100, magicLevel: 1, rangedLevel: 1, attackSpeed: 4, attackType: "melee" as AttackType, attackStyle: "crush", maxHit: 25, aggressive: true, attackBonus: 70, strengthBonus: 60, defenceBonuses: { stab: 100, slash: 100, crush: 100, magic: 0, ranged: 100 }, species: ["undead"], isBoss: true },
+    1677: { name: "Verac the Defiled", combatLevel: 115, hitpoints: 100, attackLevel: 100, strengthLevel: 100, defenceLevel: 100, magicLevel: 1, rangedLevel: 1, attackSpeed: 4, attackType: "melee" as AttackType, attackStyle: "stab", maxHit: 25, aggressive: true, attackBonus: 70, strengthBonus: 55, defenceBonuses: { stab: 100, slash: 100, crush: 100, magic: 0, ranged: 100 }, species: ["undead"], isBoss: true },
+};
+
 function resolveMonstersCompletePath(): string | undefined {
     const candidate = referencePath("monsters-complete.json");
     return fs.existsSync(candidate) ? candidate : undefined;
@@ -243,6 +258,11 @@ export function loadNpcCombatStats(): Map<number, NpcCombatStats> {
             if (!isNaN(npcId)) {
                 npcStatsCache.set(npcId, stats);
             }
+        }
+        for (const [npcId, stats] of Object.entries(AUTHORED_NPC_COMBAT_STATS)) {
+            // A local encounter definition is authoritative until its exact
+            // profile is added to the generated source table.
+            npcStatsCache.set(Number(npcId), stats);
         }
 
         logger.info(`[NpcCombatStats] Loaded ${npcStatsCache.size} NPC combat profiles`);

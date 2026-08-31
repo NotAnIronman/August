@@ -1,0 +1,253 @@
+{
+  "version": 1,
+  "transitions": [
+    {
+      "locId": 5054,
+      "option": 1,
+      "action": "climb-up",
+      "from": {
+        "x": 3477,
+        "y": 9845,
+        "level": 0
+      },
+      "to": {
+        "x": 3495,
+        "y": 3465,
+        "level": 0
+      },
+      "animationId": 881,
+      "id": "rule-1"
+    },
+    {
+      "locId": 5055,
+      "option": 1,
+      "action": "open",
+      "from": {
+        "x": 3495,
+        "y": 3465,
+        "level": 0
+      },
+      "to": {
+        "x": 3477,
+        "y": 9845,
+        "level": 0
+      },
+      "animationId": 881,
+      "id": "rule-2"
+    },
+    {
+      "locId": 5052,
+      "option": 1,
+      "action": "search",
+      "from": {
+        "x": 3480,
+        "y": 9838,
+        "level": 0
+      },
+      "to": {
+        "x": 3480,
+        "y": 9836,
+        "level": 0
+      },
+      "animationId": 881,
+      "id": "rule-3"
+    },
+    {
+      "locId": 5046,
+      "option": 1,
+      "action": "enter",
+      "from": {
+        "x": 3492,
+        "y": 9824,
+        "level": 0
+      },
+      "to": {
+        "x": 3505,
+        "y": 9832,
+        "level": 0
+      },
+      "animationId": 0,
+      "id": "rule-4"
+    },
+    {
+      "locId": 5046,
+      "option": 1,
+      "action": "enter",
+      "from": {
+        "x": 3505,
+        "y": 9832,
+        "level": 0
+      },
+      "to": {
+        "x": 3492,
+        "y": 9824,
+        "level": 0
+      },
+      "animationId": 0,
+      "id": "rule-5"
+    },
+    {
+      "locId": 5056,
+      "option": 1,
+      "action": "open",
+      "from": {
+        "x": 3500,
+        "y": 9811,
+        "level": 0
+      },
+      "to": {
+        "x": 3510,
+        "y": 3449,
+        "level": 0
+      },
+      "animationId": 881,
+      "id": "rule-6"
+    },
+    {
+      "locId": 5057,
+      "option": 1,
+      "action": "open",
+      "from": {
+        "x": 3501,
+        "y": 9811,
+        "level": 0
+      },
+      "to": {
+        "x": 3509,
+        "y": 3449,
+        "level": 0
+      },
+      "animationId": 881,
+      "id": "rule-7"
+    },
+    {
+      "locId": 6970,
+      "option": 1,
+      "action": "board",
+      "from": {
+        "x": 3498,
+        "y": 3380,
+        "level": 0
+      },
+      "to": {
+        "x": 3522,
+        "y": 3285,
+        "level": 0
+      },
+      "animationId": 0,
+      "id": "rule-8"
+    },
+    {
+      "locId": 20668,
+      "option": 1,
+      "action": "climb-up",
+      "from": {
+        "x": 3556,
+        "y": 9718,
+        "level": 3
+      },
+      "to": {
+        "x": 3575,
+        "y": 3300,
+        "level": 0
+      },
+      "id": "rule-9"
+    },
+    {
+      "locId": 20669,
+      "option": 1,
+      "action": "climb-up",
+      "from": {
+        "x": 3534,
+        "y": 9704,
+        "level": 3
+      },
+      "to": {
+        "x": 3576,
+        "y": 3281,
+        "level": 0
+      },
+      "id": "rule-10"
+    },
+    {
+      "locId": 20670,
+      "option": 1,
+      "action": "climb-up",
+      "from": {
+        "x": 3546,
+        "y": 9684,
+        "level": 3
+      },
+      "to": {
+        "x": 3565,
+        "y": 3275,
+        "level": 0
+      },
+      "id": "rule-11"
+    },
+    {
+      "locId": 20671,
+      "option": 1,
+      "action": "climb-up",
+      "from": {
+        "x": 3568,
+        "y": 9683,
+        "level": 3
+      },
+      "to": {
+        "x": 3552,
+        "y": 3283,
+        "level": 0
+      },
+      "id": "rule-12"
+    },
+    {
+      "locId": 20672,
+      "option": 1,
+      "action": "climb-up",
+      "from": {
+        "x": 3578,
+        "y": 9706,
+        "level": 3
+      },
+      "to": {
+        "x": 3555,
+        "y": 3298,
+        "level": 0
+      },
+      "id": "rule-13"
+    },
+    {
+      "locId": 20667,
+      "option": 1,
+      "action": "climb-up",
+      "from": {
+        "x": 3557,
+        "y": 9703,
+        "level": 3
+      },
+      "to": {
+        "x": 3566,
+        "y": 3291,
+        "level": 0
+      },
+      "id": "rule-14"
+    },
+    {
+      "locId": 881,
+      "option": 1,
+      "action": "open",
+      "from": {
+        "x": 3237,
+        "y": 3459,
+        "level": 0
+      },
+      "to": {
+        "x": 3237,
+        "y": 9858,
+        "level": 0
+      },
+      "id": "rule-15"
+    }
+  ]
+}

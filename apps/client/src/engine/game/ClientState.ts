@@ -150,6 +150,9 @@ export class ClientState {
     /** Selected item ID */
     static selectedItemId: number = -1;
 
+    /** Timestamp for ignoring the source click that armed an item Use action. */
+    static itemUseSelectionEnteredFrame: number = -1;
+
     // ========================================
     // ENTITY ARRAYS
     // ========================================
@@ -300,10 +303,54 @@ export class ClientState {
      * Clear item selection
      */
     static clearItemSelection(): void {
+        // Several UI layers can observe the physical click that selected
+        // "Use". Never let that source click immediately undo the selection;
+        // a deliberate follow-up target click occurs after this short window.
+        if (this.isItemUseSelectionFresh()) return;
         this.isItemSelected = 0;
         this.selectedItemWidget = 0;
         this.selectedItemSlot = 0;
         this.selectedItemId = -1;
+        this.itemUseSelectionEnteredFrame = -1;
+    }
+
+    /** A context-menu source click must not become an immediate invalid target. */
+    static isItemUseSelectionFresh(): boolean {
+        return this.isItemSelected === 1 &&
+            this.itemUseSelectionEnteredFrame >= 0 &&
+            Date.now() - this.itemUseSelectionEnteredFrame < 100;
+    }
+
+    /**
+     * Enter the shared item-targeting state used by every inventory "Use" entry.
+     * Item selection intentionally mirrors spell selection because the existing
+     * target menus consume that state for item-on-item and item-on-world actions.
+     */
+    static selectItemForUse(
+        widgetId: number,
+        slot: number,
+        itemId: number,
+        itemName: string = "",
+    ): boolean {
+        if (!Number.isInteger(widgetId) || !Number.isInteger(slot) || !Number.isInteger(itemId)) {
+            return false;
+        }
+        if (slot < 0 || itemId <= 0) return false;
+
+        this.isItemSelected = 1;
+        this.selectedItemWidget = widgetId | 0;
+        this.selectedItemSlot = slot | 0;
+        this.selectedItemId = itemId | 0;
+        this.isSpellSelected = true;
+        this.selectedSpellWidget = widgetId | 0;
+        this.selectedSpellChildIndex = slot | 0;
+        this.selectedSpellItemId = itemId | 0;
+        this.selectedSpellActionName = "Use";
+        this.selectedSpellName = itemName;
+        this.spellTargetEnteredFrame = Date.now();
+        this.itemUseSelectionEnteredFrame = this.spellTargetEnteredFrame;
+        this.selectedSpellTargetMask = 0x3f;
+        return true;
     }
 
     /**

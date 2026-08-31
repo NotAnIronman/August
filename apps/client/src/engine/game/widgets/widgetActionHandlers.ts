@@ -94,6 +94,62 @@ export function handleWidgetActionTargeting(
         }
     }
 
+    const optionLower = String(event.option ?? "").trim().toLowerCase();
+    const targetItemId = event.itemId ?? event.widget.itemId ?? -1;
+    const isInventoryItem = targetItemId >= 0 || groupId === 149;
+
+    const targetSlot = event.slot ?? event.widget.childIndex ?? childId;
+
+    // A selected item always owns the next inventory click. This must run
+    // before interpreting the target's own "Use" option, since target menus
+    // deliberately show "Use <source> -> <target>" while an item is armed.
+    if (ClientState.isItemSelected === 1 && isInventoryItem) {
+        if (targetSlot < 0 || targetItemId <= 0) {
+            deps.clearSelectedSpell();
+            ClientState.clearItemSelection();
+            deps.getInventory()?.setSelectedSlot?.(null);
+            return true;
+        }
+        const isSameItem =
+            targetSlot === ClientState.selectedItemSlot &&
+            targetItemId === ClientState.selectedItemId;
+        if (isSameItem) {
+            deps.clearSelectedSpell();
+            ClientState.clearItemSelection();
+            deps.getInventory()?.setSelectedSlot?.(null);
+            return true;
+        }
+
+        sendInventoryUseOn({
+            slot: ClientState.selectedItemSlot,
+            itemId: ClientState.selectedItemId,
+            target: { kind: "inv", slot: targetSlot, itemId: targetItemId },
+        });
+        // Dispatch is complete from the client's perspective. The server now
+        // resolves the registered item-on-item interaction, and the source
+        // selection must not leak to the next click.
+        deps.clearSelectedSpell();
+        ClientState.clearItemSelection();
+        deps.getInventory()?.setSelectedSlot?.(null);
+        return true;
+    }
+
+    // With no item already armed, "Use" starts a fresh item-targeting action.
+    if (isInventoryItem && optionLower === "use") {
+        const containerUid = event.widget.parentUid ?? event.widget.uid;
+        if (
+            ClientState.selectItemForUse(
+                containerUid,
+                targetSlot,
+                targetItemId,
+                event.target || event.widget.name || "",
+            )
+        ) {
+            deps.getInventory()?.setSelectedSlot?.(targetSlot);
+        }
+        return true;
+    }
+
     if (ClientState.isSpellSelected) {
         const timeSinceTargeting = Date.now() - ClientState.spellTargetEnteredFrame;
         if (timeSinceTargeting < 50) {
@@ -104,28 +160,24 @@ export function handleWidgetActionTargeting(
         }
 
         const targetItemId = event.itemId ?? event.widget.itemId ?? -1;
-        const targetSlot = event.slot ?? event.widget.childIndex ?? childId;
         const targetWidgetUid = event.widget.uid;
         const isInventoryItem = targetItemId >= 0 || groupId === 149;
 
-        if (ClientState.isItemSelected === 1 && isInventoryItem) {
-            const isSameItem =
-                targetSlot === ClientState.selectedItemSlot &&
-                targetItemId === ClientState.selectedItemId;
-            if (isSameItem) {
-                console.log(
-                    `[OsrsClient] Item clicked on itself - cancelling selection (slot=${targetSlot}, itemId=${targetItemId})`,
-                );
+        if (!isInventoryItem) {
+            // Item Use only targets inventory items and world entities (the
+            // world interaction pass handles NPCs, objects, ground items, and
+            // players). It must never fall through and activate an unrelated
+            // interface button, tab, or control while an item is selected.
+            if (ClientState.isItemSelected === 1) {
+                // The menu can overlap an unrelated widget. Ignore its source
+                // click if it reaches that widget later in the same frame.
+                if (ClientState.isItemUseSelectionFresh()) return true;
                 deps.clearSelectedSpell();
-                ClientState.isItemSelected = 0;
-                ClientState.selectedItemWidget = 0;
-                ClientState.selectedItemSlot = 0;
-                ClientState.selectedItemId = -1;
+                ClientState.clearItemSelection();
+                deps.getInventory()?.setSelectedSlot?.(null);
                 return true;
             }
-        }
 
-        if (!isInventoryItem) {
             const widgetManager = deps.getWidgetManager();
             const targetFlags =
                 widgetManager?.getWidgetFlags?.(event.widget) ??
@@ -146,26 +198,6 @@ export function handleWidgetActionTargeting(
         }
 
         if (isInventoryItem) {
-            if (ClientState.isItemSelected === 1) {
-                console.log(
-                    `[OsrsClient] Item-on-item: "${ClientState.selectedSpellName}" (slot=${ClientState.selectedItemSlot}, itemId=${ClientState.selectedItemId}) -> item=${targetItemId}, slot=${targetSlot}`,
-                );
-
-                sendInventoryUseOn({
-                    slot: ClientState.selectedItemSlot,
-                    itemId: ClientState.selectedItemId,
-                    target: {
-                        kind: "inv",
-                        slot: targetSlot,
-                        itemId: targetItemId,
-                    },
-                });
-
-                deps.clearSelectedSpell();
-                ClientState.clearItemSelection();
-                return true;
-            }
-
             deps.normalizeSelectedSpellState();
             const selection = buildSelectedSpellPayload(
                 ClientState.selectedSpellWidget,
@@ -195,37 +227,6 @@ export function handleWidgetActionTargeting(
             deps.clearSelectedSpell();
             return true;
         }
-    }
-
-    const optionLower = (event.option || "").toLowerCase();
-    const targetItemId = event.itemId ?? event.widget.itemId ?? -1;
-    const isInventoryItem = targetItemId >= 0 || groupId === 149;
-
-    if (isInventoryItem && optionLower === "use") {
-        const targetSlot = event.slot ?? event.widget.childIndex ?? childId;
-        const containerUid = event.widget.parentUid ?? event.widget.uid;
-
-        ClientState.isItemSelected = 1;
-        ClientState.selectedItemWidget = containerUid;
-        ClientState.selectedItemSlot = targetSlot;
-        ClientState.selectedItemId = targetItemId;
-
-        ClientState.isSpellSelected = true;
-        ClientState.selectedSpellWidget = containerUid;
-        ClientState.selectedSpellChildIndex = targetSlot;
-        ClientState.selectedSpellItemId = targetItemId;
-        ClientState.selectedSpellActionName = "Use";
-        ClientState.selectedSpellName = event.target || event.widget.name || "";
-        ClientState.spellTargetEnteredFrame = Date.now();
-        ClientState.selectedSpellTargetMask = 0x3f;
-
-        console.log(
-            `[OsrsClient] Entered item targeting mode: containerUid=${containerUid}, slot=${targetSlot}, itemId=${targetItemId}, name="${
-                ClientState.selectedSpellName
-            }", targetMask=0x${ClientState.selectedSpellTargetMask.toString(16)}`,
-        );
-
-        return true;
     }
 
     const inventoryItemActions = [

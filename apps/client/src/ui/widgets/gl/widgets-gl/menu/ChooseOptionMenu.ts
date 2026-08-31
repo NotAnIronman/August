@@ -765,7 +765,15 @@ export function drawChooseOptionMenu(
                         closeMenu: closeAllMenus,
                     };
                     const isWalk = e.option === "Walk here";
+                    const isWidgetMenu = (menu as any).source === "widgets";
                     if (isWalk && typeof e.onClick === "function") {
+                        e.onClick(pressX, pressY, ctx);
+                    } else if (isWidgetMenu && typeof e.onClick === "function") {
+                        // Widget rows already have an explicit callback with
+                        // the real widget/slot/item metadata. Sending them
+                        // through MenuState first fabricates a generic
+                        // UseItem action (widget 0, item -1) before that
+                        // callback can arm the item selection.
                         e.onClick(pressX, pressY, ctx);
                     } else if (typeof idx === "number" && state) {
                         state.invoke(idx, pressX, pressY, ctx);

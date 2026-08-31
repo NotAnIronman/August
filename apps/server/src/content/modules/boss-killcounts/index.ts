@@ -15,6 +15,7 @@ const BOSS_KILLCOUNTS: ReadonlyMap<number, BossKillcountDefinition> = new Map([
     [3129, { name: "K'ril Tsutsaroth", collectionLogStructId: 494 }],
     [3162, { name: "Kree'arra", collectionLogStructId: 493 }],
     [11278, { name: "Nex", collectionLogStructId: 3769 }],
+    [7222, { name: "Scurrius", collectionLogStructId: 777 }],
 ]);
 
 function recordBossKill(player: PlayerState, npc: NpcState, services: ScriptServices): void {

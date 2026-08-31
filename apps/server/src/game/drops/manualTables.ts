@@ -1,4 +1,5 @@
 import type { NpcDropEntryDefinition, NpcDropTableDefinition } from "@server/game/drops/types";
+import { SCURRIUS_DROP_TABLE } from "@server/content/gamemodes/vanilla/data/scurriusDrops";
 
 export type ManualNpcDropOverride = {
     npcTypeIds: number[];
@@ -44,6 +45,11 @@ const IMP_NPC_TYPE_IDS = [5007, 3134] as const;
 const SCORPION_NPC_TYPE_IDS = [3024, 5242, 2480, 2479] as const;
 
 export const MANUAL_NPC_DROP_OVERRIDES: ManualNpcDropOverride[] = [
+    // The Wiki snapshot cannot currently parse Scurrius' table layout. This
+    // is deliberately registered with the core drop registry as well as the
+    // gamemode override so death rolls and the player-facing drop viewer use
+    // exactly the same complete table.
+    { npcTypeIds: [7222], table: SCURRIUS_DROP_TABLE },
     // The Wiki import marks Nex's table incomplete because it cannot represent
     // one of the ammunition variants.  Keep the complete, cache-ID based table
     // here so the encounter always awards its regular loot as well as uniques.

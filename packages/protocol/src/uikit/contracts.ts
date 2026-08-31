@@ -15,7 +15,7 @@ export const ComponentIds = {
     ICON_ROW_BACKGROUND_LAYER: 340,
     ICON_ROW_LEVEL_BASE: 400, ICON_ROW_ICON_BASE: 500, ICON_ROW_NAME_BASE: 600,
     ICON_ROW_DESC_BASE: 700, MAX_ROWS: 100, FOOTER_BUTTON: 900, FOOTER_BUTTON_LABEL: 901,
-    SEARCH_BACKGROUND: 910, SEARCH_TEXT: 911,
+    SEARCH_BACKGROUND: 910, SEARCH_TEXT: 911, SEARCH_LABEL: 912,
     CONTROL_BACKGROUND_BASE: 920, CONTROL_LABEL_BASE: 930, CONTROL_ICON_BASE: 940, MAX_CONTROLS: 8,
     /** Fixed, non-scrolling information column available beside text content. */
     INFO_COLUMN_DIVIDER: 950, INFO_COLUMN_ROW_BASE: 960, MAX_INFO_COLUMN_ROWS: 16,
@@ -165,7 +165,7 @@ export type UiPanelLayout = {
     /** A bottom-aligned row of reusable server-authoritative action buttons. */
     controls?: { width?: number; height?: number; gap?: number; count?: number };
     /** A local input primitive. Server filtering must use an explicit validated action. */
-    search?: { placeholder: string; width?: number };
+    search?: { placeholder: string; width?: number; label?: string; labelWidth?: number };
     /** Large item-icon buttons, laid out in a two-column grid inside content. */
     menuButtons?: {
         columns?: 2; rows?: number; buttonHeight?: number; gap?: number; iconSize?: number;

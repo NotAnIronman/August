@@ -31,6 +31,7 @@ import { registerVanillaGroundItemSpawns } from "@server/content/gamemodes/vanil
 import { DEFAULT_LOGIN_VARBITS } from "@server/content/gamemodes/vanilla/data/loginVarbits";
 import { DEFAULT_LOGIN_VARPS } from "@server/content/gamemodes/vanilla/data/loginVarps";
 import { NPC_LOOT_CONFIGS } from "@server/content/gamemodes/vanilla/data/lootDistribution";
+import { SCURRIUS_DROP_TABLE } from "@server/content/gamemodes/vanilla/data/scurriusDrops";
 import { createProjectileParamsProvider } from "@server/content/gamemodes/vanilla/data/projectileParams";
 import { createRuneDataProvider } from "@server/content/gamemodes/vanilla/data/runes";
 import { createSpellDataProvider } from "@server/content/gamemodes/vanilla/data/spells";
@@ -62,8 +63,11 @@ import { registerVarrockAreaHandlers } from "@server/content/gamemodes/vanilla/s
 import { registerWildernessAreaHandlers } from "@server/content/gamemodes/vanilla/scripts/content/areas/wilderness";
 import { registerWizardTowerAreaHandlers } from "@server/content/gamemodes/vanilla/scripts/content/areas/wizard-tower";
 import { registerBobHandlers } from "@server/content/gamemodes/vanilla/scripts/content/bob";
+import { registerBarrowsHandlers } from "@server/content/gamemodes/vanilla/scripts/content/barrows";
 import { registerClimbingHandlers } from "@server/content/gamemodes/vanilla/scripts/content/climbing";
 import { registerDefaultTalkHandlers } from "@server/content/gamemodes/vanilla/scripts/content/defaultTalk";
+import { registerDevObjectTransitions } from "@server/content/gamemodes/vanilla/scripts/content/devObjectTransitions";
+import { registerDigHandlers } from "@server/content/gamemodes/vanilla/scripts/content/dig";
 import { registerDemoInteractionHandlers } from "@server/content/gamemodes/vanilla/scripts/content/demoInteractions";
 import { registerDoorHandlers } from "@server/content/gamemodes/vanilla/scripts/content/doors";
 import { registerKeyDoorHandlers } from "@server/content/gamemodes/vanilla/scripts/content/key-doors";
@@ -90,6 +94,7 @@ import { registerDiaryJournalWidgetHandlers } from "@server/content/gamemodes/va
 import { achievementTaskTracker } from "@server/content/gamemodes/vanilla/diary-tasks/AchievementTaskTracker";
 import { registerDevUIKitMenu } from "@server/content/gamemodes/vanilla/widgets/devUIKitMenu";
 import { registerDevDialogueEditor } from "@server/content/gamemodes/vanilla/widgets/devDialogueEditor";
+import { registerTransportObjectEditor } from "@server/content/gamemodes/vanilla/widgets/transportObjectEditor";
 import { registerEmoteWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/emoteWidgets";
 import { registerMinimapWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/minimapWidgets";
 import { registerNpcDropTableWidgetHandlers, type NpcDropViewer } from "@server/content/gamemodes/vanilla/widgets/npcDropTableWidgets";
@@ -148,6 +153,10 @@ export class VanillaGamemode extends BaseGamemode {
 
     getLootDistributionConfig(npcTypeId: number): NpcLootConfig | undefined {
         return NPC_LOOT_CONFIGS.get(npcTypeId);
+    }
+
+    getDropTable(npcTypeId: number) {
+        return npcTypeId === 7222 ? SCURRIUS_DROP_TABLE : undefined;
     }
 
     getLoginVarbits(_player: PlayerState): Array<[number, number]> {
@@ -312,8 +321,12 @@ export class VanillaGamemode extends BaseGamemode {
         registerVanillaCommandHandlers(registry, services);
         registerDevUIKitMenu(registry, services);
         registerDevDialogueEditor(registry, services);
+        registerTransportObjectEditor(registry, services);
+        registerDevObjectTransitions(registry, services);
+        registerDigHandlers(registry, services);
 
         // Content
+        registerBarrowsHandlers(registry, services);
         registerClimbingHandlers(registry, services);
         // Key doors before generic door open/close so locked locs win.
         registerKeyDoorHandlers(registry);

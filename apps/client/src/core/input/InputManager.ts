@@ -925,7 +925,6 @@ export class InputManager {
 
     private onContextMenu = (event: MouseEvent) => {
         event.preventDefault();
-        // Position already captured in onMouseDown
     };
 
     // === Keyboard handlers - OSRS GameApplet.keyPressed/keyReleased ===

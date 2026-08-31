@@ -199,7 +199,6 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
         let raycastHitCount = 0;
 
         const inputManager = host.osrsClient.inputManager;
-        const isMouseDown = inputManager.dragX !== -1 || inputManager.dragY !== -1;
         const pickX = inputManager.pickX;
         const pickY = inputManager.pickY;
         const picked = pickX !== -1 && pickY !== -1;
@@ -233,8 +232,21 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
             return;
         }
 
-        // Don't auto close menu on touch devices
-        if (host.osrsClient.menuOpen && !picked && !isMouseDown && isTouchDevice) {
+        // An open menu is persistent. Its own input handler closes it when the
+        // player clicks outside or chooses an entry; a later game cycle with no
+        // new mouse pulse must not dismiss it. The widget and world menu layers
+        // share this rule, otherwise a widget menu is erased immediately after
+        // it opens.
+        const uiMenu = (host.app.gl.canvas as any)?.__ui?.menu;
+        const widgetMenuOpen = uiMenu?.open === true && uiMenu?.source === "widgets";
+        // A widget context menu is a modal input surface, even where it extends
+        // beyond the source widget (for example long inventory item names).
+        // Let its own handler receive this click; otherwise it would fall
+        // through to the game world before the menu gets a chance to act.
+        if (widgetMenuOpen) {
+            return;
+        }
+        if ((host.osrsClient.menuOpen || widgetMenuOpen) && !picked && !leftClicked) {
             return;
         }
 
@@ -1531,7 +1543,7 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
             const ui = (canvas.__ui = canvas.__ui || {});
             // Provide a callback so the GL menu can close the world menu when clicking outside
             try {
-                ui.closeWorldMenu = () => host.osrsClient.closeMenu();
+                ui.closeWorldMenu = () => host.osrsClient.closeWorldMenu();
             } catch {}
             const existing = ui.menu as any;
             // If not in menuOpen state and a map-driven menu is visible, hide it (right-click activation only)

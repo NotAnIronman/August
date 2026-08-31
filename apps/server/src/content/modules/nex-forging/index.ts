@@ -1,8 +1,10 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { IScriptRegistry, ItemOnItemEvent, ItemOnLocEvent, ScriptServices } from "@server/game/scripts/types";
 import type { PlayerState } from "@server/game/player";
+import { LockState } from "@server/game/model/LockState";
 
 const ANCIENT_FORGE = 42966;
+const TORVA_ANVIL = 28563;
 const HAMMER = 2347;
 const IMCANDO_HAMMER = 25644;
 const BANDOS_CHESTPLATE = 11832;
@@ -12,6 +14,9 @@ const NIHIL_SHARD = 26231;
 const NIHIL_HORN = 26372;
 const ARMADYL_CROSSBOW = 11785;
 const ZARYTE_CROSSBOW = 26374;
+const SMITHING_ANIMATION = 898;
+const FLETCHING_ANIMATION = 1248;
+const CRAFTING_LOCK_TICKS = 3;
 
 const TORVA_REPAIRS = new Map<number, { components: number; result: number }>([
     [26376, { components: 1, result: 26382 }],
@@ -27,6 +32,15 @@ function hasSmithingHammer(player: PlayerState): boolean {
 
 function restoreInventory(player: PlayerState, snapshot: readonly { itemId: number; quantity: number }[]): void {
     snapshot.forEach((entry, slot) => player.items.setInventorySlot(slot, entry.itemId, entry.quantity));
+}
+
+function lockAndAnimate(player: PlayerState, services: ScriptServices, animation: number): void {
+    const previousLock = player.lock;
+    player.lock = LockState.FULL;
+    services.animation.playPlayerSeq(player, animation);
+    services.scheduler.after(CRAFTING_LOCK_TICKS, () => {
+        if (player.lock === LockState.FULL) player.lock = previousLock;
+    }, { kind: "player", id: player.id });
 }
 
 /**
@@ -74,9 +88,8 @@ function breakDownBandos({ player, source, services }: ItemOnLocEvent): void {
     }
 }
 
-function repairTorva(event: ItemOnItemEvent): void {
-    const { player, source, target, services } = event;
-    const damaged = TORVA_REPAIRS.get(source.itemId) ? source.itemId : target.itemId;
+function repairTorva({ player, source, services }: ItemOnLocEvent): void {
+    const damaged = source.itemId;
     const recipe = TORVA_REPAIRS.get(damaged);
     if (!recipe) return;
     if (!player.items.hasItem(BANDOSIAN_COMPONENTS, recipe.components)) return;
@@ -93,6 +106,7 @@ function repairTorva(event: ItemOnItemEvent): void {
         { itemId: damaged, quantity: 1 },
         { itemId: BANDOSIAN_COMPONENTS, quantity: recipe.components },
     ], { itemId: recipe.result, quantity: 1 })) {
+        lockAndAnimate(player, services, SMITHING_ANIMATION);
         services.messaging.sendGameMessage(player, "You repair the Torva armour.");
     }
 }
@@ -107,6 +121,7 @@ function createZaryteCrossbow({ player, services }: ItemOnItemEvent): void {
         { itemId: ARMADYL_CROSSBOW, quantity: 1 },
         { itemId: NIHIL_SHARD, quantity: 250 },
     ], { itemId: ZARYTE_CROSSBOW, quantity: 1 })) {
+        lockAndAnimate(player, services, FLETCHING_ANIMATION);
         services.messaging.sendGameMessage(player, "You attach the nihil horn to the Armadyl crossbow.");
     }
 }
@@ -115,8 +130,7 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerItemOnLoc(BANDOS_CHESTPLATE, ANCIENT_FORGE, breakDownBandos);
     registry.registerItemOnLoc(BANDOS_TASSETS, ANCIENT_FORGE, breakDownBandos);
     for (const damaged of TORVA_REPAIRS.keys()) {
-        registry.registerItemOnItem(BANDOSIAN_COMPONENTS, damaged, repairTorva);
-        registry.registerItemOnItem(damaged, BANDOSIAN_COMPONENTS, repairTorva);
+        registry.registerItemOnLoc(damaged, TORVA_ANVIL, repairTorva);
     }
     registry.registerItemOnItem(NIHIL_HORN, ARMADYL_CROSSBOW, createZaryteCrossbow);
     registry.registerItemOnItem(ARMADYL_CROSSBOW, NIHIL_HORN, createZaryteCrossbow);
