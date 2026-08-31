@@ -4,7 +4,14 @@ import { CollisionStrategy } from "@server/pathfinding/engine/CollisionStrategy"
 import { RouteStrategy } from "@server/pathfinding/engine/RouteStrategy";
 import { CollisionFlag } from "@server/pathfinding/engine/flag/CollisionFlag";
 
-const DEFAULT_GRAPH_SIZE = 32;
+// Real OSRS's local BFS pathfinding graph is 128x128 tiles centered on the
+// mover (see https://oldschool.runescape.wiki/w/Pathfinding, "Determining
+// the target tile"). This previously used 32 - a 4x smaller radius in each
+// direction (16 tiles vs the authentic 64) - which meant most clicks beyond
+// ~16 tiles away needed multiple artificially-clamped hops to resolve
+// instead of a single search, and could stop short of the destination
+// depending on exactly how far each hop's alternative-route search reached.
+const DEFAULT_GRAPH_SIZE = 128;
 const DEFAULT_DISTANCE = 99999999;
 
 const ALTERNATIVE_ROUTE_MAX_DISTANCE = 100;

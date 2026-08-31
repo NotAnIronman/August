@@ -33,7 +33,7 @@ export class PathService {
     private readonly scopedCollisionOverlays = new Map<number, CollisionOverlayStore>();
     private worldViewCollision: Map<number, SailingWorldView> = new Map();
 
-    constructor(map: MapCollisionService, graphSize = 32) {
+    constructor(map: MapCollisionService, graphSize = 128) {
         this.map = map;
         this.pf = new Pathfinder(graphSize);
     }
@@ -450,6 +450,11 @@ export class PathService {
         steps?: { x: number; y: number }[];
         end?: { x: number; y: number };
         message?: string;
+        /** True when the destination was outside the local search graph and
+         *  this result is deliberately partial - progress toward the real
+         *  target, not arrival at it (see clampApproxDestForGraph). Callers
+         *  that gate on "did we actually arrive" should also accept this. */
+        clamped?: boolean;
     } {
         try {
             const { from, to } = req;
@@ -505,14 +510,15 @@ export class PathService {
                 }
             }
             const normalizedResult = result;
+            const clamped = !!restoreApproxDest;
             if (normalizedResult < 0) {
                 return { ok: false, message: "no path" };
             }
             if (normalizedResult === 0) {
-                return { ok: true, steps: [] };
+                return { ok: true, steps: [], clamped };
             }
             if (maxSteps === 0) {
-                return { ok: true, steps: [] };
+                return { ok: true, steps: [], clamped };
             }
 
             const graphBaseX = fromX - (this.pf.graphSize >> 1);
@@ -593,7 +599,7 @@ export class PathService {
                 validateY = step.y;
             }
 
-            return { ok: true, steps: out, end: selectedEnd };
+            return { ok: true, steps: out, end: selectedEnd, clamped };
         } catch (e: unknown) {
             return { ok: false, message: e instanceof Error ? e.message : String(e) };
         }
