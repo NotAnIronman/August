@@ -37,12 +37,11 @@ export const LOC_ACTION_OVERRIDES: Readonly<Record<number, readonly (string | nu
             "Enter Party",
             "Join Party",
         ]),
-        // The Moons statues have only a generic cache "Use" option.  They are
-        // instance entrances, so expose the same explicit controls as the other
-        // boss-room doors rather than relying on a generic interaction.
-        51372: Object.freeze(["Enter", "Peek", "Enter Solo", "Enter Party", "Join Party"]),
-        51373: Object.freeze(["Enter", "Peek", "Enter Solo", "Enter Party", "Join Party"]),
-        51374: Object.freeze(["Enter", "Peek", "Enter Solo", "Enter Party", "Join Party"]),
+        // Moons statues begin only a solo encounter. This must mirror the
+        // server registration exactly: menu labels are action identifiers.
+        51372: Object.freeze(["Start solo"]),
+        51373: Object.freeze(["Start solo"]),
+        51374: Object.freeze(["Start solo"]),
     });
 
 export function resolveLocActions(
