@@ -9,6 +9,7 @@ export const NPC_LOOT_CONFIGS: Map<number, NpcLootConfig> = new Map([
     [494, { distribution: "highest-damage" }], // Kraken
     [2042, { distribution: "highest-damage" }], // Zulrah
     [8026, { distribution: "highest-damage" }], // Vorkath
+    [7222, { distribution: "most-valuable-player" }], // Scurrius
 
     // God Wars Dungeon - highest damage with MVP consideration
     [2215, { distribution: "most-valuable-player" }], // General Graardor

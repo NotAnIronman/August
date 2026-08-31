@@ -34,6 +34,7 @@ interface ScurriusState {
     bites: number;
     summonReadyAt: number;
     rockReadyAt: number;
+    ratIds: Set<number>;
 }
 
 const states = new WeakMap<NpcState, ScurriusState>();
@@ -41,7 +42,7 @@ const states = new WeakMap<NpcState, ScurriusState>();
 function stateFor(npc: NpcState): ScurriusState {
     let state = states.get(npc);
     if (!state) {
-        state = { fed: false, finalPhase: false, eating: false, bites: 0, summonReadyAt: 0, rockReadyAt: 0 };
+        state = { fed: false, finalPhase: false, eating: false, bites: 0, summonReadyAt: 0, rockReadyAt: 0, ratIds: new Set() };
         states.set(npc, state);
     }
     return state;
@@ -124,9 +125,18 @@ function launchDelayedAttack(event: NpcAttackEvent, forcedType?: AttackType, for
     }, { kind: "npc", id: npc.id });
 }
 
-function summonRats(npc: NpcState, services: ScriptServices): void {
+function summonRats(npc: NpcState, services: ScriptServices, state: ScurriusState): void {
+    for (const id of state.ratIds) {
+        const rat = services.combat.getNpc(id);
+        if (!rat || rat.getHitpoints() <= 0) state.ratIds.delete(id);
+    }
+    if (state.ratIds.size >= 6) return;
     const candidates = [[-2, -2], [0, -2], [2, -2], [-2, 0], [2, 0], [0, 2]];
-    for (const [dx, dy] of candidates) services.npc.spawnNpc({ id: RAT_ID, x: npc.tileX + dx, y: npc.tileY + dy, level: npc.level, worldViewId: npc.worldViewId, ownerPlayerId: npc.ownerPlayerId, wanderRadius: 3, isAggressive: true, aggressionRadius: 12, attackSpeed: 4, lifetimeTicks: 150 });
+    for (const [dx, dy] of candidates) {
+        if (state.ratIds.size >= 6) break;
+        const rat = services.npc.spawnNpc({ id: RAT_ID, x: npc.tileX + dx, y: npc.tileY + dy, level: npc.level, worldViewId: npc.worldViewId, ownerPlayerId: npc.ownerPlayerId, wanderRadius: 3, isAggressive: true, aggressionRadius: 12, attackSpeed: 4, lifetimeTicks: 150 });
+        if (rat) state.ratIds.add(rat.id);
+    }
 }
 
 function fallingRocks(npc: NpcState, services: ScriptServices, roomId: string): void {
@@ -161,7 +171,7 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
         services.scheduler.after(4, takeBite, { kind: "npc", id: npc.id });
     }
     if (!state.finalPhase && healthPercent <= 30) { state.finalPhase = true; state.eating = false; services.npc.moveNpcTo(npc, CENTRE_TILE, true); }
-    if (tick >= state.summonReadyAt && Math.random() < 1 / 12) { state.summonReadyAt = tick + 30; services.npc.queueNpcSeq(npc, 10700); summonRats(npc, services); }
+    if (tick >= state.summonReadyAt && Math.random() < 1 / 12) { state.summonReadyAt = tick + 30; services.npc.queueNpcSeq(npc, 10700); summonRats(npc, services, state); }
     if (tick >= state.rockReadyAt && Math.random() < (state.finalPhase ? 1 / 4 : 1 / 10)) { state.rockReadyAt = tick + 10; fallingRocks(npc, services, room.id); }
     // The normal planner correctly gives melee absolute preference at one tile.
     // At a food pile, however, the live fight swaps that planned melee into a

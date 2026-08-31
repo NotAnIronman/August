@@ -31,6 +31,7 @@ import { registerVanillaGroundItemSpawns } from "@server/content/gamemodes/vanil
 import { DEFAULT_LOGIN_VARBITS } from "@server/content/gamemodes/vanilla/data/loginVarbits";
 import { DEFAULT_LOGIN_VARPS } from "@server/content/gamemodes/vanilla/data/loginVarps";
 import { NPC_LOOT_CONFIGS } from "@server/content/gamemodes/vanilla/data/lootDistribution";
+import { SCURRIUS_DROP_TABLE } from "@server/content/gamemodes/vanilla/data/scurriusDrops";
 import { createProjectileParamsProvider } from "@server/content/gamemodes/vanilla/data/projectileParams";
 import { createRuneDataProvider } from "@server/content/gamemodes/vanilla/data/runes";
 import { createSpellDataProvider } from "@server/content/gamemodes/vanilla/data/spells";
@@ -152,6 +153,10 @@ export class VanillaGamemode extends BaseGamemode {
 
     getLootDistributionConfig(npcTypeId: number): NpcLootConfig | undefined {
         return NPC_LOOT_CONFIGS.get(npcTypeId);
+    }
+
+    getDropTable(npcTypeId: number) {
+        return npcTypeId === 7222 ? SCURRIUS_DROP_TABLE : undefined;
     }
 
     getLoginVarbits(_player: PlayerState): Array<[number, number]> {
