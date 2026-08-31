@@ -43,8 +43,12 @@ function inputLabel(step: Step): string {
 function nextId(entries: readonly Transition[]): string {
     return `rule-${entries.reduce((high, entry) => Math.max(high, Number(/^rule-(\d+)$/i.exec(entry.id)?.[1] ?? 0)), 0) + 1}`;
 }
-function actionFor(services: ScriptServices, locId: number, option: number): string | undefined {
-    return services.data.getLocDefinition(locId)?.actions?.[option - 1]?.trim();
+function actionFor(services: ScriptServices, locId: number, option: number): string {
+    // Some locs are present in the live map cache before their definition is
+    // available to the server loader. The transport system only needs the
+    // option number; this label is informative and the action-agnostic
+    // registration handles the authoritative interaction packet.
+    return services.data.getLocDefinition(locId)?.actions?.[option - 1]?.trim() ?? `option ${option}`;
 }
 function render(player: PlayerState, services: ScriptServices): void {
     const current = state(player); const value = catalog();
@@ -94,8 +98,8 @@ function acceptInput(player: PlayerState, services: ScriptServices, text: string
     if (!pending) return "Click Add or Edit first.";
     const invalid = () => `Invalid value. ${stepPrompt(pending.step)}.`;
     const keep = pending.editId !== undefined && text.length === 0;
-    if (pending.step === "locId") { const locId = keep ? pending.draft.locId : Number(text); if (!Number.isInteger(locId) || locId <= 0) return invalid(); pending.draft.locId = locId; pending.step = "option"; }
-    else if (pending.step === "option") { const option = keep ? pending.draft.option : Number(text); if (!Number.isInteger(option) || option < 1 || option > 5 || !pending.draft.locId) return invalid(); const action = actionFor(services, pending.draft.locId, option); if (!action) return `Object ${pending.draft.locId} does not have option ${option}.`; pending.draft.option = option; pending.draft.action = action.toLowerCase(); pending.step = "from"; }
+    if (pending.step === "locId") { const locId = keep ? pending.draft.locId : Number(text); if (typeof locId !== "number" || !Number.isInteger(locId) || locId <= 0) return invalid(); pending.draft.locId = locId; pending.step = "option"; }
+    else if (pending.step === "option") { const option = keep ? pending.draft.option : Number(text); const locId = pending.draft.locId; if (typeof option !== "number" || !Number.isInteger(option) || option < 1 || option > 5 || typeof locId !== "number") return invalid(); pending.draft.option = option; pending.draft.action = actionFor(services, locId, option).toLowerCase(); pending.step = "from"; }
     else if (pending.step === "from") { const value = keep ? pending.draft.from : tile(text); if (!value) return invalid(); pending.draft.from = value; pending.step = "to"; }
     else if (pending.step === "to") { const value = keep ? pending.draft.to : tile(text); if (!value) return invalid(); pending.draft.to = value; pending.step = "animation"; }
     else { if (!keep) { if (text.toLowerCase() !== "none") { const animationId = Number(text); if (!Number.isInteger(animationId) || animationId < 0) return invalid(); pending.draft.animationId = animationId; } else delete pending.draft.animationId; } const complete = pending.draft as Transition; const value = catalog(); if (pending.editId) value.transitions = value.transitions.map((entry) => entry.id === pending.editId ? { ...complete, id: pending.editId } : entry); else value.transitions.push({ ...complete, id: nextId(value.transitions) }); save(value); current.selectedId = pending.editId ?? nextId(value.transitions.slice(0, -1)); current.pending = undefined; }

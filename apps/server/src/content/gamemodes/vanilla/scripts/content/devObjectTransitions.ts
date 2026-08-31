@@ -197,8 +197,11 @@ export function registerDevObjectTransitions(registry: IScriptRegistry, services
         to: Tile,
         animationId?: number,
     ): string => {
-        const locAction = resolveAction(locId, option, services);
-        if (!locAction) return `Object ${locId} does not have option ${option} in this cache.`;
+        // The live map can contain locs whose metadata is absent from the
+        // server's definition loader. Keep the numeric option authoritative;
+        // an action-agnostic tile registration is installed below for those
+        // cases, while this label remains useful in the editor/list output.
+        const locAction = resolveAction(locId, option, services) ?? `option ${option}`;
         if (catalog.transitions.some((rule) => rule.locId === locId && rule.option === option && sameTile(rule.from, from))) {
             return "A movement rule already exists for that object option and source tile.";
         }
