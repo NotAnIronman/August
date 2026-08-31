@@ -2292,7 +2292,7 @@
       "name": "Scurrius",
       "anims": {
         "attack": 10692,
-        "block": 424,
+        "block": 10694,
         "death": 10705,
         "melee": [
           10693,

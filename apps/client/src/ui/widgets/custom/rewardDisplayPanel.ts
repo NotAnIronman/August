@@ -4,9 +4,12 @@ import { buildUiPanel } from "@client/ui/widgets/uikit/PanelBuilder";
 import { registerUiPanel } from "@client/ui/widgets/uikit/registry";
 
 export const REWARD_DISPLAY_SLOT_BASE = 1000;
-const SLOT_COUNT = 12;
-const SLOT_SIZE = 32;
-const SLOT_GAP = 8;
+// 4 columns x 4 rows, per feedback on the previous 6+3+3 layout.
+const GRID_COLUMNS = 4;
+const GRID_ROWS = 4;
+const SLOT_COUNT = GRID_COLUMNS * GRID_ROWS;
+const SLOT_SIZE = 64; // "about twice as big" as the original 32px slots
+const SLOT_GAP = 7;
 
 /** Real, catalog-validated "Casket" item (id 405). Rendered as a type-6 3D
  *  model rather than the flat type-5 sprite - the item definition carries
@@ -19,36 +22,36 @@ const CHEST_DECORATION_ITEM_ID = 405;
 // collide if this panel later opts into buildUiPanel's footer/search/etc.
 const CHEST_COMPONENT_ID = 850;
 
-const CHEST_X = 18;
-const CHEST_Y = 84;
+const PANEL_WIDTH = 480; // widened so the chest (left) and grid (right)
+// have real room side-by-side instead of nearly overlapping - the old
+// 320px width barely fit the grid alone (277px), let alone both.
+const PANEL_HEIGHT = 334; // buildUiPanel's MAINMODAL_SAFE_HEIGHT ceiling
+const LEFT_MARGIN = 16;
+const RIGHT_MARGIN = 16;
+const GRID_TOP = 40;
+
+// Chest keeps its original 140x140 size and its "~30px above the bottom
+// edge" vertical position, now anchored to the left side of the panel
+// instead of the right (grid moved to the right side in its place).
 const CHEST_WIDTH = 140;
 const CHEST_HEIGHT = 140;
+const CHEST_BOTTOM_MARGIN = 30;
+const CHEST_X = LEFT_MARGIN;
+const CHEST_Y = PANEL_HEIGHT - CHEST_BOTTOM_MARGIN - CHEST_HEIGHT;
 
-// Row 1 spans the full panel width above the chest, mirroring the reference
-// layout's top strip of reward icons. Rows 2-3 sit to the right of the
-// chest instead of on top of it. 6 + 3 + 3 = SLOT_COUNT.
-const ROW1_COLUMNS = 6;
-const ROW1_X = 20;
-const ROW1_Y = 44;
-const SIDE_COLUMNS = 3;
-const SIDE_X = CHEST_X + CHEST_WIDTH + SLOT_GAP;
-const SIDE_ROW2_Y = CHEST_Y;
-const SIDE_ROW3_Y = CHEST_Y + SLOT_SIZE + SLOT_GAP;
+const GRID_WIDTH = GRID_COLUMNS * SLOT_SIZE + (GRID_COLUMNS - 1) * SLOT_GAP;
+const GRID_X = PANEL_WIDTH - RIGHT_MARGIN - GRID_WIDTH;
 
 function uid(componentId: number): number {
     return ((REWARD_DISPLAY_PANEL_GROUP_ID & 0xffff) << 16) | (componentId & 0xffff);
 }
 
 function slotPosition(slot: number): { x: number; y: number } {
-    if (slot < ROW1_COLUMNS) {
-        return { x: ROW1_X + slot * (SLOT_SIZE + SLOT_GAP), y: ROW1_Y };
-    }
-    const sideIndex = slot - ROW1_COLUMNS;
-    const column = sideIndex % SIDE_COLUMNS;
-    const row = Math.floor(sideIndex / SIDE_COLUMNS);
+    const column = slot % GRID_COLUMNS;
+    const row = Math.floor(slot / GRID_COLUMNS);
     return {
-        x: SIDE_X + column * (SLOT_SIZE + SLOT_GAP),
-        y: (row === 0 ? SIDE_ROW2_Y : SIDE_ROW3_Y),
+        x: GRID_X + column * (SLOT_SIZE + SLOT_GAP),
+        y: GRID_TOP + row * (SLOT_SIZE + SLOT_GAP),
     };
 }
 
@@ -86,7 +89,7 @@ registerUiPanel({
     groupId: REWARD_DISPLAY_PANEL_GROUP_ID,
     build: () => {
         const built = buildUiPanel(REWARD_DISPLAY_PANEL_GROUP_ID, {
-            width: 310, height: 240,
+            width: PANEL_WIDTH, height: PANEL_HEIGHT,
             content: { rowKind: "text", rowHeight: 18, scrollbarWidth: 0 },
         });
         const root = built.root;

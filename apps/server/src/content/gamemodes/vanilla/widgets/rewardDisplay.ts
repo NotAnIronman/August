@@ -4,7 +4,8 @@ import type { PlayerState } from "@server/game/player";
 import type { ScriptServices } from "@server/game/scripts/types";
 
 export const REWARD_DISPLAY_SLOT_BASE = 1000;
-const REWARD_DISPLAY_CAPACITY = 12;
+// Matches the client's 4x4 grid in rewardDisplayPanel.ts.
+const REWARD_DISPLAY_CAPACITY = 16;
 
 export type VisualReward = { itemId: number; quantity: number };
 
