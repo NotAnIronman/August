@@ -1,0 +1,152 @@
+{
+  "generatedAt": "2026-08-26T22:25:16.888Z",
+  "augustDefinitions": "C:\\Users\\tyler.reck\\OneDrive - Kiewit Corporation\\Desktop\\Personal Files\\August\\server\\data\\npc-combat-defs.json",
+  "referenceDefinitions": "https://github.com/tobywisener/elvarg-typescript/raw/74feb43bf85000b090f9cce88267e7f1fbe4c9c0/data/definitions/npc-combat-defs-239.json",
+  "cache": {
+    "enabled": false
+  },
+  "filters": {
+    "ids": [
+      "2205",
+      "2215",
+      "3129",
+      "3162",
+      "7221"
+    ],
+    "includeGeneric": false
+  },
+  "summary": {
+    "entries": 5,
+    "additions": 0,
+    "replacements": 0,
+    "unchanged": 5,
+    "readyForInGameReview": 0
+  },
+  "entries": [
+    {
+      "npcId": 2205,
+      "name": "Commander Zilyana",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 424,
+        "death": 6968
+      },
+      "august": {
+        "attack": 422,
+        "block": 424,
+        "death": 6968
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 2215,
+      "name": "General Graardor",
+      "action": "unchanged",
+      "reference": {
+        "attack": 7018,
+        "block": 7019,
+        "death": 7020
+      },
+      "august": {
+        "attack": 7018,
+        "block": 7019,
+        "death": 7020
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3129,
+      "name": "K'ril Tsutsaroth",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 424,
+        "death": 6949
+      },
+      "august": {
+        "attack": 422,
+        "block": 424,
+        "death": 6949
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 3162,
+      "name": "Kree'arra",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 424,
+        "death": 6979
+      },
+      "august": {
+        "attack": 422,
+        "block": 424,
+        "death": 6979
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    },
+    {
+      "npcId": 7221,
+      "name": "Scurrius",
+      "action": "unchanged",
+      "reference": {
+        "attack": 422,
+        "block": 424,
+        "death": 10705
+      },
+      "august": {
+        "attack": 422,
+        "block": 424,
+        "death": 10705
+      },
+      "cache": {
+        "npcFound": false,
+        "nameMatchesReference": true,
+        "sequencesPresent": {},
+        "allSequencesPresent": false
+      },
+      "review": {
+        "required": false,
+        "reason": "Cache validation unavailable; confirm in-game before importing."
+      }
+    }
+  ]
+}

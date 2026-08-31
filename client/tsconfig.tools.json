@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": [
+    "java-random.d.ts",
+    "scripts/cache/load-util.ts",
+    "scripts/cache/export-items.ts",
+    "scripts/cache/export-locs.ts",
+    "scripts/cache/export-npcs.ts"
+  ],
+  "exclude": ["build", "node_modules"]
+}
