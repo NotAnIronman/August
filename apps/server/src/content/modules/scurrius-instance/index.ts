@@ -107,12 +107,19 @@ function beginEating(npc: NpcState, state: ScurriusState, roomId: string, servic
     state.eating = true;
     state.bites = 0;
     const pile = FOOD_PILES[Math.floor(Math.random() * FOOD_PILES.length)] ?? FOOD_PILES[0];
-    // Movement can fail if a previous chase route is still resolving. The
-    // fallback keeps the phase reliable while preserving the usual run there.
+    // Clear the active chase before sending him to food.  Eating only begins
+    // after the route completes, never at the tile where he crossed 80% HP.
+    services.npc.disengageCombat(npc);
     if (!services.npc.moveNpcTo(npc, pile, true)) services.npc.teleportNpc(npc, pile);
     const takeBite = (): void => {
         if (!state.eating || npc.getHitpoints() <= 0 || state.bites >= 5) { state.eating = false; return; }
+        if (npc.tileX !== pile.x || npc.tileY !== pile.y) {
+            services.scheduler.after(1, takeBite, { kind: "npc", id: npc.id });
+            return;
+        }
         services.npc.queueNpcSeq(npc, state.bites === 0 ? 10688 : 10689);
+        // Cache spot 84 is the standard green healing indicator.
+        services.npc.queueNpcSpotAnim(npc, 84);
         npc.heal((5 + Math.floor(Math.random() * 2) * 5) * Math.max(1, services.instances.getMemberPlayers(roomId).length));
         state.bites++;
         if (state.bites >= 5) { state.eating = false; return; }
@@ -170,7 +177,7 @@ function launchDelayedAttack(event: NpcAttackEvent, forcedType?: AttackType, for
     }, { kind: "npc", id: npc.id });
 }
 
-function summonRats(npc: NpcState, services: ScriptServices, state: ScurriusState): void {
+function summonRats(npc: NpcState, target: PlayerState, services: ScriptServices, state: ScurriusState): void {
     for (const id of state.ratIds) {
         const rat = services.combat.getNpc(id);
         if (!rat || rat.getHitpoints() <= 0) state.ratIds.delete(id);
@@ -180,7 +187,12 @@ function summonRats(npc: NpcState, services: ScriptServices, state: ScurriusStat
     for (const [dx, dy] of candidates) {
         if (state.ratIds.size >= 6) break;
         const rat = services.npc.spawnNpc({ id: RAT_ID, x: npc.tileX + dx, y: npc.tileY + dy, level: npc.level, worldViewId: npc.worldViewId, ownerPlayerId: npc.ownerPlayerId, wanderRadius: 3, isAggressive: true, aggressionRadius: 12, attackSpeed: 4, lifetimeTicks: 150 });
-        if (rat) state.ratIds.add(rat.id);
+        if (rat) {
+            state.ratIds.add(rat.id);
+            // Directly engage on spawn: standard aggression rules intentionally
+            // ignore low-level NPCs when the player is much stronger.
+            services.npc.engageCombat(rat, target);
+        }
     }
 }
 
@@ -204,7 +216,7 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     const healthPercent = (npc.getHitpoints() / Math.max(1, npc.getMaxHitpoints())) * 100;
     if (!state.fed && healthPercent <= 80) beginEating(npc, state, room.id, services);
     if (!state.finalPhase && healthPercent <= 30) { state.finalPhase = true; state.eating = false; services.npc.moveNpcTo(npc, CENTRE_TILE, true); }
-    if (tick >= state.summonReadyAt && Math.random() < 1 / 12) { state.summonReadyAt = tick + 30; services.npc.queueNpcSeq(npc, 10700); summonRats(npc, services, state); }
+    if (tick >= state.summonReadyAt && Math.random() < 1 / 12) { state.summonReadyAt = tick + 30; services.npc.queueNpcSeq(npc, 10700); summonRats(npc, target, services, state); }
     if (tick >= state.rockReadyAt && Math.random() < (state.finalPhase ? 1 / 4 : 1 / 10)) { state.rockReadyAt = tick + 10; fallingRocks(npc, services, room.id); }
     // The normal planner correctly gives melee absolute preference at one tile.
     // At a food pile, however, the live fight swaps that planned melee into a
