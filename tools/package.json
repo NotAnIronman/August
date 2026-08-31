@@ -1,0 +1,21 @@
+{
+  "name": "@august/tools",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@august/client": "workspace:*",
+    "@august/custom-content": "workspace:*",
+    "@august/osrs-engine": "workspace:*",
+    "@august/protocol": "workspace:*",
+    "@august/server": "workspace:*",
+    "adm-zip": "^0.5.17"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/node": "^25.9.2",
+    "typescript": "6.0.3"
+  }
+}

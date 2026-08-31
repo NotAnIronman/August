@@ -1,15 +1,39 @@
 * text=auto
 
-*.png binary
-*.jpg binary
-*.jpeg binary
-*.gif binary
-*.webp binary
-*.ico binary
-*.woff binary
-*.woff2 binary
-*.zip binary
-*.gz binary
-*.bz2 binary
-*.sqlite binary
-*.db binary
+# Windows command files require CRLF when invoked directly.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Shell entry points require LF on every platform.
+*.sh text eol=lf
+
+# Images and fonts
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.gif -text
+*.webp -text
+*.avif -text
+*.ico -text
+*.woff -text
+*.woff2 -text
+*.ttf -text
+*.otf -text
+*.eot -text
+
+# Archives, databases, media, and compiled assets
+*.zip -text
+*.gz -text
+*.bz2 -text
+*.7z -text
+*.sqlite -text
+*.sqlite3 -text
+*.db -text
+*.jar -text
+*.pdf -text
+*.mp3 -text
+*.ogg -text
+*.wav -text
+*.mid -text
+*.wasm -text
+*.bin -text

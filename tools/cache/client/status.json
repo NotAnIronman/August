@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "owner": "client-cache",
+  "purpose": "Export browser-consumable definitions from validated server cache data.",
+  "maintained": [
+    {
+      "id": "export-items",
+      "entrypoint": "tools/cache/client/export-items.ts",
+      "command": "pnpm --filter @august/client export-items",
+      "output": "data/generated/cache/items.json",
+      "typechecked": true
+    },
+    {
+      "id": "export-npcs",
+      "entrypoint": "tools/cache/client/export-npcs.ts",
+      "command": "pnpm --filter @august/client export-npcs",
+      "output": "data/generated/cache/npcs.json",
+      "typechecked": true
+    },
+    {
+      "id": "export-locs",
+      "entrypoint": "tools/cache/client/export-locs.ts",
+      "command": "pnpm --filter @august/client export-locs",
+      "output": "data/generated/cache/locs.json",
+      "typechecked": true
+    }
+  ],
+  "admissionRule": "Add a tool only when it has a supported command, deterministic inputs and outputs, and typecheck coverage.",
+  "retirementRule": "Delete unsupported or orphaned tools after confirming that they have no caller; Git history is the archive."
+}

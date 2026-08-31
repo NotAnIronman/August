@@ -1,0 +1,10 @@
+{
+  "id": "2026-08-monorepo",
+  "status": "complete",
+  "completedOn": "2026-08-29",
+  "owner": "August maintainers",
+  "purpose": "Extract shared packages and move the applications without hidden relative coupling.",
+  "rollback": "Revert the migration commit; persistence identifiers and data are not changed.",
+  "validation": "pnpm run check",
+  "deleteWhen": "Keep as durable migration provenance after completion."
+}

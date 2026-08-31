@@ -1,0 +1,40 @@
+import { Archive } from "@august/osrs-engine/cache/Archive";
+import { CacheIndex } from "@august/osrs-engine/cache/CacheIndex";
+import { CacheInfo } from "@august/osrs-engine/cache/CacheInfo";
+import {
+    ArchiveTypeLoader,
+    DatTypeLoader,
+    DummyTypeLoader,
+    IndexTypeLoader,
+    TypeLoader,
+} from "@august/osrs-engine/config/TypeLoader";
+import { VarBitType } from "@august/osrs-engine/config/vartype/bit/VarBitType";
+
+export type VarBitTypeLoader = TypeLoader<VarBitType>;
+
+export class DummyVarBitTypeLoader extends DummyTypeLoader<VarBitType> {
+    constructor(cacheInfo: CacheInfo) {
+        super(cacheInfo, VarBitType);
+    }
+}
+
+export class DatVarBitTypeLoader {
+    static load(cacheInfo: CacheInfo, configArchive: Archive): VarBitTypeLoader {
+        return DatTypeLoader.load(VarBitType, cacheInfo, configArchive, "varbit");
+    }
+}
+
+export class ArchiveVarBitTypeLoader
+    extends ArchiveTypeLoader<VarBitType>
+    implements VarBitTypeLoader
+{
+    constructor(cacheInfo: CacheInfo, archive: Archive) {
+        super(VarBitType, cacheInfo, archive);
+    }
+}
+
+export class IndexVarBitTypeLoader extends IndexTypeLoader<VarBitType> implements VarBitTypeLoader {
+    constructor(cacheInfo: CacheInfo, index: CacheIndex) {
+        super(VarBitType, cacheInfo, index, 10);
+    }
+}

@@ -1,0 +1,15 @@
+export {
+    NO_INTERACTION,
+    PLAYER_INDEX_OFFSET,
+    type InteractionIndex,
+    type InteractionTargetType,
+    clampInteractionIndex,
+    decodeInteractionIndex,
+    decodeInteractionTarget,
+    encodeInteractionIndex,
+    encodeInteractionTarget,
+    isNpcInteractionIndex,
+    isPlayerInteractionIndex,
+    isValidInteractionIndex,
+    resolveInteractionTargetId,
+} from "@august/osrs-engine/interaction/InteractionIndex";

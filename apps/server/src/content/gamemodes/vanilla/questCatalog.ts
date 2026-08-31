@@ -1,0 +1,282 @@
+import type { GamemodeQuestListGroup } from "@server/game/gamemodes/GamemodeDefinition";
+import { FREE_TO_PLAY_QUEST_CONTENT } from "@server/content/gamemodes/vanilla/quests/content/freeToPlay";
+import { MEMBERS_QUEST_CONTENT } from "@server/content/gamemodes/vanilla/quests/content/members";
+
+/** Canonical display record for one quest-list entry. */
+export interface QuestCatalogEntry {
+    /** Normalized, stable lookup key derived from the display name. */
+    key: string;
+    /** Name exactly as displayed in the quest list. */
+    displayName: string;
+}
+
+/**
+ * Public OSRS display names. These deliberately live apart from quest
+ * definitions: catalog data can populate the journal without registering any
+ * varps, rewards, completion checks, or interaction handlers.
+ *
+ * Source: https://oldschool.runescape.wiki/w/Quests
+ */
+const QUEST_DISPLAY_NAMES: readonly string[] = [
+    "A Kingdom Divided",
+    "A Night at the Theatre",
+    "A Porcine of Interest",
+    "A Soul's Bane",
+    "A Tail of Two Cats",
+    "A Taste of Hope",
+    "A Theatre of Blood",
+    "Animal Magnetism",
+    "Another Slice of H.A.M.",
+    "At First Light",
+    "Below Ice Mountain",
+    "Beneath Cursed Sands",
+    "Between a Rock...",
+    "Big Chompy Bird Hunting",
+    "Biohazard",
+    "Black Knights' Fortress",
+    "Bone Voyage",
+    "Cabin Fever",
+    "Children of the Sun",
+    "Client of Kourend",
+    "Clock Tower",
+    "Cold War",
+    "Contact!",
+    "Cook's Assistant",
+    "Creature of Fenkenstrain",
+    "Current Affairs",
+    "Darkness of Hallowvale",
+    "Death on the Isle",
+    "Death Plateau",
+    "Death to the Dorgeshuun",
+    "Defender of Varrock",
+    "Demon Slayer",
+    "Desert Treasure I",
+    "Desert Treasure II - The Fallen Empire",
+    "Devious Minds",
+    "Doric's Quest",
+    "Dragon Slayer I",
+    "Dragon Slayer II",
+    "Dream Mentor",
+    "Druidic Ritual",
+    "Dwarf Cannon",
+    "Eagles' Peak",
+    "Eadgar's Ruse",
+    "Elemental Workshop I",
+    "Elemental Workshop II",
+    "Enakhra's Lament",
+    "Enlightened Journey",
+    "Ernest the Chicken",
+    "Ethically Acquired Antiquities",
+    "Fairytale I - Growing Pains",
+    "Fairytale II - Cure a Queen",
+    "Family Crest",
+    "Fight Arena",
+    "Fishing Contest",
+    "Forgettable Tale...",
+    "Garden of Tranquillity",
+    "Gertrude's Cat",
+    "Getting Ahead",
+    "Ghosts Ahoy",
+    "Goblin Diplomacy",
+    "Grim Tales",
+    "Hazeel Cult",
+    "Haunted Mine",
+    "Heroes' Quest",
+    "Holy Grail",
+    "Horror from the Deep",
+    "Icthlarin's Little Helper",
+    "Imp Catcher",
+    "In Aid of the Myreque",
+    "In Search of the Myreque",
+    "Jungle Potion",
+    "King's Ransom",
+    "Land of the Goblins",
+    "Learning the Ropes",
+    "Legends' Quest",
+    "Lost City",
+    "Lunar Diplomacy",
+    "Making Friends with My Arm",
+    "Making History",
+    "Meat and Greet",
+    "Merlin's Crystal",
+    "Misthalin Mystery",
+    "Monkey Madness I",
+    "Monkey Madness II",
+    "Monk's Friend",
+    "Mourning's End Part I",
+    "Mourning's End Part II",
+    "Mountain Daughter",
+    "Murder Mystery",
+    "My Arm's Big Adventure",
+    "Nature Spirit",
+    "Observatory Quest",
+    "Olaf's Quest",
+    "One Small Favour",
+    "Pandemonium",
+    "Perilous Moons",
+    "Pirate's Treasure",
+    "Plague City",
+    "Priest in Peril",
+    "Prince Ali Rescue",
+    "Prying Times",
+    "Rag and Bone Man I",
+    "Rag and Bone Man II",
+    "Ratcatchers",
+    "Recipe for Disaster",
+    "Recruitment Drive",
+    "Regicide",
+    "Romeo & Juliet",
+    "Roving Elves",
+    "Royal Trouble",
+    "Rum Deal",
+    "Rune Mysteries",
+    "Scorpion Catcher",
+    "Scrambled!",
+    "Sea Slug",
+    "Secrets of the North",
+    "Shadow of the Storm",
+    "Shadows of Custodia",
+    "Shades of Mort'ton",
+    "Sheep Herder",
+    "Sheep Shearer",
+    "Shield of Arrav",
+    "Shilo Village",
+    "Sins of the Father",
+    "Sleeping Giants",
+    "Song of the Elves",
+    "Spirits of the Elid",
+    "Swan Song",
+    "Tai Bwo Wannai Trio",
+    "Tale of the Righteous",
+    "Tears of Guthix",
+    "Temple of Ikov",
+    "Temple of the Eye",
+    "The Ascent of Arceuus",
+    "The Corsair Curse",
+    "The Curse of Arrav",
+    "The Depths of Despair",
+    "The Dig Site",
+    "The Eyes of Glouphrie",
+    "The Feud",
+    "The Final Dawn",
+    "The Forsaken Tower",
+    "The Fremennik Exiles",
+    "The Fremennik Isles",
+    "The Fremennik Trials",
+    "The Garden of Death",
+    "The Giant Dwarf",
+    "The Golem",
+    "The Grand Tree",
+    "The Great Brain Robbery",
+    "The Hand in the Sand",
+    "The Heart of Darkness",
+    "The Ides of Milk",
+    "The Knight's Sword",
+    "The Lost Tribe",
+    "The Path of Glouphrie",
+    "The Queen of Thieves",
+    "The Red Reef",
+    "The Restless Ghost",
+    "The Ribbiting Tale of a Lily Pad Labour Dispute",
+    "The Slug Menace",
+    "The Tourist Trap",
+    "Throne of Miscellania",
+    "Tower of Life",
+    "Tree Gnome Village",
+    "Tribal Totem",
+    "Troll Romance",
+    "Troll Stronghold",
+    "Troubled Tortugans",
+    "Twilight's Promise",
+    "Underground Pass",
+    "Vampyre Slayer",
+    "Wanted!",
+    "Watchtower",
+    "Waterfall Quest",
+    "What Lies Below",
+    "While Guthix Sleeps",
+    "Witch's House",
+    "Witch's Potion",
+    "X Marks the Spot",
+    "Zogre Flesh Eaters",
+];
+
+/** Every F2P quest-list row has a matching content record. Keeping the group
+ * derived from that record prevents the list and the journal facts from
+ * drifting apart when a new free-to-play quest is added. */
+const FREE_TO_PLAY_QUEST_NAMES = new Set<string>(
+    FREE_TO_PLAY_QUEST_CONTENT.map((quest) => quest.displayName),
+);
+
+for (const quest of FREE_TO_PLAY_QUEST_CONTENT) {
+    if (!QUEST_DISPLAY_NAMES.includes(quest.displayName)) {
+        throw new Error(`Free-to-play quest is missing from the display catalog: ${quest.displayName}`);
+    }
+}
+
+for (const quest of MEMBERS_QUEST_CONTENT) {
+    if (!QUEST_DISPLAY_NAMES.includes(quest.displayName)) {
+        throw new Error(`Members quest is missing from the display catalog: ${quest.displayName}`);
+    }
+}
+
+/**
+ * Miniquests are intentionally distinct from the 181 quest records above:
+ * they appear in the side journal for discovery, but do not add quest points
+ * or alter the completed-quest count.
+ */
+const MINIQUEST_DISPLAY_NAMES: readonly string[] = [
+    "Alfred Grimhand's Barcrawl",
+    "Barbarian Training",
+    "Bear Your Soul",
+    "Curse of the Empty Lord",
+    "Daddy's Home",
+    "Enter the Abyss",
+    "Family Pest",
+    "The Enchanted Key",
+    "The Frozen Door",
+    "The General's Shadow",
+    "His Faithful Servants",
+    "Hopespear's Will",
+    "In Search of Knowledge",
+    "Into the Tombs",
+    "Lair of Tarn Razorlor",
+    "Mage Arena I",
+    "Mage Arena II",
+    "Skippy and the Mogres",
+    "Vale Totems",
+];
+
+function normalizeCatalogKey(value: string): string {
+    return String(value ?? "").trim().toLowerCase();
+}
+
+/** The single source of truth for every displayable quest-list entry. */
+export const VANILLA_QUEST_CATALOG: readonly QuestCatalogEntry[] = QUEST_DISPLAY_NAMES.map(
+    (displayName) => ({ key: normalizeCatalogKey(displayName), displayName }),
+);
+
+export const VANILLA_MINIQUEST_CATALOG: readonly QuestCatalogEntry[] = MINIQUEST_DISPLAY_NAMES.map(
+    (displayName) => ({ key: normalizeCatalogKey(displayName), displayName }),
+);
+
+/** Quest-list groups are a view derived from the canonical catalog. */
+export const VANILLA_QUEST_LIST_GROUPS: readonly GamemodeQuestListGroup[] = [
+    {
+        title: "Free-to-play",
+        quests: VANILLA_QUEST_CATALOG
+            .filter((entry) => FREE_TO_PLAY_QUEST_NAMES.has(entry.displayName))
+            .map((entry) => entry.displayName),
+    },
+    {
+        title: "Members",
+        quests: VANILLA_QUEST_CATALOG
+            .filter((entry) => !FREE_TO_PLAY_QUEST_NAMES.has(entry.displayName))
+            .map((entry) => entry.displayName),
+    },
+    {
+        title: "Miniquests",
+        quests: VANILLA_MINIQUEST_CATALOG.map((entry) => entry.displayName),
+        countsTowardsQuestSummary: false,
+    },
+];

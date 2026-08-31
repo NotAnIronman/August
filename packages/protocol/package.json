@@ -1,0 +1,25 @@
+{
+  "name": "@august/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./binary": "./src/binary/index.ts",
+    "./hashing": "./src/hashing/index.ts",
+    "./transport": "./src/transport/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "js-xxhash": "^5.0.1",
+    "xxhash-wasm": "^1.1.0"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

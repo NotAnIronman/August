@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "kind": "generated-cache-definition-snapshots",
+  "owner": "client-cache",
+  "artifacts": [
+    {
+      "path": "data/generated/cache/items.json",
+      "producer": "tools/cache/client/export-items.ts",
+      "command": "pnpm --filter @august/client export-items",
+      "present": false
+    },
+    {
+      "path": "data/generated/cache/npcs.json",
+      "producer": "tools/cache/client/export-npcs.ts",
+      "command": "pnpm --filter @august/client export-npcs",
+      "present": true
+    },
+    {
+      "path": "data/generated/cache/locs.json",
+      "producer": "tools/cache/client/export-locs.ts",
+      "command": "pnpm --filter @august/client export-locs",
+      "present": true
+    }
+  ],
+  "rules": [
+    "Do not hand-edit generated snapshots.",
+    "Regenerate from a cache listed in apps/server/var/cache/osrs/caches.json.",
+    "Review generated diffs before committing them.",
+    "Store canonical mutable catalogs under data/catalogs instead."
+  ]
+}

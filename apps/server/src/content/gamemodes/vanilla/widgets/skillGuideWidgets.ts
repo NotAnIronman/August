@@ -1,0 +1,244 @@
+import {
+    VARBIT_SKILL_GUIDE_SKILL,
+    VARBIT_SKILL_GUIDE_SUBSECTION,
+} from "@august/game-model/state/vars";
+import { SKILL_GUIDE_PANEL_GROUP_ID } from "@august/protocol/ui/widgets";
+import { ComponentIds } from "@august/protocol/uikit/contracts";
+import { getSkillName, SKILL_IDS, SkillId } from "@august/osrs-engine/skill/skills";
+import type { UiIconRow } from "@august/protocol/uikit/contracts";
+import type { PlayerState } from "@server/game/player";
+import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
+import { getSkillGuideData } from "@server/content/gamemodes/vanilla/skill-guide";
+import type { SkillGuideEntry, SkillGuideRequirement } from "@server/content/gamemodes/vanilla/skill-guide/types";
+import { openUiPanel, sendUiIconRows, sendUiTabs } from "@server/content/gamemodes/vanilla/uikit/panelData";
+
+/**
+ * Skill guide widget handlers - opens a tabbed skill guide panel when a
+ * skill tab is clicked, driven by server/gamemodes/vanilla/skill-guide/
+ * data/<skill>.ts.
+ *
+ * Built entirely on the UI kit (server/gamemodes/vanilla/uikit/
+ * panelData.ts + client/widgets/custom/skillGuidePanel.ts) - this file
+ * only supplies skill-guide-specific data (which skill's data to load,
+ * the skills-tab-to-skill mapping) and no longer duplicates the
+ * frame/tab/row population logic every other custom panel also needs.
+ */
+
+const SKILLS_TAB_GROUP_ID = 320;
+const GUIDE_ORANGE = "ff981f";
+const GUIDE_REQUIREMENT_MET = "a89a80";
+const GUIDE_REQUIREMENT_UNMET = "ff0000";
+
+const SKILL_ID_BY_NAME = new Map(
+    SKILL_IDS.map((skillId) => [getSkillName(skillId).toLowerCase(), skillId]),
+);
+
+type SkillGuideEntryDef = {
+    childId: number;
+    skillVarbitValue: number;
+    skillName: string;
+    skillId: SkillId;
+};
+
+/**
+ * Skill guide buttons in interface 320 mapped to their guide varbit values.
+ * Based on RSMod's SkillGuide.kt enum.
+ */
+const SKILL_GUIDE_ENTRIES: readonly SkillGuideEntryDef[] = [
+    { childId: 1, skillVarbitValue: 1, skillName: "Attack", skillId: SkillId.Attack },
+    { childId: 2, skillVarbitValue: 2, skillName: "Strength", skillId: SkillId.Strength },
+    { childId: 3, skillVarbitValue: 5, skillName: "Defence", skillId: SkillId.Defence },
+    { childId: 4, skillVarbitValue: 3, skillName: "Ranged", skillId: SkillId.Ranged },
+    { childId: 5, skillVarbitValue: 7, skillName: "Prayer", skillId: SkillId.Prayer },
+    { childId: 6, skillVarbitValue: 4, skillName: "Magic", skillId: SkillId.Magic },
+    { childId: 7, skillVarbitValue: 12, skillName: "Runecrafting", skillId: SkillId.Runecraft },
+    { childId: 8, skillVarbitValue: 22, skillName: "Construction", skillId: SkillId.Construction },
+    { childId: 9, skillVarbitValue: 6, skillName: "Hitpoints", skillId: SkillId.Hitpoints },
+    { childId: 10, skillVarbitValue: 8, skillName: "Agility", skillId: SkillId.Agility },
+    { childId: 11, skillVarbitValue: 9, skillName: "Herblore", skillId: SkillId.Herblore },
+    { childId: 12, skillVarbitValue: 10, skillName: "Thieving", skillId: SkillId.Thieving },
+    { childId: 13, skillVarbitValue: 11, skillName: "Crafting", skillId: SkillId.Crafting },
+    { childId: 14, skillVarbitValue: 19, skillName: "Fletching", skillId: SkillId.Fletching },
+    { childId: 15, skillVarbitValue: 20, skillName: "Slayer", skillId: SkillId.Slayer },
+    { childId: 16, skillVarbitValue: 23, skillName: "Hunter", skillId: SkillId.Hunter },
+    { childId: 17, skillVarbitValue: 13, skillName: "Mining", skillId: SkillId.Mining },
+    { childId: 18, skillVarbitValue: 14, skillName: "Smithing", skillId: SkillId.Smithing },
+    { childId: 19, skillVarbitValue: 15, skillName: "Fishing", skillId: SkillId.Fishing },
+    { childId: 20, skillVarbitValue: 16, skillName: "Cooking", skillId: SkillId.Cooking },
+    { childId: 21, skillVarbitValue: 17, skillName: "Firemaking", skillId: SkillId.Firemaking },
+    { childId: 22, skillVarbitValue: 18, skillName: "Woodcutting", skillId: SkillId.Woodcutting },
+    { childId: 23, skillVarbitValue: 21, skillName: "Farming", skillId: SkillId.Farming },
+    { childId: 24, skillVarbitValue: 24, skillName: "Sailing", skillId: SkillId.Sailing },
+];
+
+function findSkillGuideEntryByVarbitValue(value: number): SkillGuideEntryDef | undefined {
+    return SKILL_GUIDE_ENTRIES.find((e) => e.skillVarbitValue === value);
+}
+
+function requirementsForEntry(entry: SkillGuideEntry): {
+    name: string;
+    requirements: readonly SkillGuideRequirement[];
+} {
+    const explicit = entry.requires ?? entry.Requires;
+    if (explicit !== undefined) {
+        const requirements = (Array.isArray(explicit) ? explicit : [explicit]).filter(
+            (requirement) => typeof requirement !== "string" || requirement.trim().length > 0,
+        );
+        return { name: entry.name, requirements };
+    }
+
+    // Existing generated tables used trailing "(with …)" text inside the
+    // name. Preserve that content while displaying it in the new dedicated
+    // requirement field until the next importer refresh rewrites the files.
+    const legacy = /^(.*?)\s+\(with\s+(.+)\)$/i.exec(entry.name.trim());
+    if (!legacy) return { name: entry.name, requirements: [] };
+    return { name: legacy[1].trim(), requirements: [legacy[2].trim()] };
+}
+
+/** A hand-authored string may contain several independently checked skill
+ * requirements, e.g. "Level 30 Ranged, Level 30 Magic". Split separators
+ * here so one unmet skill never paints every other requirement grey. */
+function splitRequirementList(requirement: SkillGuideRequirement): readonly SkillGuideRequirement[] {
+    if (typeof requirement !== "string") return [requirement];
+    const parts = requirement
+        .split(/\s*(?:,|;|&|\band\b)\s*/i)
+        .map((part) => part.trim())
+        .filter(Boolean);
+    return parts.length > 1 ? parts : [requirement];
+}
+
+function parseSkillLevelRequirement(text: string): { skillId: SkillId; level: number } | undefined {
+    const normalized = text.replace(/\s+/g, " ").trim();
+    const levelFirst = /^(?:level )?(\d{1,3}) (.+)$/i.exec(normalized);
+    const skillFirst = /^(.+?) (?:level )?(\d{1,3})$/i.exec(normalized);
+    const level = Number(levelFirst?.[1] ?? skillFirst?.[2]);
+    const skillName = (levelFirst?.[2] ?? skillFirst?.[1] ?? "").trim().toLowerCase();
+    const skillId = SKILL_ID_BY_NAME.get(skillName);
+    if (skillId === undefined || !Number.isFinite(level) || level < 1) return undefined;
+    return { skillId, level };
+}
+
+function renderRequirement(
+    services: ScriptServices,
+    player: PlayerState,
+    requirement: SkillGuideRequirement,
+): string {
+    let parsed: { skillId: SkillId; level: number } | undefined;
+    let text: string;
+    if (typeof requirement === "string") {
+        parsed = parseSkillLevelRequirement(requirement);
+        text = parsed ? `Level ${parsed.level} ${getSkillName(parsed.skillId)}` : requirement.trim();
+    } else {
+        parsed = { skillId: requirement.skillId, level: requirement.level };
+        text = requirement.text?.trim() || `Level ${parsed.level} ${getSkillName(parsed.skillId)}`;
+    }
+    const meetsRequirement = parsed
+        ? (services.skills.getSkill(player, parsed.skillId)?.baseLevel ?? 1) >= parsed.level
+        // A free-form requirement (quest, item, minigame, etc.) has no
+        // player-state predicate in this guide schema, so keep it neutral
+        // rather than claiming it is unmet.
+        : true;
+    return `<col=${meetsRequirement ? GUIDE_REQUIREMENT_MET : GUIDE_REQUIREMENT_UNMET}>${text}</col>`;
+}
+
+function toSkillGuideRow(
+    services: ScriptServices,
+    player: PlayerState,
+    entry: SkillGuideEntry,
+): UiIconRow {
+    const { name, requirements: rawRequirements } = requirementsForEntry(entry);
+    const requirements = rawRequirements.flatMap(splitRequirementList);
+    const description = requirements.length === 0
+        ? entry.description
+        : `<col=${GUIDE_ORANGE}>Requires:</col> ${requirements
+            .map((requirement) => renderRequirement(services, player, requirement))
+            .join(`<col=${GUIDE_REQUIREMENT_MET}>, </col>`)}`;
+    return {
+        itemId: entry.itemId ?? entry.itemID ?? -1,
+        level: entry.level,
+        levelLabel: `<col=${GUIDE_ORANGE}>${entry.level}</col>`,
+        name: `<col=${GUIDE_ORANGE}>${name}</col>`,
+        ...(description ? { description } : {}),
+    };
+}
+
+/**
+ * Populates the sidebar tabs + the currently selected tab's entries.
+ * Safe to call repeatedly (tab clicks) without reopening the modal.
+ */
+function renderSkillGuidePanel(
+    services: ScriptServices,
+    player: PlayerState,
+    skillId: SkillId,
+    activeTabIndex: number,
+): void {
+    const playerId = player.id;
+    const data = getSkillGuideData(skillId);
+    const tabs = data.tabs;
+    const clampedIndex =
+        tabs.length === 0 ? 0 : Math.min(Math.max(activeTabIndex, 0), tabs.length - 1);
+
+    sendUiTabs(services, playerId, SKILL_GUIDE_PANEL_GROUP_ID, tabs, clampedIndex, {
+        active: "ffcf70",
+        inactive: "ff981f",
+    });
+    sendUiIconRows(
+        services,
+        playerId,
+        SKILL_GUIDE_PANEL_GROUP_ID,
+        (tabs[clampedIndex]?.entries ?? []).map((entry) => toSkillGuideRow(services, player, entry)),
+        { alternatingBackground: true },
+    );
+}
+
+export function registerSkillGuideWidgetHandlers(
+    registry: IScriptRegistry,
+    services: ScriptServices,
+): void {
+    // Register a handler for each skill in the skills tab (interface 320)
+    // Uses onButton since binary IF_BUTTON packets don't send option strings
+    for (const entry of SKILL_GUIDE_ENTRIES) {
+        registry.onButton(SKILLS_TAB_GROUP_ID, entry.childId, (event) => {
+            const player = event.player;
+            const playerId = player.id;
+
+            player.varps.setVarbitValue(VARBIT_SKILL_GUIDE_SUBSECTION, 0);
+            player.varps.setVarbitValue(VARBIT_SKILL_GUIDE_SKILL, entry.skillVarbitValue);
+            services.variables.queueVarbit?.(playerId, VARBIT_SKILL_GUIDE_SUBSECTION, 0);
+            services.variables.queueVarbit?.(
+                playerId,
+                VARBIT_SKILL_GUIDE_SKILL,
+                entry.skillVarbitValue,
+            );
+
+            openUiPanel(services, player, SKILL_GUIDE_PANEL_GROUP_ID, `${entry.skillName} Guide`, {
+                varbits: {
+                    [VARBIT_SKILL_GUIDE_SUBSECTION]: 0,
+                    [VARBIT_SKILL_GUIDE_SKILL]: entry.skillVarbitValue,
+                },
+            });
+
+            renderSkillGuidePanel(services, player, entry.skillId, 0);
+        });
+    }
+
+    // Sidebar tab clicks - switch the active tab without reopening the modal.
+    for (let i = 0; i < ComponentIds.MAX_TABS; i++) {
+        registry.onButton(
+            SKILL_GUIDE_PANEL_GROUP_ID,
+            ComponentIds.TAB_BASE + i,
+            (event) => {
+                const player = event.player;
+                const playerId = player.id;
+                const skillVarbitValue = player.varps.getVarbitValue(VARBIT_SKILL_GUIDE_SKILL);
+                const entry = findSkillGuideEntryByVarbitValue(skillVarbitValue);
+                if (!entry) return;
+
+                player.varps.setVarbitValue(VARBIT_SKILL_GUIDE_SUBSECTION, i);
+                services.variables.queueVarbit?.(playerId, VARBIT_SKILL_GUIDE_SUBSECTION, i);
+
+                renderSkillGuidePanel(services, player, entry.skillId, i);
+            },
+        );
+    }
+}
