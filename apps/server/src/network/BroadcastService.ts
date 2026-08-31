@@ -244,6 +244,12 @@ export class BroadcastService {
         this.svc.broadcastScheduler.queueKeyedMessage("trade", playerId, payload);
     }
 
+    /** Generic dev/debug JSON channel to a single player - piggybacks on the
+     *  existing DEBUG_PACKET wire message instead of a new binary opcode. */
+    queueDebugMessage(playerId: number, payload: Record<string, unknown>): void {
+        this.svc.broadcastScheduler.queueKeyedMessage("debug", playerId, payload);
+    }
+
     queueClientScript(playerId: number, scriptId: number, ...args: (number | string)[]): void {
         logger.info?.(
             `[clientScript] queue player=${playerId} script=${scriptId} args=${JSON.stringify(

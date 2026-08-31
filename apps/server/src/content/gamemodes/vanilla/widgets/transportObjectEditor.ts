@@ -29,16 +29,19 @@ function save(value: Catalog): void {
     reloadDevObjectTransitions();
 }
 function state(player: PlayerState): State { const current = states.get(player.id) ?? { rowIds: [] }; states.set(player.id, current); return current; }
-function tile(value: string): Tile | undefined {
+function tile(value: string, player?: PlayerState): Tile | undefined {
+    if (player && value.trim().toLowerCase() === "here") {
+        return { x: player.tileX, y: player.tileY, level: player.level };
+    }
     const parts = value.trim().split(/[\s,]+/).map(Number);
     return parts.length === 3 && parts.every(Number.isInteger) && parts.every((part) => part >= 0)
         ? { x: parts[0], y: parts[1], level: parts[2] } : undefined;
 }
 function stepPrompt(step: Step): string {
-    return ({ locId: "Enter Object ID", option: "Enter selection option (1-5)", from: "Enter start coordinates: x, y, level", to: "Enter end coordinates: x, y, level", animation: "Enter animation ID, or 'none'" })[step];
+    return ({ locId: "Enter Object ID", option: "Enter selection option (1-5)", from: "Enter start coordinates: x, y, level (or 'here')", to: "Enter end coordinates: x, y, level (or 'here')", animation: "Enter animation ID, or 'none'" })[step];
 }
 function inputLabel(step: Step): string {
-    return ({ locId: "Object ID:", option: "Option:", from: "Start x, y, z:", to: "End x, y, z:", animation: "Animation:" })[step];
+    return ({ locId: "Object ID:", option: "Option:", from: "Start x, y, z (or here):", to: "End x, y, z (or here):", animation: "Animation:" })[step];
 }
 function nextId(entries: readonly Transition[]): string {
     return `rule-${entries.reduce((high, entry) => Math.max(high, Number(/^rule-(\d+)$/i.exec(entry.id)?.[1] ?? 0)), 0) + 1}`;
@@ -100,8 +103,8 @@ function acceptInput(player: PlayerState, services: ScriptServices, text: string
     const keep = pending.editId !== undefined && text.length === 0;
     if (pending.step === "locId") { const locId = keep ? pending.draft.locId : Number(text); if (typeof locId !== "number" || !Number.isInteger(locId) || locId <= 0) return invalid(); pending.draft.locId = locId; pending.step = "option"; }
     else if (pending.step === "option") { const option = keep ? pending.draft.option : Number(text); const locId = pending.draft.locId; if (typeof option !== "number" || !Number.isInteger(option) || option < 1 || option > 5 || typeof locId !== "number") return invalid(); pending.draft.option = option; pending.draft.action = actionFor(services, locId, option).toLowerCase(); pending.step = "from"; }
-    else if (pending.step === "from") { const value = keep ? pending.draft.from : tile(text); if (!value) return invalid(); pending.draft.from = value; pending.step = "to"; }
-    else if (pending.step === "to") { const value = keep ? pending.draft.to : tile(text); if (!value) return invalid(); pending.draft.to = value; pending.step = "animation"; }
+    else if (pending.step === "from") { const value = keep ? pending.draft.from : tile(text, player); if (!value) return invalid(); pending.draft.from = value; pending.step = "to"; }
+    else if (pending.step === "to") { const value = keep ? pending.draft.to : tile(text, player); if (!value) return invalid(); pending.draft.to = value; pending.step = "animation"; }
     else { if (!keep) { if (text.toLowerCase() !== "none") { const animationId = Number(text); if (!Number.isInteger(animationId) || animationId < 0) return invalid(); pending.draft.animationId = animationId; } else delete pending.draft.animationId; } const complete = pending.draft as Transition; const value = catalog(); if (pending.editId) value.transitions = value.transitions.map((entry) => entry.id === pending.editId ? { ...complete, id: pending.editId } : entry); else value.transitions.push({ ...complete, id: nextId(value.transitions) }); save(value); current.selectedId = pending.editId ?? nextId(value.transitions.slice(0, -1)); current.pending = undefined; }
     render(player, services); return undefined;
 }
@@ -111,9 +114,10 @@ export function registerTransportObjectEditor(registry: IScriptRegistry, service
         const action = args[0]?.toLowerCase();
         if (!action || action === "open" || action === "list") { open(player, services); return; }
         if (action === "add") { begin(player, services); return; }
+        if (action === "here") return acceptInput(player, services, "here");
         if (action === "input") return acceptInput(player, services, args.slice(1).join(" ").trim());
         if (action === "selectrow" || action === "editrow") { const id = state(player).rowIds[Number(args[1])]; if (!id) return; state(player).selectedId = id; if (action === "editrow") begin(player, services, id); else render(player, services); return; }
-        return "Usage: ::to — opens the Transport Object editor.";
+        return "Usage: ::to — opens the Transport Object editor. ::to here fills the current step with your position.";
     };
     registry.registerCommand("to", command, { permission: "developer", owner: "developer:transport-object-editor", summary: "Open the Transport Object editor." });
     registerUiPanelActions(registry, services, DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, [

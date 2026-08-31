@@ -149,6 +149,16 @@ export const state = {
     rebuildNormalListeners: new Set<(payload: RebuildNormalPayload) => void>(),
     rebuildWorldEntityListeners: new Set<(payload: RebuildWorldEntityPayload) => void>(),
     worldEntityInfoListeners: new Set<(payload: WorldEntityInfoPayload) => void>(),
+    // ::dig/::to editor area preview (piggybacks on the generic debug JSON
+    // channel rather than a new binary wire opcode). See OsrsClient's
+    // registration of this listener for the actual tileHighlightManager calls.
+    devAreaPreviewListeners: new Set<
+        (payload: {
+            mode: "point" | "perimeter" | "clear";
+            level?: number;
+            tiles?: { x: number; y: number }[];
+        }) => void
+    >(),
     welcomeListeners: new Set<(info: { tickMs: number; serverTime: number }) => void>(),
     loginResponseListeners: new Set<
         (info: { success: boolean; error?: string; displayName?: string }) => void

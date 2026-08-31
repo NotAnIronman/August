@@ -188,7 +188,7 @@ import {
 } from "@client/engine/rendering/shaders/Shaders";
 import { KNOWN_WATER_TEXTURE_IDS } from "@client/engine/rendering/water/WaterTextureIds";
 import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
-import { RENDER_CONSTANTS } from "@client/engine/rendering/render/constants";
+import { RENDER_CONSTANTS, HD_SKY_COLOR_VEC4 } from "@client/engine/rendering/render/constants";
 
 export function resolveLocReloadBatchMap(host: WebGLOsrsRendererHost, 
         batchId: number,
@@ -452,6 +452,12 @@ export function clearMaps(host: WebGLOsrsRendererHost, ): void {
         host.pendingStreamMapsByGeneration.clear();
         host.observedGridRevision = -1;
         host.skipMapFadeIn = false;
+        // Safety net: if a load/teleport is torn down mid-flight (e.g. an
+        // instance closing), don't leave the darkened loading clear color
+        // stuck on screen.
+        host.skyColor[0] = HD_SKY_COLOR_VEC4[0];
+        host.skyColor[1] = HD_SKY_COLOR_VEC4[1];
+        host.skyColor[2] = HD_SKY_COLOR_VEC4[2];
         host.activeStreamGeneration = 0;
         host.activeStreamExpectedMapIds.clear();
         host.pendingLocUpdates.clear();

@@ -80,6 +80,7 @@ import {
     subscribeFriendsChat,
     subscribeHandshake,
     subscribeInventory,
+    subscribeDevAreaPreview,
     subscribeNotifications,
     subscribeNpcInfo,
     subscribePlayJingle,
@@ -3410,6 +3411,35 @@ export class OsrsClient {
                         // This allows the LOADING_GAME -> LOGGED_IN transition
                         this.loadingTracker.markComplete(LoadingRequirement.HANDSHAKE_COMPLETE);
                     } catch {}
+                }),
+            );
+
+            this.trackServerSubscription(
+                subscribeDevAreaPreview((payload) => {
+                    // Reserved slot for ::to/::dig editor previews - well
+                    // clear of the numeric range CS2 cache scripts use for
+                    // their own tile-highlight configuration.
+                    const DEV_AREA_PREVIEW_SLOT = 60000;
+                    try {
+                        if (payload.mode === "clear" || !payload.tiles || payload.tiles.length === 0) {
+                            this.tileHighlightManager.clear(DEV_AREA_PREVIEW_SLOT);
+                            return;
+                        }
+                        const level = (payload.level ?? 0) & 0x3;
+                        // Cyan, always-on-top (0x10) so the preview stays
+                        // visible indoors/underground where camera occlusion
+                        // would otherwise hide a normal ground marker.
+                        this.tileHighlightManager.configure(DEV_AREA_PREVIEW_SLOT, 0x33ccff, 1, 30, 0x10);
+                        this.tileHighlightManager.clear(DEV_AREA_PREVIEW_SLOT);
+                        for (const t of payload.tiles) {
+                            const x = t.x & 0x3fff;
+                            const y = t.y & 0x3fff;
+                            const packed = ((level & 0x3) << 28) | (x << 14) | y;
+                            this.tileHighlightManager.set(packed, DEV_AREA_PREVIEW_SLOT, 0);
+                        }
+                    } catch (err) {
+                        console.warn("[OsrsClient] dev area preview error", err);
+                    }
                 }),
             );
 

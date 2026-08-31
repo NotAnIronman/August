@@ -41,6 +41,17 @@ export function subscribeWorldEntityInfo(fn: (payload: WorldEntityInfoPayload) =
     return () => state.worldEntityInfoListeners.delete(fn);
 }
 
+export function subscribeDevAreaPreview(
+    fn: (payload: {
+        mode: "point" | "perimeter" | "clear";
+        level?: number;
+        tiles?: { x: number; y: number }[];
+    }) => void,
+): () => void {
+    state.devAreaPreviewListeners.add(fn);
+    return () => state.devAreaPreviewListeners.delete(fn);
+}
+
 export function subscribePlayerSync(cb: (frame: PlayerSyncFrame) => void): () => void {
     state.playerSyncListeners.add(cb);
     return () => state.playerSyncListeners.delete(cb);

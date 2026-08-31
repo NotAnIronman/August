@@ -49,6 +49,18 @@ export const HD_SKY_COLOR_VEC4: readonly [number, number, number, number] = [
 ];
 
 /**
+ * Clear color used while a cross-region teleport's map squares are still
+ * streaming in (host.skipMapFadeIn window). The raw HD sky blue is bright
+ * enough to be jarring shown full-screen with nothing else rendered yet
+ * ("flashbanged" on a long-distance ::to/::dig teleport); a calm dark
+ * neutral is far easier on the eyes for that gap and reads as "loading"
+ * rather than "broken".
+ */
+export const LOADING_CLEAR_COLOR_VEC4: readonly [number, number, number, number] = [
+    0.05, 0.05, 0.06, 1,
+];
+
+/**
  * Dynamic fog start as a fraction of render distance (117HD-style adaptive fog).
  * Fog ramps from this start to full opacity at the draw-distance edge.
  */

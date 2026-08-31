@@ -162,6 +162,7 @@ export interface ScriptServiceAdapterDeps {
     queueCameraEvent: (playerId: number, payload: CameraControlPayload) => void;
     queueProjectile: (projectile: ProjectileLaunch) => void;
     queueSmithingInterfaceMessage: (playerId: number, payload: Record<string, unknown>) => void;
+    queueDebugMessage: (playerId: number, payload: Record<string, unknown>) => void;
     queueExternalNpcTeleportSync: (npc: NpcState) => void;
     teleportToWorldEntity: (
         player: PlayerState,
@@ -738,6 +739,7 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             queueClientScript: (playerId, scriptId, ...args) =>
                 deps.queueClientScript(playerId, scriptId, ...args),
             queueWidgetEvent: (playerId, event) => deps.queueWidgetEvent(playerId, event),
+            queueDebugMessage: (playerId, payload) => deps.queueDebugMessage(playerId, payload),
         },
         movement: {
             teleportPlayer: (player, x, y, level, forceRebuild) =>

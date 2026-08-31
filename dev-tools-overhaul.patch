@@ -1,0 +1,492 @@
+diff --git a/apps/client/src/core/network/server-connection/handlers/inboundSync.ts b/apps/client/src/core/network/server-connection/handlers/inboundSync.ts
+index 6f763742..c674b79c 100644
+--- a/apps/client/src/core/network/server-connection/handlers/inboundSync.ts
++++ b/apps/client/src/core/network/server-connection/handlers/inboundSync.ts
+@@ -212,6 +212,14 @@ export function handleInboundSync(msg: any): boolean {
+             } catch (err) {
+                 console.warn("[debug] anim snapshot failed", err);
+             }
++        } else if (payload?.kind === "dig_area_preview") {
++            for (const listener of state.devAreaPreviewListeners) {
++                try {
++                    listener(payload);
++                } catch (err) {
++                    console.warn("[debug] dig area preview listener failed", err);
++                }
++            }
+         }
+         return true;
+     }
+diff --git a/apps/client/src/core/network/server-connection/state.ts b/apps/client/src/core/network/server-connection/state.ts
+index 954ffbaf..a92e5873 100644
+--- a/apps/client/src/core/network/server-connection/state.ts
++++ b/apps/client/src/core/network/server-connection/state.ts
+@@ -149,6 +149,16 @@ export const state = {
+     rebuildNormalListeners: new Set<(payload: RebuildNormalPayload) => void>(),
+     rebuildWorldEntityListeners: new Set<(payload: RebuildWorldEntityPayload) => void>(),
+     worldEntityInfoListeners: new Set<(payload: WorldEntityInfoPayload) => void>(),
++    // ::dig/::to editor area preview (piggybacks on the generic debug JSON
++    // channel rather than a new binary wire opcode). See OsrsClient's
++    // registration of this listener for the actual tileHighlightManager calls.
++    devAreaPreviewListeners: new Set<
++        (payload: {
++            mode: "point" | "perimeter" | "clear";
++            level?: number;
++            tiles?: { x: number; y: number }[];
++        }) => void
++    >(),
+     welcomeListeners: new Set<(info: { tickMs: number; serverTime: number }) => void>(),
+     loginResponseListeners: new Set<
+         (info: { success: boolean; error?: string; displayName?: string }) => void
+diff --git a/apps/client/src/core/network/server-connection/subscriptions/sync.ts b/apps/client/src/core/network/server-connection/subscriptions/sync.ts
+index ab97487e..681043e4 100644
+--- a/apps/client/src/core/network/server-connection/subscriptions/sync.ts
++++ b/apps/client/src/core/network/server-connection/subscriptions/sync.ts
+@@ -41,6 +41,17 @@ export function subscribeWorldEntityInfo(fn: (payload: WorldEntityInfoPayload) =
+     return () => state.worldEntityInfoListeners.delete(fn);
+ }
+ 
++export function subscribeDevAreaPreview(
++    fn: (payload: {
++        mode: "point" | "perimeter" | "clear";
++        level?: number;
++        tiles?: { x: number; y: number }[];
++    }) => void,
++): () => void {
++    state.devAreaPreviewListeners.add(fn);
++    return () => state.devAreaPreviewListeners.delete(fn);
++}
++
+ export function subscribePlayerSync(cb: (frame: PlayerSyncFrame) => void): () => void {
+     state.playerSyncListeners.add(cb);
+     return () => state.playerSyncListeners.delete(cb);
+diff --git a/apps/client/src/engine/game/OsrsClient.ts b/apps/client/src/engine/game/OsrsClient.ts
+index f679d2bb..84244c29 100644
+--- a/apps/client/src/engine/game/OsrsClient.ts
++++ b/apps/client/src/engine/game/OsrsClient.ts
+@@ -80,6 +80,7 @@ import {
+     subscribeFriendsChat,
+     subscribeHandshake,
+     subscribeInventory,
++    subscribeDevAreaPreview,
+     subscribeNotifications,
+     subscribeNpcInfo,
+     subscribePlayJingle,
+@@ -3413,6 +3414,35 @@ export class OsrsClient {
+                 }),
+             );
+ 
++            this.trackServerSubscription(
++                subscribeDevAreaPreview((payload) => {
++                    // Reserved slot for ::to/::dig editor previews - well
++                    // clear of the numeric range CS2 cache scripts use for
++                    // their own tile-highlight configuration.
++                    const DEV_AREA_PREVIEW_SLOT = 60000;
++                    try {
++                        if (payload.mode === "clear" || !payload.tiles || payload.tiles.length === 0) {
++                            this.tileHighlightManager.clear(DEV_AREA_PREVIEW_SLOT);
++                            return;
++                        }
++                        const level = (payload.level ?? 0) & 0x3;
++                        // Cyan, always-on-top (0x10) so the preview stays
++                        // visible indoors/underground where camera occlusion
++                        // would otherwise hide a normal ground marker.
++                        this.tileHighlightManager.configure(DEV_AREA_PREVIEW_SLOT, 0x33ccff, 1, 30, 0x10);
++                        this.tileHighlightManager.clear(DEV_AREA_PREVIEW_SLOT);
++                        for (const t of payload.tiles) {
++                            const x = t.x & 0x3fff;
++                            const y = t.y & 0x3fff;
++                            const packed = ((level & 0x3) << 28) | (x << 14) | y;
++                            this.tileHighlightManager.set(packed, DEV_AREA_PREVIEW_SLOT, 0);
++                        }
++                    } catch (err) {
++                        console.warn("[OsrsClient] dev area preview error", err);
++                    }
++                }),
++            );
++
+             this.trackServerSubscription(
+                 subscribeRebuildRegion((payload) => {
+                     try {
+diff --git a/apps/client/src/engine/rendering/render/constants.ts b/apps/client/src/engine/rendering/render/constants.ts
+index 59ec9d41..838123b9 100644
+--- a/apps/client/src/engine/rendering/render/constants.ts
++++ b/apps/client/src/engine/rendering/render/constants.ts
+@@ -48,6 +48,18 @@ export const HD_SKY_COLOR_VEC4: readonly [number, number, number, number] = [
+     1,
+ ];
+ 
++/**
++ * Clear color used while a cross-region teleport's map squares are still
++ * streaming in (host.skipMapFadeIn window). The raw HD sky blue is bright
++ * enough to be jarring shown full-screen with nothing else rendered yet
++ * ("flashbanged" on a long-distance ::to/::dig teleport); a calm dark
++ * neutral is far easier on the eyes for that gap and reads as "loading"
++ * rather than "broken".
++ */
++export const LOADING_CLEAR_COLOR_VEC4: readonly [number, number, number, number] = [
++    0.05, 0.05, 0.06, 1,
++];
++
+ /**
+  * Dynamic fog start as a fraction of render distance (117HD-style adaptive fog).
+  * Fog ramps from this start to full opacity at the draw-distance edge.
+diff --git a/apps/client/src/engine/rendering/render/map.ts b/apps/client/src/engine/rendering/render/map.ts
+index bab0ec06..6540be85 100644
+--- a/apps/client/src/engine/rendering/render/map.ts
++++ b/apps/client/src/engine/rendering/render/map.ts
+@@ -188,7 +188,7 @@ import {
+ } from "@client/engine/rendering/shaders/Shaders";
+ import { KNOWN_WATER_TEXTURE_IDS } from "@client/engine/rendering/water/WaterTextureIds";
+ import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
+-import { RENDER_CONSTANTS } from "@client/engine/rendering/render/constants";
++import { RENDER_CONSTANTS, HD_SKY_COLOR_VEC4 } from "@client/engine/rendering/render/constants";
+ 
+ export function resolveLocReloadBatchMap(host: WebGLOsrsRendererHost, 
+         batchId: number,
+@@ -452,6 +452,12 @@ export function clearMaps(host: WebGLOsrsRendererHost, ): void {
+         host.pendingStreamMapsByGeneration.clear();
+         host.observedGridRevision = -1;
+         host.skipMapFadeIn = false;
++        // Safety net: if a load/teleport is torn down mid-flight (e.g. an
++        // instance closing), don't leave the darkened loading clear color
++        // stuck on screen.
++        host.skyColor[0] = HD_SKY_COLOR_VEC4[0];
++        host.skyColor[1] = HD_SKY_COLOR_VEC4[1];
++        host.skyColor[2] = HD_SKY_COLOR_VEC4[2];
+         host.activeStreamGeneration = 0;
+         host.activeStreamExpectedMapIds.clear();
+         host.pendingLocUpdates.clear();
+diff --git a/apps/client/src/engine/rendering/render/streaming.ts b/apps/client/src/engine/rendering/render/streaming.ts
+index 6013d943..d21cc8bf 100644
+--- a/apps/client/src/engine/rendering/render/streaming.ts
++++ b/apps/client/src/engine/rendering/render/streaming.ts
+@@ -188,7 +188,7 @@ import {
+ } from "@client/engine/rendering/shaders/Shaders";
+ import { KNOWN_WATER_TEXTURE_IDS } from "@client/engine/rendering/water/WaterTextureIds";
+ import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
+-import { RENDER_CONSTANTS, StreamMapBatch } from "@client/engine/rendering/render/constants";
++import { RENDER_CONSTANTS, StreamMapBatch, HD_SKY_COLOR_VEC4, LOADING_CLEAR_COLOR_VEC4 } from "@client/engine/rendering/render/constants";
+ 
+ export function getPendingStreamMapCount(host: WebGLOsrsRendererHost, ): number {
+ 
+@@ -239,6 +239,12 @@ export function syncStreamGenerationFromMapManager(host: WebGLOsrsRendererHost,
+         }
+         if (!hasOverlap && nextExpected.size > 0) {
+             host.skipMapFadeIn = true;
++            // Mask the raw bright clear color while nothing from the
++            // destination region has streamed in yet - see
++            // LOADING_CLEAR_COLOR_VEC4 for why.
++            host.skyColor[0] = LOADING_CLEAR_COLOR_VEC4[0];
++            host.skyColor[1] = LOADING_CLEAR_COLOR_VEC4[1];
++            host.skyColor[2] = LOADING_CLEAR_COLOR_VEC4[2];
+         }
+ 
+         host.activeStreamGeneration = revision;
+@@ -359,6 +365,11 @@ export function applyReadyStreamGenerationBatch(host: WebGLOsrsRendererHost, tim
+         }
+         if (allReady) {
+             host.skipMapFadeIn = false;
++            // Restore the real sky color now that the destination region has
++            // actually streamed in and is about to render for the first time.
++            host.skyColor[0] = HD_SKY_COLOR_VEC4[0];
++            host.skyColor[1] = HD_SKY_COLOR_VEC4[1];
++            host.skyColor[2] = HD_SKY_COLOR_VEC4[2];
+         }
+         return applied | 0;
+     
+diff --git a/apps/server/src/content/gamemodes/vanilla/scripts/content/dig.ts b/apps/server/src/content/gamemodes/vanilla/scripts/content/dig.ts
+index 51579c06..1e5c1d95 100644
+--- a/apps/server/src/content/gamemodes/vanilla/scripts/content/dig.ts
++++ b/apps/server/src/content/gamemodes/vanilla/scripts/content/dig.ts
+@@ -27,9 +27,79 @@ type DigRule = {
+ };
+ type DigCatalog = { version: 1; rules: DigRule[] };
+ type EditorStep = "kind" | "source" | "to" | "animation";
+-type EditorState = { rowIds: (string | undefined)[]; selectedId?: string; pending?: { step: EditorStep; kind?: "tile" | "area"; draft: Partial<DigRule>; editId?: string } };
++type EditorState = {
++    rowIds: (string | undefined)[];
++    selectedId?: string;
++    pending?: {
++        step: EditorStep;
++        kind?: "tile" | "area";
++        /** First corner tapped with 'here' (or typed) while building an area
++         *  across two separate inputs, instead of one 5-number line. */
++        corner1?: Tile;
++        draft: Partial<DigRule>;
++        editId?: string;
++    };
++};
+ const editorStates = new Map<number, EditorState>();
+ 
++function tileFromText(text: string, player?: PlayerState): Tile | undefined {
++    if (player && text.trim().toLowerCase() === "here") {
++        return { x: player.tileX, y: player.tileY, level: player.level };
++    }
++    const values = text.trim().split(/[\s,]+/).map(Number);
++    return values.length === 3 && values.every(Number.isInteger)
++        ? { x: values[0], y: values[1], level: values[2] } : undefined;
++}
++
++const DEV_AREA_PREVIEW_MAX_PERIMETER_TILES = 600;
++
++/** Ground-plane preview for the ::dig area editor, piggybacked on the
++ *  generic debug JSON channel (see queueDebugMessage). Draws only the
++ *  rectangle's border, not every interior tile, to stay cheap even for
++ *  large areas - the same visual information without per-tile draw cost. */
++function sendAreaPreview(player: PlayerState, services: ScriptServices, mode: "clear"): void;
++function sendAreaPreview(player: PlayerState, services: ScriptServices, mode: "point", tile: Tile): void;
++function sendAreaPreview(player: PlayerState, services: ScriptServices, mode: "perimeter", area: NonNullable<DigRule["area"]>): void;
++function sendAreaPreview(
++    player: PlayerState,
++    services: ScriptServices,
++    mode: "clear" | "point" | "perimeter",
++    source?: Tile | NonNullable<DigRule["area"]>,
++): void {
++    if (mode === "clear") {
++        services.dialog.queueDebugMessage(player.id, { kind: "dig_area_preview", mode: "clear" });
++        return;
++    }
++    if (mode === "point") {
++        const tile = source as Tile;
++        services.dialog.queueDebugMessage(player.id, {
++            kind: "dig_area_preview", mode: "point", level: tile.level, tiles: [{ x: tile.x, y: tile.y }],
++        });
++        return;
++    }
++    const area = source as NonNullable<DigRule["area"]>;
++    const tiles: { x: number; y: number }[] = [];
++    for (let x = area.minX; x <= area.maxX; x++) {
++        tiles.push({ x, y: area.minY });
++        if (area.maxY !== area.minY) tiles.push({ x, y: area.maxY });
++    }
++    for (let y = area.minY + 1; y <= area.maxY - 1; y++) {
++        tiles.push({ x: area.minX, y });
++        if (area.maxX !== area.minX) tiles.push({ x: area.maxX, y });
++    }
++    // Pathologically large areas fall back to just the four corners rather
++    // than flooding the client with tile-highlight coordinates.
++    const capped = tiles.length > DEV_AREA_PREVIEW_MAX_PERIMETER_TILES
++        ? [
++            { x: area.minX, y: area.minY }, { x: area.maxX, y: area.minY },
++            { x: area.maxX, y: area.maxY }, { x: area.minX, y: area.maxY },
++        ]
++        : tiles;
++    services.dialog.queueDebugMessage(player.id, {
++        kind: "dig_area_preview", mode: "perimeter", level: area.level, tiles: capped,
++    });
++}
++
+ function readCatalog(): DigCatalog {
+     try {
+         const parsed = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf8")) as Partial<DigCatalog>;
+@@ -80,8 +150,15 @@ function editorState(player: PlayerState): EditorState {
+ function editorPrompt(pending: EditorState["pending"]): string {
+     if (!pending) return "Select Add or right-click a rule:";
+     if (pending.step === "kind") return "Type tile or area:";
+-    if (pending.step === "source") return pending.kind === "area" ? "Area minX, minY, maxX, maxY, level:" : "Tile x, y, level:";
+-    if (pending.step === "to") return "Destination x, y, level:";
++    if (pending.step === "source") {
++        if (pending.kind === "area") {
++            return pending.corner1
++                ? "Second corner: x, y, level (or 'here') — same level as the first"
++                : "First corner: x, y, level (or 'here')";
++        }
++        return "Tile x, y, level (or 'here'):";
++    }
++    if (pending.step === "to") return "Destination x, y, level (or 'here'):";
+     return "Animation ID, or none:";
+ }
+ function renderEditor(player: PlayerState, services: ScriptServices): void {
+@@ -106,6 +183,9 @@ function openEditor(player: PlayerState, services: ScriptServices): void { openU
+ function beginEditor(player: PlayerState, services: ScriptServices, editId?: string): void {
+     const existing = editId ? readCatalog().rules.find((rule) => rule.id === editId) : undefined;
+     editorState(player).pending = { step: existing ? "source" : "kind", kind: existing?.area ? "area" : existing?.tile ? "tile" : undefined, draft: existing ? structuredClone(existing) : {}, editId };
++    if (existing?.area) sendAreaPreview(player, services, "perimeter", existing.area);
++    else if (existing?.tile) sendAreaPreview(player, services, "point", existing.tile);
++    else sendAreaPreview(player, services, "clear");
+     renderEditor(player, services);
+ }
+ function submitEditorInput(player: PlayerState, services: ScriptServices, text: string): string | undefined {
+@@ -113,13 +193,43 @@ function submitEditorInput(player: PlayerState, services: ScriptServices, text:
+     const keep = !!pending.editId && text.length === 0;
+     if (pending.step === "kind") { const kind = text.toLowerCase(); if (kind !== "tile" && kind !== "area") return "Enter either tile or area."; pending.kind = kind; pending.step = "source"; }
+     else if (pending.step === "source") {
+-        const values = text.trim().split(/[\s,]+/).map(Number);
+         if (keep) { pending.step = "to"; }
+-        else if (pending.kind === "tile" && values.length === 3 && values.every(Number.isInteger)) { pending.draft.tile = { x: values[0], y: values[1], level: values[2] }; delete pending.draft.area; pending.step = "to"; }
+-        else if (pending.kind === "area" && values.length === 5 && values.every(Number.isInteger)) { const [x1, y1, x2, y2, level] = values; pending.draft.area = { minX: Math.min(x1, x2), minY: Math.min(y1, y2), maxX: Math.max(x1, x2), maxY: Math.max(y1, y2), level }; delete pending.draft.tile; pending.step = "to"; }
+-        else return `Invalid ${pending.kind === "area" ? "area" : "tile"} coordinates.`;
+-    } else if (pending.step === "to") { const to = keep ? pending.draft.to : parseTile(text.trim().split(/[\s,]+/), 0); if (!to) return "Enter destination x, y, level."; pending.draft.to = to; pending.step = "animation"; }
+-    else { if (!keep) { if (text.toLowerCase() === "none") delete pending.draft.animationId; else { const animationId = integer(text); if (animationId === undefined) return "Enter an animation ID or none."; pending.draft.animationId = animationId; } } const catalog = readCatalog(); const rule = { ...pending.draft, id: pending.editId ?? nextId(catalog.rules) } as DigRule; if (!rule.to || (!rule.tile && !rule.area)) return "The dig rule is incomplete."; if (pending.editId) catalog.rules = catalog.rules.map((entry) => entry.id === pending.editId ? rule : entry); else catalog.rules.push(rule); saveCatalog(catalog); state.selectedId = rule.id; state.pending = undefined; }
++        else if (pending.kind === "tile") {
++            const value = tileFromText(text, player);
++            if (!value) return "Invalid tile coordinates.";
++            pending.draft.tile = value; delete pending.draft.area; pending.step = "to";
++            sendAreaPreview(player, services, "point", value);
++        }
++        else if (pending.kind === "area") {
++            // Backward-compatible one-line form: minX minY maxX maxY level.
++            const values = text.trim().split(/[\s,]+/).map(Number);
++            if (values.length === 5 && values.every(Number.isInteger)) {
++                const [x1, y1, x2, y2, level] = values;
++                pending.draft.area = { minX: Math.min(x1, x2), minY: Math.min(y1, y2), maxX: Math.max(x1, x2), maxY: Math.max(y1, y2), level };
++                delete pending.draft.tile; delete pending.corner1; pending.step = "to";
++                sendAreaPreview(player, services, "perimeter", pending.draft.area);
++            } else {
++                // Two-corner form: 'here' (or a single x, y, level) on each of
++                // two opposite corners of the area. Sending the first corner
++                // again re-anchors it instead of silently failing.
++                const corner = tileFromText(text, player);
++                if (!corner) return "Enter a corner as x, y, level (or 'here'), or the full minX minY maxX maxY level line.";
++                if (!pending.corner1) {
++                    pending.corner1 = corner;
++                    sendAreaPreview(player, services, "point", corner);
++                } else if (pending.corner1.level !== corner.level) {
++                    return `Both corners must be on the same level (first corner was level ${pending.corner1.level}).`;
++                } else {
++                    const { x: x1, y: y1, level } = pending.corner1;
++                    const { x: x2, y: y2 } = corner;
++                    pending.draft.area = { minX: Math.min(x1, x2), minY: Math.min(y1, y2), maxX: Math.max(x1, x2), maxY: Math.max(y1, y2), level };
++                    delete pending.draft.tile; delete pending.corner1; pending.step = "to";
++                    sendAreaPreview(player, services, "perimeter", pending.draft.area);
++                }
++            }
++        } else return "Enter either tile or area first.";
++    } else if (pending.step === "to") { const to = keep ? pending.draft.to : tileFromText(text, player); if (!to) return "Enter destination x, y, level (or 'here')."; pending.draft.to = to; pending.step = "animation"; }
++    else { if (!keep) { if (text.toLowerCase() === "none") delete pending.draft.animationId; else { const animationId = integer(text); if (animationId === undefined) return "Enter an animation ID or none."; pending.draft.animationId = animationId; } } const catalog = readCatalog(); const rule = { ...pending.draft, id: pending.editId ?? nextId(catalog.rules) } as DigRule; if (!rule.to || (!rule.tile && !rule.area)) return "The dig rule is incomplete."; if (pending.editId) catalog.rules = catalog.rules.map((entry) => entry.id === pending.editId ? rule : entry); else catalog.rules.push(rule); saveCatalog(catalog); state.selectedId = rule.id; state.pending = undefined; sendAreaPreview(player, services, "clear"); }
+     renderEditor(player, services); return undefined;
+ }
+ 
+@@ -151,6 +261,7 @@ export function registerDigHandlers(registry: IScriptRegistry, services: ScriptS
+         const catalog = readCatalog();
+         if (!action || action === "open") { openEditor(player, services); return; }
+         if (action === "add") { beginEditor(player, services); return; }
++        if (action === "here") return submitEditorInput(player, services, "here");
+         if (action === "input") return submitEditorInput(player, services, args.slice(1).join(" ").trim());
+         if (action === "selectrow" || action === "editrow") { const id = editorState(player).rowIds[Number(args[1])]; if (!id) return; editorState(player).selectedId = id; if (action === "editrow") beginEditor(player, services, id); else renderEditor(player, services); return; }
+         if (action === "list") return catalog.rules.length ? catalog.rules.map(label).join("\n") : "No dig rules yet.";
+@@ -179,7 +290,7 @@ export function registerDigHandlers(registry: IScriptRegistry, services: ScriptS
+     registry.registerCommand("dig", command, { permission: "developer", owner: "developer:dig", summary: "Create and inspect spade dig rules." });
+     registerUiPanelActions(registry, services, DEV_DIG_PANEL_GROUP_ID, [
+         { componentId: ComponentIds.CONTROL_BACKGROUND_BASE, actionId: "dig_add", handle: ({ player }) => beginEditor(player, services) },
+-        { componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 1, actionId: "dig_close", handle: ({ player }) => services.dialog.getInterfaceService()?.closeModal(player) },
++        { componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 1, actionId: "dig_close", handle: ({ player }) => { sendAreaPreview(player, services, "clear"); services.dialog.getInterfaceService()?.closeModal(player); } },
+     ]);
+     for (let row = 0; row < ComponentIds.INLINE_ROW_ACTION_CAPACITY; row++) {
+         registry.onButton(DEV_DIG_PANEL_GROUP_ID, ComponentIds.ROW_DELETE_BASE + row, (event) => {
+diff --git a/apps/server/src/content/gamemodes/vanilla/widgets/transportObjectEditor.ts b/apps/server/src/content/gamemodes/vanilla/widgets/transportObjectEditor.ts
+index db1e3b72..24754197 100644
+--- a/apps/server/src/content/gamemodes/vanilla/widgets/transportObjectEditor.ts
++++ b/apps/server/src/content/gamemodes/vanilla/widgets/transportObjectEditor.ts
+@@ -29,16 +29,19 @@ function save(value: Catalog): void {
+     reloadDevObjectTransitions();
+ }
+ function state(player: PlayerState): State { const current = states.get(player.id) ?? { rowIds: [] }; states.set(player.id, current); return current; }
+-function tile(value: string): Tile | undefined {
++function tile(value: string, player?: PlayerState): Tile | undefined {
++    if (player && value.trim().toLowerCase() === "here") {
++        return { x: player.tileX, y: player.tileY, level: player.level };
++    }
+     const parts = value.trim().split(/[\s,]+/).map(Number);
+     return parts.length === 3 && parts.every(Number.isInteger) && parts.every((part) => part >= 0)
+         ? { x: parts[0], y: parts[1], level: parts[2] } : undefined;
+ }
+ function stepPrompt(step: Step): string {
+-    return ({ locId: "Enter Object ID", option: "Enter selection option (1-5)", from: "Enter start coordinates: x, y, level", to: "Enter end coordinates: x, y, level", animation: "Enter animation ID, or 'none'" })[step];
++    return ({ locId: "Enter Object ID", option: "Enter selection option (1-5)", from: "Enter start coordinates: x, y, level (or 'here')", to: "Enter end coordinates: x, y, level (or 'here')", animation: "Enter animation ID, or 'none'" })[step];
+ }
+ function inputLabel(step: Step): string {
+-    return ({ locId: "Object ID:", option: "Option:", from: "Start x, y, z:", to: "End x, y, z:", animation: "Animation:" })[step];
++    return ({ locId: "Object ID:", option: "Option:", from: "Start x, y, z (or here):", to: "End x, y, z (or here):", animation: "Animation:" })[step];
+ }
+ function nextId(entries: readonly Transition[]): string {
+     return `rule-${entries.reduce((high, entry) => Math.max(high, Number(/^rule-(\d+)$/i.exec(entry.id)?.[1] ?? 0)), 0) + 1}`;
+@@ -100,8 +103,8 @@ function acceptInput(player: PlayerState, services: ScriptServices, text: string
+     const keep = pending.editId !== undefined && text.length === 0;
+     if (pending.step === "locId") { const locId = keep ? pending.draft.locId : Number(text); if (typeof locId !== "number" || !Number.isInteger(locId) || locId <= 0) return invalid(); pending.draft.locId = locId; pending.step = "option"; }
+     else if (pending.step === "option") { const option = keep ? pending.draft.option : Number(text); const locId = pending.draft.locId; if (typeof option !== "number" || !Number.isInteger(option) || option < 1 || option > 5 || typeof locId !== "number") return invalid(); pending.draft.option = option; pending.draft.action = actionFor(services, locId, option).toLowerCase(); pending.step = "from"; }
+-    else if (pending.step === "from") { const value = keep ? pending.draft.from : tile(text); if (!value) return invalid(); pending.draft.from = value; pending.step = "to"; }
+-    else if (pending.step === "to") { const value = keep ? pending.draft.to : tile(text); if (!value) return invalid(); pending.draft.to = value; pending.step = "animation"; }
++    else if (pending.step === "from") { const value = keep ? pending.draft.from : tile(text, player); if (!value) return invalid(); pending.draft.from = value; pending.step = "to"; }
++    else if (pending.step === "to") { const value = keep ? pending.draft.to : tile(text, player); if (!value) return invalid(); pending.draft.to = value; pending.step = "animation"; }
+     else { if (!keep) { if (text.toLowerCase() !== "none") { const animationId = Number(text); if (!Number.isInteger(animationId) || animationId < 0) return invalid(); pending.draft.animationId = animationId; } else delete pending.draft.animationId; } const complete = pending.draft as Transition; const value = catalog(); if (pending.editId) value.transitions = value.transitions.map((entry) => entry.id === pending.editId ? { ...complete, id: pending.editId } : entry); else value.transitions.push({ ...complete, id: nextId(value.transitions) }); save(value); current.selectedId = pending.editId ?? nextId(value.transitions.slice(0, -1)); current.pending = undefined; }
+     render(player, services); return undefined;
+ }
+@@ -111,9 +114,10 @@ export function registerTransportObjectEditor(registry: IScriptRegistry, service
+         const action = args[0]?.toLowerCase();
+         if (!action || action === "open" || action === "list") { open(player, services); return; }
+         if (action === "add") { begin(player, services); return; }
++        if (action === "here") return acceptInput(player, services, "here");
+         if (action === "input") return acceptInput(player, services, args.slice(1).join(" ").trim());
+         if (action === "selectrow" || action === "editrow") { const id = state(player).rowIds[Number(args[1])]; if (!id) return; state(player).selectedId = id; if (action === "editrow") begin(player, services, id); else render(player, services); return; }
+-        return "Usage: ::to — opens the Transport Object editor.";
++        return "Usage: ::to — opens the Transport Object editor. ::to here fills the current step with your position.";
+     };
+     registry.registerCommand("to", command, { permission: "developer", owner: "developer:transport-object-editor", summary: "Open the Transport Object editor." });
+     registerUiPanelActions(registry, services, DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID, [
+diff --git a/apps/server/src/game/scripts/serviceInterfaces.ts b/apps/server/src/game/scripts/serviceInterfaces.ts
+index c3005251..34bc10e5 100644
+--- a/apps/server/src/game/scripts/serviceInterfaces.ts
++++ b/apps/server/src/game/scripts/serviceInterfaces.ts
+@@ -658,6 +658,11 @@ export interface DialogFacade {
+     openRemainingTabs(player: PlayerState): void;
+     queueClientScript(playerId: number, scriptId: number, ...args: (number | string)[]): void;
+     queueWidgetEvent(playerId: number, event: WidgetAction): void;
++    /** Generic single-player dev/debug JSON channel (piggybacks on the
++     *  existing DEBUG_PACKET wire message). Used e.g. by the ::dig editor
++     *  to preview an area on the ground without needing a new binary
++     *  protocol opcode. */
++    queueDebugMessage(playerId: number, payload: Record<string, unknown>): void;
+ }
+ 
+ export interface MovementFacade {
+diff --git a/apps/server/src/game/services/ScriptServiceAdapter.ts b/apps/server/src/game/services/ScriptServiceAdapter.ts
+index bf69b733..2f6e248f 100644
+--- a/apps/server/src/game/services/ScriptServiceAdapter.ts
++++ b/apps/server/src/game/services/ScriptServiceAdapter.ts
+@@ -162,6 +162,7 @@ export interface ScriptServiceAdapterDeps {
+     queueCameraEvent: (playerId: number, payload: CameraControlPayload) => void;
+     queueProjectile: (projectile: ProjectileLaunch) => void;
+     queueSmithingInterfaceMessage: (playerId: number, payload: Record<string, unknown>) => void;
++    queueDebugMessage: (playerId: number, payload: Record<string, unknown>) => void;
+     queueExternalNpcTeleportSync: (npc: NpcState) => void;
+     teleportToWorldEntity: (
+         player: PlayerState,
+@@ -738,6 +739,7 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
+             queueClientScript: (playerId, scriptId, ...args) =>
+                 deps.queueClientScript(playerId, scriptId, ...args),
+             queueWidgetEvent: (playerId, event) => deps.queueWidgetEvent(playerId, event),
++            queueDebugMessage: (playerId, payload) => deps.queueDebugMessage(playerId, payload),
+         },
+         movement: {
+             teleportPlayer: (player, x, y, level, forceRebuild) =>
+diff --git a/apps/server/src/network/BroadcastService.ts b/apps/server/src/network/BroadcastService.ts
+index ce93724d..f3405163 100644
+--- a/apps/server/src/network/BroadcastService.ts
++++ b/apps/server/src/network/BroadcastService.ts
+@@ -244,6 +244,12 @@ export class BroadcastService {
+         this.svc.broadcastScheduler.queueKeyedMessage("trade", playerId, payload);
+     }
+ 
++    /** Generic dev/debug JSON channel to a single player - piggybacks on the
++     *  existing DEBUG_PACKET wire message instead of a new binary opcode. */
++    queueDebugMessage(playerId: number, payload: Record<string, unknown>): void {
++        this.svc.broadcastScheduler.queueKeyedMessage("debug", playerId, payload);
++    }
++
+     queueClientScript(playerId: number, scriptId: number, ...args: (number | string)[]): void {
+         logger.info?.(
+             `[clientScript] queue player=${playerId} script=${scriptId} args=${JSON.stringify(
+diff --git a/apps/server/src/network/wsServer.ts b/apps/server/src/network/wsServer.ts
+index 0570e135..3507f7c9 100644
+--- a/apps/server/src/network/wsServer.ts
++++ b/apps/server/src/network/wsServer.ts
+@@ -908,6 +908,7 @@ export class WSServer {
+             queueProjectile: (projectile) => this.projectileSystem.queueProjectileForViewers(projectile),
+             queueSmithingInterfaceMessage: (pid, p) =>
+                 this.broadcastService.queueSmithingInterfaceMessage(pid, p as any),
++            queueDebugMessage: (pid, p) => this.broadcastService.queueDebugMessage(pid, p),
+             queueExternalNpcTeleportSync: (npc) => this.queueExternalNpcTeleportSync(npc),
+             teleportToWorldEntity: (
+                 ...args: Parameters<WorldEntityService["teleportToWorldEntity"]>

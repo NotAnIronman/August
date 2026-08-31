@@ -908,6 +908,7 @@ export class WSServer {
             queueProjectile: (projectile) => this.projectileSystem.queueProjectileForViewers(projectile),
             queueSmithingInterfaceMessage: (pid, p) =>
                 this.broadcastService.queueSmithingInterfaceMessage(pid, p as any),
+            queueDebugMessage: (pid, p) => this.broadcastService.queueDebugMessage(pid, p),
             queueExternalNpcTeleportSync: (npc) => this.queueExternalNpcTeleportSync(npc),
             teleportToWorldEntity: (
                 ...args: Parameters<WorldEntityService["teleportToWorldEntity"]>

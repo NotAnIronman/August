@@ -248,6 +248,294 @@
         "level": 0
       },
       "id": "rule-15"
+    },
+    {
+      "locId": 51375,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1440,
+        "y": 9599,
+        "level": 1
+      },
+      "to": {
+        "x": 1440,
+        "y": 9615,
+        "level": 1
+      },
+      "id": "rule-16"
+    },
+    {
+      "locId": 51377,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1440,
+        "y": 9615,
+        "level": 1
+      },
+      "to": {
+        "x": 1440,
+        "y": 9599,
+        "level": 1
+      },
+      "id": "rule-17"
+    },
+    {
+      "locId": 51375,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1439,
+        "y": 9599,
+        "level": 1
+      },
+      "to": {
+        "x": 1440,
+        "y": 9615,
+        "level": 1
+      },
+      "id": "rule-18"
+    },
+    {
+      "locId": 51376,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1422,
+        "y": 9615,
+        "level": 1
+      },
+      "to": {
+        "x": 1388,
+        "y": 9574,
+        "level": 0
+      },
+      "id": "rule-19"
+    },
+    {
+      "locId": 51375,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1388,
+        "y": 9575,
+        "level": 0
+      },
+      "to": {
+        "x": 1423,
+        "y": 9615,
+        "level": 1
+      },
+      "id": "rule-20"
+    },
+    {
+      "locId": 51377,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1513,
+        "y": 9563,
+        "level": 0
+      },
+      "to": {
+        "x": 1356,
+        "y": 9538,
+        "level": 0
+      },
+      "id": "rule-21"
+    },
+    {
+      "locId": 51375,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1356,
+        "y": 9538,
+        "level": 0
+      },
+      "to": {
+        "x": 1513,
+        "y": 9563,
+        "level": 0
+      },
+      "id": "rule-22"
+    },
+    {
+      "locId": 51375,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1355,
+        "y": 9538,
+        "level": 0
+      },
+      "to": {
+        "x": 1513,
+        "y": 9563,
+        "level": 0
+      },
+      "id": "rule-23"
+    },
+    {
+      "locId": 51375,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1387,
+        "y": 9591,
+        "level": 0
+      },
+      "to": {
+        "x": 1418,
+        "y": 9632,
+        "level": 0
+      },
+      "id": "rule-24"
+    },
+    {
+      "locId": 51377,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1418,
+        "y": 9632,
+        "level": 0
+      },
+      "to": {
+        "x": 1387,
+        "y": 9591,
+        "level": 0
+      },
+      "id": "rule-25"
+    },
+    {
+      "locId": 51375,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1387,
+        "y": 9590,
+        "level": 0
+      },
+      "to": {
+        "x": 1418,
+        "y": 9632,
+        "level": 0
+      },
+      "id": "rule-26"
+    },
+    {
+      "locId": 51377,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1461,
+        "y": 9632,
+        "level": 0
+      },
+      "to": {
+        "x": 1510,
+        "y": 9675,
+        "level": 0
+      },
+      "id": "rule-27"
+    },
+    {
+      "locId": 51375,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1510,
+        "y": 9675,
+        "level": 0
+      },
+      "to": {
+        "x": 1461,
+        "y": 9632,
+        "level": 0
+      },
+      "id": "rule-28"
+    },
+    {
+      "locId": 51375,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1509,
+        "y": 9675,
+        "level": 0
+      },
+      "to": {
+        "x": 1461,
+        "y": 9632,
+        "level": 0
+      },
+      "id": "rule-29"
+    },
+    {
+      "locId": 51377,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1403,
+        "y": 9704,
+        "level": 0
+      },
+      "to": {
+        "x": 1440,
+        "y": 9653,
+        "level": 0
+      },
+      "id": "rule-30"
+    },
+    {
+      "locId": 51377,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1440,
+        "y": 9653,
+        "level": 0
+      },
+      "to": {
+        "x": 1403,
+        "y": 9704,
+        "level": 0
+      },
+      "id": "rule-31"
+    },
+    {
+      "locId": 51377,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1513,
+        "y": 9596,
+        "level": 0
+      },
+      "to": {
+        "x": 1526,
+        "y": 9672,
+        "level": 0
+      },
+      "id": "rule-32"
+    },
+    {
+      "locId": 51377,
+      "option": 1,
+      "action": "pass-through",
+      "from": {
+        "x": 1526,
+        "y": 9672,
+        "level": 0
+      },
+      "to": {
+        "x": 1513,
+        "y": 9596,
+        "level": 0
+      },
+      "id": "rule-33"
     }
   ]
 }

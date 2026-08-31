@@ -212,6 +212,14 @@ export function handleInboundSync(msg: any): boolean {
             } catch (err) {
                 console.warn("[debug] anim snapshot failed", err);
             }
+        } else if (payload?.kind === "dig_area_preview") {
+            for (const listener of state.devAreaPreviewListeners) {
+                try {
+                    listener(payload);
+                } catch (err) {
+                    console.warn("[debug] dig area preview listener failed", err);
+                }
+            }
         }
         return true;
     }

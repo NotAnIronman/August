@@ -658,6 +658,11 @@ export interface DialogFacade {
     openRemainingTabs(player: PlayerState): void;
     queueClientScript(playerId: number, scriptId: number, ...args: (number | string)[]): void;
     queueWidgetEvent(playerId: number, event: WidgetAction): void;
+    /** Generic single-player dev/debug JSON channel (piggybacks on the
+     *  existing DEBUG_PACKET wire message). Used e.g. by the ::dig editor
+     *  to preview an area on the ground without needing a new binary
+     *  protocol opcode. */
+    queueDebugMessage(playerId: number, payload: Record<string, unknown>): void;
 }
 
 export interface MovementFacade {

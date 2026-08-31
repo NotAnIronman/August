@@ -188,7 +188,7 @@ import {
 } from "@client/engine/rendering/shaders/Shaders";
 import { KNOWN_WATER_TEXTURE_IDS } from "@client/engine/rendering/water/WaterTextureIds";
 import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
-import { RENDER_CONSTANTS, StreamMapBatch } from "@client/engine/rendering/render/constants";
+import { RENDER_CONSTANTS, StreamMapBatch, HD_SKY_COLOR_VEC4, LOADING_CLEAR_COLOR_VEC4 } from "@client/engine/rendering/render/constants";
 
 export function getPendingStreamMapCount(host: WebGLOsrsRendererHost, ): number {
 
@@ -239,6 +239,12 @@ export function syncStreamGenerationFromMapManager(host: WebGLOsrsRendererHost, 
         }
         if (!hasOverlap && nextExpected.size > 0) {
             host.skipMapFadeIn = true;
+            // Mask the raw bright clear color while nothing from the
+            // destination region has streamed in yet - see
+            // LOADING_CLEAR_COLOR_VEC4 for why.
+            host.skyColor[0] = LOADING_CLEAR_COLOR_VEC4[0];
+            host.skyColor[1] = LOADING_CLEAR_COLOR_VEC4[1];
+            host.skyColor[2] = LOADING_CLEAR_COLOR_VEC4[2];
         }
 
         host.activeStreamGeneration = revision;
@@ -359,6 +365,11 @@ export function applyReadyStreamGenerationBatch(host: WebGLOsrsRendererHost, tim
         }
         if (allReady) {
             host.skipMapFadeIn = false;
+            // Restore the real sky color now that the destination region has
+            // actually streamed in and is about to render for the first time.
+            host.skyColor[0] = HD_SKY_COLOR_VEC4[0];
+            host.skyColor[1] = HD_SKY_COLOR_VEC4[1];
+            host.skyColor[2] = HD_SKY_COLOR_VEC4[2];
         }
         return applied | 0;
     

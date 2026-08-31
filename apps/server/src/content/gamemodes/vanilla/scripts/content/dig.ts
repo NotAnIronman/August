@@ -27,8 +27,78 @@ type DigRule = {
 };
 type DigCatalog = { version: 1; rules: DigRule[] };
 type EditorStep = "kind" | "source" | "to" | "animation";
-type EditorState = { rowIds: (string | undefined)[]; selectedId?: string; pending?: { step: EditorStep; kind?: "tile" | "area"; draft: Partial<DigRule>; editId?: string } };
+type EditorState = {
+    rowIds: (string | undefined)[];
+    selectedId?: string;
+    pending?: {
+        step: EditorStep;
+        kind?: "tile" | "area";
+        /** First corner tapped with 'here' (or typed) while building an area
+         *  across two separate inputs, instead of one 5-number line. */
+        corner1?: Tile;
+        draft: Partial<DigRule>;
+        editId?: string;
+    };
+};
 const editorStates = new Map<number, EditorState>();
+
+function tileFromText(text: string, player?: PlayerState): Tile | undefined {
+    if (player && text.trim().toLowerCase() === "here") {
+        return { x: player.tileX, y: player.tileY, level: player.level };
+    }
+    const values = text.trim().split(/[\s,]+/).map(Number);
+    return values.length === 3 && values.every(Number.isInteger)
+        ? { x: values[0], y: values[1], level: values[2] } : undefined;
+}
+
+const DEV_AREA_PREVIEW_MAX_PERIMETER_TILES = 600;
+
+/** Ground-plane preview for the ::dig area editor, piggybacked on the
+ *  generic debug JSON channel (see queueDebugMessage). Draws only the
+ *  rectangle's border, not every interior tile, to stay cheap even for
+ *  large areas - the same visual information without per-tile draw cost. */
+function sendAreaPreview(player: PlayerState, services: ScriptServices, mode: "clear"): void;
+function sendAreaPreview(player: PlayerState, services: ScriptServices, mode: "point", tile: Tile): void;
+function sendAreaPreview(player: PlayerState, services: ScriptServices, mode: "perimeter", area: NonNullable<DigRule["area"]>): void;
+function sendAreaPreview(
+    player: PlayerState,
+    services: ScriptServices,
+    mode: "clear" | "point" | "perimeter",
+    source?: Tile | NonNullable<DigRule["area"]>,
+): void {
+    if (mode === "clear") {
+        services.dialog.queueDebugMessage(player.id, { kind: "dig_area_preview", mode: "clear" });
+        return;
+    }
+    if (mode === "point") {
+        const tile = source as Tile;
+        services.dialog.queueDebugMessage(player.id, {
+            kind: "dig_area_preview", mode: "point", level: tile.level, tiles: [{ x: tile.x, y: tile.y }],
+        });
+        return;
+    }
+    const area = source as NonNullable<DigRule["area"]>;
+    const tiles: { x: number; y: number }[] = [];
+    for (let x = area.minX; x <= area.maxX; x++) {
+        tiles.push({ x, y: area.minY });
+        if (area.maxY !== area.minY) tiles.push({ x, y: area.maxY });
+    }
+    for (let y = area.minY + 1; y <= area.maxY - 1; y++) {
+        tiles.push({ x: area.minX, y });
+        if (area.maxX !== area.minX) tiles.push({ x: area.maxX, y });
+    }
+    // Pathologically large areas fall back to just the four corners rather
+    // than flooding the client with tile-highlight coordinates.
+    const capped = tiles.length > DEV_AREA_PREVIEW_MAX_PERIMETER_TILES
+        ? [
+            { x: area.minX, y: area.minY }, { x: area.maxX, y: area.minY },
+            { x: area.maxX, y: area.maxY }, { x: area.minX, y: area.maxY },
+        ]
+        : tiles;
+    services.dialog.queueDebugMessage(player.id, {
+        kind: "dig_area_preview", mode: "perimeter", level: area.level, tiles: capped,
+    });
+}
 
 function readCatalog(): DigCatalog {
     try {
@@ -80,8 +150,15 @@ function editorState(player: PlayerState): EditorState {
 function editorPrompt(pending: EditorState["pending"]): string {
     if (!pending) return "Select Add or right-click a rule:";
     if (pending.step === "kind") return "Type tile or area:";
-    if (pending.step === "source") return pending.kind === "area" ? "Area minX, minY, maxX, maxY, level:" : "Tile x, y, level:";
-    if (pending.step === "to") return "Destination x, y, level:";
+    if (pending.step === "source") {
+        if (pending.kind === "area") {
+            return pending.corner1
+                ? "Second corner: x, y, level (or 'here') — same level as the first"
+                : "First corner: x, y, level (or 'here')";
+        }
+        return "Tile x, y, level (or 'here'):";
+    }
+    if (pending.step === "to") return "Destination x, y, level (or 'here'):";
     return "Animation ID, or none:";
 }
 function renderEditor(player: PlayerState, services: ScriptServices): void {
@@ -106,6 +183,9 @@ function openEditor(player: PlayerState, services: ScriptServices): void { openU
 function beginEditor(player: PlayerState, services: ScriptServices, editId?: string): void {
     const existing = editId ? readCatalog().rules.find((rule) => rule.id === editId) : undefined;
     editorState(player).pending = { step: existing ? "source" : "kind", kind: existing?.area ? "area" : existing?.tile ? "tile" : undefined, draft: existing ? structuredClone(existing) : {}, editId };
+    if (existing?.area) sendAreaPreview(player, services, "perimeter", existing.area);
+    else if (existing?.tile) sendAreaPreview(player, services, "point", existing.tile);
+    else sendAreaPreview(player, services, "clear");
     renderEditor(player, services);
 }
 function submitEditorInput(player: PlayerState, services: ScriptServices, text: string): string | undefined {
@@ -113,13 +193,43 @@ function submitEditorInput(player: PlayerState, services: ScriptServices, text: 
     const keep = !!pending.editId && text.length === 0;
     if (pending.step === "kind") { const kind = text.toLowerCase(); if (kind !== "tile" && kind !== "area") return "Enter either tile or area."; pending.kind = kind; pending.step = "source"; }
     else if (pending.step === "source") {
-        const values = text.trim().split(/[\s,]+/).map(Number);
         if (keep) { pending.step = "to"; }
-        else if (pending.kind === "tile" && values.length === 3 && values.every(Number.isInteger)) { pending.draft.tile = { x: values[0], y: values[1], level: values[2] }; delete pending.draft.area; pending.step = "to"; }
-        else if (pending.kind === "area" && values.length === 5 && values.every(Number.isInteger)) { const [x1, y1, x2, y2, level] = values; pending.draft.area = { minX: Math.min(x1, x2), minY: Math.min(y1, y2), maxX: Math.max(x1, x2), maxY: Math.max(y1, y2), level }; delete pending.draft.tile; pending.step = "to"; }
-        else return `Invalid ${pending.kind === "area" ? "area" : "tile"} coordinates.`;
-    } else if (pending.step === "to") { const to = keep ? pending.draft.to : parseTile(text.trim().split(/[\s,]+/), 0); if (!to) return "Enter destination x, y, level."; pending.draft.to = to; pending.step = "animation"; }
-    else { if (!keep) { if (text.toLowerCase() === "none") delete pending.draft.animationId; else { const animationId = integer(text); if (animationId === undefined) return "Enter an animation ID or none."; pending.draft.animationId = animationId; } } const catalog = readCatalog(); const rule = { ...pending.draft, id: pending.editId ?? nextId(catalog.rules) } as DigRule; if (!rule.to || (!rule.tile && !rule.area)) return "The dig rule is incomplete."; if (pending.editId) catalog.rules = catalog.rules.map((entry) => entry.id === pending.editId ? rule : entry); else catalog.rules.push(rule); saveCatalog(catalog); state.selectedId = rule.id; state.pending = undefined; }
+        else if (pending.kind === "tile") {
+            const value = tileFromText(text, player);
+            if (!value) return "Invalid tile coordinates.";
+            pending.draft.tile = value; delete pending.draft.area; pending.step = "to";
+            sendAreaPreview(player, services, "point", value);
+        }
+        else if (pending.kind === "area") {
+            // Backward-compatible one-line form: minX minY maxX maxY level.
+            const values = text.trim().split(/[\s,]+/).map(Number);
+            if (values.length === 5 && values.every(Number.isInteger)) {
+                const [x1, y1, x2, y2, level] = values;
+                pending.draft.area = { minX: Math.min(x1, x2), minY: Math.min(y1, y2), maxX: Math.max(x1, x2), maxY: Math.max(y1, y2), level };
+                delete pending.draft.tile; delete pending.corner1; pending.step = "to";
+                sendAreaPreview(player, services, "perimeter", pending.draft.area);
+            } else {
+                // Two-corner form: 'here' (or a single x, y, level) on each of
+                // two opposite corners of the area. Sending the first corner
+                // again re-anchors it instead of silently failing.
+                const corner = tileFromText(text, player);
+                if (!corner) return "Enter a corner as x, y, level (or 'here'), or the full minX minY maxX maxY level line.";
+                if (!pending.corner1) {
+                    pending.corner1 = corner;
+                    sendAreaPreview(player, services, "point", corner);
+                } else if (pending.corner1.level !== corner.level) {
+                    return `Both corners must be on the same level (first corner was level ${pending.corner1.level}).`;
+                } else {
+                    const { x: x1, y: y1, level } = pending.corner1;
+                    const { x: x2, y: y2 } = corner;
+                    pending.draft.area = { minX: Math.min(x1, x2), minY: Math.min(y1, y2), maxX: Math.max(x1, x2), maxY: Math.max(y1, y2), level };
+                    delete pending.draft.tile; delete pending.corner1; pending.step = "to";
+                    sendAreaPreview(player, services, "perimeter", pending.draft.area);
+                }
+            }
+        } else return "Enter either tile or area first.";
+    } else if (pending.step === "to") { const to = keep ? pending.draft.to : tileFromText(text, player); if (!to) return "Enter destination x, y, level (or 'here')."; pending.draft.to = to; pending.step = "animation"; }
+    else { if (!keep) { if (text.toLowerCase() === "none") delete pending.draft.animationId; else { const animationId = integer(text); if (animationId === undefined) return "Enter an animation ID or none."; pending.draft.animationId = animationId; } } const catalog = readCatalog(); const rule = { ...pending.draft, id: pending.editId ?? nextId(catalog.rules) } as DigRule; if (!rule.to || (!rule.tile && !rule.area)) return "The dig rule is incomplete."; if (pending.editId) catalog.rules = catalog.rules.map((entry) => entry.id === pending.editId ? rule : entry); else catalog.rules.push(rule); saveCatalog(catalog); state.selectedId = rule.id; state.pending = undefined; sendAreaPreview(player, services, "clear"); }
     renderEditor(player, services); return undefined;
 }
 
@@ -151,6 +261,7 @@ export function registerDigHandlers(registry: IScriptRegistry, services: ScriptS
         const catalog = readCatalog();
         if (!action || action === "open") { openEditor(player, services); return; }
         if (action === "add") { beginEditor(player, services); return; }
+        if (action === "here") return submitEditorInput(player, services, "here");
         if (action === "input") return submitEditorInput(player, services, args.slice(1).join(" ").trim());
         if (action === "selectrow" || action === "editrow") { const id = editorState(player).rowIds[Number(args[1])]; if (!id) return; editorState(player).selectedId = id; if (action === "editrow") beginEditor(player, services, id); else renderEditor(player, services); return; }
         if (action === "list") return catalog.rules.length ? catalog.rules.map(label).join("\n") : "No dig rules yet.";
@@ -179,7 +290,7 @@ export function registerDigHandlers(registry: IScriptRegistry, services: ScriptS
     registry.registerCommand("dig", command, { permission: "developer", owner: "developer:dig", summary: "Create and inspect spade dig rules." });
     registerUiPanelActions(registry, services, DEV_DIG_PANEL_GROUP_ID, [
         { componentId: ComponentIds.CONTROL_BACKGROUND_BASE, actionId: "dig_add", handle: ({ player }) => beginEditor(player, services) },
-        { componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 1, actionId: "dig_close", handle: ({ player }) => services.dialog.getInterfaceService()?.closeModal(player) },
+        { componentId: ComponentIds.CONTROL_BACKGROUND_BASE + 1, actionId: "dig_close", handle: ({ player }) => { sendAreaPreview(player, services, "clear"); services.dialog.getInterfaceService()?.closeModal(player); } },
     ]);
     for (let row = 0; row < ComponentIds.INLINE_ROW_ACTION_CAPACITY; row++) {
         registry.onButton(DEV_DIG_PANEL_GROUP_ID, ComponentIds.ROW_DELETE_BASE + row, (event) => {
