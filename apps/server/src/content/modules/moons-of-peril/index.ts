@@ -1,5 +1,6 @@
 import type { PlayerState } from "@server/game/player";
 import { AttackType } from "@server/game/combat/AttackType";
+import { SkillId } from "@august/osrs-engine/skill/skills";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
 import { NpcPreDeathDecision, type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
 import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
@@ -51,15 +52,47 @@ function statue(player: PlayerState, services: ScriptServices, moon: Moon): void
 }
 
 function reward(player: PlayerState, services: ScriptServices): void {
-    const run = runs.get(player.id); if (!run || run.killed.size === 0) { services.messaging.sendGameMessage(player, "You need to defeat at least one Moon before searching the chest."); return; }
-    const count = run.killed.size, rewards = [{ itemId: 995, quantity: 2_000 * count }, { itemId: 29082, quantity: count }];
+    const run = runs.get(player.id); if (!run || run.killed.size === 0) { services.messaging.sendGameMessage(player, "This chest seems empty."); return; }
+    const count = run.killed.size;
+    const resources = [{ itemId: 28899, quantity: 60 + count * 20 }, { itemId: 1939, quantity: 400 + count * 150 }, { itemId: 571, quantity: 60 + count * 30 }, { itemId: 6034, quantity: 20 + count * 10 }, { itemId: 1761, quantity: 20 + count * 10 }, { itemId: 205, quantity: 30 + count * 10 }, { itemId: 209, quantity: 20 + count * 8 }];
+    const uniques = [29000, 29004, 29007, 29010, 28988, 29013, 29016, 29019, 29022, 29025, 29028, 28997];
+    const rewards = [resources[Math.floor(Math.random() * resources.length)]!, { itemId: 28991, quantity: 100 + count * 75 }];
+    if (Math.random() < count / 60) rewards.push({ itemId: uniques[Math.floor(Math.random() * uniques.length)]!, quantity: 1 });
     for (const item of rewards) addOrDrop(player, services, item.itemId, item.quantity);
     services.inventory.snapshotInventoryImmediate(player); for (const item of rewards) services.collectionLog.trackCollectionLogItem(player, item.itemId);
     openRewardDisplay(player, services, "Lunar chest", rewards); services.messaging.sendGameMessage(player, `You search the Lunar chest after defeating ${count} Moon${count === 1 ? "" : "s"}.`); runs.delete(player.id);
 }
 
+function searchChest(player: PlayerState, services: ScriptServices): void {
+    const run = runs.get(player.id);
+    if (!run || run.killed.size === 0) return reward(player, services);
+    if (run.killed.size === 3) return reward(player, services);
+    services.dialog.openDialogOptions(player, { id: "lunar-chest-choice", title: "The Lunar chest awaits.", options: ["Loot chest", "Next boss", "Cancel"], modal: true, onSelect: choice => {
+        if (choice === 0) reward(player, services);
+        if (choice === 1) {
+            const next = (Object.keys(MOONS) as Moon[]).find(moon => !run.killed.has(moon));
+            if (next) spawnMoon(player, services, next);
+        }
+    } });
+}
+
 function takeSupplies(player: PlayerState, services: ScriptServices): void {
     services.dialog.openDialogOptions(player, { id: "moon-supplies", title: "Take supplies", options: ["Fishing supplies", "Hunting supplies", "Herblore supplies"], modal: true, onSelect: choice => { if (choice === 0) addOrDrop(player, services, NET, 1); if (choice === 1) addOrDrop(player, services, ROPE, 1); if (choice === 2) { addOrDrop(player, services, PESTLE, 1); addOrDrop(player, services, VIAL, 2); } services.inventory.snapshotInventoryImmediate(player); } });
+}
+
+function skillLevel(player: PlayerState, skill: SkillId): number { return player.skillSystem.getSkill(skill).baseLevel; }
+function drinkMoonlightPotion(player: PlayerState, services: ScriptServices, itemId: number): void {
+    const doses = 29083 - itemId + 1;
+    if (doses < 1 || doses > 4 || player.items.removeItem(itemId, 1, { assureFullRemoval: true }).completed !== 1) return;
+    if (doses > 1) addOrDrop(player, services, itemId + 1, 1); else addOrDrop(player, services, VIAL, 1);
+    for (const skill of [SkillId.Attack, SkillId.Strength, SkillId.Defence] as const) {
+        const level = skillLevel(player, skill);
+        player.skillSystem.setSkillBoost(skill, Math.floor(level * 0.15) + 3);
+    }
+    const prayer = player.skillSystem.getSkill(SkillId.Prayer);
+    player.skillSystem.setSkillBoost(SkillId.Prayer, Math.min(prayer.baseLevel, prayer.baseLevel + Math.max(1, Math.floor(prayer.baseLevel * 0.25))));
+    player.prayer.resetDrainAccumulator(); services.inventory.snapshotInventoryImmediate(player);
+    services.messaging.sendGameMessage(player, `You drink some of your Moonlight potion. ${doses - 1 || "No"} dose${doses === 2 ? "" : "s"} remaining.`);
 }
 
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
@@ -69,13 +102,15 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
         registry.registerLocInteraction(id, handler, "enter");
         registry.registerLocInteraction(id, handler);
     });
-    registry.registerLocInteraction(CHEST, ({ player, services }) => reward(player, services), "search"); registry.registerLocInteraction(CHEST, ({ player, services }) => reward(player, services));
+    registry.registerLocInteraction(CHEST, ({ player, services }) => searchChest(player, services), "search"); registry.registerLocInteraction(CHEST, ({ player, services }) => searchChest(player, services));
     registry.registerLocInteraction(CRATE, ({ player, services }) => takeSupplies(player, services), "take-from");
     registry.registerLocInteraction(SAPLING, ({ player, services }) => { addOrDrop(player, services, GRUB, 2); services.inventory.snapshotInventoryImmediate(player); }, "collect-from");
-    registry.registerLocInteraction(FISHING, ({ player, services }) => { if (!player.items.hasItem(NET, 1)) return services.messaging.sendGameMessage(player, "You need a small fishing net to fish here."); addOrDrop(player, services, BREAM, 1); services.inventory.snapshotInventoryImmediate(player); }, "net");
+    registry.registerLocInteraction(FISHING, ({ player, services }) => { if (!player.items.hasItem(NET, 1)) return services.messaging.sendGameMessage(player, "You need a small fishing net to fish here."); const fishing = skillLevel(player, SkillId.Fishing); addOrDrop(player, services, BREAM, fishing >= 50 && Math.random() < Math.min(0.8, fishing / 120) ? 2 : 1); services.inventory.snapshotInventoryImmediate(player); }, "net");
     registry.registerItemOnItem(GRUB, PESTLE, ({ player, services }) => { if (player.items.removeItem(GRUB, 1, { assureFullRemoval: true }).completed) { addOrDrop(player, services, PASTE, 1); services.inventory.snapshotInventoryImmediate(player); } });
     registry.registerItemOnItem(PASTE, VIAL, ({ player, services }) => { if (player.items.removeItem(PASTE, 1, { assureFullRemoval: true }).completed && player.items.removeItem(VIAL, 1, { assureFullRemoval: true }).completed) { addOrDrop(player, services, 29080, 1); services.inventory.snapshotInventoryImmediate(player); } });
-    registry.registerItemOnLoc(BREAM, STOVE, ({ player, services }) => { if (player.items.removeItem(BREAM, 1, { assureFullRemoval: true }).completed) { addOrDrop(player, services, COOKED_BREAM, 1); services.inventory.snapshotInventoryImmediate(player); } });
+    registry.registerItemOnLoc(BREAM, STOVE, ({ player, services }) => { if (player.items.removeItem(BREAM, 1, { assureFullRemoval: true }).completed) { const cooking = skillLevel(player, SkillId.Cooking); addOrDrop(player, services, COOKED_BREAM, cooking >= 50 && Math.random() < Math.min(0.8, cooking / 120) ? 2 : 1); services.inventory.snapshotInventoryImmediate(player); } });
+    for (const potion of [29080, 29081, 29082, 29083]) registry.registerItemAction(potion, ({ player, services }) => drinkMoonlightPotion(player, services, potion), "drink");
+    for (const escape of [53003, 53004]) registry.registerLocInteraction(escape, ({ player, services }) => { const run = runs.get(player.id); if (!run) return; services.instances.leave(player, CHEST_TILE); services.messaging.sendGameMessage(player, "You escape the Moon chamber. Your progress remains with the Lunar chest."); }, "escape");
     for (const [moon, def] of Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>) registry.registerNpcPreDeath(def.id, event => { const player = event.killer, run = player && runs.get(player.id); if (!player || !run || run.active !== moon || event.npc.ownerPlayerId !== player.id) return NpcPreDeathDecision.Allow; run.killed.add(moon); run.active = undefined; if (run.killed.size === 3) { servicesAfter(event, player, CHEST_TILE); } else spawnMoon(player, event.services, def.next); return NpcPreDeathDecision.Allow; });
 }
 function servicesAfter(event: { services: ScriptServices }, player: PlayerState, tile: { x: number; y: number; level: number }): void { event.services.instances.leave(player, tile); event.services.messaging.sendGameMessage(player, "All three Moons have been defeated. You may now search the Lunar chest."); }
