@@ -558,6 +558,12 @@ export class OverheadTextOverlay implements Overlay {
         out = out.replace(/<img=\d+>/gi, "");
         out = out.replace(/<u>/gi, "").replace(/<\/u>/gi, "");
         out = out.replace(/<str>/gi, "").replace(/<\/str>/gi, "");
+        // <lt>/<gt> are literal '<'/'>' glyph escapes (real OSRS chat
+        // convention - raw angle brackets are reserved for the tags above),
+        // not formatting to discard, so they're replaced with the actual
+        // character rather than stripped like everything else here.
+        out = out.replace(/<lt>/gi, "<");
+        out = out.replace(/<gt>/gi, ">");
         out = out.replace(/\u00a0/g, " ");
         return out;
     }

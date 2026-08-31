@@ -536,6 +536,40 @@
         "level": 0
       },
       "id": "rule-33"
+    },
+    {
+      "locId": 5003,
+      "option": 1,
+      "action": "option 1",
+      "from": {
+        "x": 3502,
+        "y": 3432,
+        "level": 0
+      },
+      "to": {
+        "x": 3502,
+        "y": 3425,
+        "level": 0
+      },
+      "animationId": 737,
+      "id": "rule-34"
+    },
+    {
+      "locId": 5003,
+      "option": 1,
+      "action": "option 1",
+      "from": {
+        "x": 3502,
+        "y": 3425,
+        "level": 0
+      },
+      "to": {
+        "x": 3502,
+        "y": 3432,
+        "level": 0
+      },
+      "animationId": 737,
+      "id": "rule-35"
     }
   ]
 }
