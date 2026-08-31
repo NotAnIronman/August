@@ -62,6 +62,7 @@ import { registerVarrockAreaHandlers } from "@server/content/gamemodes/vanilla/s
 import { registerWildernessAreaHandlers } from "@server/content/gamemodes/vanilla/scripts/content/areas/wilderness";
 import { registerWizardTowerAreaHandlers } from "@server/content/gamemodes/vanilla/scripts/content/areas/wizard-tower";
 import { registerBobHandlers } from "@server/content/gamemodes/vanilla/scripts/content/bob";
+import { registerBarrowsHandlers } from "@server/content/gamemodes/vanilla/scripts/content/barrows";
 import { registerClimbingHandlers } from "@server/content/gamemodes/vanilla/scripts/content/climbing";
 import { registerDefaultTalkHandlers } from "@server/content/gamemodes/vanilla/scripts/content/defaultTalk";
 import { registerDevObjectTransitions } from "@server/content/gamemodes/vanilla/scripts/content/devObjectTransitions";
@@ -320,6 +321,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerDigHandlers(registry, services);
 
         // Content
+        registerBarrowsHandlers(registry, services);
         registerClimbingHandlers(registry, services);
         // Key doors before generic door open/close so locked locs win.
         registerKeyDoorHandlers(registry);
