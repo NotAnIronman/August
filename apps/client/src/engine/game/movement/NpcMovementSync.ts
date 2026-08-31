@@ -31,33 +31,33 @@ export class NpcMovementSync {
     ): { path: MovementPath; teleported: boolean } {
         const ecsIndex = update.ecsIndex | 0;
         const directions = Array.isArray(update.directions)
-            ? update.directions.map((dir) => (dir | 0) & 7)
-            : [];
+        ? update.directions.map((dir) => (dir | 0) & 7)
+        : [];
         const traversals = Array.isArray(update.traversals)
-            ? update.traversals.map((t) => (t | 0) & 3)
-            : [];
+        ? update.traversals.map((t) => (t | 0) & 3)
+        : [];
         const existingState = this.npcEcs.getServerState(ecsIndex);
 
         const fromTile = existingState
-            ? { x: existingState.tileX, y: existingState.tileY }
-            : undefined;
+        ? { x: existingState.tileX, y: existingState.tileY }
+        : undefined;
         const forcedTeleport = !existingState || !!update.snap;
 
         const npcSize = Math.max(1, this.npcEcs.getSize(ecsIndex) | 0);
         const centerOffset = (npcSize << 6) | 0; // size * 64
 
         let resolvedSubX =
-            typeof update.subX === "number"
-                ? update.subX | 0
-                : typeof existingState?.subX === "number"
-                  ? existingState.subX | 0
-                  : (update.localX | 0) + (update.mapBaseX | 0);
+        typeof update.subX === "number"
+        ? update.subX | 0
+        : typeof existingState?.subX === "number"
+        ? existingState.subX | 0
+        : (update.localX | 0) + (update.mapBaseX | 0);
         let resolvedSubY =
-            typeof update.subY === "number"
-                ? update.subY | 0
-                : typeof existingState?.subY === "number"
-                  ? existingState.subY | 0
-                  : (update.localY | 0) + (update.mapBaseY | 0);
+        typeof update.subY === "number"
+        ? update.subY | 0
+        : typeof existingState?.subY === "number"
+        ? existingState.subY | 0
+        : (update.localY | 0) + (update.mapBaseY | 0);
 
         let resolvedTileX: number | undefined;
         let resolvedTileY: number | undefined;
@@ -84,13 +84,13 @@ export class NpcMovementSync {
         // `pathX/pathY` are in tile coords (south-west tile for size>1).
         // `subX/subY` include a center offset (size*64) so `sub >> 7` is NOT the same tile for size>1.
         const tileX =
-            typeof resolvedTileX === "number"
-                ? resolvedTileX | 0
-                : ((update.subX - centerOffset) >> 7) | 0;
+        typeof resolvedTileX === "number"
+        ? resolvedTileX | 0
+        : ((update.subX - centerOffset) >> 7) | 0;
         const tileY =
-            typeof resolvedTileY === "number"
-                ? resolvedTileY | 0
-                : ((update.subY - centerOffset) >> 7) | 0;
+        typeof resolvedTileY === "number"
+        ? resolvedTileY | 0
+        : ((update.subY - centerOffset) >> 7) | 0;
         const effectiveFromTile = fromTile ? fromTile : { x: tileX, y: tileY };
         let path: MovementPath;
         if (directions.length > 0 && !forcedTeleport) {
@@ -154,8 +154,8 @@ export class NpcMovementSync {
             path,
             update,
             forcedTeleport,
-            options.forceImmediateRotation === true,
-            this.npcEcs.getTargetRot(ecsIndex) | 0,
+                options.forceImmediateRotation === true,
+                this.npcEcs.getTargetRot(ecsIndex) | 0,
         );
 
         return { path, teleported: forcedTeleport || path.isTeleport };
@@ -166,8 +166,8 @@ export class NpcMovementSync {
         path: MovementPath,
         update: NpcMovementUpdate,
         forceTeleport: boolean,
-        forceImmediateRotation: boolean,
-        fallbackOrientation: number,
+            forceImmediateRotation: boolean,
+                fallbackOrientation: number,
     ): void {
         if (!(ecsIndex >= 0)) return;
         const teleported = path.isTeleport || forceTeleport;
@@ -205,7 +205,7 @@ export class NpcMovementSync {
                     const localX = (worldX - baseX) | 0;
                     const localY = (worldY - baseY) | 0;
                     const traversal =
-                        typeof step.traversal === "number" ? step.traversal | 0 : step.run ? 2 : 1;
+                    typeof step.traversal === "number" ? step.traversal | 0 : step.run ? 2 : 1;
                     // Base walk speed is 4 sub-tile units per client tick (not 5).
                     // Walk: 128 / 4 = 32 client ticks = 640ms per tile (slightly slower than server tick)
                     // Run: 128 / 8 = 16 client ticks = 320ms per tile (4 << 1)
@@ -219,19 +219,19 @@ export class NpcMovementSync {
 
         this.npcEcs.setServerState(ecsIndex, {
             subX: (typeof update.subX === "number" ? update.subX : 0) | 0,
-            subY: (typeof update.subY === "number" ? update.subY : 0) | 0,
-            tileX: path.to.x | 0,
-            tileY: path.to.y | 0,
-            plane: update.level | 0,
+                                   subY: (typeof update.subY === "number" ? update.subY : 0) | 0,
+                                   tileX: path.to.x | 0,
+                                   tileY: path.to.y | 0,
+                                   plane: update.level | 0,
         });
 
         const nextStep = path.steps[0];
         const pathOrientation =
-            !teleported && nextStep
-                ? undefined
-                : nextStep
-                  ? directionToOrientation(nextStep.direction)
-                  : undefined;
+        !teleported && nextStep
+        ? undefined
+        : nextStep
+        ? directionToOrientation(nextStep.direction)
+        : undefined;
         const orientation = this.resolveOrientation(
             {
                 orientation: update.orientation,

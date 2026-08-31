@@ -20,6 +20,19 @@ export class MovementSystem {
                 bot.followX = bot.tileX;
                 bot.followZ = bot.tileY;
             });
+            // NPCs need the same pre-movement snapshot as players so combat's
+            // approach-tile calculation (walkToAttackRange) can path toward an
+            // NPC target's followX/followZ instead of its live tileX/tileY.
+            // Without this, two melee combatants closing distance on each other
+            // both compute their "nearest cardinal attack tile" from the other's
+            // still-updating current position every tick; on a diagonal approach
+            // this produces a symmetric tie that flips which side each one picks,
+            // so they perpetually step toward and away from each other without
+            // ever landing adjacent (the "melee dance").
+            this.npcManager?.forEach((npc) => {
+                npc.followX = npc.tileX;
+                npc.followZ = npc.tileY;
+            });
         } catch (err) {
             logger.warn("[movement-system] failed to update follow positions", err);
         }

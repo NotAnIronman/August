@@ -5,6 +5,7 @@ import { EncounterRegistry, registerEncounter } from "@server/game/encounters/En
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { PRAYER_RECHARGE_SOUND_ID } from "@august/osrs-engine/prayer/prayers";
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
+import { LockState } from "@server/game/model/LockState";
 
 const ZAMORAK_DOOR_LOC_ID = 26505;
 const ZAMORAK_ALTAR_LOC_ID = 26363;
@@ -125,6 +126,9 @@ function crossIceBridge({ player, services, tick }: LocInteractionEvent): void {
     const forward = player.tileY < 5340;
     if (forward && hitpoints.baseLevel + hitpoints.boost < 70) { services.messaging.sendGameMessage(player, "You need a Hitpoints level of 70 to cross this bridge."); return; }
     const destination = forward ? BRIDGE_END : BRIDGE_START;
+    const previousLock = player.lock;
+    player.lock = LockState.FULL;
+    services.scheduler.after(3, () => { if (player.lock === LockState.FULL) player.lock = previousLock; }, { kind: "player", id: player.id });
     const startTile = { x: player.tileX, y: player.tileY };
     services.movement.teleportPlayer(player, destination.x, destination.y, destination.level);
     services.movement.queueForcedMovement(player, { startTile, endTile: { x: destination.x, y: destination.y }, endTick: tick + 2, direction: forward ? 1024 : 0 });

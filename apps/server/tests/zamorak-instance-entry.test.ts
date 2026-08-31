@@ -81,6 +81,7 @@ const bridgeServices = {
         queueForcedMovement: () => undefined,
     },
     animation: { playPlayerSeq: () => undefined },
+    scheduler: { after: () => 0 },
 };
 handlers.get("26518:climb-off")?.({ player: bridgePlayer, services: bridgeServices, tile: { x: 2885, y: 5331 }, tick: 1 } as never);
 assert.deepEqual(teleports.at(-1), { x: 2885, y: 5347, level: 2 });

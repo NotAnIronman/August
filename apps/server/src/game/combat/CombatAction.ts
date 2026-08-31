@@ -652,7 +652,13 @@ export function walkToAttackRange(
                     targetSize,
                     attackRange,
                 )
-              : new RectWithinRangeRouteStrategy(tx, tz, targetSize, targetSize, attackRange);
+              : new RectWithinRangeRouteStrategy(
+                    tx,
+                    tz,
+                    targetSize,
+                    targetSize,
+                    attackRange,
+                );
 
     if (strategy instanceof RectWithinRangeLineOfSightRouteStrategy) {
         strategy.setProjectileRaycast((from, to) => pathService.projectileRaycast(from, to));

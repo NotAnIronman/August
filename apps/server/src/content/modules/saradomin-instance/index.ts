@@ -3,9 +3,11 @@ import type { IScriptRegistry, LocInteractionEvent, ScriptServices } from "@serv
 import { AttackType } from "@server/game/combat/AttackType";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
 import { SkillId } from "@august/osrs-engine/skill/skills";
+import { PRAYER_RECHARGE_SOUND_ID } from "@august/osrs-engine/prayer/prayers";
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
 
 const ZILYANA_DOOR_LOC_ID = 26504;
+const SARADOMIN_ALTAR_LOC_ID = 26364;
 const ROPE_ITEM_ID = 954;
 const FIRST_ROCK_LOC_ID = 26561;
 const SECOND_ROCK_LOC_ID = 26562;
@@ -38,6 +40,7 @@ const SARADOMIN_NPCS = Object.freeze([
     Object.freeze({ id: 2207, offsetX: 2896 - INSTANCE_BASE.x, offsetY: 5264 - INSTANCE_BASE.y, level: 0 }),
     Object.freeze({ id: 2208, offsetX: 2902 - INSTANCE_BASE.x, offsetY: 5274 - INSTANCE_BASE.y, level: 0 }),
 ]);
+const altarUses = new WeakMap<PlayerState, number>();
 
 function registerSaradominEncounters(): void {
     if (!EncounterRegistry.shared.get("commander-zilyana")) {
@@ -104,7 +107,7 @@ function hasUnboostedAgility(player: PlayerState): boolean {
     return player.skillSystem.getSkill(SkillId.Agility).baseLevel >= 70;
 }
 
-function tieRope(event: LocInteractionEvent, tiedRockId: number, hangingRopeId: number, lowerRopeTile: { x: number; y: number; level: number }, rotation: number): void {
+function tieRope(event: LocInteractionEvent, tiedRockId: number, hangingRopeId: number, lowerRopeTile: { x: number; y: number; level: number }, rotation: number, hangingRotation: number): void {
     const { player, services, tile, level, locId } = event;
     if (!hasUnboostedAgility(player)) { services.messaging.sendGameMessage(player, "You need an Agility level of 70 to climb here."); return; }
     if (!player.items.hasItem(ROPE_ITEM_ID, 1)) { services.messaging.sendGameMessage(player, "You need a rope to tie here."); return; }
@@ -112,8 +115,22 @@ function tieRope(event: LocInteractionEvent, tiedRockId: number, hangingRopeId: 
     if (removed.completed !== 1) { services.messaging.sendGameMessage(player, "You need a rope to tie here."); return; }
     services.inventory.snapshotInventoryImmediate(player);
     services.location.replaceTemporaryLoc({ worldViewId: -1 }, locId, tiedRockId, tile, level, { newShape: ROPE_LOC_SHAPE, newRotation: rotation });
-    services.location.replaceTemporaryLoc({ worldViewId: -1 }, 0, hangingRopeId, lowerRopeTile, lowerRopeTile.level, { newShape: ROPE_LOC_SHAPE, newRotation: 0 });
+    services.location.replaceTemporaryLoc({ worldViewId: -1 }, 0, hangingRopeId, lowerRopeTile, lowerRopeTile.level, { newShape: ROPE_LOC_SHAPE, newRotation: hangingRotation });
     services.messaging.sendGameMessage(player, "You tie the rope securely to the rock.");
+}
+
+function prayAtAltar({ player, services, tick }: LocInteractionEvent): void {
+    if (!inZilyanaRoom(player, services)) return;
+    const ready = (altarUses.get(player) ?? -Infinity) + 500;
+    if (tick < ready) { services.messaging.sendGameMessage(player, "The gods have already blessed you recently."); return; }
+    const prayer = player.skillSystem.getSkill(SkillId.Prayer);
+    if (prayer.baseLevel + prayer.boost >= prayer.baseLevel) { services.messaging.sendGameMessage(player, "You already have full Prayer points."); return; }
+    services.animation.playPlayerSeq(player, 645);
+    player.skillSystem.setSkillBoost(SkillId.Prayer, prayer.baseLevel);
+    player.prayer.resetDrainAccumulator();
+    services.sound.sendSound(player, PRAYER_RECHARGE_SOUND_ID);
+    altarUses.set(player, tick);
+    services.messaging.sendGameMessage(player, "The gods bless you, restoring your Prayer points.");
 }
 
 function climb(player: PlayerState, services: ScriptServices, destination: { x: number; y: number; level: number }): void {
@@ -129,8 +146,10 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerLocInteraction(ZILYANA_DOOR_LOC_ID, ({ player, services }) => createRoom(player, services, "party"), "enter party");
     registry.registerLocInteraction(ZILYANA_DOOR_LOC_ID, ({ player, services }) => showJoinOptions(player, services), "join party");
     // First descent faces back toward the waterfall (180°); second faces west (90° CCW).
-    registry.registerLocInteraction(FIRST_ROCK_LOC_ID, (event) => tieRope(event, FIRST_TIED_ROCK_LOC_ID, FIRST_HANGING_ROPE_LOC_ID, FIRST_LOWER_ROPE_TILE, 2), "tie-rope");
-    registry.registerLocInteraction(SECOND_ROCK_LOC_ID, (event) => tieRope(event, SECOND_TIED_ROCK_LOC_ID, SECOND_HANGING_ROPE_LOC_ID, SECOND_LOWER_ROPE_TILE, 3), "tie-rope");
+    registry.registerLocInteraction(FIRST_ROCK_LOC_ID, (event) => tieRope(event, FIRST_TIED_ROCK_LOC_ID, FIRST_HANGING_ROPE_LOC_ID, FIRST_LOWER_ROPE_TILE, 2, 2), "tie-rope");
+    registry.registerLocInteraction(SECOND_ROCK_LOC_ID, (event) => tieRope(event, SECOND_TIED_ROCK_LOC_ID, SECOND_HANGING_ROPE_LOC_ID, SECOND_LOWER_ROPE_TILE, 3, 3), "tie-rope");
+    registry.registerLocInteraction(SARADOMIN_ALTAR_LOC_ID, prayAtAltar, "pray");
+    registry.registerLocInteraction(SARADOMIN_ALTAR_LOC_ID, prayAtAltar, "pray-at");
     registry.registerLocInteraction(FIRST_TIED_ROCK_LOC_ID, ({ player, services }) => climb(player, services, FIRST_DESCENT), "climb-down");
     registry.registerLocInteraction(FIRST_HANGING_ROPE_LOC_ID, ({ player, services }) => climb(player, services, FIRST_ROCK_TILE), "climb-up");
     registry.registerLocInteraction(SECOND_TIED_ROCK_LOC_ID, ({ player, services }) => climb(player, services, SECOND_DESCENT), "climb-down");

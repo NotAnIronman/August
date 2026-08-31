@@ -216,7 +216,11 @@ export const MANUAL_NPC_DROP_OVERRIDES: ManualNpcDropOverride[] = [
     },
     {
         npcTypeIds: [...GOBLIN_BONES_ONLY_NPC_TYPE_IDS],
-        table: alwaysTable(drop("Bones", 1, "Always")),
+        table: {
+            always: [drop("Bones", 1, "Always")],
+            // These GWD goblins are the intended local hammer supply for the Bandos gong.
+            pools: [{ kind: "independent", category: "main", entries: [drop("Hammer", 1, "1/4")] }],
+        },
     },
     {
         npcTypeIds: [178],
