@@ -37,6 +37,8 @@ export interface WidgetsContext {
         shadow?: number,
         quantityMode?: number,
         animationTimeSeconds?: number,
+        width?: number,
+        height?: number,
     ) => HTMLCanvasElement | undefined;
     getObjLoader?: () => any;
     // Optional game context for plugins (e.g., player ECS, map state)

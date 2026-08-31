@@ -59,6 +59,10 @@ export type ItemIconRenderOptions = {
     shadow?: number;
     quantityMode?: number;
     animationTimeSeconds?: number;
+    /** Native rasterization size. Defaults to the classic 36x32 OSRS icon
+     *  size when omitted - see renderToCanvas() for why this matters. */
+    width?: number;
+    height?: number;
 };
 
 export class ItemIconRenderer {
@@ -106,11 +110,19 @@ export class ItemIconRenderer {
         const qtyModeRaw = (options.quantityMode ?? 2) | 0;
         const qtyMode = this.normalizeQuantityMode(qty, qtyModeRaw);
         const animationTimeSeconds = options.animationTimeSeconds;
+        // Callers that know their real on-screen size (e.g. a UI panel with
+        // slots bigger than the classic 32px inventory cell) can request the
+        // icon be rasterized natively at that size instead of the default
+        // 36x32 - which the caller would otherwise have to GL-stretch,
+        // producing a blurry/aliased result. Omitting these keeps every
+        // existing caller's exact current 36x32 behavior and cache entries.
+        const sw = options.width && options.width > 0 ? options.width | 0 : ItemIconRenderer.OSRS_SPRITE_W;
+        const sh = options.height && options.height > 0 ? options.height | 0 : ItemIconRenderer.OSRS_SPRITE_H;
         const animationKey =
             hasAnimatedItemIcon(itemId) && animationTimeSeconds !== undefined
                 ? Math.floor(Math.max(0, animationTimeSeconds) * 8) % (128 * 8)
                 : 0;
-        const key = this.getItemSpriteKey(itemId | 0, qty, outline, shadow, qtyMode, animationKey);
+        const key = this.getItemSpriteKey(itemId | 0, qty, outline, shadow, qtyMode, animationKey, sw, sh);
 
         const cached = this.itemSpriteCache.get(key);
         if (cached?.canvas) return cached.canvas;
@@ -124,17 +136,19 @@ export class ItemIconRenderer {
             false,
             animationTimeSeconds,
             animationKey,
+            sw,
+            sh,
         );
         if (!entry) return undefined;
 
         if (entry.canvas) return entry.canvas;
 
-        const canvas = this.pixelsToCanvas(entry.pixels);
+        const canvas = this.pixelsToCanvas(entry.pixels, sw, sh);
         try {
             const ctx = canvas.getContext("2d", {
                 willReadFrequently: true as any,
             }) as CanvasRenderingContext2D;
-            this.drawItemQuantity(ctx, qty, qtyMode, entry.isStackable);
+            this.drawItemQuantity(ctx, qty, qtyMode, entry.isStackable, sw, sh);
         } catch {}
 
         entry.canvas = canvas;
@@ -159,15 +173,22 @@ export class ItemIconRenderer {
         shadow: number,
         quantityMode: number,
         animationKey: number = 0,
+        sw: number = ItemIconRenderer.OSRS_SPRITE_W,
+        sh: number = ItemIconRenderer.OSRS_SPRITE_H,
     ): bigint {
         // Reference: long var6 = ((long)var4 << 40) + ((long)var1 << 16) + (long)var0 + ((long)var2 << 38) + ((long)var3 << 42);
+        // sw/sh folded in above bit 48 so differently-sized requests for the
+        // same item (e.g. a 64px UI panel vs. the classic 32px inventory)
+        // never collide on the same cache entry.
         return (
             (BigInt(quantityMode | 0) << 40n) +
             (BigInt(quantity | 0) << 16n) +
             BigInt(itemId | 0) +
             (BigInt(outline | 0) << 38n) +
             (BigInt(shadow | 0) << 42n) +
-            (BigInt(animationKey | 0) << 48n)
+            (BigInt(animationKey | 0) << 48n) +
+            (BigInt(sw | 0) << 60n) +
+            (BigInt(sh | 0) << 80n)
         );
     }
 
@@ -180,9 +201,7 @@ export class ItemIconRenderer {
         return font;
     }
 
-    private pixelsToCanvas(pixels: Int32Array): HTMLCanvasElement {
-        const sw = ItemIconRenderer.OSRS_SPRITE_W;
-        const sh = ItemIconRenderer.OSRS_SPRITE_H;
+    private pixelsToCanvas(pixels: Int32Array, sw: number, sh: number): HTMLCanvasElement {
 
         const canvas = document.createElement("canvas");
         canvas.width = sw;
@@ -213,6 +232,8 @@ export class ItemIconRenderer {
         quantity: number,
         quantityMode: number,
         isStackable: boolean,
+        sw: number,
+        sh: number,
     ) {
         // Reference: UserComparator7.getItemSprite
         if (!(quantityMode === 1 || (quantityMode === 2 && isStackable))) return;
@@ -235,8 +256,13 @@ export class ItemIconRenderer {
         }
 
         // OSRS: Font.draw(var21, 0, 9, 16776960, 1) -> shadow at +1,+1 and main at +0,+0.
-        font.draw(ctx, text, 1, 10, "#000001");
-        font.draw(ctx, text, 0, 9, color);
+        // Those offsets assume the classic 32px-tall icon; scale proportionally
+        // for larger native render sizes so the label stays pinned near the
+        // top-left corner instead of drifting toward icon center.
+        const scaleY = sh / ItemIconRenderer.OSRS_SPRITE_H;
+        const baseY = Math.round(9 * scaleY);
+        font.draw(ctx, text, 1, baseY + 1, "#000001");
+        font.draw(ctx, text, 0, baseY, color);
     }
 
     private blitTransBgAt(dst: Int32Array, src: Int32Array) {
@@ -257,6 +283,8 @@ export class ItemIconRenderer {
         var5: boolean,
         animationTimeSeconds?: number,
         animationKey: number = 0,
+        sw: number = ItemIconRenderer.OSRS_SPRITE_W,
+        sh: number = ItemIconRenderer.OSRS_SPRITE_H,
     ): { pixels: Int32Array; isStackable: boolean; canvas?: HTMLCanvasElement } | undefined {
         const key = this.getItemSpriteKey(
             itemId,
@@ -265,6 +293,8 @@ export class ItemIconRenderer {
             shadow,
             quantityMode,
             animationKey,
+            sw,
+            sh,
         );
         if (!var5) {
             const cached = this.itemSpriteCache.get(key);
@@ -327,6 +357,9 @@ export class ItemIconRenderer {
                 0,
                 true,
                 animationTimeSeconds,
+                animationKey,
+                sw,
+                sh,
             );
             if (!ov) return undefined;
             overlayPixels = ov.pixels;
@@ -340,6 +373,9 @@ export class ItemIconRenderer {
                 0,
                 false,
                 animationTimeSeconds,
+                animationKey,
+                sw,
+                sh,
             );
             if (!ov) return undefined;
             overlayPixels = ov.pixels;
@@ -353,13 +389,14 @@ export class ItemIconRenderer {
                 0,
                 false,
                 animationTimeSeconds,
+                animationKey,
+                sw,
+                sh,
             );
             if (!ov) return undefined;
             overlayPixels = ov.pixels;
         }
 
-        const sw = ItemIconRenderer.OSRS_SPRITE_W;
-        const sh = ItemIconRenderer.OSRS_SPRITE_H;
         const base = new Int32Array(sw * sh);
 
         // Placeholder background is drawn BEFORE the model.

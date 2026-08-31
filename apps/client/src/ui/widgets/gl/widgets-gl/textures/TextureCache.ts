@@ -220,6 +220,8 @@ export class TextureCache {
         shadow?: number,
         quantityMode?: number,
         animationTimeSeconds?: number,
+        width?: number,
+        height?: number,
     ) => HTMLCanvasElement | undefined;
 
     constructor(
@@ -232,6 +234,8 @@ export class TextureCache {
             shadow?: number,
             quantityMode?: number,
             animationTimeSeconds?: number,
+            width?: number,
+            height?: number,
         ) => HTMLCanvasElement | undefined,
     ) {
         this.glr = glr;
@@ -446,12 +450,20 @@ export class TextureCache {
         outline: number = 0,
         shadow: number = 0,
         quantityMode: number = 2,
+        width?: number,
+        height?: number,
     ) {
         // key matches UserComparator7.getItemSprite var6 packing.
         let mode = quantityMode | 0;
         const qty = quantity | 0;
         if (qty === -1) mode = 0;
         else if (mode === 2 && qty !== 1) mode = 1;
+
+        // Native render size, when the caller supplies one, must be part of
+        // the cache key - otherwise a 64px UI panel and the classic 32px
+        // inventory would fight over the same cached (wrong-size) entry for
+        // the same item.
+        const sizeSuffix = width && height ? `:${width | 0}x${height | 0}` : "";
 
         const animated = hasAnimatedItemIcon(itemId);
         const animationTimeSeconds = animated ? getAnimatedItemIconTimeSeconds() : undefined;
@@ -470,7 +482,8 @@ export class TextureCache {
               ":" +
               (shadow | 0) +
               ":" +
-              mode
+              mode +
+              sizeSuffix
             : "item:" +
               ITEM_ICON_CACHE_VERSION +
               ":" +
@@ -482,7 +495,8 @@ export class TextureCache {
               ":" +
               (shadow | 0) +
               ":" +
-              mode;
+              mode +
+              sizeSuffix;
         if (!animated) {
             const cached = this.glr.getTexture(key);
             if (cached) return cached;
@@ -504,6 +518,8 @@ export class TextureCache {
                     shadow | 0,
                     mode,
                     animationTimeSeconds,
+                    width,
+                    height,
                 );
                 if (can) {
                     if (CAPE_ICON_IDS.has(itemId | 0) && !capeIconCanvasTraceSeen.has(itemId | 0)) {

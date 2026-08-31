@@ -55,19 +55,20 @@ function slotPosition(slot: number): { x: number; y: number } {
     };
 }
 
-function slotWidget(componentId: number, parentUid: number, x: number, y: number, type: number): WidgetNode {
+function slotWidget(componentId: number, parentUid: number, x: number, y: number): WidgetNode {
     return {
         uid: uid(componentId), id: uid(componentId), childIndex: -1, parentUid,
-        groupId: REWARD_DISPLAY_PANEL_GROUP_ID, fileId: componentId, isIf3: true, type,
+        groupId: REWARD_DISPLAY_PANEL_GROUP_ID, fileId: componentId, isIf3: true, type: 5,
         contentType: 0, rawX: x, rawY: y, rawWidth: SLOT_SIZE, rawHeight: SLOT_SIZE,
         width: SLOT_SIZE, height: SLOT_SIZE, widthMode: 0, heightMode: 0,
         xPositionMode: 0, yPositionMode: 0, x, y, scrollX: 0, scrollY: 0,
         scrollWidth: 0, scrollHeight: 0, isHidden: false, hidden: false, cachedHidden: false,
         rootIndex: -1, cycle: -1, modelFrame: 0, modelFrameCycle: 0, aspectWidth: 1,
-        aspectHeight: 1, itemId: -1, itemQuantity: 0,
-        // Near-invisible backing instead of a harsh bordered grid cell -
-        // transparency is 0=opaque/255=fully transparent on WidgetNode.
-        ...(type === 3 ? { filled: true, color: 0x24201a, transparency: 235 } : { itemQuantityMode: 2, noClickThrough: true }),
+        aspectHeight: 1, itemId: -1, itemQuantity: 0, itemQuantityMode: 2, noClickThrough: true,
+        // Rasterize the icon natively at the slot's real size instead of the
+        // classic 36x32-then-GL-stretch, which is what was causing the
+        // pixelated/aliased look at this larger slot size.
+        itemIconRenderWidth: SLOT_SIZE, itemIconRenderHeight: SLOT_SIZE,
     };
 }
 
@@ -98,10 +99,8 @@ registerUiPanel({
         built.widgets.set(uid(CHEST_COMPONENT_ID), chestWidget(rootUid));
         for (let slot = 0; slot < SLOT_COUNT; slot += 1) {
             const { x, y } = slotPosition(slot);
-            const backgroundId = REWARD_DISPLAY_SLOT_BASE + slot * 2;
-            const itemId = backgroundId + 1;
-            built.widgets.set(uid(backgroundId), slotWidget(backgroundId, rootUid, x, y, 3));
-            built.widgets.set(uid(itemId), slotWidget(itemId, rootUid, x, y, 5));
+            const itemId = REWARD_DISPLAY_SLOT_BASE + slot * 2 + 1;
+            built.widgets.set(uid(itemId), slotWidget(itemId, rootUid, x, y));
         }
         return built;
     },

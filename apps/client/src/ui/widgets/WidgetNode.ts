@@ -169,6 +169,14 @@ export interface WidgetNode {
     itemQuantity?: number; // Used by Ops
     itemQuantityMode?: number; // 0=never, 1=always, 2=if > 1
     itemShowQuantity?: boolean;
+    // Opt-in: rasterize this widget's type-5 item icon natively at this
+    // size instead of the classic 36x32 default (which the renderer then
+    // GL-stretches to fit width/height, causing visible aliasing on
+    // panels with slots bigger than the standard inventory cell). Leave
+    // unset to keep the existing 36x32-then-stretch behavior everywhere
+    // else unchanged.
+    itemIconRenderWidth?: number;
+    itemIconRenderHeight?: number;
 
     // Inventory arrays for type 2 (inventory) widgets
     // These hold multiple items in a grid layout (e.g., bank, inventory, equipment)
