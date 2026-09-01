@@ -73,6 +73,19 @@ export class EncounterRegistry {
                 );
             }
         }
+        const killcount = definition.killcount;
+        if (killcount) {
+            if (!killcount.name.trim()) {
+                throw new Error(`Encounter '${definition.id}' killcount name cannot be empty.`);
+            }
+            if (!Number.isInteger(killcount.collectionLogStructId) || killcount.collectionLogStructId < 0) {
+                throw new Error(`Encounter '${definition.id}' killcount collection-log id is invalid.`);
+            }
+            if (killcount.milestoneInterval !== undefined &&
+                (!Number.isInteger(killcount.milestoneInterval) || killcount.milestoneInterval <= 0)) {
+                throw new Error(`Encounter '${definition.id}' killcount milestone interval is invalid.`);
+            }
+        }
         const attackIds = definition.attacks.map((attack) => attack.id);
         this.assertUnique(attackIds, `Attack id in '${definition.id}'`);
         for (const attack of definition.attacks) {

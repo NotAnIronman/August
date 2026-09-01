@@ -39,6 +39,7 @@ function registerArmadylEncounters(): void {
         registerEncounter({
             id: "kreearra", npcTypeIds: [3162], maxHealth: 255,
             bossHealthBar: { name: "Kree'arra", npcTypeId: 3162 },
+            killcount: { name: "Kree'arra", collectionLogStructId: 493 },
             movement: { wanderRadius: 10, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
             immunities: { poison: true, venom: true },
             attacks: [

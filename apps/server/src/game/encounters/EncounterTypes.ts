@@ -98,6 +98,17 @@ export interface EncounterBossHealthBarDefinition {
     readonly npcTypeId?: number;
 }
 
+/**
+ * Opt-in account progression for a boss encounter.  Keeping this beside the
+ * encounter definition makes killcount chat and the collection-log counter a
+ * default feature of new modular bosses instead of a separate content patch.
+ */
+export interface EncounterKillcountDefinition {
+    readonly name: string;
+    readonly collectionLogStructId: number;
+    readonly milestoneInterval?: number;
+}
+
 export interface EncounterDefinition {
     readonly id: string;
     /** Every NPC type used by this encounter, including alternate forms. */
@@ -105,6 +116,8 @@ export interface EncounterDefinition {
     readonly maxHealth?: number;
     /** Opts this encounter into the reusable native boss-health-bar lifecycle. */
     readonly bossHealthBar?: EncounterBossHealthBarDefinition;
+    /** Opts this encounter into shared boss killcount and collection-log tracking. */
+    readonly killcount?: EncounterKillcountDefinition;
     readonly movement?: EncounterMovementProfile;
     /** Permanent NPC effect immunities shared by every form in this encounter. */
     readonly immunities?: NpcEffectImmunityProfile;

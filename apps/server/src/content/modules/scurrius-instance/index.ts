@@ -62,6 +62,7 @@ function registerEncounters(): void {
             npcTypeIds: [SCURRIUS_ID],
             maxHealth: 150,
             bossHealthBar: { name: "Scurrius", npcTypeId: SCURRIUS_ID },
+            killcount: { name: "Scurrius", collectionLogStructId: 777 },
             movement: { wanderRadius: 8, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 40, retreatInteractionRange: 45 },
             attacks: [
                 { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 5, maxHit: 13, animation: "melee", condition: (context) => context.targetDistance <= 1 && context.healthPercent > 30 },

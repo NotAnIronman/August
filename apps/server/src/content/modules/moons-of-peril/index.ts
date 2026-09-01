@@ -43,13 +43,26 @@ const GLYPH_OFFSETS: Record<Moon, ReadonlyArray<readonly [number, number]>> = {
 };
 type GlyphState = { markerId?: number; offsets: ReadonlyArray<readonly [number, number]>; position: number; attacks: number; completedRotations: number; specialReady: boolean; offTicks: number; tickTaskActive: boolean; onGlyph?: boolean };
 const glyphStates = new WeakMap<NpcState, GlyphState>();
-type MoonSpecialState = { kind: Moon; owner: PlayerState; active: boolean; childIds: Set<number>; brazierTiles: Set<string>; waves: number; shieldMechanic?: MechanicHandle };
+type MoonSpecialState = {
+    kind: Moon;
+    owner: PlayerState;
+    active: boolean;
+    childIds: Set<number>;
+    brazierTiles: Set<string>;
+    waves: number;
+    /** Blue Moon's current ten-storm wave. A fresh wave starts only after all of these finish. */
+    activeStorms: number;
+    nextWaveQueued: boolean;
+    shieldMechanic?: MechanicHandle;
+};
 const moonSpecials = new WeakMap<NpcState, MoonSpecialState>();
 const specialChildOwners = new Map<number, NpcState>();
 const BRAZIER = 52992;
-const UNLIT_BRAZIER = 53048;
 const UNLIT_BRAZIERS = [53048, 53049] as const;
-const BLUE_BRAZIER_TILES = [{ x: 1427, y: 9680 }, { x: 1453, y: 9680 }] as const;
+const BLUE_BRAZIERS = [
+    { tile: { x: 1427, y: 9680 }, unlitId: 53048 },
+    { tile: { x: 1453, y: 9680 }, unlitId: 53049 },
+] as const;
 
 function glyphTile(npc: NpcState, state: GlyphState): Tile {
     const [dx, dy] = state.offsets[state.position % state.offsets.length]!;
@@ -91,9 +104,10 @@ function stopMoonSpecial(npc: NpcState, services: ScriptServices): void {
     }
     special.childIds.clear();
     if (special.kind === "blue") {
-        for (const tile of BLUE_BRAZIER_TILES) {
+        for (const { tile, unlitId } of BLUE_BRAZIERS) {
             services.location.replaceTemporaryLoc(
-                { worldViewId: npc.worldViewId }, UNLIT_BRAZIER, BRAZIER, tile, npc.level,
+                { worldViewId: npc.worldViewId }, unlitId, BRAZIER, tile, npc.level,
+                { oldShape: 10, newShape: 10 },
             );
         }
     }
@@ -195,7 +209,21 @@ function startEclipseSpecial(npc: NpcState, player: PlayerState, services: Scrip
 }
 
 function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
-    if (!special.active) return;
+    if (!special.active || special.activeStorms > 0) return;
+    special.nextWaveQueued = false;
+    const finishStorm = (storm: NpcState): void => {
+        special.childIds.delete(storm.id);
+        specialChildOwners.delete(storm.id);
+        services.npc.removeNpc(storm.id);
+        special.activeStorms = Math.max(0, special.activeStorms - 1);
+        // A storm phase is continuous: after every storm has reached a wall
+        // (or hit the player), begin a fresh randomized wave on the next tick.
+        if (!special.active || special.activeStorms !== 0 || special.nextWaveQueued) return;
+        special.nextWaveQueued = true;
+        services.scheduler.after(1, () => {
+            if (special.active) spawnBlueStormWave(npc, player, services, special);
+        }, { kind: "npc", id: npc.id });
+    };
     // Five storms use the western lanes and five use the eastern lanes. Each
     // storm independently travels north-to-south or south-to-north.
     for (const lanes of [[1429, 1430, 1431, 1432, 1433, 1434, 1435], [1445, 1446, 1447, 1448, 1449, 1450, 1451]]) {
@@ -212,18 +240,24 @@ function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: Script
             if (!storm) continue;
             special.childIds.add(storm.id);
             specialChildOwners.set(storm.id, npc);
+            special.activeStorms += 1;
             const advance = (): void => {
-                if (!special.active || player.worldViewId !== npc.worldViewId) return;
+                if (!special.active || player.worldViewId !== npc.worldViewId) {
+                    finishStorm(storm);
+                    return;
+                }
                 const nextY = storm.tileY + directionY;
                 if (nextY <= 9670 || nextY >= 9690) {
-                    special.childIds.delete(storm.id); specialChildOwners.delete(storm.id); services.npc.removeNpc(storm.id); return;
+                    finishStorm(storm);
+                    return;
                 }
                 services.npc.teleportNpc(storm, { x: storm.tileX, y: nextY, level: storm.level });
                 if (player.tileX === storm.tileX && player.tileY === storm.tileY && player.level === storm.level) {
                     player.energy.setRunEnergyPercent(0);
                     player.setRunToggle(false);
                     services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 5 + Math.floor(Math.random() * 11), services.system.getCurrentTick());
-                    special.childIds.delete(storm.id); specialChildOwners.delete(storm.id); services.npc.removeNpc(storm.id); return;
+                    finishStorm(storm);
+                    return;
                 }
                 services.scheduler.after(1, advance, { kind: "npc", id: npc.id });
             };
@@ -231,6 +265,13 @@ function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: Script
         }
     }
     special.waves += 1;
+    // A failed spawn must not leave the phase inert forever.
+    if (special.activeStorms === 0 && !special.nextWaveQueued) {
+        special.nextWaveQueued = true;
+        services.scheduler.after(1, () => {
+            if (special.active) spawnBlueStormWave(npc, player, services, special);
+        }, { kind: "npc", id: npc.id });
+    }
 }
 
 function startBlueSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
@@ -240,9 +281,10 @@ function startBlueSpecial(npc: NpcState, player: PlayerState, services: ScriptSe
             invulnerabilityWindow(runtime, services, { id: "moon-special-shield" }),
         );
     } else npc.isUnattackable = true;
-    for (const tile of BLUE_BRAZIER_TILES) {
+    for (const { tile, unlitId } of BLUE_BRAZIERS) {
         services.location.replaceTemporaryLoc(
-            { worldViewId: npc.worldViewId }, BRAZIER, UNLIT_BRAZIER, tile, npc.level,
+            { worldViewId: npc.worldViewId }, BRAZIER, unlitId, tile, npc.level,
+            { oldShape: 10, newShape: 10 },
         );
     }
     services.messaging.sendGameMessage(player, "The braziers go dark as an ice storm sweeps the chamber.");
@@ -265,7 +307,10 @@ function startMoonSpecial(npc: NpcState, player: PlayerState, services: ScriptSe
     const state = glyphStates.get(npc);
     if (!state) return;
     if (state.markerId !== undefined) services.npc.removeNpc(state.markerId);
-    const special: MoonSpecialState = { kind: moon, owner: player, active: true, childIds: new Set(), brazierTiles: new Set(), waves: 0 };
+    const special: MoonSpecialState = {
+        kind: moon, owner: player, active: true, childIds: new Set(), brazierTiles: new Set(), waves: 0,
+        activeStorms: 0, nextWaveQueued: false,
+    };
     moonSpecials.set(npc, special);
     if (moon === "blood") startBloodSpecial(npc, player, services, special);
     if (moon === "eclipse") startEclipseSpecial(npc, player, services, special);
@@ -579,7 +624,10 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
         }
         special.brazierTiles.add(key);
         if (locId !== BRAZIER) {
-            services.location.replaceTemporaryLoc({ worldViewId: player.worldViewId }, locId, BRAZIER, tile, level);
+            services.location.replaceTemporaryLoc(
+                { worldViewId: player.worldViewId }, locId, BRAZIER, tile, level,
+                { oldShape: 10, newShape: 10 },
+            );
         }
         services.messaging.sendGameMessage(player, "You relight the brazier.");
         if (special.brazierTiles.size >= 2) {

@@ -37,6 +37,7 @@ function registerZamorakEncounters(): void {
         registerEncounter({
             id: "kril-tsutsaroth", npcTypeIds: [3129], maxHealth: 255,
             bossHealthBar: { name: "K'ril Tsutsaroth", npcTypeId: 3129 },
+            killcount: { name: "K'ril Tsutsaroth", collectionLogStructId: 494 },
             movement: { wanderRadius: 10, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 30, retreatInteractionRange: 40 },
             immunities: { poison: true, venom: true },
             attacks: [

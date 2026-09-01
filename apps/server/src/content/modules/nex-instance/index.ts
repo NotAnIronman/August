@@ -67,6 +67,7 @@ function registerNexEncounters(): void {
             npcTypeIds: [11278],
             maxHealth: 3400,
             bossHealthBar: { name: "Nex", npcTypeId: 11278 },
+            killcount: { name: "Nex", collectionLogStructId: 3769 },
             movement: { wanderRadius: 10, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
             immunities: { poison: true, venom: true },
             // Phase-specific attack pools and specials are intentionally added
