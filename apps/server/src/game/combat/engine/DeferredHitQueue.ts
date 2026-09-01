@@ -134,6 +134,9 @@ export class DeferredHitQueue {
             // This mirrors the action-based combat path and keeps both combat
             // engines consistent for targets such as the Moons of Peril.
             if (target instanceof NpcState && source instanceof PlayerState) {
+                if (target.forcePlayerMaxHit && pending.maxHit > 0) {
+                    damage = pending.maxHit;
+                }
                 damage = Math.floor(
                     damage * Math.max(0, target.incomingPlayerDamageMultiplier),
                 );

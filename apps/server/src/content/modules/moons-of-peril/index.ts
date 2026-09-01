@@ -4,6 +4,7 @@ import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGraveP
 import { AttackType } from "@server/game/combat/AttackType";
 import { HITMARK_DAMAGE } from "@server/game/combat/HitEffects";
 import { SkillId } from "@august/osrs-engine/skill/skills";
+import { faceAngleRs } from "@august/osrs-engine/geometry";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
 import { NpcAttackDecision, NpcPreDeathDecision, type NpcAttackEvent, type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
 import type { NpcState } from "@server/game/npc";
@@ -41,6 +42,11 @@ const GLYPH_OFFSETS: Record<Moon, ReadonlyArray<readonly [number, number]>> = {
 };
 type GlyphState = { markerId?: number; offsets: ReadonlyArray<readonly [number, number]>; position: number; attacks: number; completedRotations: number; specialReady: boolean; offTicks: number; tickTaskActive: boolean; onGlyph?: boolean };
 const glyphStates = new WeakMap<NpcState, GlyphState>();
+type MoonSpecialState = { kind: Moon; owner: PlayerState; active: boolean; childIds: Set<number>; brazierTiles: Set<string>; waves: number };
+const moonSpecials = new WeakMap<NpcState, MoonSpecialState>();
+const specialChildOwners = new Map<number, NpcState>();
+const BRAZIER = 52992;
+const UNLIT_BRAZIERS = [53048, 53049] as const;
 
 function glyphTile(npc: NpcState, state: GlyphState): Tile {
     const [dx, dy] = state.offsets[state.position % state.offsets.length]!;
@@ -69,6 +75,143 @@ function moveGlyph(npc: NpcState, player: PlayerState, services: ScriptServices,
     if (spawned) state.markerId = spawned.id;
 }
 
+function tileKey(tile: { x: number; y: number; level: number }): string { return `${tile.x},${tile.y},${tile.level}`; }
+
+function stopMoonSpecial(npc: NpcState, services: ScriptServices): void {
+    const special = moonSpecials.get(npc);
+    if (!special) return;
+    special.active = false;
+    for (const childId of special.childIds) {
+        specialChildOwners.delete(childId);
+        services.npc.removeNpc(childId);
+    }
+    special.childIds.clear();
+    npc.forcePlayerMaxHit = false;
+    npc.isUnattackable = false;
+}
+
+function restartGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptServices): void {
+    const state = glyphStates.get(npc);
+    if (!state) return;
+    stopMoonSpecial(npc, services);
+    state.position = 0;
+    state.attacks = 0;
+    state.offTicks = 0;
+    moveGlyph(npc, player, services, state);
+    setGlyphDamageMode(npc, state, isOnGlyph(player, npc, state));
+}
+
+function playerIsFacingNpc(player: PlayerState, npc: NpcState): boolean {
+    const targetRotation = faceAngleRs(player.tileX, player.tileY, npc.tileX + 1, npc.tileY + 1) & 2047;
+    let delta = ((player.rot & 2047) - targetRotation) & 2047;
+    if (delta > 1024) delta = 2048 - delta;
+    return delta <= 256;
+}
+
+function startBloodSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
+    npc.isUnattackable = true;
+    for (const [dx, dy] of [[-4, 0], [4, 0]] as const) {
+        const jaguar = services.npc.spawnNpc({
+            id: BLOOD_JAGUAR_NPC_ID, x: npc.spawnX + dx, y: npc.spawnY + dy, level: npc.level,
+            worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
+            isAggressive: true, aggressionRadius: 30, respawns: false,
+        });
+        if (!jaguar) continue;
+        special.childIds.add(jaguar.id);
+        specialChildOwners.set(jaguar.id, npc);
+        services.npc.engageCombat(jaguar, player);
+    }
+    services.messaging.sendGameMessage(player, "Blood jaguars leap from the shadows!");
+}
+
+function startEclipseSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
+    // Eclipse remains targetable during this special: facing her at each
+    // teleport grants a max-hit window instead of locking combat out.
+    npc.isUnattackable = false;
+    const state = glyphStates.get(npc);
+    if (!state) return;
+    services.movement.teleportPlayer(player, MOONS.eclipse.boss.x, MOONS.eclipse.boss.y, MOONS.eclipse.boss.level);
+    let jumps = 0;
+    const jump = (): void => {
+        if (!special.active || npc.getHitpoints() <= 0 || player.worldViewId !== npc.worldViewId) return;
+        const [dx, dy] = state.offsets[Math.floor(Math.random() * state.offsets.length)]!;
+        services.npc.teleportNpc(npc, { x: npc.spawnX + dx, y: npc.spawnY + dy, level: npc.level });
+        npc.forcePlayerMaxHit = false;
+        services.scheduler.after(3, (tick) => {
+            if (!special.active || player.worldViewId !== npc.worldViewId) return;
+            if (playerIsFacingNpc(player, npc)) {
+                npc.forcePlayerMaxHit = true;
+            } else {
+                services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 8 + Math.floor(Math.random() * 13), tick);
+            }
+            jumps += 1;
+            if (jumps >= 5) {
+                services.scheduler.after(3, () => {
+                    if (!special.active) return;
+                    services.movement.teleportPlayer(player, MOONS.eclipse.entry.x, MOONS.eclipse.entry.y, MOONS.eclipse.entry.level);
+                    services.npc.teleportNpc(npc, MOONS.eclipse.boss);
+                    restartGlyphCycle(npc, player, services);
+                }, { kind: "npc", id: npc.id });
+            } else {
+                jump();
+            }
+        }, { kind: "npc", id: npc.id });
+    };
+    jump();
+}
+
+function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
+    if (!special.active) return;
+    for (const direction of [-1, 1] as const) {
+        for (let index = 0; index < 5; index += 1) {
+            const storm = services.npc.spawnNpc({
+                id: BLUE_ICE_STORM_NPC_ID, x: npc.spawnX + direction * 16, y: npc.spawnY - 10 + index * 5, level: npc.level,
+                worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
+                isUnattackable: true, isImmovable: true, respawns: false,
+            });
+            if (!storm) continue;
+            special.childIds.add(storm.id);
+            specialChildOwners.set(storm.id, npc);
+            const advance = (): void => {
+                if (!special.active || player.worldViewId !== npc.worldViewId) return;
+                const nextX = storm.tileX - direction;
+                // The chamber walls sit outside this central 32-tile sweep.
+                if (nextX < npc.spawnX - 16 || nextX > npc.spawnX + 16) {
+                    special.childIds.delete(storm.id); specialChildOwners.delete(storm.id); services.npc.removeNpc(storm.id); return;
+                }
+                services.npc.teleportNpc(storm, { x: nextX, y: storm.tileY, level: storm.level });
+                if (player.tileX === storm.tileX && player.tileY === storm.tileY && player.level === storm.level) {
+                    player.energy.setRunEnergyPercent(0);
+                    player.setRunToggle(false);
+                    services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 5 + Math.floor(Math.random() * 11), services.system.getCurrentTick());
+                    special.childIds.delete(storm.id); specialChildOwners.delete(storm.id); services.npc.removeNpc(storm.id); return;
+                }
+                services.scheduler.after(1, advance, { kind: "npc", id: npc.id });
+            };
+            services.scheduler.after(1, advance, { kind: "npc", id: npc.id });
+        }
+    }
+    special.waves += 1;
+    services.scheduler.after(8, () => spawnBlueStormWave(npc, player, services, special), { kind: "npc", id: npc.id });
+}
+
+function startBlueSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
+    npc.isUnattackable = true;
+    services.messaging.sendGameMessage(player, "The braziers go dark as an ice storm sweeps the chamber.");
+    spawnBlueStormWave(npc, player, services, special);
+}
+
+function startMoonSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, moon: Moon): void {
+    const state = glyphStates.get(npc);
+    if (!state) return;
+    if (state.markerId !== undefined) services.npc.removeNpc(state.markerId);
+    const special: MoonSpecialState = { kind: moon, owner: player, active: true, childIds: new Set(), brazierTiles: new Set(), waves: 0 };
+    moonSpecials.set(npc, special);
+    if (moon === "blood") startBloodSpecial(npc, player, services, special);
+    if (moon === "eclipse") startEclipseSpecial(npc, player, services, special);
+    if (moon === "blue") startBlueSpecial(npc, player, services, special);
+}
+
 function setGlyphDamageMode(npc: NpcState, state: GlyphState, onGlyph: boolean): void {
     if (state.onGlyph === onGlyph) return;
     state.onGlyph = onGlyph;
@@ -87,6 +230,10 @@ function beginGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptSer
     setGlyphDamageMode(npc, state, isOnGlyph(player, npc, state));
     const pulse = (tick: number): void => {
         if (!state.tickTaskActive || npc.getHitpoints() <= 0 || player.worldViewId !== npc.worldViewId) return;
+        if (moonSpecials.get(npc)?.active) {
+            services.scheduler.after(1, pulse, { kind: "npc", id: npc.id });
+            return;
+        }
         const onGlyph = isOnGlyph(player, npc, state);
         setGlyphDamageMode(npc, state, onGlyph);
         if (onGlyph) state.offTicks = 0;
@@ -105,18 +252,23 @@ function moonGlyphAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     if (event.npc.ownerPlayerId !== event.target.id) return;
     const state = glyphStates.get(event.npc);
     if (!state) return;
+    if (moonSpecials.get(event.npc)?.active) return NpcAttackDecision.Prevent;
     state.attacks += 1;
     if (state.attacks % 4 === 0) {
         state.position = (state.position + 1) % state.offsets.length;
         if (state.position === 0) {
             state.completedRotations += 1;
-            // Reserved phase hook: the first special begins only after this
-            // marker has completed all eight locations.
             state.specialReady = true;
         }
         state.offTicks = 0;
         setGlyphDamageMode(event.npc, state, false);
         moveGlyph(event.npc, event.target, event.services, state);
+        if (state.specialReady) {
+            const moon = (Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>).find(([, definition]) => definition.id === event.npc.typeId)?.[0];
+            if (moon) startMoonSpecial(event.npc, event.target, event.services, moon);
+            state.specialReady = false;
+            return NpcAttackDecision.Prevent;
+        }
     }
     const moon = (Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>).find(([, definition]) => definition.id === event.npc.typeId)?.[0];
     if (!moon) return;
@@ -343,6 +495,31 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerItemOnItem(PASTE, VIAL, ({ player, services }) => { if (player.items.removeItem(PASTE, 1, { assureFullRemoval: true }).completed && player.items.removeItem(VIAL, 1, { assureFullRemoval: true }).completed) { addOrDrop(player, services, 29080, 1); services.inventory.snapshotInventoryImmediate(player); } });
     registry.registerItemOnLoc(BREAM, STOVE, ({ player, services }) => startCookingBream(player, services));
     for (const potion of [29080, 29081, 29082, 29083]) registry.registerItemAction(potion, ({ player, services }) => drinkMoonlightPotion(player, services, potion), "drink");
+    const relightBrazier = ({ player, services, tile, level }: { player: PlayerState; services: ScriptServices; tile: { x: number; y: number }; level: number }) => {
+        const run = runs.get(player.id);
+        const boss = run?.npcId === undefined ? undefined : services.combat.getNpc(run.npcId);
+        const special = boss ? moonSpecials.get(boss) : undefined;
+        if (!boss || !special?.active || special.kind !== "blue") {
+            services.messaging.sendGameMessage(player, "The brazier burns steadily.");
+            return;
+        }
+        const key = tileKey({ x: tile.x, y: tile.y, level });
+        if (special.brazierTiles.has(key)) {
+            services.messaging.sendGameMessage(player, "This brazier is already lit.");
+            return;
+        }
+        special.brazierTiles.add(key);
+        services.messaging.sendGameMessage(player, "You relight the brazier.");
+        if (special.brazierTiles.size >= 2) {
+            services.messaging.sendGameMessage(player, "The ice storm subsides.");
+            restartGlyphCycle(boss, player, services);
+        }
+    };
+    for (const locId of [BRAZIER, ...UNLIT_BRAZIERS]) {
+        for (const action of [undefined, "light", "investigate", "feed"]) {
+            registry.registerLocInteraction(locId, relightBrazier, action);
+        }
+    }
     for (const mothId of MOONLIGHT_MOTHS) registry.registerNpcScript({ npcId: mothId, option: "catch", handler: ({ player, services }) => {
         if (services.equipment.getEquippedItem(player, EquipmentSlot.WEAPON) !== BUTTERFLY_NET) { services.messaging.sendGameMessage(player, "You need to wield a butterfly net to catch this moth."); return; }
         services.animation.playPlayerSeq(player, 660);
@@ -352,11 +529,26 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
         player.prayer.resetDrainAccumulator();
         services.messaging.sendGameMessage(player, "You catch the moonlight moth and feel your Prayer points restored.");
     } });
-    const escape = ({ player, services }: { player: PlayerState; services: ScriptServices }) => { const run = runs.get(player.id); if (!run) return; const current = run.active ? MOONS[run.active] : undefined; if (run.npcId !== undefined) services.npc.removeNpc(run.npcId); run.active = undefined; run.npcId = undefined; services.instances.leave(player, current?.outside ?? CHEST_TILE); services.messaging.sendGameMessage(player, "You escape the Moon chamber. Your progress remains with the Lunar chest."); };
+    const escape = ({ player, services }: { player: PlayerState; services: ScriptServices }) => { const run = runs.get(player.id); if (!run) return; const current = run.active ? MOONS[run.active] : undefined; if (run.npcId !== undefined) { const boss = services.combat.getNpc(run.npcId); if (boss) { stopMoonSpecial(boss, services); const glyph = glyphStates.get(boss); if (glyph?.markerId !== undefined) services.npc.removeNpc(glyph.markerId); } services.npc.removeNpc(run.npcId); } run.active = undefined; run.npcId = undefined; services.instances.leave(player, current?.outside ?? CHEST_TILE); services.messaging.sendGameMessage(player, "You escape the Moon chamber. Your progress remains with the Lunar chest."); };
     for (const escapeId of [53003, 53004]) { for (const action of ["quick-escape", "escape", "exit", "climb-up"]) registry.registerLocInteraction(escapeId, escape, action); registry.registerLocInteraction(escapeId, escape); }
+    registry.registerNpcPreDeath(BLOOD_JAGUAR_NPC_ID, event => {
+        const boss = specialChildOwners.get(event.npc.id);
+        if (!boss) return NpcPreDeathDecision.Allow;
+        const special = moonSpecials.get(boss);
+        specialChildOwners.delete(event.npc.id);
+        special?.childIds.delete(event.npc.id);
+        if (special?.active && special.kind === "blood" && special.childIds.size === 0) {
+            const player = event.killer ?? special.owner;
+            if (player) {
+                event.services.messaging.sendGameMessage(player, "The Blood Moon is vulnerable again.");
+                restartGlyphCycle(boss, player, event.services);
+            }
+        }
+        return NpcPreDeathDecision.Allow;
+    });
     for (const [moon, def] of Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>) {
         registry.registerNpcAttack(def.id, moonGlyphAttack);
-        registry.registerNpcPreDeath(def.id, event => { const player = event.killer, run = player && runs.get(player.id); if (!player || !run || run.active !== moon || event.npc.ownerPlayerId !== player.id) return NpcPreDeathDecision.Allow; const glyphState = glyphStates.get(event.npc); if (glyphState) { glyphState.tickTaskActive = false; if (glyphState.markerId !== undefined) event.services.npc.removeNpc(glyphState.markerId); } run.killed.add(moon); run.active = undefined; run.npcId = undefined; event.services.scheduler.after(7, () => { if (player.worldViewId !== event.npc.worldViewId) return; if (run.killed.size === 3) servicesAfter(event, player, CHEST_TILE); else { event.services.instances.leave(player, MOONS[def.next].outside); event.services.messaging.sendGameMessage(player, `${moon[0].toUpperCase()}${moon.slice(1)} Moon defeated. Choose another Moon statue to continue this run.`); } }, { kind: "player", id: player.id }); return NpcPreDeathDecision.Allow; });
+        registry.registerNpcPreDeath(def.id, event => { const player = event.killer, run = player && runs.get(player.id); if (!player || !run || run.active !== moon || event.npc.ownerPlayerId !== player.id) return NpcPreDeathDecision.Allow; stopMoonSpecial(event.npc, event.services); const glyphState = glyphStates.get(event.npc); if (glyphState) { glyphState.tickTaskActive = false; if (glyphState.markerId !== undefined) event.services.npc.removeNpc(glyphState.markerId); } run.killed.add(moon); run.active = undefined; run.npcId = undefined; event.services.scheduler.after(7, () => { if (player.worldViewId !== event.npc.worldViewId) return; if (run.killed.size === 3) servicesAfter(event, player, CHEST_TILE); else { event.services.instances.leave(player, MOONS[def.next].outside); event.services.messaging.sendGameMessage(player, `${moon[0].toUpperCase()}${moon.slice(1)} Moon defeated. Choose another Moon statue to continue this run.`); } }, { kind: "player", id: player.id }); return NpcPreDeathDecision.Allow; });
     }
 }
 function servicesAfter(event: { services: ScriptServices }, player: PlayerState, tile: { x: number; y: number; level: number }): void { event.services.instances.leave(player, tile); event.services.messaging.sendGameMessage(player, "All three Moons have been defeated. You may now search the Lunar chest."); }
