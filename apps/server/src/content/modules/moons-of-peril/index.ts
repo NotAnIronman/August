@@ -14,7 +14,7 @@ const CHEST = 51346, CRATE = 51371, SAPLING = 51365, STOVE = 51362;
 const FISHING_SPOTS = [51367, 51368] as const;
 const NET = 303, ROPE = 954, BUTTERFLY_NET = 10010, PESTLE = 233, VIAL = 227, GRUB = 29078, PASTE = 29079, BREAM = 29216, COOKED_BREAM = 29217;
 const MOONLIGHT_MOTHS = [12771, 12772, 12773] as const;
-const GLYPH_NPC_ID = 13014, BLUE_ICE_STORM_NPC_ID = 13027, BLOOD_JAGUAR_NPC_ID = 13021;
+const GLYPH_NPC_ID = 13015, BLUE_ICE_STORM_NPC_ID = 13027, BLOOD_JAGUAR_NPC_ID = 13021;
 const STATUES = [51372, 51373, 51374] as const;
 const CHEST_TILE = { x: 1513, y: 9578, level: 0 };
 type Moon = "blood" | "eclipse" | "blue";
@@ -30,29 +30,31 @@ type Run = { killed: Set<Moon>; active?: Moon; npcId?: number; instanceId: strin
 const runs = new Map<number, Run>();
 
 const MOON_IDLE_SEQUENCES: Record<Moon, number> = { blood: 10995, eclipse: 11016, blue: 10995 };
-// The first Eclipse glyph is two north and four west of the boss, exactly as
-// observed from its entry tile. The remaining seven locations continue that
-// 2x2-marker ring clockwise around the same centre for all Moon arenas.
-const GLYPH_OFFSETS: ReadonlyArray<readonly [number, number]> = [
-    [-4, 2], [-2, 4], [1, 4], [3, 2], [3, -1], [1, -3], [-2, -3], [-4, -1],
-];
-type GlyphState = { markerId?: number; position: number; attacks: number; offTicks: number; tickTaskActive: boolean };
+const MOON_MELEE_SEQUENCES: Record<Moon, number> = { blood: 11001, eclipse: 11022, blue: 10987 };
+// Every arena starts at a distinct point in the same clockwise glyph ring.
+// The three first positions are the exact offsets supplied during testing.
+const GLYPH_OFFSETS: Record<Moon, ReadonlyArray<readonly [number, number]>> = {
+    eclipse: [[-4, 2], [-2, 4], [1, 4], [3, 2], [3, -1], [1, -3], [-2, -3], [-4, -1]],
+    blue: [[-2, -4], [-4, -2], [-4, 1], [-2, 3], [1, 3], [3, 1], [3, -2], [1, -4]],
+    blood: [[4, -2], [2, -4], [-1, -4], [-3, -2], [-3, 1], [-1, 3], [2, 3], [4, 1]],
+};
+type GlyphState = { markerId?: number; offsets: ReadonlyArray<readonly [number, number]>; position: number; attacks: number; offTicks: number; tickTaskActive: boolean; onGlyph?: boolean; baseDefences: readonly [number, number, number, number, number] };
 const glyphStates = new WeakMap<NpcState, GlyphState>();
 
-function glyphTile(npc: NpcState, position: number): Tile {
-    const [dx, dy] = GLYPH_OFFSETS[position % GLYPH_OFFSETS.length]!;
+function glyphTile(npc: NpcState, state: GlyphState): Tile {
+    const [dx, dy] = state.offsets[state.position % state.offsets.length]!;
     return { x: npc.spawnX + dx, y: npc.spawnY + dy, level: npc.level };
 }
 
 function isOnGlyph(player: PlayerState, npc: NpcState, state: GlyphState): boolean {
-    const tile = glyphTile(npc, state.position);
+    const tile = glyphTile(npc, state);
     return player.worldViewId === npc.worldViewId && player.level === tile.level &&
         player.tileX >= tile.x && player.tileX <= tile.x + 1 &&
         player.tileY >= tile.y && player.tileY <= tile.y + 1;
 }
 
 function moveGlyph(npc: NpcState, player: PlayerState, services: ScriptServices, state: GlyphState): void {
-    const tile = glyphTile(npc, state.position);
+    const tile = glyphTile(npc, state);
     const marker = state.markerId === undefined ? undefined : services.combat.getNpc(state.markerId);
     if (marker) {
         services.npc.teleportNpc(marker, tile);
@@ -61,18 +63,37 @@ function moveGlyph(npc: NpcState, player: PlayerState, services: ScriptServices,
     const spawned = services.npc.spawnNpc({
         id: GLYPH_NPC_ID, x: tile.x, y: tile.y, level: tile.level, size: 2,
         worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
-        isAggressive: false, isUnattackable: true, respawns: false,
+        isAggressive: false, isUnattackable: true, isImmovable: true, respawns: false,
     });
     if (spawned) state.markerId = spawned.id;
 }
 
-function beginGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptServices): void {
-    const state: GlyphState = { position: 0, attacks: 0, offTicks: 0, tickTaskActive: true };
+function setGlyphDamageMode(npc: NpcState, state: GlyphState, onGlyph: boolean): void {
+    if (state.onGlyph === onGlyph) return;
+    state.onGlyph = onGlyph;
+    // The glyph is the damage window: on it, the Moon uses its authored
+    // defences; off it, a large temporary defence bonus makes hits glance.
+    const modifier = onGlyph ? 0 : 500;
+    const [stab, slash, crush, magic, ranged] = state.baseDefences;
+    npc.combat.defenceStab = stab + modifier;
+    npc.combat.defenceSlash = slash + modifier;
+    npc.combat.defenceCrush = crush + modifier;
+    npc.combat.defenceMagic = magic + modifier;
+    npc.combat.defenceRanged = ranged + modifier;
+}
+
+function beginGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptServices, moon: Moon): void {
+    const state: GlyphState = {
+        offsets: GLYPH_OFFSETS[moon], position: 0, attacks: 0, offTicks: 0, tickTaskActive: true,
+        baseDefences: [npc.combat.defenceStab, npc.combat.defenceSlash, npc.combat.defenceCrush, npc.combat.defenceMagic, npc.combat.defenceRanged],
+    };
     glyphStates.set(npc, state);
     moveGlyph(npc, player, services, state);
     const pulse = (tick: number): void => {
         if (!state.tickTaskActive || npc.getHitpoints() <= 0 || player.worldViewId !== npc.worldViewId) return;
-        if (isOnGlyph(player, npc, state)) state.offTicks = 0;
+        const onGlyph = isOnGlyph(player, npc, state);
+        setGlyphDamageMode(npc, state, onGlyph);
+        if (onGlyph) state.offTicks = 0;
         else state.offTicks += 1;
         // Three ticks off the active glyph grants a grace period; thereafter
         // Eyatlalli's curse chips damage every other tick until the player returns.
@@ -91,10 +112,27 @@ function moonGlyphAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     const state = glyphStates.get(event.npc);
     if (!state) return;
     state.attacks += 1;
-    if (state.attacks % 3 !== 0) return;
-    state.position = (state.position + 1) % GLYPH_OFFSETS.length;
-    state.offTicks = 0;
-    moveGlyph(event.npc, event.target, event.services, state);
+    if (state.attacks % 3 === 0) {
+        state.position = (state.position + 1) % state.offsets.length;
+        state.offTicks = 0;
+        setGlyphDamageMode(event.npc, state, false);
+        moveGlyph(event.npc, event.target, event.services, state);
+    }
+    const moon = (Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>).find(([, definition]) => definition.id === event.npc.typeId)?.[0];
+    if (!moon) return;
+    event.services.npc.queueNpcSeq(event.npc, MOON_MELEE_SEQUENCES[moon]);
+    let missed = false;
+    for (const [index, maxHit] of [4, 8, 20].entries()) {
+        event.services.scheduler.after(index, (tick) => {
+            if (event.npc.getHitpoints() <= 0 || event.target.worldViewId !== event.npc.worldViewId) return;
+            // Once any strike misses, the remaining hits in this attack are
+            // guaranteed misses; a later hit can never recover into damage.
+            if (!missed && Math.random() >= 0.75) missed = true;
+            const damage = missed ? 0 : 1 + Math.floor(Math.random() * maxHit);
+            event.services.combat.applyNpcDamageToPlayer(event.npc, event.target, 0, damage, tick);
+        }, { kind: "npc", id: event.npc.id });
+    }
+    return NpcAttackDecision.Prevent;
 }
 
 function registerEncounters(): void {
@@ -116,7 +154,7 @@ function spawnMoon(player: PlayerState, services: ScriptServices, moon: Moon): v
     const npc = services.npc.spawnNpc({ id: def.id, x: def.boss.x, y: def.boss.y, level: 0, size: 3, idleSeqId: MOON_IDLE_SEQUENCES[moon], worldViewId: player.worldViewId, ownerPlayerId: player.id, wanderRadius: 0, attackSpeed: 4, isAggressive: false, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, respawns: false });
     if (!npc) { services.messaging.sendGameMessage(player, "The Moon fails to awaken. Please try again."); return; }
     run.active = moon; run.npcId = npc.id;
-    beginGlyphCycle(npc, player, services);
+    beginGlyphCycle(npc, player, services, moon);
     // Give the player four full ticks to orient after entering the chamber.
     services.scheduler.after(4, () => {
         if (runs.get(player.id) !== run || run.npcId !== npc.id || player.worldViewId !== npc.worldViewId) return;

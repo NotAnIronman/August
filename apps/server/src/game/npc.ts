@@ -163,6 +163,8 @@ export interface NpcSpawnConfig {
     isAggressive?: boolean;
     /** Optional override for presentation-only NPCs that must never enter combat. */
     isUnattackable?: boolean;
+    /** Prevents idle, combat, and overlap-recovery movement. */
+    isImmovable?: boolean;
     /** Set false for a one-life NPC, such as a completed instanced encounter. */
     respawns?: boolean;
     /** Server-authored HealthBarDefinition id (HIT_MASK). Defaults to 0. */
@@ -251,6 +253,7 @@ export class NpcState extends Actor {
     /** Presentation-only NPCs (such as animation previews) cannot be targeted
      * by combat, but can still receive explicitly queued visual sequences. */
     isUnattackable: boolean;
+    readonly isImmovable: boolean;
     readonly respawns: boolean;
     /**
      * Aggression radius in tiles. NPCs will target players within this range.
@@ -334,6 +337,8 @@ export class NpcState extends Actor {
             isAggressive?: boolean;
             /** Whether combat targeting this NPC is disabled. Default: false */
             isUnattackable?: boolean;
+            /** Whether this NPC must remain fixed at its authored tile. */
+            isImmovable?: boolean;
             respawns?: boolean;
             /** Aggression radius in tiles. Default: 3 */
             aggressionRadius?: number;
@@ -382,6 +387,7 @@ export class NpcState extends Actor {
         // Aggression: default false unless explicitly set
         this.isAggressive = options.isAggressive ?? false;
         this.isUnattackable = options.isUnattackable ?? false;
+        this.isImmovable = options.isImmovable ?? false;
         this.respawns = options.respawns ?? true;
         // OSRS default aggression radius is typically 3 tiles
         this.aggressionRadius = Math.max(0, options.aggressionRadius ?? 3);

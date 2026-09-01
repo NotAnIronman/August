@@ -413,6 +413,7 @@ export class NpcManager {
                 combatProfile,
                 isAggressive,
                 isUnattackable: spawn.isUnattackable,
+                isImmovable: spawn.isImmovable,
                 respawns: spawn.respawns,
                 aggressionRadius,
                 aggressionToleranceTicks,
@@ -1059,7 +1060,7 @@ export class NpcManager {
                 // idle roaming, then consumes paths queued by the combat phase.
                 const combatTargetId = npc.getCombatTargetPlayerId();
                 const effectMovementFrozen = interceptFrozenCombatMovement(npc, currentTick);
-                const movementFrozen = spawnAnimationLocked || effectMovementFrozen;
+                const movementFrozen = spawnAnimationLocked || effectMovementFrozen || npc.isImmovable;
                 if (!movementFrozen && this.queueOverlapEscape(npc, getNearbyPlayers)) {
                     // A player can briefly stack on an NPC because their paths
                     // are synchronized independently. Every NPC footprint
@@ -1077,7 +1078,12 @@ export class NpcManager {
                 if (!movementFrozen) {
                     this.prunePathAgainstCurrentCollision(npc);
                 }
-                const moved = this.movementProcessor.processEntity(npc, currentTick);
+                // Visual/trigger NPCs such as Moon glyphs must never consume a
+                // residual path left by overlap recovery in a previous tick.
+                if (npc.isImmovable) npc.clearPath();
+                const moved = npc.isImmovable
+                    ? false
+                    : this.movementProcessor.processEntity(npc, currentTick);
 
                 // Tick boss script if present
                 const bossScript = this.bossScripts.get(npc.id);
