@@ -232,8 +232,11 @@ function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: Script
             const laneIndex = Math.floor(Math.random() * availableLanes.length);
             const laneX = availableLanes.splice(laneIndex, 1)[0]!;
             const directionY = Math.random() < 0.5 ? 1 : -1;
+            // Each storm begins at its own point in the chamber rather than
+            // a predictable shared edge, while still travelling straight.
+            const startY = 9671 + Math.floor(Math.random() * 19);
             const storm = services.npc.spawnNpc({
-                id: BLUE_ICE_STORM_NPC_ID, x: laneX, y: directionY > 0 ? 9670 : 9690, level: npc.level,
+                id: BLUE_ICE_STORM_NPC_ID, x: laneX, y: startY, level: npc.level,
                 worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
                 isUnattackable: true, isImmovable: true, respawns: false,
             });
@@ -282,8 +285,16 @@ function startBlueSpecial(npc: NpcState, player: PlayerState, services: ScriptSe
         );
     } else npc.isUnattackable = true;
     for (const { tile, unlitId } of BLUE_BRAZIERS) {
+        // The cache's source brazier is a map loc, while the unlit variants
+        // are dynamic locs. Explicitly remove then add so the visual cannot
+        // silently fail when the client's loc replacement lookup misses the
+        // source object's shape/rotation.
         services.location.replaceTemporaryLoc(
-            { worldViewId: npc.worldViewId }, BRAZIER, unlitId, tile, npc.level,
+            { worldViewId: npc.worldViewId }, BRAZIER, 0, tile, npc.level,
+            { oldShape: 10, newShape: 10 },
+        );
+        services.location.replaceTemporaryLoc(
+            { worldViewId: npc.worldViewId }, 0, unlitId, tile, npc.level,
             { oldShape: 10, newShape: 10 },
         );
     }

@@ -21,6 +21,12 @@ export interface FloorHazardParams {
     readonly id?: string;
     readonly tiles: readonly FloorHazardTile[];
     readonly graphicId: number;
+    /**
+     * Optional stationary visual marker. Use this when the selected cache GFX
+     * has no visible ground model, or when a telegraph must stay readable for
+     * its whole warning window.
+     */
+    readonly markerNpcId?: number;
     readonly telegraphTicks: number;
     readonly liveTicks: number;
     readonly damage: number | ((rng: EncounterRandom) => number);
@@ -56,6 +62,7 @@ export function spawnFloorHazard(
     const id = params.id ?? `floor-hazard:${runtime.nextMechanicSerial()}`;
     const targets = resolvePlayers(params);
     const taskIds = new Set<number>();
+    const markerIds = new Set<number>();
     let handle!: MechanicHandle;
     const finish = (): void => {
         handle.cancel();
@@ -63,6 +70,8 @@ export function spawnFloorHazard(
     handle = createMechanicHandle(`${runtime.id}:${id}`, () => {
         for (const taskId of taskIds) services.scheduler.cancel(taskId);
         taskIds.clear();
+        for (const markerId of markerIds) services.npc.removeNpc(markerId);
+        markerIds.clear();
         runtime.releaseMechanic(handle);
     });
     runtime.ownMechanic(handle);
@@ -70,6 +79,21 @@ export function spawnFloorHazard(
     try {
         for (const tile of params.tiles) {
             services.animation.playLocGraphic({ spotId: params.graphicId, tile, level: tile.level });
+            if (params.markerNpcId !== undefined) {
+                const marker = services.npc.spawnNpc({
+                    id: params.markerNpcId,
+                    x: tile.x,
+                    y: tile.y,
+                    level: tile.level,
+                    worldViewId: source.worldViewId,
+                    wanderRadius: 0,
+                    isAggressive: false,
+                    isUnattackable: true,
+                    isImmovable: true,
+                    respawns: false,
+                });
+                if (marker) markerIds.add(marker.id);
+            }
             if (params.projectileId !== undefined) {
                 services.projectiles.launch({
                     projectileId: params.projectileId,

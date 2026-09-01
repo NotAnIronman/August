@@ -204,7 +204,9 @@ function fallingRocks(npc: NpcState, services: ScriptServices, roomId: string): 
         spawnFloorHazard(runtime, services, {
             id: "scurrius-falling-rocks",
             tiles: players.map((player) => ({ x: player.tileX, y: player.tileY, level: player.level })),
-            players, graphicId: 60, projectileId: 10, telegraphTicks: 5, liveTicks: 1,
+            // The glyph marker remains visible for the full warning window;
+            // the spot GFX is a supplemental impact effect.
+            players, graphicId: 60, markerNpcId: 13015, projectileId: 10, telegraphTicks: 5, liveTicks: 1,
             damage: (rng) => 15 + rng.nextInt(8), appliesTo: "all-members",
         }),
     );
