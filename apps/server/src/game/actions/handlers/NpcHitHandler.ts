@@ -148,8 +148,11 @@ export class NpcHitHandler {
         // reduced to the intended amount.
         const incomingDamageMultiplier = Math.max(0, npc.incomingPlayerDamageMultiplier);
         const resolvedRawDamage = npc.forcePlayerMaxHit && rawMaxHit > 0 ? rawMaxHit : rawDamage;
-        const damage = Math.floor(Math.max(0, resolvedRawDamage) * incomingDamageMultiplier);
-        const maxHit = Math.floor(Math.max(0, rawMaxHit) * incomingDamageMultiplier);
+        const damageCap = npc.incomingPlayerDamageCap;
+        const capDamage = (value: number): number =>
+            damageCap === undefined ? value : Math.min(value, Math.max(0, Math.trunc(damageCap)));
+        const damage = capDamage(Math.floor(Math.max(0, resolvedRawDamage) * incomingDamageMultiplier));
+        const maxHit = capDamage(Math.floor(Math.max(0, rawMaxHit) * incomingDamageMultiplier));
         const type2 = Number.isFinite(rawType2) ? rawType2 : undefined;
         const damage2 = Number.isFinite(rawDamage2) ? rawDamage2 : undefined;
         const clientDelayTicks = Math.max(0, rawClientDelayTicks);

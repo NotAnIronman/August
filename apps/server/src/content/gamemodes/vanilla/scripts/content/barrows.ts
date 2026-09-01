@@ -3,6 +3,7 @@ import { SkillId } from "@august/osrs-engine/skill/skills";
 import { CollisionFlag } from "@august/game-model/collision/CollisionFlag";
 import { NpcAttackDecision, NpcPreDeathDecision, type IScriptRegistry, type NpcAttackEvent, type ScriptServices } from "@server/game/scripts/types";
 import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
+import { applyStatDrains } from "@server/game/encounters/mechanics";
 
 /**
  * The Barrows run is deliberately player-owned rather than instance-owned.
@@ -259,9 +260,7 @@ function barrowsSpecialAttack(event: NpcAttackEvent, brother: Brother): NpcAttac
     switch (brother.key) {
         case "ahrim":
             scheduleSuccessfulHitEffect(event, () => {
-                const strength = event.target.skillSystem.getSkill(SkillId.Strength);
-                const current = Math.max(0, Math.floor(strength.baseLevel + strength.boost));
-                event.target.skillSystem.setSkillBoost(SkillId.Strength, Math.max(0, current - 5));
+                applyStatDrains(event.target, [{ skillId: SkillId.Strength, amount: 5 }]);
                 event.services.messaging.sendGameMessage(event.target, "Ahrim's magic weakens your strength.");
             });
             return;
@@ -274,7 +273,7 @@ function barrowsSpecialAttack(event: NpcAttackEvent, brother: Brother): NpcAttac
             scheduleSuccessfulHitEffect(event, () => {
                 const agility = event.target.skillSystem.getSkill(SkillId.Agility);
                 const current = Math.max(0, Math.floor(agility.baseLevel + agility.boost));
-                event.target.skillSystem.setSkillBoost(SkillId.Agility, Math.max(0, current - Math.floor(current * 0.2)));
+                applyStatDrains(event.target, [{ skillId: SkillId.Agility, amount: Math.floor(current * 0.2) }]);
                 event.services.messaging.sendGameMessage(event.target, "Karil's attack drains your agility.");
             });
             return;

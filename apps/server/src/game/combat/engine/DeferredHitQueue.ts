@@ -140,6 +140,9 @@ export class DeferredHitQueue {
                 damage = Math.floor(
                     damage * Math.max(0, target.incomingPlayerDamageMultiplier),
                 );
+                if (target.incomingPlayerDamageCap !== undefined) {
+                    damage = Math.min(damage, Math.max(0, Math.trunc(target.incomingPlayerDamageCap)));
+                }
             }
             const style = this.resolveStyle(pending.hitsplatType);
             if (target instanceof NpcState) {
@@ -175,9 +178,14 @@ export class DeferredHitQueue {
                           damage,
                           clock,
                           source instanceof PlayerState
-                              ? Math.floor(
-                                    Math.max(0, pending.maxHit ?? 0) *
-                                        Math.max(0, target.incomingPlayerDamageMultiplier),
+                              ? Math.min(
+                                    Math.floor(
+                                        Math.max(0, pending.maxHit ?? 0) *
+                                            Math.max(0, target.incomingPlayerDamageMultiplier),
+                                    ),
+                                    target.incomingPlayerDamageCap === undefined
+                                        ? Number.POSITIVE_INFINITY
+                                        : Math.max(0, Math.trunc(target.incomingPlayerDamageCap)),
                                 )
                               : pending.maxHit,
                       );

@@ -260,6 +260,8 @@ export class NpcState extends Actor {
      * distorting the combat accuracy roll or the NPC's authored defences.
      */
     incomingPlayerDamageMultiplier = 1;
+    /** Optional encounter cap applied after accuracy and damage modifiers. */
+    incomingPlayerDamageCap?: number;
     /** A short encounter window in which landed player hits use their max hit. */
     forcePlayerMaxHit = false;
     readonly respawns: boolean;

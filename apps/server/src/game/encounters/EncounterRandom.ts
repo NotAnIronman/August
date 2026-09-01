@@ -1,9 +1,11 @@
 /** Small deterministic PRNG so encounter tests and replays are reproducible. */
 export class EncounterRandom {
     private state: number;
+    readonly seed: number;
 
     constructor(seed: number) {
-        this.state = (Math.trunc(seed) >>> 0) || 0x6d2b79f5;
+        this.seed = (Math.trunc(seed) >>> 0) || 0x6d2b79f5;
+        this.state = this.seed;
     }
 
     next(): number {
@@ -11,6 +13,11 @@ export class EncounterRandom {
         value = Math.imul(value ^ (value >>> 15), value | 1);
         value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
         return ((value ^ (value >>> 14)) >>> 0) / 0x100000000;
+    }
+
+    nextInt(exclusiveMax: number): number {
+        const maximum = Math.max(1, Math.trunc(exclusiveMax));
+        return Math.floor(this.next() * maximum);
     }
 
     weightedIndex(weights: readonly number[]): number {
@@ -24,4 +31,3 @@ export class EncounterRandom {
         return Math.max(0, weights.length - 1);
     }
 }
-

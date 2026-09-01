@@ -23,6 +23,7 @@ import type {
     DataLoaderFacade,
     DialogFacade,
     EquipmentFacade,
+    EncounterFacade,
     FollowerServiceFacade,
     GatheringServices,
     InventoryFacade,
@@ -691,6 +692,7 @@ export interface ScriptServices extends GatheringServices {
     location: LocationFacade;
     combat: CombatFacade;
     npc: NpcFacade;
+    encounters: EncounterFacade;
     groundItems: GroundItemFacade;
     collectionLog: CollectionLogFacade;
     viewport: ViewportFacade;

@@ -43,6 +43,7 @@ import type { RuneDataProvider } from "@server/game/data/RuneDataProvider";
 import type { GameEventBus } from "@server/game/events/GameEventBus";
 import type { OwnedItemLocation } from "@server/game/items/playerItemOwnership";
 import type { NpcSpawnConfig, NpcState } from "@server/game/npc";
+import type { EncounterRuntime } from "@server/game/encounters/EncounterRuntime";
 import type { PlayerState } from "@server/game/player";
 import type { QueueTask, TaskGenerator } from "@server/game/model/queue";
 import type { LockState } from "@server/game/model/LockState";
@@ -968,6 +969,12 @@ export interface NpcFacade {
     disengageCombat(npc: NpcState): void;
     queueNpcSpotAnim(npc: NpcState, spotId: number, height?: number, delay?: number): void;
     replaceNpc(npc: NpcState, newTypeId: number, lifetimeTicks?: number): NpcState | undefined;
+}
+
+/** Encounter runtime access for content modules invoking shared mechanics. */
+export interface EncounterFacade {
+    ensure(npc: NpcState): EncounterRuntime | undefined;
+    getByNpcRuntimeId(npcRuntimeId: number): EncounterRuntime | undefined;
 }
 
 export interface CollectionLogFacade {

@@ -5,3 +5,4 @@ export * from "@server/game/encounters/EncounterRuntime";
 export * from "@server/game/encounters/EncounterTargetSelector";
 export * from "@server/game/encounters/EncounterTimeline";
 export * from "@server/game/encounters/EncounterTypes";
+export * from "@server/game/encounters/mechanics";

@@ -1093,6 +1093,10 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                 return replacement;
             },
         },
+        encounters: {
+            ensure: (npc) => deps.encounterManager.ensureForNpc(npc),
+            getByNpcRuntimeId: (npcRuntimeId) => deps.encounterManager.getByNpcRuntimeId(npcRuntimeId),
+        },
         collectionLog: {
             trackCollectionLogItem: (player, itemId) =>
                 deps.collectionLogService.trackCollectionLogItem(player, itemId),

@@ -6,6 +6,7 @@ import { HITMARK_DAMAGE } from "@server/game/combat/HitEffects";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { faceAngleRs } from "@august/osrs-engine/geometry";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
+import { invulnerabilityWindow, type MechanicHandle } from "@server/game/encounters/mechanics";
 import { NpcAttackDecision, NpcPreDeathDecision, type NpcAttackEvent, type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
 import type { NpcState } from "@server/game/npc";
 import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
@@ -42,7 +43,7 @@ const GLYPH_OFFSETS: Record<Moon, ReadonlyArray<readonly [number, number]>> = {
 };
 type GlyphState = { markerId?: number; offsets: ReadonlyArray<readonly [number, number]>; position: number; attacks: number; completedRotations: number; specialReady: boolean; offTicks: number; tickTaskActive: boolean; onGlyph?: boolean };
 const glyphStates = new WeakMap<NpcState, GlyphState>();
-type MoonSpecialState = { kind: Moon; owner: PlayerState; active: boolean; childIds: Set<number>; brazierTiles: Set<string>; waves: number };
+type MoonSpecialState = { kind: Moon; owner: PlayerState; active: boolean; childIds: Set<number>; brazierTiles: Set<string>; waves: number; shieldMechanic?: MechanicHandle };
 const moonSpecials = new WeakMap<NpcState, MoonSpecialState>();
 const specialChildOwners = new Map<number, NpcState>();
 const BRAZIER = 52992;
@@ -83,6 +84,7 @@ function stopMoonSpecial(npc: NpcState, services: ScriptServices): void {
     const special = moonSpecials.get(npc);
     if (!special) return;
     special.active = false;
+    special.shieldMechanic?.cancel();
     for (const childId of special.childIds) {
         specialChildOwners.delete(childId);
         services.npc.removeNpc(childId);
@@ -119,7 +121,12 @@ function playerIsFacingNpc(player: PlayerState, npc: NpcState): boolean {
 }
 
 function startBloodSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
-    npc.isUnattackable = true;
+    const runtime = services.encounters.ensure(npc);
+    if (runtime) {
+        special.shieldMechanic = runtime.runMechanic("moon-special-shield", "replace", () =>
+            invulnerabilityWindow(runtime, services, { id: "moon-special-shield" }),
+        );
+    } else npc.isUnattackable = true;
     for (const [dx, dy] of [[-4, 0], [4, 0]] as const) {
         const jaguar = services.npc.spawnNpc({
             id: BLOOD_JAGUAR_NPC_ID, x: npc.spawnX + dx, y: npc.spawnY + dy, level: npc.level,
@@ -227,7 +234,12 @@ function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: Script
 }
 
 function startBlueSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
-    npc.isUnattackable = true;
+    const runtime = services.encounters.ensure(npc);
+    if (runtime) {
+        special.shieldMechanic = runtime.runMechanic("moon-special-shield", "replace", () =>
+            invulnerabilityWindow(runtime, services, { id: "moon-special-shield" }),
+        );
+    } else npc.isUnattackable = true;
     for (const tile of BLUE_BRAZIER_TILES) {
         services.location.replaceTemporaryLoc(
             { worldViewId: npc.worldViewId }, BRAZIER, UNLIT_BRAZIER, tile, npc.level,
