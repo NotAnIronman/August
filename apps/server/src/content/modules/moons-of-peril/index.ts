@@ -310,7 +310,13 @@ function registerEncounters(): void {
         registerEncounter({ id: `moon-${key}`, npcTypeIds: [moon.id], maxHealth: 500, bossHealthBar: { name: `${key[0].toUpperCase()}${key.slice(1)} Moon`, npcTypeId: moon.id }, movement: { wanderRadius: 0, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 60, retreatInteractionRange: 60 }, attacks: [{ id: "attack", type: AttackType.Melee, rangeTiles: 30, preferredDistance: 30, speedTicks: 4, maxHit: 20, animation: "attack" }] });
     }
     if (!EncounterRegistry.shared.get("moon-blood-jaguar")) {
-        registerEncounter({ id: "moon-blood-jaguar", npcTypeIds: [BLOOD_JAGUAR_NPC_ID], maxHealth: 35 });
+        registerEncounter({
+            id: "moon-blood-jaguar",
+            npcTypeIds: [BLOOD_JAGUAR_NPC_ID],
+            maxHealth: 35,
+            movement: { wanderRadius: 0, aggressionRadius: 30 },
+            attacks: [{ id: "bite", type: AttackType.Melee, rangeTiles: 1, speedTicks: 4, maxHit: 8 }],
+        });
     }
 }
 
