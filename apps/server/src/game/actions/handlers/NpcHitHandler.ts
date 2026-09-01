@@ -142,8 +142,13 @@ export class NpcHitHandler {
             spellId: explicitSpellIdRaw,
             special,
         } = data;
-        const damage = Math.max(0, rawDamage);
-        const maxHit = Math.max(0, rawMaxHit);
+        // Some encounters reduce damage after the attack has already passed
+        // its normal accuracy calculation. Apply that reduction here rather
+        // than by inflating NPC defence, so a hit still lands but is visibly
+        // reduced to the intended amount.
+        const incomingDamageMultiplier = Math.max(0, npc.incomingPlayerDamageMultiplier);
+        const damage = Math.floor(Math.max(0, rawDamage) * incomingDamageMultiplier);
+        const maxHit = Math.floor(Math.max(0, rawMaxHit) * incomingDamageMultiplier);
         const type2 = Number.isFinite(rawType2) ? rawType2 : undefined;
         const damage2 = Number.isFinite(rawDamage2) ? rawDamage2 : undefined;
         const clientDelayTicks = Math.max(0, rawClientDelayTicks);

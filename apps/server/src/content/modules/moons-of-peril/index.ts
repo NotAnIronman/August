@@ -39,7 +39,7 @@ const GLYPH_OFFSETS: Record<Moon, ReadonlyArray<readonly [number, number]>> = {
     blue: [[-2, -4], [-4, -2], [-4, 1], [-2, 3], [1, 3], [3, 1], [3, -2], [1, -4]],
     blood: [[3, -2], [1, -4], [-2, -4], [-4, -2], [-4, 1], [-2, 3], [1, 3], [3, 1]],
 };
-type GlyphState = { markerId?: number; offsets: ReadonlyArray<readonly [number, number]>; position: number; attacks: number; completedRotations: number; specialReady: boolean; offTicks: number; tickTaskActive: boolean; onGlyph?: boolean; baseDefences: readonly [number, number, number, number, number] };
+type GlyphState = { markerId?: number; offsets: ReadonlyArray<readonly [number, number]>; position: number; attacks: number; completedRotations: number; specialReady: boolean; offTicks: number; tickTaskActive: boolean; onGlyph?: boolean };
 const glyphStates = new WeakMap<NpcState, GlyphState>();
 
 function glyphTile(npc: NpcState, state: GlyphState): Tile {
@@ -72,40 +72,33 @@ function moveGlyph(npc: NpcState, player: PlayerState, services: ScriptServices,
 function setGlyphDamageMode(npc: NpcState, state: GlyphState, onGlyph: boolean): void {
     if (state.onGlyph === onGlyph) return;
     state.onGlyph = onGlyph;
-    // The glyph is the damage window: on it, the Moon uses its authored
-    // defences; off it, a large temporary defence bonus makes hits glance.
-    const modifier = onGlyph ? 0 : 500;
-    const [stab, slash, crush, magic, ranged] = state.baseDefences;
-    npc.combat.defenceStab = stab + modifier;
-    npc.combat.defenceSlash = slash + modifier;
-    npc.combat.defenceCrush = crush + modifier;
-    npc.combat.defenceMagic = magic + modifier;
-    npc.combat.defenceRanged = ranged + modifier;
+    // The glyph does not alter accuracy: it controls the damage result.
+    // Standing anywhere on its 2x2 footprint deals full damage; away from it
+    // every landed player hit is halved (e.g. 25 becomes 12).
+    npc.incomingPlayerDamageMultiplier = onGlyph ? 1 : 0.5;
 }
 
 function beginGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptServices, moon: Moon): void {
     const state: GlyphState = {
         offsets: GLYPH_OFFSETS[moon], position: 0, attacks: 0, completedRotations: 0, specialReady: false, offTicks: 0, tickTaskActive: true,
-        baseDefences: [npc.combat.defenceStab, npc.combat.defenceSlash, npc.combat.defenceCrush, npc.combat.defenceMagic, npc.combat.defenceRanged],
     };
     glyphStates.set(npc, state);
     moveGlyph(npc, player, services, state);
+    setGlyphDamageMode(npc, state, isOnGlyph(player, npc, state));
     const pulse = (tick: number): void => {
         if (!state.tickTaskActive || npc.getHitpoints() <= 0 || player.worldViewId !== npc.worldViewId) return;
         const onGlyph = isOnGlyph(player, npc, state);
         setGlyphDamageMode(npc, state, onGlyph);
         if (onGlyph) state.offTicks = 0;
         else state.offTicks += 1;
-        // Three ticks off the active glyph grants a grace period; thereafter
-        // Eyatlalli's curse chips damage every other tick until the player returns.
-        if (state.offTicks >= 3 && (state.offTicks - 3) % 2 === 0) {
+        // Six complete ticks off the active glyph grants a grace period;
+        // thereafter Eyatlalli's curse chips damage every other tick.
+        if (state.offTicks >= 6 && (state.offTicks - 6) % 2 === 0) {
             services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 1 + Math.floor(Math.random() * 3), tick);
         }
         services.scheduler.after(1, pulse, { kind: "npc", id: npc.id });
     };
-    // Match the chamber-entry combat grace period before the glyph can punish
-    // a player who is still orienting themselves.
-    services.scheduler.after(4, pulse, { kind: "npc", id: npc.id });
+    services.scheduler.after(1, pulse, { kind: "npc", id: npc.id });
 }
 
 function moonGlyphAttack(event: NpcAttackEvent): NpcAttackDecision | void {

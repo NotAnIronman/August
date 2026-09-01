@@ -254,6 +254,12 @@ export class NpcState extends Actor {
      * by combat, but can still receive explicitly queued visual sequences. */
     isUnattackable: boolean;
     readonly isImmovable: boolean;
+    /**
+     * Encounter-controlled multiplier for damage dealt by players to this NPC.
+     * Defaults to normal damage; encounters may temporarily reduce it without
+     * distorting the combat accuracy roll or the NPC's authored defences.
+     */
+    incomingPlayerDamageMultiplier = 1;
     readonly respawns: boolean;
     /**
      * Aggression radius in tiles. NPCs will target players within this range.

@@ -219,6 +219,12 @@ export function _resolveNpcAnimation(host: WebGLOsrsRendererHost,
     
 }
 
+const NPC_IDLE_SEQUENCE_OVERRIDES: ReadonlyMap<number, number> = new Map([
+    [13011, 10995], // Blood Moon
+    [13012, 11016], // Eclipse Moon
+    [13013, 10995], // Blue Moon
+]);
+
 export function resolveNpcMovementSequenceIds(host: WebGLOsrsRendererHost, 
         ecs: NpcEcs,
         ecsId: number,
@@ -239,7 +245,10 @@ export function resolveNpcMovementSequenceIds(host: WebGLOsrsRendererHost,
             }
 
             const movementSet = npcType.getMovementSeqSet(host.osrsClient.basTypeLoader);
-            idleSeqId = movementSet.idle | 0;
+            // Moon encounter idle overrides are server-side today; use the
+            // matching presentation override until that field is carried by
+            // NPC synchronization.
+            idleSeqId = NPC_IDLE_SEQUENCE_OVERRIDES.get(npcTypeId | 0) ?? (movementSet.idle | 0);
             walkSeqId = movementSet.walk | 0;
             const pathLength = ecs.getPathLengthLike?.(ecsId) | 0;
             if (pathLength <= 0) {

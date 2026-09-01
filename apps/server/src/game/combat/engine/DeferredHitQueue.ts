@@ -130,6 +130,14 @@ export class DeferredHitQueue {
                     ? 0
                     : (this.options.transformDamage?.(pending, target, source) ?? pending.damage);
             let damage = this.nonNegativeInteger(requestedDamage, "transformed damage");
+            // Encounter damage windows apply after accuracy has been resolved.
+            // This mirrors the action-based combat path and keeps both combat
+            // engines consistent for targets such as the Moons of Peril.
+            if (target instanceof NpcState && source instanceof PlayerState) {
+                damage = Math.floor(
+                    damage * Math.max(0, target.incomingPlayerDamageMultiplier),
+                );
+            }
             const style = this.resolveStyle(pending.hitsplatType);
             if (target instanceof NpcState) {
                 const hitpointsBefore = target.getHitpoints();
@@ -163,7 +171,12 @@ export class DeferredHitQueue {
                           style,
                           damage,
                           clock,
-                          pending.maxHit,
+                          source instanceof PlayerState
+                              ? Math.floor(
+                                    Math.max(0, pending.maxHit ?? 0) *
+                                        Math.max(0, target.incomingPlayerDamageMultiplier),
+                                )
+                              : pending.maxHit,
                       );
 
             const hit: AppliedCombatHit = Object.freeze({
