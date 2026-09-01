@@ -4,7 +4,8 @@ import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGraveP
 import { AttackType } from "@server/game/combat/AttackType";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
-import { NpcPreDeathDecision, type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
+import { NpcAttackDecision, NpcPreDeathDecision, type NpcAttackEvent, type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
+import type { NpcState } from "@server/game/npc";
 import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
 
 const CHEST = 51346, CRATE = 51371, SAPLING = 51365, STOVE = 51362;
@@ -13,9 +14,11 @@ const CHEST = 51346, CRATE = 51371, SAPLING = 51365, STOVE = 51362;
 const FISHING_SPOTS = [51367, 51368] as const;
 const NET = 303, ROPE = 954, BUTTERFLY_NET = 10010, PESTLE = 233, VIAL = 227, GRUB = 29078, PASTE = 29079, BREAM = 29216, COOKED_BREAM = 29217;
 const MOONLIGHT_MOTHS = [12771, 12772, 12773] as const;
+const GLYPH_NPC_ID = 13014, BLUE_ICE_STORM_NPC_ID = 13027, BLOOD_JAGUAR_NPC_ID = 13021;
 const STATUES = [51372, 51373, 51374] as const;
 const CHEST_TILE = { x: 1513, y: 9578, level: 0 };
 type Moon = "blood" | "eclipse" | "blue";
+type Tile = { x: number; y: number; level: number };
 const MOONS: Record<Moon, { id: number; entry: { x: number; y: number; level: number }; outside: { x: number; y: number; level: number }; grave: { x: number; y: number; level: number }; boss: { x: number; y: number; level: number }; sourceBaseX: number; sourceBaseY: number; destinationChunkX: number; destinationChunkY: number; next: Moon }> = {
     // Each chamber needs its own map slice. Copying all three into one 104x104
     // view cut off Blood/Eclipse and displaced their terrain vertically.
@@ -25,6 +28,74 @@ const MOONS: Record<Moon, { id: number; entry: { x: number; y: number; level: nu
 };
 type Run = { killed: Set<Moon>; active?: Moon; npcId?: number; instanceId: string };
 const runs = new Map<number, Run>();
+
+const MOON_IDLE_SEQUENCES: Record<Moon, number> = { blood: 10995, eclipse: 11016, blue: 10995 };
+// The first Eclipse glyph is two north and four west of the boss, exactly as
+// observed from its entry tile. The remaining seven locations continue that
+// 2x2-marker ring clockwise around the same centre for all Moon arenas.
+const GLYPH_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+    [-4, 2], [-2, 4], [1, 4], [3, 2], [3, -1], [1, -3], [-2, -3], [-4, -1],
+];
+type GlyphState = { markerId?: number; position: number; attacks: number; offTicks: number; tickTaskActive: boolean };
+const glyphStates = new WeakMap<NpcState, GlyphState>();
+
+function glyphTile(npc: NpcState, position: number): Tile {
+    const [dx, dy] = GLYPH_OFFSETS[position % GLYPH_OFFSETS.length]!;
+    return { x: npc.spawnX + dx, y: npc.spawnY + dy, level: npc.level };
+}
+
+function isOnGlyph(player: PlayerState, npc: NpcState, state: GlyphState): boolean {
+    const tile = glyphTile(npc, state.position);
+    return player.worldViewId === npc.worldViewId && player.level === tile.level &&
+        player.tileX >= tile.x && player.tileX <= tile.x + 1 &&
+        player.tileY >= tile.y && player.tileY <= tile.y + 1;
+}
+
+function moveGlyph(npc: NpcState, player: PlayerState, services: ScriptServices, state: GlyphState): void {
+    const tile = glyphTile(npc, state.position);
+    const marker = state.markerId === undefined ? undefined : services.combat.getNpc(state.markerId);
+    if (marker) {
+        services.npc.teleportNpc(marker, tile);
+        return;
+    }
+    const spawned = services.npc.spawnNpc({
+        id: GLYPH_NPC_ID, x: tile.x, y: tile.y, level: tile.level, size: 2,
+        worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
+        isAggressive: false, isUnattackable: true, respawns: false,
+    });
+    if (spawned) state.markerId = spawned.id;
+}
+
+function beginGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptServices): void {
+    const state: GlyphState = { position: 0, attacks: 0, offTicks: 0, tickTaskActive: true };
+    glyphStates.set(npc, state);
+    moveGlyph(npc, player, services, state);
+    const pulse = (tick: number): void => {
+        if (!state.tickTaskActive || npc.getHitpoints() <= 0 || player.worldViewId !== npc.worldViewId) return;
+        if (isOnGlyph(player, npc, state)) state.offTicks = 0;
+        else state.offTicks += 1;
+        // Three ticks off the active glyph grants a grace period; thereafter
+        // Eyatlalli's curse chips damage every other tick until the player returns.
+        if (state.offTicks >= 3 && (state.offTicks - 3) % 2 === 0) {
+            services.combat.applyNpcDamageToPlayer(npc, player, 0, 1 + Math.floor(Math.random() * 3), tick);
+        }
+        services.scheduler.after(1, pulse, { kind: "npc", id: npc.id });
+    };
+    // Match the chamber-entry combat grace period before the glyph can punish
+    // a player who is still orienting themselves.
+    services.scheduler.after(4, pulse, { kind: "npc", id: npc.id });
+}
+
+function moonGlyphAttack(event: NpcAttackEvent): NpcAttackDecision | void {
+    if (event.npc.ownerPlayerId !== event.target.id) return;
+    const state = glyphStates.get(event.npc);
+    if (!state) return;
+    state.attacks += 1;
+    if (state.attacks % 3 !== 0) return;
+    state.position = (state.position + 1) % GLYPH_OFFSETS.length;
+    state.offTicks = 0;
+    moveGlyph(event.npc, event.target, event.services, state);
+}
 
 function registerEncounters(): void {
     for (const [key, moon] of Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>) {
@@ -42,9 +113,10 @@ function spawnMoon(player: PlayerState, services: ScriptServices, moon: Moon): v
     const run = runs.get(player.id); if (!run || run.active || run.killed.has(moon)) return;
     const def = MOONS[moon];
     services.movement.teleportPlayer(player, def.entry.x, def.entry.y, def.entry.level);
-    const npc = services.npc.spawnNpc({ id: def.id, x: def.boss.x, y: def.boss.y, level: 0, size: 3, worldViewId: player.worldViewId, ownerPlayerId: player.id, wanderRadius: 0, attackSpeed: 4, isAggressive: false, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, respawns: false });
+    const npc = services.npc.spawnNpc({ id: def.id, x: def.boss.x, y: def.boss.y, level: 0, size: 3, idleSeqId: MOON_IDLE_SEQUENCES[moon], worldViewId: player.worldViewId, ownerPlayerId: player.id, wanderRadius: 0, attackSpeed: 4, isAggressive: false, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, respawns: false });
     if (!npc) { services.messaging.sendGameMessage(player, "The Moon fails to awaken. Please try again."); return; }
     run.active = moon; run.npcId = npc.id;
+    beginGlyphCycle(npc, player, services);
     // Give the player four full ticks to orient after entering the chamber.
     services.scheduler.after(4, () => {
         if (runs.get(player.id) !== run || run.npcId !== npc.id || player.worldViewId !== npc.worldViewId) return;
@@ -244,6 +316,9 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     } });
     const escape = ({ player, services }: { player: PlayerState; services: ScriptServices }) => { const run = runs.get(player.id); if (!run) return; const current = run.active ? MOONS[run.active] : undefined; if (run.npcId !== undefined) services.npc.removeNpc(run.npcId); run.active = undefined; run.npcId = undefined; services.instances.leave(player, current?.outside ?? CHEST_TILE); services.messaging.sendGameMessage(player, "You escape the Moon chamber. Your progress remains with the Lunar chest."); };
     for (const escapeId of [53003, 53004]) { for (const action of ["quick-escape", "escape", "exit", "climb-up"]) registry.registerLocInteraction(escapeId, escape, action); registry.registerLocInteraction(escapeId, escape); }
-    for (const [moon, def] of Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>) registry.registerNpcPreDeath(def.id, event => { const player = event.killer, run = player && runs.get(player.id); if (!player || !run || run.active !== moon || event.npc.ownerPlayerId !== player.id) return NpcPreDeathDecision.Allow; run.killed.add(moon); run.active = undefined; run.npcId = undefined; event.services.scheduler.after(8, () => { if (player.worldViewId !== event.npc.worldViewId) return; if (run.killed.size === 3) servicesAfter(event, player, CHEST_TILE); else { event.services.instances.leave(player, MOONS[def.next].outside); event.services.messaging.sendGameMessage(player, `${moon[0].toUpperCase()}${moon.slice(1)} Moon defeated. Choose another Moon statue to continue this run.`); } }, { kind: "player", id: player.id }); return NpcPreDeathDecision.Allow; });
+    for (const [moon, def] of Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>) {
+        registry.registerNpcAttack(def.id, moonGlyphAttack);
+        registry.registerNpcPreDeath(def.id, event => { const player = event.killer, run = player && runs.get(player.id); if (!player || !run || run.active !== moon || event.npc.ownerPlayerId !== player.id) return NpcPreDeathDecision.Allow; const glyphState = glyphStates.get(event.npc); if (glyphState) { glyphState.tickTaskActive = false; if (glyphState.markerId !== undefined) event.services.npc.removeNpc(glyphState.markerId); } run.killed.add(moon); run.active = undefined; run.npcId = undefined; event.services.scheduler.after(7, () => { if (player.worldViewId !== event.npc.worldViewId) return; if (run.killed.size === 3) servicesAfter(event, player, CHEST_TILE); else { event.services.instances.leave(player, MOONS[def.next].outside); event.services.messaging.sendGameMessage(player, `${moon[0].toUpperCase()}${moon.slice(1)} Moon defeated. Choose another Moon statue to continue this run.`); } }, { kind: "player", id: player.id }); return NpcPreDeathDecision.Allow; });
+    }
 }
 function servicesAfter(event: { services: ScriptServices }, player: PlayerState, tile: { x: number; y: number; level: number }): void { event.services.instances.leave(player, tile); event.services.messaging.sendGameMessage(player, "All three Moons have been defeated. You may now search the Lunar chest."); }

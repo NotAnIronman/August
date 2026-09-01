@@ -344,7 +344,7 @@ export class NpcManager {
         const npcType = this.loadNpcTypeById(spawn.id);
         if (!npcType) return;
 
-        const idleSeqId = npcType.getIdleSeqId(this.basTypeLoader);
+        const idleSeqId = Math.max(0, Math.trunc(spawn.idleSeqId ?? npcType.getIdleSeqId(this.basTypeLoader)));
         const walkSeqId = npcType.getWalkSeqId(this.basTypeLoader);
         const size = Math.max(1, Math.trunc(spawn.size ?? npcType.size));
         const rotationSpeed = Math.max(1, npcType.rotationSpeed);
