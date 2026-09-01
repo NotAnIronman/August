@@ -2,6 +2,7 @@ import type { PlayerState } from "@server/game/player";
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
 import { AttackType } from "@server/game/combat/AttackType";
+import { HITMARK_DAMAGE } from "@server/game/combat/HitEffects";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
 import { NpcAttackDecision, NpcPreDeathDecision, type NpcAttackEvent, type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
@@ -34,11 +35,11 @@ const MOON_MELEE_SEQUENCES: Record<Moon, number> = { blood: 11001, eclipse: 1102
 // Every arena starts at a distinct point in the same clockwise glyph ring.
 // The three first positions are the exact offsets supplied during testing.
 const GLYPH_OFFSETS: Record<Moon, ReadonlyArray<readonly [number, number]>> = {
-    eclipse: [[-4, 2], [-2, 4], [1, 4], [3, 2], [3, -1], [1, -3], [-2, -3], [-4, -1]],
+    eclipse: [[-4, 1], [-2, 3], [1, 3], [3, 1], [3, -2], [1, -4], [-2, -4], [-4, -2]],
     blue: [[-2, -4], [-4, -2], [-4, 1], [-2, 3], [1, 3], [3, 1], [3, -2], [1, -4]],
-    blood: [[4, -2], [2, -4], [-1, -4], [-3, -2], [-3, 1], [-1, 3], [2, 3], [4, 1]],
+    blood: [[3, -2], [1, -4], [-2, -4], [-4, -2], [-4, 1], [-2, 3], [1, 3], [3, 1]],
 };
-type GlyphState = { markerId?: number; offsets: ReadonlyArray<readonly [number, number]>; position: number; attacks: number; offTicks: number; tickTaskActive: boolean; onGlyph?: boolean; baseDefences: readonly [number, number, number, number, number] };
+type GlyphState = { markerId?: number; offsets: ReadonlyArray<readonly [number, number]>; position: number; attacks: number; completedRotations: number; specialReady: boolean; offTicks: number; tickTaskActive: boolean; onGlyph?: boolean; baseDefences: readonly [number, number, number, number, number] };
 const glyphStates = new WeakMap<NpcState, GlyphState>();
 
 function glyphTile(npc: NpcState, state: GlyphState): Tile {
@@ -84,7 +85,7 @@ function setGlyphDamageMode(npc: NpcState, state: GlyphState, onGlyph: boolean):
 
 function beginGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptServices, moon: Moon): void {
     const state: GlyphState = {
-        offsets: GLYPH_OFFSETS[moon], position: 0, attacks: 0, offTicks: 0, tickTaskActive: true,
+        offsets: GLYPH_OFFSETS[moon], position: 0, attacks: 0, completedRotations: 0, specialReady: false, offTicks: 0, tickTaskActive: true,
         baseDefences: [npc.combat.defenceStab, npc.combat.defenceSlash, npc.combat.defenceCrush, npc.combat.defenceMagic, npc.combat.defenceRanged],
     };
     glyphStates.set(npc, state);
@@ -98,7 +99,7 @@ function beginGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptSer
         // Three ticks off the active glyph grants a grace period; thereafter
         // Eyatlalli's curse chips damage every other tick until the player returns.
         if (state.offTicks >= 3 && (state.offTicks - 3) % 2 === 0) {
-            services.combat.applyNpcDamageToPlayer(npc, player, 0, 1 + Math.floor(Math.random() * 3), tick);
+            services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 1 + Math.floor(Math.random() * 3), tick);
         }
         services.scheduler.after(1, pulse, { kind: "npc", id: npc.id });
     };
@@ -112,8 +113,14 @@ function moonGlyphAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     const state = glyphStates.get(event.npc);
     if (!state) return;
     state.attacks += 1;
-    if (state.attacks % 3 === 0) {
+    if (state.attacks % 4 === 0) {
         state.position = (state.position + 1) % state.offsets.length;
+        if (state.position === 0) {
+            state.completedRotations += 1;
+            // Reserved phase hook: the first special begins only after this
+            // marker has completed all eight locations.
+            state.specialReady = true;
+        }
         state.offTicks = 0;
         setGlyphDamageMode(event.npc, state, false);
         moveGlyph(event.npc, event.target, event.services, state);
@@ -129,7 +136,7 @@ function moonGlyphAttack(event: NpcAttackEvent): NpcAttackDecision | void {
             // guaranteed misses; a later hit can never recover into damage.
             if (!missed && Math.random() >= 0.75) missed = true;
             const damage = missed ? 0 : 1 + Math.floor(Math.random() * maxHit);
-            event.services.combat.applyNpcDamageToPlayer(event.npc, event.target, 0, damage, tick);
+            event.services.combat.applyNpcDamageToPlayer(event.npc, event.target, HITMARK_DAMAGE, damage, tick);
         }, { kind: "npc", id: event.npc.id });
     }
     return NpcAttackDecision.Prevent;
