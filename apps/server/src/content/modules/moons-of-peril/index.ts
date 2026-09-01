@@ -46,7 +46,9 @@ type MoonSpecialState = { kind: Moon; owner: PlayerState; active: boolean; child
 const moonSpecials = new WeakMap<NpcState, MoonSpecialState>();
 const specialChildOwners = new Map<number, NpcState>();
 const BRAZIER = 52992;
+const UNLIT_BRAZIER = 53048;
 const UNLIT_BRAZIERS = [53048, 53049] as const;
+const BLUE_BRAZIER_TILES = [{ x: 1427, y: 9680 }, { x: 1453, y: 9680 }] as const;
 
 function glyphTile(npc: NpcState, state: GlyphState): Tile {
     const [dx, dy] = state.offsets[state.position % state.offsets.length]!;
@@ -86,6 +88,13 @@ function stopMoonSpecial(npc: NpcState, services: ScriptServices): void {
         services.npc.removeNpc(childId);
     }
     special.childIds.clear();
+    if (special.kind === "blue") {
+        for (const tile of BLUE_BRAZIER_TILES) {
+            services.location.replaceTemporaryLoc(
+                { worldViewId: npc.worldViewId }, UNLIT_BRAZIER, BRAZIER, tile, npc.level,
+            );
+        }
+    }
     npc.forcePlayerMaxHit = false;
     npc.isUnattackable = false;
 }
@@ -115,7 +124,8 @@ function startBloodSpecial(npc: NpcState, player: PlayerState, services: ScriptS
         const jaguar = services.npc.spawnNpc({
             id: BLOOD_JAGUAR_NPC_ID, x: npc.spawnX + dx, y: npc.spawnY + dy, level: npc.level,
             worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
-            isAggressive: true, aggressionRadius: 30, respawns: false,
+            isAggressive: true, aggressionRadius: 2_147_483_647,
+            combatLeashRadius: 2_147_483_647, respawns: false,
         });
         if (!jaguar) continue;
         special.childIds.add(jaguar.id);
@@ -123,6 +133,20 @@ function startBloodSpecial(npc: NpcState, player: PlayerState, services: ScriptS
         services.npc.engageCombat(jaguar, player);
     }
     services.messaging.sendGameMessage(player, "Blood jaguars leap from the shadows!");
+}
+
+function moonJaguarAttack(event: NpcAttackEvent): NpcAttackDecision | void {
+    const bloodMoon = specialChildOwners.get(event.npc.id);
+    const special = bloodMoon ? moonSpecials.get(bloodMoon) : undefined;
+    if (!bloodMoon || !special?.active || special.kind !== "blood") return;
+    const damage = 1 + Math.floor(Math.random() * 8);
+    const hit = event.services.combat.applyNpcDamageToPlayer(
+        event.npc, event.target, HITMARK_DAMAGE, damage, event.tick,
+    );
+    // The Blood Moon restores precisely the damage that a jaguar actually
+    // inflicted, including any prayer or damage reductions on the player.
+    if (hit.amount > 0) bloodMoon.heal(hit.amount);
+    return NpcAttackDecision.Prevent;
 }
 
 function startEclipseSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
@@ -138,16 +162,18 @@ function startEclipseSpecial(npc: NpcState, player: PlayerState, services: Scrip
         const [dx, dy] = state.offsets[Math.floor(Math.random() * state.offsets.length)]!;
         services.npc.teleportNpc(npc, { x: npc.spawnX + dx, y: npc.spawnY + dy, level: npc.level });
         npc.forcePlayerMaxHit = false;
-        services.scheduler.after(4, (tick) => {
+        services.scheduler.after(3, (tick) => {
             if (!special.active || player.worldViewId !== npc.worldViewId) return;
             if (playerIsFacingNpc(player, npc)) {
                 npc.forcePlayerMaxHit = true;
             } else {
+                services.npc.engageCombat(npc, player);
+                services.npc.queueNpcSeq(npc, MOON_MELEE_SEQUENCES.eclipse);
                 services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 8 + Math.floor(Math.random() * 13), tick);
             }
             jumps += 1;
             if (jumps >= 5) {
-                services.scheduler.after(4, () => {
+                services.scheduler.after(3, () => {
                     if (!special.active) return;
                     services.movement.teleportPlayer(player, MOONS.eclipse.entry.x, MOONS.eclipse.entry.y, MOONS.eclipse.entry.level);
                     services.npc.teleportNpc(npc, MOONS.eclipse.boss);
@@ -163,16 +189,16 @@ function startEclipseSpecial(npc: NpcState, player: PlayerState, services: Scrip
 
 function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
     if (!special.active) return;
-    // Five storms enter from each north/south side. Each side chooses five
-    // distinct lanes from X=1428..1435, so two storms never share a lane.
-    for (const enteringFromNorth of [true, false]) {
-        const availableLanes = [1428, 1429, 1430, 1431, 1432, 1433, 1434, 1435];
+    // Five storms use the western lanes and five use the eastern lanes. Each
+    // storm independently travels north-to-south or south-to-north.
+    for (const lanes of [[1429, 1430, 1431, 1432, 1433, 1434, 1435], [1445, 1446, 1447, 1448, 1449, 1450, 1451]]) {
+        const availableLanes = [...lanes];
         for (let index = 0; index < 5; index += 1) {
             const laneIndex = Math.floor(Math.random() * availableLanes.length);
             const laneX = availableLanes.splice(laneIndex, 1)[0]!;
-            const directionY = enteringFromNorth ? 1 : -1;
+            const directionY = Math.random() < 0.5 ? 1 : -1;
             const storm = services.npc.spawnNpc({
-                id: BLUE_ICE_STORM_NPC_ID, x: laneX, y: enteringFromNorth ? 9670 : 9690, level: npc.level,
+                id: BLUE_ICE_STORM_NPC_ID, x: laneX, y: directionY > 0 ? 9670 : 9690, level: npc.level,
                 worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
                 isUnattackable: true, isImmovable: true, respawns: false,
             });
@@ -202,6 +228,11 @@ function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: Script
 
 function startBlueSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
     npc.isUnattackable = true;
+    for (const tile of BLUE_BRAZIER_TILES) {
+        services.location.replaceTemporaryLoc(
+            { worldViewId: npc.worldViewId }, BRAZIER, UNLIT_BRAZIER, tile, npc.level,
+        );
+    }
     services.messaging.sendGameMessage(player, "The braziers go dark as an ice storm sweeps the chamber.");
     spawnBlueStormWave(npc, player, services, special);
     const healWhileUnlit = (tick: number): void => {
@@ -211,7 +242,7 @@ function startBlueSpecial(npc: NpcState, player: PlayerState, services: ScriptSe
         services.scheduler.after(5, healWhileUnlit, { kind: "npc", id: npc.id });
     };
     services.scheduler.after(5, healWhileUnlit, { kind: "npc", id: npc.id });
-    services.scheduler.after(100, () => {
+    services.scheduler.after(75, () => {
         if (!special.active) return;
         services.messaging.sendGameMessage(player, "The Blue Moon's storm finally dissipates.");
         restartGlyphCycle(npc, player, services);
@@ -536,12 +567,14 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
         }
         special.brazierTiles.add(key);
         if (locId !== BRAZIER) {
-            services.location.sendLocChangeToPlayer(player, locId, BRAZIER, tile, level);
+            services.location.replaceTemporaryLoc({ worldViewId: player.worldViewId }, locId, BRAZIER, tile, level);
         }
         services.messaging.sendGameMessage(player, "You relight the brazier.");
         if (special.brazierTiles.size >= 2) {
             services.messaging.sendGameMessage(player, "The ice storm subsides.");
-            restartGlyphCycle(boss, player, services);
+            services.scheduler.after(6, () => {
+                if (special.active) restartGlyphCycle(boss, player, services);
+            }, { kind: "npc", id: boss.id });
         }
     };
     for (const locId of [BRAZIER, ...UNLIT_BRAZIERS]) {
@@ -549,6 +582,7 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
             registry.registerLocInteraction(locId, relightBrazier, action);
         }
     }
+    registry.registerNpcAttack(BLOOD_JAGUAR_NPC_ID, moonJaguarAttack);
     for (const mothId of MOONLIGHT_MOTHS) registry.registerNpcScript({ npcId: mothId, option: "catch", handler: ({ player, services }) => {
         if (services.equipment.getEquippedItem(player, EquipmentSlot.WEAPON) !== BUTTERFLY_NET) { services.messaging.sendGameMessage(player, "You need to wield a butterfly net to catch this moth."); return; }
         services.animation.playPlayerSeq(player, 660);
