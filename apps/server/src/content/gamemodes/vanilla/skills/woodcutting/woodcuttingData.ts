@@ -193,7 +193,7 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         id: "hollow",
         name: "Hollow tree",
         level: 45,
-        xp: 82,
+        xp: 82.5,
         logItemId: 3239,
         stumpId: 8445,
         respawnTicks: { min: 45, max: 90 },

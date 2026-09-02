@@ -253,6 +253,22 @@ const LOG_SEEDS: LogSeed[] = [
             },
         ],
     },
+    {
+        // Redwood logs only make arrow shafts.  They intentionally do not
+        // expose bow choices in the knife menu.
+        logItemId: 19669,
+        seeds: [
+            {
+                suffix: "arrow_shafts",
+                productItemId: 52,
+                productName: "arrow shafts",
+                outputQuantity: 105,
+                level: 90,
+                xp: 35,
+                kind: "arrow_shafts",
+            },
+        ],
+    },
 ];
 
 const LOG_RECIPE_MAP = new Map<number, FletchingProductDefinition[]>();
