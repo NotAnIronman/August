@@ -50,19 +50,16 @@ type MoonSpecialState = {
     childIds: Set<number>;
     brazierTiles: Set<string>;
     /** Original per-player morph values, restored whenever Frost Storm ends. */
-    brazierVarbitStates: Map<PlayerState, number>;
+    brazierVarbitStates: Map<PlayerState, Map<number, number>>;
     shieldMechanic?: MechanicHandle;
 };
 const moonSpecials = new WeakMap<NpcState, MoonSpecialState>();
 const specialChildOwners = new Map<number, NpcState>();
-// 51312 is the Blue Moon Brazier encoded in the room map.  During Frost
-// Storm it is temporarily replaced by 52992, a cache morph-controller whose
-// varbit 9855 chooses 51052 (burning) at 0 and 51051 (unlit) at 1.
+// 51312 is the Blue Moon Brazier encoded in the room map.  Each side uses
+// its own morph controller and varbit, so the two braziers can be lit
+// independently during Frost Storm.
 const BRAZIER = 51312;
-const BRAZIER_MORPH_CONTROLLER = 52992;
-const BRAZIER_UNLIT_VARBIT = 9855;
 const BRAZIER_UNLIT_STATE = 1;
-const LIT_BRAZIER = 51052;
 const BRAZIER_VISIBLE_VARIANTS = [52992, 52993] as const;
 // The copied room can encode either its authored Blue Moon Brazier or one of
 // the two live cache variants. Send a replacement for each candidate; the
@@ -70,8 +67,8 @@ const BRAZIER_VISIBLE_VARIANTS = [52992, 52993] as const;
 const BRAZIER_SOURCE_IDS = [BRAZIER, ...BRAZIER_VISIBLE_VARIANTS] as const;
 const UNLIT_BRAZIERS = [51051] as const;
 const BLUE_BRAZIERS = [
-    { tile: { x: 1427, y: 9680 } },
-    { tile: { x: 1453, y: 9680 } },
+    { tile: { x: 1427, y: 9680 }, controllerId: 52992, varbitId: 9855 },
+    { tile: { x: 1453, y: 9680 }, controllerId: 52993, varbitId: 9856 },
 ] as const;
 
 function glyphTile(npc: NpcState, state: GlyphState): Tile {
@@ -103,27 +100,27 @@ function moveGlyph(npc: NpcState, player: PlayerState, services: ScriptServices,
 
 function tileKey(tile: { x: number; y: number; level: number }): string { return `${tile.x},${tile.y},${tile.level}`; }
 
-function setBlueBrazierMorph(
-    npc: NpcState,
-    services: ScriptServices,
-    special: MoonSpecialState,
-): void {
+function setBlueBrazierVarbit(special: MoonSpecialState, services: ScriptServices, varbitId: number, value: number): void {
     const room = services.instances.get(special.owner.id);
     const viewers = room ? services.instances.getMemberPlayers(room.id) : [special.owner];
     for (const viewer of viewers) {
-        if (!special.brazierVarbitStates.has(viewer)) {
-            special.brazierVarbitStates.set(viewer, viewer.varps.getVarbitValue(BRAZIER_UNLIT_VARBIT));
-        }
-        viewer.varps.setVarbitValue(BRAZIER_UNLIT_VARBIT, BRAZIER_UNLIT_STATE);
-        services.variables.sendVarbit(viewer, BRAZIER_UNLIT_VARBIT, BRAZIER_UNLIT_STATE);
+        let originals = special.brazierVarbitStates.get(viewer);
+        if (!originals) { originals = new Map(); special.brazierVarbitStates.set(viewer, originals); }
+        if (!originals.has(varbitId)) originals.set(varbitId, viewer.varps.getVarbitValue(varbitId));
+        viewer.varps.setVarbitValue(varbitId, value);
+        services.variables.sendVarbit(viewer, varbitId, value);
     }
+}
+
+function setBlueBrazierMorph(npc: NpcState, services: ScriptServices, special: MoonSpecialState): void {
+    for (const brazier of BLUE_BRAZIERS) setBlueBrazierVarbit(special, services, brazier.varbitId, BRAZIER_UNLIT_STATE);
     // Adding the transform-controller explicitly makes the client rebuild
     // the loc after receiving the new varbit. Replacing the unlit child
     // directly cannot work because it has no standalone model.
-    for (const { tile } of BLUE_BRAZIERS) {
+    for (const { tile, controllerId } of BLUE_BRAZIERS) {
         for (const sourceId of BRAZIER_SOURCE_IDS) {
             services.location.replaceTemporaryLoc(
-                { worldViewId: npc.worldViewId }, sourceId, BRAZIER_MORPH_CONTROLLER, tile, npc.level,
+                { worldViewId: npc.worldViewId }, sourceId, controllerId, tile, npc.level,
                 { oldShape: 10, newShape: 10, newRotation: 0 },
             );
         }
@@ -131,9 +128,11 @@ function setBlueBrazierMorph(
 }
 
 function restoreBlueBraziers(npc: NpcState, services: ScriptServices, special: MoonSpecialState): void {
-    for (const [viewer, value] of special.brazierVarbitStates) {
-        viewer.varps.setVarbitValue(BRAZIER_UNLIT_VARBIT, value);
-        services.variables.sendVarbit(viewer, BRAZIER_UNLIT_VARBIT, value);
+    for (const [viewer, originals] of special.brazierVarbitStates) {
+        for (const [varbitId, value] of originals) {
+            viewer.varps.setVarbitValue(varbitId, value);
+            services.variables.sendVarbit(viewer, varbitId, value);
+        }
     }
     special.brazierVarbitStates.clear();
     for (const { tile } of BLUE_BRAZIERS) {
@@ -142,6 +141,14 @@ function restoreBlueBraziers(npc: NpcState, services: ScriptServices, special: M
                 { worldViewId: npc.worldViewId }, sourceId, tile, npc.level, 10,
             );
         }
+    }
+}
+
+/** A fresh Moon room always starts with both braziers burning. */
+function resetBlueBrazierBaseline(player: PlayerState, services: ScriptServices): void {
+    for (const { varbitId } of BLUE_BRAZIERS) {
+        player.varps.setVarbitValue(varbitId, 0);
+        services.variables.sendVarbit(player, varbitId, 0);
     }
 }
 
@@ -471,7 +478,11 @@ function createRun(player: PlayerState, services: ScriptServices, first: Moon, a
     // An escape interrupts an active Moon. Clear its transient actor before
     // rebuilding the room so a re-entry always creates a fresh boss.
     if (existing?.active) {
-        if (existing.npcId !== undefined) services.npc.removeNpc(existing.npcId);
+        if (existing.npcId !== undefined) {
+            const boss = services.combat.getNpc(existing.npcId);
+            if (boss) stopMoonSpecial(boss, services);
+            services.npc.removeNpc(existing.npcId);
+        }
         existing.active = undefined;
         existing.npcId = undefined;
     }
@@ -484,6 +495,7 @@ function createRun(player: PlayerState, services: ScriptServices, first: Moon, a
     const templateChunks = services.instances.buildTemplate([{ sourceBaseX: def.sourceBaseX, sourceBaseY: def.sourceBaseY, widthChunks: 8, heightChunks: 8, sourcePlanes: [0], destinationChunkX: def.destinationChunkX, destinationChunkY: def.destinationChunkY }]);
     const room = services.instances.create(player, { definitionId: "moons-of-peril", access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party", templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
     if (!room) { services.messaging.sendGameMessage(player, "The Moon chamber is unavailable right now."); return; }
+    resetBlueBrazierBaseline(player, services);
     runs.set(player.id, { killed: new Set(), instanceId: room.id }); services.instances.markStarted(room.id); spawnMoon(player, services, first);
 }
 
@@ -496,6 +508,7 @@ function resumeRun(player: PlayerState, services: ScriptServices, next: Moon): v
     const room = services.instances.create(player, { definitionId: "moons-of-peril", access: "solo", maxPlayers: 1, templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
     if (!room) { services.messaging.sendGameMessage(player, "The Moon chamber is unavailable right now."); return; }
     run.instanceId = room.id;
+    resetBlueBrazierBaseline(player, services);
     services.instances.markStarted(room.id);
     spawnMoon(player, services, next);
 }
@@ -646,7 +659,7 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerItemOnItem(PASTE, VIAL, ({ player, services }) => { if (player.items.removeItem(PASTE, 1, { assureFullRemoval: true }).completed && player.items.removeItem(VIAL, 1, { assureFullRemoval: true }).completed) { addOrDrop(player, services, 29080, 1); services.inventory.snapshotInventoryImmediate(player); } });
     registry.registerItemOnLoc(BREAM, STOVE, ({ player, services }) => startCookingBream(player, services));
     for (const potion of [29080, 29081, 29082, 29083]) registry.registerItemAction(potion, ({ player, services }) => drinkMoonlightPotion(player, services, potion), "drink");
-    const relightBrazier = ({ player, services, tile, level }: { player: PlayerState; services: ScriptServices; tile: { x: number; y: number }; level: number }) => {
+    const relightBrazier = ({ player, services, tile }: { player: PlayerState; services: ScriptServices; tile: { x: number; y: number } }) => {
         const run = runs.get(player.id);
         const boss = run?.npcId === undefined ? undefined : services.combat.getNpc(run.npcId);
         const special = boss ? moonSpecials.get(boss) : undefined;
@@ -654,21 +667,17 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
             services.messaging.sendGameMessage(player, "The brazier burns steadily.");
             return;
         }
+        const brazier = BLUE_BRAZIERS.find(({ tile: expected }) => expected.x === tile.x && expected.y === tile.y);
+        if (!brazier) return;
         const key = tileKey({ x: tile.x, y: tile.y, level });
         if (special.brazierTiles.has(key)) {
             services.messaging.sendGameMessage(player, "This brazier is already lit.");
             return;
         }
         special.brazierTiles.add(key);
-        // The storm begins as the 52992 morph-controller. Once a brazier is
-        // lit, replace only that map position with its explicit burning child
-        // while leaving the other controller-driven brazier unlit.
-        for (const sourceId of BRAZIER_SOURCE_IDS) {
-            services.location.replaceTemporaryLoc(
-                { worldViewId: player.worldViewId }, sourceId, LIT_BRAZIER, tile, level,
-                { oldShape: 10, newShape: 10 },
-            );
-        }
+        // Return only this controller to its burning child; the other side
+        // remains unlit until the player explicitly lights it too.
+        setBlueBrazierVarbit(special, services, brazier.varbitId, 0);
         services.messaging.sendGameMessage(player, "You relight the brazier.");
         if (special.brazierTiles.size >= 2) {
             services.messaging.sendGameMessage(player, "The ice storm subsides.");
