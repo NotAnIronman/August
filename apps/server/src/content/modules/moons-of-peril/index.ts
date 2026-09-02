@@ -691,6 +691,10 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
             registry.registerLocInteraction(locId, relightBrazier, action);
         }
     }
+    // Morphing locs may report their currently-resolved child ID rather than
+    // the controller ID. The exact-tile guard inside relightBrazier keeps
+    // this global Light hook limited to the two Blue Moon braziers.
+    registry.registerLocAction("light", relightBrazier);
     registry.registerNpcAttack(BLOOD_JAGUAR_NPC_ID, moonJaguarAttack);
     for (const mothId of MOONLIGHT_MOTHS) registry.registerNpcScript({ npcId: mothId, option: "catch", handler: ({ player, services }) => {
         if (services.equipment.getEquippedItem(player, EquipmentSlot.WEAPON) !== BUTTERFLY_NET) { services.messaging.sendGameMessage(player, "You need to wield a butterfly net to catch this moth."); return; }
