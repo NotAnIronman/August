@@ -23,9 +23,14 @@ import {
     selectHatchetByLevel,
 } from "@server/content/gamemodes/vanilla/skills/woodcutting/woodcuttingData";
 
-const WOODCUT_ACTIONS = ["chop down", "chop-down"];
+// Generic handlers are intentionally limited to the three ordinary labels.
+// Less common cache verbs (Cut/Cut down) are registered only against the
+// loc IDs proven to be ordinary trees by the cache scan below.
+const WOODCUT_ACTIONS = ["chop", "chop down", "chop-down"];
 const WOODCUTTING_DEPLETE_SOUND = 2734;
 const ECHO_AXE_ITEM_IDS = [25110];
+const WOODCUTTING_GUILD_BOUNDS = { minX: 1560, maxX: 1664, minY: 3460, maxY: 3528 };
+const WOODCUTTING_GUILD_INVISIBLE_BOOST = 7;
 
 interface WoodcuttingActionData {
     treeLocId: number;
@@ -39,14 +44,31 @@ interface WoodcuttingActionData {
 
 function rollWoodcuttingSuccess(
     level: number,
-    treeLevel: number,
+    tree: WoodcuttingTreeDefinition,
     hatchet: HatchetDefinition,
 ): boolean {
-    const effective = Math.max(1, level);
-    const difficulty = Math.max(1, treeLevel);
-    const ratio = effective / difficulty;
-    const baseChance = Math.min(0.85, Math.max(0.05, ratio * 0.3));
-    return Math.random() < baseChance * hatchet.accuracy;
+    // OSRS Woodcutting rolls on a 0..255 curve. A tree supplies a base chance
+    // and a level-99 ratio; the axe improves the low endpoint, then the
+    // current level is interpolated between low and high.  This replaces the
+    // old ratio calculation, where a steel axe could accidentally reach 100%.
+    const axeMultiplier = 1 + (Math.max(1, hatchet.accuracy) - 1) * 0.25;
+    const low = tree.chopChance * axeMultiplier;
+    const high = low * tree.chopRatio;
+    const clampedLevel = Math.min(99, Math.max(1, Math.floor(level)));
+    const numerator = Math.floor(
+        (low * (99 - clampedLevel)) / 98 + (high * (clampedLevel - 1)) / 98,
+    ) + 1;
+    return Math.random() * 255 < Math.min(255, Math.max(1, numerator));
+}
+
+function isInWoodcuttingGuild(player: PlayerState): boolean {
+    return (
+        player.level === 0 &&
+        player.tileX >= WOODCUTTING_GUILD_BOUNDS.minX &&
+        player.tileX <= WOODCUTTING_GUILD_BOUNDS.maxX &&
+        player.tileY >= WOODCUTTING_GUILD_BOUNDS.minY &&
+        player.tileY <= WOODCUTTING_GUILD_BOUNDS.maxY
+    );
 }
 
 function executeWoodcutAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
@@ -76,9 +98,11 @@ function executeWoodcutAction(ctx: ScriptActionHandlerContext): ActionExecutionR
     }
 
     const skill = services.skills.getSkill(player, SkillId.Woodcutting);
-    const effectiveLevel = Math.max(1, (skill?.baseLevel ?? 1) + (skill?.boost ?? 0));
+    const visibleLevel = Math.max(1, (skill?.baseLevel ?? 1) + (skill?.boost ?? 0));
 
-    if (effectiveLevel < tree.level) {
+    // The Guild boost helps the roll only. It is invisible and never bypasses
+    // a tree's actual Woodcutting requirement.
+    if (visibleLevel < tree.level) {
         return failGatheringPrecheck(
             player,
             services,
@@ -86,6 +110,9 @@ function executeWoodcutAction(ctx: ScriptActionHandlerContext): ActionExecutionR
             { errorSound: true },
         );
     }
+
+    const effectiveLevel = visibleLevel +
+        (isInWoodcuttingGuild(player) ? WOODCUTTING_GUILD_INVISIBLE_BOOST : 0);
 
     const hatchetIds = services.inventory.collectCarriedItemIds(player) ?? [];
     const hatchet = selectHatchetByLevel(hatchetIds, effectiveLevel);
@@ -154,7 +181,7 @@ function executeWoodcutAction(ctx: ScriptActionHandlerContext): ActionExecutionR
     let inventorySnapshot = false;
     let bankSnapshot = false;
 
-    let success = shouldRoll && rollWoodcuttingSuccess(effectiveLevel, tree.level, hatchet);
+    let success = shouldRoll && rollWoodcuttingSuccess(effectiveLevel, tree, hatchet);
     if (!success && shouldRoll && hasEchoAxePerk && Math.random() < 0.5) {
         success = true;
     }
@@ -298,8 +325,13 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
         console.log("[script:woodcutting] tree lookup unavailable; module disabled");
         return;
     }
-    for (const action of WOODCUT_ACTIONS) {
-        registry.registerLocAction(action, (event) => {
+    const startWoodcutting = (event: {
+        locId: number;
+        player: PlayerState;
+        tile: { x: number; y: number };
+        level: number;
+        tick: number;
+    }) => {
             const tree = services.getWoodcuttingTree?.(event.locId) as
                 | WoodcuttingTreeDefinition
                 | undefined;
@@ -330,6 +362,14 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                     "You're too busy to do that right now.",
                 );
             }
-        });
+    };
+
+    for (const action of WOODCUT_ACTIONS) {
+        registry.registerLocAction(action, startWoodcutting);
+    }
+    for (const locId of wcLocMap.map.keys()) {
+        registry.registerLocInteraction(locId, startWoodcutting, "cut");
+        registry.registerLocInteraction(locId, startWoodcutting, "cut down");
+        registry.registerLocInteraction(locId, startWoodcutting, "cut-down");
     }
 }

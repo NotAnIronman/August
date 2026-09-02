@@ -60,6 +60,14 @@ export interface WoodcuttingTreeDefinition {
     respawnTicks: { min: number; max: number };
     depleteRoll: number; // 1 => always deplete, N => 1 in N chance per success
     swingTicks: number;
+    /**
+     * The tree's base roll numerator.  Woodcutting uses a level-interpolated
+     * 0..255 roll rather than a level/tree ratio.  These values deliberately
+     * live with the tree data so uncommon trees can supply their own curve.
+     */
+    chopChance: number;
+    /** The level-99 multiplier for the tree's base chance. */
+    chopRatio: number;
 }
 
 const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
@@ -74,6 +82,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 120, max: 199 },
         depleteRoll: 1,
         swingTicks: 4, // OSRS: all trees roll every 4 ticks
+        chopChance: 32,
+        chopRatio: 3.125,
     },
     {
         id: "oak",
@@ -85,6 +95,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 30, max: 30 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 16,
+        chopRatio: 3.125,
     },
     {
         id: "willow",
@@ -96,6 +108,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 30, max: 30 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 12,
+        chopRatio: 3.125,
     },
     {
         id: "maple",
@@ -107,6 +121,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 120, max: 120 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 8,
+        chopRatio: 3.125,
     },
     {
         id: "yew",
@@ -118,6 +134,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 200, max: 200 },
         depleteRoll: 8,
         swingTicks: 4, // OSRS: all trees roll every 4 ticks
+        chopChance: 6,
+        chopRatio: 3.125,
     },
     {
         id: "magic",
@@ -129,6 +147,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 400, max: 400 },
         depleteRoll: 8,
         swingTicks: 4, // OSRS: all trees roll every 4 ticks
+        chopChance: 4,
+        chopRatio: 3.125,
     },
     {
         id: "teak",
@@ -140,6 +160,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 55, max: 110 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 10,
+        chopRatio: 3.125,
     },
     {
         id: "mahogany",
@@ -151,6 +173,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 70, max: 140 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 8,
+        chopRatio: 3.125,
     },
     {
         id: "achey",
@@ -162,6 +186,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 15, max: 30 },
         depleteRoll: 1,
         swingTicks: 4, // OSRS: all trees roll every 4 ticks
+        chopChance: 32,
+        chopRatio: 3.125,
     },
     {
         id: "hollow",
@@ -173,6 +199,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 45, max: 90 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 8,
+        chopRatio: 3.125,
     },
     {
         id: "redwood",
@@ -184,6 +212,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 150, max: 250 },
         depleteRoll: 20,
         swingTicks: 4, // OSRS: all trees roll every 4 ticks
+        chopChance: 2,
+        chopRatio: 3.125,
     },
 ];
 
@@ -194,6 +224,7 @@ const TREE_BY_ID = new Map<string, WoodcuttingTreeDefinition>(
 const TREE_NAME_ALIASES: Record<string, string> = {
     tree: "normal",
     evergreen: "normal",
+    "evergreen tree": "normal",
     "dead tree": "normal",
     "jungle tree": "normal",
     oak: "oak",
@@ -215,6 +246,20 @@ const TREE_NAME_ALIASES: Record<string, string> = {
     redwood: "redwood",
     "redwood tree": "redwood",
 };
+
+/**
+ * Valid cache actions for the ordinary tree definitions above.  The name
+ * still has to be an exact tree alias, so accepting e.g. "Chop" cannot turn
+ * arbitrary scenery into a woodcutting resource.
+ */
+export const WOODCUTTING_ACTION_NAMES = new Set([
+    "chop",
+    "chop down",
+    "chop-down",
+    "cut",
+    "cut down",
+    "cut-down",
+]);
 
 export function getWoodcuttingTreeById(id: string): WoodcuttingTreeDefinition | undefined {
     return TREE_BY_ID.get(id);
@@ -258,15 +303,14 @@ export function buildWoodcuttingLocMap(loader?: LocTypeLoader): WoodcuttingLocMa
         } catch {
             continue;
         }
-        // Only map locs that actually offer the Chop down action.
-        // This avoids matching decorative "Tree" locs that share the same name.
+        // Require both a known ordinary-tree name and one of the cache's
+        // woodcutting action labels. This admits objects such as Achey trees
+        // (whose action is simply "Chop") without treating generic scenery as
+        // harvestable.
         const actions: unknown = loc?.actions;
         if (Array.isArray(actions)) {
             const hasChop = actions.some(
-                (a) =>
-                    !!a &&
-                    (a.trim().toLowerCase() === "chop down" ||
-                        a.trim().toLowerCase() === "chop-down"),
+                (a) => !!a && WOODCUTTING_ACTION_NAMES.has(a.trim().toLowerCase()),
             );
             if (!hasChop) continue;
         }
