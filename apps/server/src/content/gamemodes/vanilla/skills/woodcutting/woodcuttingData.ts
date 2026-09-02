@@ -13,37 +13,37 @@ export const HATCHETS: HatchetDefinition[] = [
     // Felling axe variants.  Their Forestry effect is handled separately by
     // the Forestry content; as Woodcutting tools they use their base axe's
     // requirement, swing and success tier.
-    { itemId: 28220, level: 71, animation: 8324, accuracy: 13, swingTicks: 3 }, // Crystal felling
-    { itemId: 28222, level: 71, animation: 8324, accuracy: 13, swingTicks: 3 }, // Crystal felling (variant)
-    { itemId: 28223, level: 71, animation: 8324, accuracy: 13, swingTicks: 3 }, // Crystal felling (inactive)
-    { itemId: 28225, level: 71, animation: 8324, accuracy: 13, swingTicks: 3 }, // Crystal felling (inactive variant)
-    { itemId: 28217, level: 61, animation: 2846, accuracy: 13, swingTicks: 3 }, // Dragon felling
-    { itemId: 28218, level: 61, animation: 2846, accuracy: 13, swingTicks: 3 }, // Dragon felling (variant)
-    { itemId: 28219, level: 61, animation: 2846, accuracy: 13, swingTicks: 3 }, // Dragon felling (variant)
-    { itemId: 28226, level: 61, animation: 7264, accuracy: 13, swingTicks: 3 }, // 3rd age felling
-    { itemId: 28227, level: 61, animation: 7264, accuracy: 13, swingTicks: 3 }, // 3rd age felling (variant)
-    { itemId: 28228, level: 61, animation: 7264, accuracy: 13, swingTicks: 3 }, // 3rd age felling (variant)
-    { itemId: 28214, level: 41, animation: 867, accuracy: 11, swingTicks: 3 }, // Rune felling
-    { itemId: 28215, level: 41, animation: 867, accuracy: 11, swingTicks: 3 }, // Rune felling (variant)
-    { itemId: 28216, level: 41, animation: 867, accuracy: 11, swingTicks: 3 }, // Rune felling (variant)
-    { itemId: 28211, level: 31, animation: 869, accuracy: 9, swingTicks: 3 }, // Adamant felling
-    { itemId: 28212, level: 31, animation: 869, accuracy: 9, swingTicks: 3 }, // Adamant felling (variant)
-    { itemId: 28213, level: 31, animation: 869, accuracy: 9, swingTicks: 3 }, // Adamant felling (variant)
-    { itemId: 28208, level: 21, animation: 871, accuracy: 7, swingTicks: 3 }, // Mithril felling
-    { itemId: 28209, level: 21, animation: 871, accuracy: 7, swingTicks: 3 }, // Mithril felling (variant)
-    { itemId: 28210, level: 21, animation: 871, accuracy: 7, swingTicks: 3 }, // Mithril felling (variant)
-    { itemId: 28205, level: 11, animation: 873, accuracy: 5, swingTicks: 3 }, // Black felling
-    { itemId: 28206, level: 11, animation: 873, accuracy: 5, swingTicks: 3 }, // Black felling (variant)
-    { itemId: 28207, level: 11, animation: 873, accuracy: 5, swingTicks: 3 }, // Black felling (variant)
-    { itemId: 28202, level: 6, animation: 875, accuracy: 4, swingTicks: 3 }, // Steel felling
-    { itemId: 28203, level: 6, animation: 875, accuracy: 4, swingTicks: 3 }, // Steel felling (variant)
-    { itemId: 28204, level: 6, animation: 875, accuracy: 4, swingTicks: 3 }, // Steel felling (variant)
-    { itemId: 28199, level: 1, animation: 877, accuracy: 2, swingTicks: 3 }, // Iron felling
-    { itemId: 28200, level: 1, animation: 877, accuracy: 2, swingTicks: 3 }, // Iron felling (variant)
-    { itemId: 28201, level: 1, animation: 877, accuracy: 2, swingTicks: 3 }, // Iron felling (variant)
-    { itemId: 28196, level: 1, animation: 879, accuracy: 1, swingTicks: 3 }, // Bronze felling
-    { itemId: 28197, level: 1, animation: 879, accuracy: 1, swingTicks: 3 }, // Bronze felling (variant)
-    { itemId: 28198, level: 1, animation: 879, accuracy: 1, swingTicks: 3 }, // Bronze felling (variant)
+    { itemId: 28220, level: 71, animation: 10072, accuracy: 13, swingTicks: 3 }, // Crystal felling
+    { itemId: 28222, level: 71, animation: 10072, accuracy: 13, swingTicks: 3 }, // Crystal felling (variant)
+    { itemId: 28223, level: 71, animation: 10073, accuracy: 13, swingTicks: 3 }, // Crystal felling (inactive)
+    { itemId: 28225, level: 71, animation: 10073, accuracy: 13, swingTicks: 3 }, // Crystal felling (inactive variant)
+    { itemId: 28217, level: 61, animation: 10071, accuracy: 13, swingTicks: 3 }, // Dragon felling
+    { itemId: 28218, level: 61, animation: 10071, accuracy: 13, swingTicks: 3 }, // Dragon felling (variant)
+    { itemId: 28219, level: 61, animation: 10071, accuracy: 13, swingTicks: 3 }, // Dragon felling (variant)
+    { itemId: 28226, level: 61, animation: 10074, accuracy: 13, swingTicks: 3 }, // 3rd age felling
+    { itemId: 28227, level: 61, animation: 10074, accuracy: 13, swingTicks: 3 }, // 3rd age felling (variant)
+    { itemId: 28228, level: 61, animation: 10074, accuracy: 13, swingTicks: 3 }, // 3rd age felling (variant)
+    { itemId: 28214, level: 41, animation: 10070, accuracy: 11, swingTicks: 3 }, // Rune felling
+    { itemId: 28215, level: 41, animation: 10070, accuracy: 11, swingTicks: 3 }, // Rune felling (variant)
+    { itemId: 28216, level: 41, animation: 10070, accuracy: 11, swingTicks: 3 }, // Rune felling (variant)
+    { itemId: 28211, level: 31, animation: 10069, accuracy: 9, swingTicks: 3 }, // Adamant felling
+    { itemId: 28212, level: 31, animation: 10069, accuracy: 9, swingTicks: 3 }, // Adamant felling (variant)
+    { itemId: 28213, level: 31, animation: 10069, accuracy: 9, swingTicks: 3 }, // Adamant felling (variant)
+    { itemId: 28208, level: 21, animation: 10068, accuracy: 7, swingTicks: 3 }, // Mithril felling
+    { itemId: 28209, level: 21, animation: 10068, accuracy: 7, swingTicks: 3 }, // Mithril felling (variant)
+    { itemId: 28210, level: 21, animation: 10068, accuracy: 7, swingTicks: 3 }, // Mithril felling (variant)
+    { itemId: 28205, level: 11, animation: 10067, accuracy: 5, swingTicks: 3 }, // Black felling
+    { itemId: 28206, level: 11, animation: 10067, accuracy: 5, swingTicks: 3 }, // Black felling (variant)
+    { itemId: 28207, level: 11, animation: 10067, accuracy: 5, swingTicks: 3 }, // Black felling (variant)
+    { itemId: 28202, level: 6, animation: 10066, accuracy: 4, swingTicks: 3 }, // Steel felling
+    { itemId: 28203, level: 6, animation: 10066, accuracy: 4, swingTicks: 3 }, // Steel felling (variant)
+    { itemId: 28204, level: 6, animation: 10066, accuracy: 4, swingTicks: 3 }, // Steel felling (variant)
+    { itemId: 28199, level: 1, animation: 10065, accuracy: 2, swingTicks: 3 }, // Iron felling
+    { itemId: 28200, level: 1, animation: 10065, accuracy: 2, swingTicks: 3 }, // Iron felling (variant)
+    { itemId: 28201, level: 1, animation: 10065, accuracy: 2, swingTicks: 3 }, // Iron felling (variant)
+    { itemId: 28196, level: 1, animation: 10064, accuracy: 1, swingTicks: 3 }, // Bronze felling
+    { itemId: 28197, level: 1, animation: 10064, accuracy: 1, swingTicks: 3 }, // Bronze felling (variant)
+    { itemId: 28198, level: 1, animation: 10064, accuracy: 1, swingTicks: 3 }, // Bronze felling (variant)
 
     // Infernal axe + variants (includes "empty"/uncharged variants)
     { itemId: 13241, level: 61, animation: 2117, accuracy: 13, swingTicks: 3 }, // Infernal

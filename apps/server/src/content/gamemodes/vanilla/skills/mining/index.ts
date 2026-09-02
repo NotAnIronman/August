@@ -37,12 +37,17 @@ interface MiningActionData {
     echoMinedCount: number;
 }
 
-function rollMiningSuccess(level: number, rockLevel: number, pickaxe: PickaxeDefinition): boolean {
-    const effective = Math.max(1, level);
-    const difficulty = Math.max(1, rockLevel);
-    const ratio = effective / difficulty;
-    const baseChance = Math.min(0.85, Math.max(0.05, ratio * 0.3));
-    return Math.random() < baseChance * pickaxe.accuracy;
+function rollMiningSuccess(level: number, rock: MiningRockDefinition): boolean {
+    // Mining uses a level-interpolated 0..255 roll.  Unlike Woodcutting,
+    // pickaxe tier does not improve this roll; it only shortens the interval
+    // before the next roll.
+    const low = rock.mineChance;
+    const high = low * rock.mineRatio;
+    const clampedLevel = Math.min(99, Math.max(1, Math.floor(level)));
+    const numerator = Math.floor(
+        (low * (99 - clampedLevel)) / 98 + (high * (clampedLevel - 1)) / 98,
+    ) + 1;
+    return Math.random() * 255 < Math.min(255, Math.max(1, numerator));
 }
 
 function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
@@ -103,7 +108,9 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
         );
     }
 
-    const swingTicks = Math.max(rock.swingTicks, pickaxe.swingTicks);
+    // The pickaxe, not the rock, determines roll frequency.  This is why a
+    // rune pickaxe reaches a mining roll every three ticks even on coal.
+    const swingTicks = Math.max(1, pickaxe.swingTicks);
     const effects: ActionEffect[] = [];
 
     if (!data.started) {
@@ -143,7 +150,7 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     const echoMinedCount = data.echoMinedCount;
     let nextEchoMinedCount = echoMinedCount;
 
-    let success = rollMiningSuccess(effectiveLevel, rock.level, pickaxe);
+    let success = rollMiningSuccess(effectiveLevel, rock);
     if (!success && hasEchoPickaxePerk && Math.random() < 0.5) {
         success = true;
     }
@@ -187,7 +194,8 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
         if (locId > 0) {
             nextEchoMinedCount = hasEchoPickaxePerk ? echoMinedCount + 1 : 0;
             const canDeplete = !hasEchoPickaxePerk || nextEchoMinedCount >= 4;
-            if (canDeplete) {
+            const shouldDeplete = canDeplete && Math.random() < rock.depleteChance;
+            if (shouldDeplete) {
                 const depletedLocId =
                     typeof actionDepletedLocId === "number" && actionDepletedLocId > 0
                         ? actionDepletedLocId

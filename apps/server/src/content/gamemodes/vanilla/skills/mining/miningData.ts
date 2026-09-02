@@ -23,6 +23,7 @@ export interface PickaxeDefinition {
 
 export const PICKAXES: PickaxeDefinition[] = [
     { itemId: 13243, level: 61, animation: 642, accuracy: 16, swingTicks: 3 }, // Infernal
+    { itemId: 13244, level: 61, animation: 642, accuracy: 16, swingTicks: 3 }, // Infernal (uncharged)
     {
         itemId: 25112,
         level: 71,
@@ -32,6 +33,7 @@ export const PICKAXES: PickaxeDefinition[] = [
         ignoreLevelRequirement: true,
     }, // Echo/Trailblazer (crystal-tier, no req)
     { itemId: 23680, level: 71, animation: 642, accuracy: 16, swingTicks: 3 }, // Crystal
+    { itemId: 23682, level: 71, animation: 642, accuracy: 16, swingTicks: 3 }, // Crystal (inactive)
     { itemId: 20014, level: 65, animation: 642, accuracy: 15, swingTicks: 3 }, // 3rd age
     { itemId: 23677, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Dragon (or)
     { itemId: 25376, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Dragon (or kit)
@@ -39,6 +41,7 @@ export const PICKAXES: PickaxeDefinition[] = [
     { itemId: 23276, level: 61, animation: 624, accuracy: 14, swingTicks: 3 }, // Gilded (rune stats)
     { itemId: 12797, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Dragon (+kit)
     { itemId: 25063, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Infernal (or)
+    { itemId: 25369, level: 61, animation: 642, accuracy: 16, swingTicks: 3 }, // Infernal (uncharged, or)
     { itemId: 30345, level: 61, animation: 642, accuracy: 16, swingTicks: 3 }, // Infernal (or v2)
     { itemId: 30351, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Dragon (or v2)
     { itemId: 1275, level: 41, animation: 624, accuracy: 13, swingTicks: 3 }, // Rune
@@ -60,6 +63,11 @@ export interface MiningRockDefinition {
     depletedLocId?: number;
     respawnTicks: { min: number; max: number };
     swingTicks: number;
+    /** Level-1 and level-99 success-roll markers, out of 255. */
+    mineChance: number;
+    mineRatio: number;
+    /** Standard ore rocks deplete immediately after a successful extraction. */
+    depleteChance: number;
 }
 
 const ROCK_DEFINITIONS: MiningRockDefinition[] = [
@@ -72,6 +80,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         // LostCity mine.dbrow rock_respawnrate
         respawnTicks: { min: 6, max: 6 },
         swingTicks: 3,
+        mineChance: 40,
+        mineRatio: 2.75,
+        depleteChance: 1,
     },
     {
         id: "copper",
@@ -81,6 +92,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         oreItemId: 436,
         respawnTicks: { min: 10, max: 10 },
         swingTicks: 3,
+        mineChance: 40,
+        mineRatio: 2.75,
+        depleteChance: 1,
     },
     {
         id: "tin",
@@ -90,6 +104,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         oreItemId: 438,
         respawnTicks: { min: 10, max: 10 },
         swingTicks: 3,
+        mineChance: 40,
+        mineRatio: 2.75,
+        depleteChance: 1,
     },
     {
         id: "iron",
@@ -99,6 +116,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         oreItemId: 440,
         respawnTicks: { min: 20, max: 20 },
         swingTicks: 3,
+        mineChance: 20,
+        mineRatio: 4.5,
+        depleteChance: 1,
     },
     {
         id: "blurite",
@@ -108,6 +128,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         oreItemId: 668,
         respawnTicks: { min: 80, max: 80 },
         swingTicks: 3,
+        mineChance: 20,
+        mineRatio: 4.5,
+        depleteChance: 1,
     },
     {
         id: "silver",
@@ -117,6 +140,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         oreItemId: 442,
         respawnTicks: { min: 200, max: 200 },
         swingTicks: 4,
+        mineChance: 20,
+        mineRatio: 4.5,
+        depleteChance: 1,
     },
     {
         id: "coal",
@@ -126,6 +152,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         oreItemId: 453,
         respawnTicks: { min: 100, max: 100 },
         swingTicks: 4,
+        mineChance: 30,
+        mineRatio: 10 / 3,
+        depleteChance: 1,
     },
     {
         id: "gold",
@@ -135,6 +164,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         oreItemId: 444,
         respawnTicks: { min: 200, max: 200 },
         swingTicks: 4,
+        mineChance: 25,
+        mineRatio: 3.8,
+        depleteChance: 1,
     },
     {
         id: "mithril",
@@ -144,6 +176,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         oreItemId: 447,
         respawnTicks: { min: 400, max: 400 },
         swingTicks: 5,
+        mineChance: 20,
+        mineRatio: 4.5,
+        depleteChance: 1,
     },
     {
         id: "adamantite",
@@ -153,6 +188,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         oreItemId: 449,
         respawnTicks: { min: 800, max: 800 },
         swingTicks: 6,
+        mineChance: 15,
+        mineRatio: 17 / 3,
+        depleteChance: 1,
     },
     {
         id: "runite",
@@ -162,6 +200,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         oreItemId: 451,
         respawnTicks: { min: 2400, max: 2400 },
         swingTicks: 8,
+        mineChance: 10,
+        mineRatio: 8,
+        depleteChance: 1,
     },
     {
         id: "amethyst",
@@ -173,6 +214,33 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         // Post-LostCity ore — keep soft OSRS-ish range
         respawnTicks: { min: 110, max: 150 },
         swingTicks: 6,
+        mineChance: 10,
+        mineRatio: 7,
+        depleteChance: 1,
+    },
+    {
+        id: "sandstone",
+        name: "Sandstone rocks",
+        level: 35,
+        xp: 60,
+        oreItemId: 6971, // Sandstone (1kg); larger variants are a future quarry-specific roll.
+        respawnTicks: { min: 10, max: 10 },
+        swingTicks: 3,
+        mineChance: 25,
+        mineRatio: 3.8,
+        depleteChance: 1,
+    },
+    {
+        id: "granite",
+        name: "Granite rocks",
+        level: 45,
+        xp: 50,
+        oreItemId: 6981, // Granite (2kg); larger variants are a future quarry-specific roll.
+        respawnTicks: { min: 10, max: 10 },
+        swingTicks: 3,
+        mineChance: 20,
+        mineRatio: 4.5,
+        depleteChance: 1,
     },
 ];
 
@@ -182,27 +250,40 @@ const ROCK_BY_ID = new Map<string, MiningRockDefinition>(
 
 const ROCK_NAME_ALIASES: Record<string, string> = {
     "clay rocks": "clay",
+    "clay ore vein": "clay",
+    "soft clay rocks": "clay",
     "copper rocks": "copper",
     "copper ore rocks": "copper",
+    "copper ore vein": "copper",
     "tin rocks": "tin",
     "tin ore rocks": "tin",
+    "tin ore vein": "tin",
     "iron rocks": "iron",
     "iron ore rocks": "iron",
+    "iron ore vein": "iron",
     "blurite rocks": "blurite",
     "silver rocks": "silver",
     "silver ore rocks": "silver",
+    "silver ore vein": "silver",
     "coal rocks": "coal",
+    "coal ore vein": "coal",
     "gold rocks": "gold",
     "gold ore rocks": "gold",
+    "gold vein": "gold",
+    "gold ore vein": "gold",
     "mithril rocks": "mithril",
+    "mithril ore vein": "mithril",
     "mithril ore rocks": "mithril",
     "adamantite rocks": "adamantite",
     "adamant rocks": "adamantite",
-    "Adamantite rocks": "adamantite",
+    "adamant ore vein": "adamantite",
     "runite rocks": "runite",
     "runite ore rocks": "runite",
+    "runite ore vein": "runite",
     "amethyst crystals": "amethyst",
     "amethyst rocks": "amethyst",
+    "sandstone rocks": "sandstone",
+    "granite rocks": "granite",
 };
 
 export function getMiningRockById(id: string): MiningRockDefinition | undefined {
