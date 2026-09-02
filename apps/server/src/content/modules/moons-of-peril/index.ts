@@ -64,6 +64,10 @@ const BRAZIER_UNLIT_VARBIT = 9855;
 const BRAZIER_UNLIT_STATE = 1;
 const LIT_BRAZIER = 51052;
 const BRAZIER_VISIBLE_VARIANTS = [52992, 52993] as const;
+// The copied room can encode either its authored Blue Moon Brazier or one of
+// the two live cache variants. Send a replacement for each candidate; the
+// client applies only the entry matching the loc actually present on a tile.
+const BRAZIER_SOURCE_IDS = [BRAZIER, ...BRAZIER_VISIBLE_VARIANTS] as const;
 const UNLIT_BRAZIERS = [51051] as const;
 const BLUE_BRAZIERS = [
     { tile: { x: 1427, y: 9680 } },
@@ -117,10 +121,12 @@ function setBlueBrazierMorph(
     // the loc after receiving the new varbit. Replacing the unlit child
     // directly cannot work because it has no standalone model.
     for (const { tile } of BLUE_BRAZIERS) {
-        services.location.replaceTemporaryLoc(
-            { worldViewId: npc.worldViewId }, BRAZIER, BRAZIER_MORPH_CONTROLLER, tile, npc.level,
-            { oldShape: 10, newShape: 10, newRotation: 0 },
-        );
+        for (const sourceId of BRAZIER_SOURCE_IDS) {
+            services.location.replaceTemporaryLoc(
+                { worldViewId: npc.worldViewId }, sourceId, BRAZIER_MORPH_CONTROLLER, tile, npc.level,
+                { oldShape: 10, newShape: 10, newRotation: 0 },
+            );
+        }
     }
 }
 
@@ -131,9 +137,11 @@ function restoreBlueBraziers(npc: NpcState, services: ScriptServices, special: M
     }
     special.brazierVarbitStates.clear();
     for (const { tile } of BLUE_BRAZIERS) {
-        services.location.clearTemporaryLoc(
-            { worldViewId: npc.worldViewId }, BRAZIER, tile, npc.level, 10,
-        );
+        for (const sourceId of BRAZIER_SOURCE_IDS) {
+            services.location.clearTemporaryLoc(
+                { worldViewId: npc.worldViewId }, sourceId, tile, npc.level, 10,
+            );
+        }
     }
 }
 
@@ -655,10 +663,12 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
         // The storm begins as the 52992 morph-controller. Once a brazier is
         // lit, replace only that map position with its explicit burning child
         // while leaving the other controller-driven brazier unlit.
-        services.location.replaceTemporaryLoc(
-            { worldViewId: player.worldViewId }, BRAZIER, LIT_BRAZIER, tile, level,
-            { oldShape: 10, newShape: 10 },
-        );
+        for (const sourceId of BRAZIER_SOURCE_IDS) {
+            services.location.replaceTemporaryLoc(
+                { worldViewId: player.worldViewId }, sourceId, LIT_BRAZIER, tile, level,
+                { oldShape: 10, newShape: 10 },
+            );
+        }
         services.messaging.sendGameMessage(player, "You relight the brazier.");
         if (special.brazierTiles.size >= 2) {
             services.messaging.sendGameMessage(player, "The ice storm subsides.");
