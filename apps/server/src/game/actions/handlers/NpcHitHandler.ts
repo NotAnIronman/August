@@ -151,7 +151,7 @@ export class NpcHitHandler {
         const damageCap = npc.incomingPlayerDamageCap;
         const capDamage = (value: number): number =>
             damageCap === undefined ? value : Math.min(value, Math.max(0, Math.trunc(damageCap)));
-        const damage = capDamage(Math.floor(Math.max(0, resolvedRawDamage) * incomingDamageMultiplier));
+        let damage = capDamage(Math.floor(Math.max(0, resolvedRawDamage) * incomingDamageMultiplier));
         const maxHit = capDamage(Math.floor(Math.max(0, rawMaxHit) * incomingDamageMultiplier));
         const type2 = Number.isFinite(rawType2) ? rawType2 : undefined;
         const damage2 = Number.isFinite(rawDamage2) ? rawDamage2 : undefined;
@@ -162,6 +162,12 @@ export class NpcHitHandler {
         // Accuracy determines the landed flag independently of the rolled damage.
         // Accept truthy values (not just strict boolean) to handle serialization edge cases.
         const hitLanded = this.resolveHitLanded(landed, style, damage);
+        // OSRS flat armour (see NpcState.incomingPlayerFlatArmourModifier):
+        // applies only to successful melee/ranged hits, per-hitsplat, after
+        // every other damage modifier. Magic explicitly ignores it.
+        if (hitLanded && damage > 0 && !isMagicAttack && npc.incomingPlayerFlatArmourModifier) {
+            damage = Math.max(0, damage - npc.incomingPlayerFlatArmourModifier);
+        }
         const magicImpactEffectsScheduled =
             data.magicImpactEffectsScheduled === true ||
             data.hit?.magicImpactEffectsScheduled === true;

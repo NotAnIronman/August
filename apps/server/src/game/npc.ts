@@ -264,8 +264,27 @@ export class NpcState extends Actor {
     incomingPlayerDamageMultiplier = 1;
     /** Optional encounter cap applied after accuracy and damage modifiers. */
     incomingPlayerDamageCap?: number;
+    /**
+     * OSRS "flat armour" stat (see https://oldschool.runescape.wiki/w/Flat_armour):
+     * a fixed amount subtracted from each successful melee/ranged hitsplat a
+     * player lands on this NPC, applied per-hitsplat (so multi-hit weapons
+     * benefit/suffer from it on every hit, not just once per attack).
+     * Negative values increase damage instead of reducing it. Magic attacks
+     * always ignore this stat, matching OSRS. Undefined/0 has no effect.
+     */
+    incomingPlayerFlatArmourModifier?: number;
     /** A short encounter window in which landed player hits use their max hit. */
     forcePlayerMaxHit = false;
+    /**
+     * When true, TickPhaseService's Moon-boss occupancy rule (the 3x3
+     * player-collision reservation around this NPC, keyed by typeId
+     * 13011/13012/13013) does not block movement. Content modules set this
+     * during phases where players must be able to move through the boss's
+     * footprint (e.g. running between the two Blue Moon braziers during the
+     * ice storm), and must clear it - and push any player still standing in
+     * the footprint out - when that phase ends.
+     */
+    allowPlayerWalkThrough = false;
     readonly respawns: boolean;
     /**
      * Aggression radius in tiles. NPCs will target players within this range.

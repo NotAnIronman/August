@@ -914,6 +914,21 @@ export interface CombatFacade {
         damage: number,
         tick?: number,
     ): { amount: number; style: number; hpCurrent: number; hpMax: number };
+    /**
+     * Apply a hitsplat to an NPC using the engine's full hit-effect handling
+     * (damage, block, poison, heal, etc. - see HitEffects.ts). Content
+     * scripts should use this instead of calling npc.heal()/damage methods
+     * directly whenever the change should be visible in-game as a hitsplat
+     * (e.g. HITMARK_HEAL for boss self-heal mechanics), since a direct state
+     * mutation shows nothing to the player.
+     */
+    applyNpcHitsplat(
+        npc: NpcState,
+        style: number,
+        damage: number,
+        tick?: number,
+        maxHit?: number,
+    ): { amount: number; style: number; hpCurrent: number; hpMax: number };
     stunPlayer(player: PlayerState, ticks: number): void;
     scheduleAction(
         playerId: number,

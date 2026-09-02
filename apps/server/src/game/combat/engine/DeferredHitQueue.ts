@@ -2,7 +2,7 @@ import type { TickFrame } from "@server/network/wsServerTypes";
 import { resolveTypedHitsplatStyle } from "@august/protocol/combat/TypedHitsplatStyles";
 import { NpcState } from "@server/game/npc";
 import { PlayerState } from "@server/game/player";
-import type { AttackType } from "@server/game/combat/AttackType";
+import { AttackType } from "@server/game/combat/AttackType";
 import type { EnchantedBoltEffect } from "@server/game/combat/AmmoSystem";
 import { combatEffectApplicator } from "@server/game/combat/CombatEffectApplicator";
 import { HITMARK_BLOCK, HITMARK_DAMAGE, HITMARK_POISON } from "@server/game/combat/HitEffects";
@@ -142,6 +142,17 @@ export class DeferredHitQueue {
                 );
                 if (target.incomingPlayerDamageCap !== undefined) {
                     damage = Math.min(damage, Math.max(0, Math.trunc(target.incomingPlayerDamageCap)));
+                }
+                // OSRS flat armour (see NpcState.incomingPlayerFlatArmourModifier):
+                // applies only to successful melee/ranged hits, per-hitsplat,
+                // after every other damage modifier. Magic ignores it.
+                if (
+                    pending.landed &&
+                    damage > 0 &&
+                    pending.attackType !== AttackType.Magic &&
+                    target.incomingPlayerFlatArmourModifier
+                ) {
+                    damage = Math.max(0, damage - target.incomingPlayerFlatArmourModifier);
                 }
             }
             const style = this.resolveStyle(pending.hitsplatType);
