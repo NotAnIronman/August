@@ -23,6 +23,8 @@ const INSIDE = Object.freeze({ x: 3290, y: 9868, level: 0 });
 const GRAVE = Object.freeze({ locId: 9359, tile: { x: 3281, y: 9867 }, level: 0 });
 const BOSS_TILE = Object.freeze({ x: 3303, y: 9872, level: 0 });
 const CENTRE_TILE = Object.freeze({ x: 3298, y: 9867, level: 0 });
+const ROCKFALL_BOUNDS = Object.freeze({ minX: 3292, maxX: 3305, minY: 9861, maxY: 9874 });
+const ROCKFALL_TELL_LOC_ID = 56358;
 const FOOD_PILES = Object.freeze([
     Object.freeze({ x: 3298, y: 9875 }),
     Object.freeze({ x: 3306, y: 9868 }),
@@ -201,25 +203,27 @@ function fallingRocks(npc: NpcState, target: PlayerState, services: ScriptServic
     if (!runtime) return;
     const players = services.instances.getMemberPlayers(room.id);
     const randomTiles = [] as Array<{ x: number; y: number; level: number }>;
-    // Keep the random tells around Scurrius rather than inside his footprint.
-    // The targeted tell below is separately reserved at the victim's current
-    // tile, guaranteeing each rock event asks that player to move.
-    for (let xOffset = -5; xOffset <= 5; xOffset += 1) {
-        for (let yOffset = -5; yOffset <= 5; yOffset += 1) {
-            if (Math.max(Math.abs(xOffset), Math.abs(yOffset)) < 2) continue;
-            randomTiles.push({ x: npc.tileX + xOffset, y: npc.tileY + yOffset, level: npc.level });
+    // Every shadow remains inside the room's playable 14x14 arena. The
+    // current target receives one reserved tell; the other fourteen are
+    // independently sampled from this full square.
+    for (let x = ROCKFALL_BOUNDS.minX; x <= ROCKFALL_BOUNDS.maxX; x += 1) {
+        for (let y = ROCKFALL_BOUNDS.minY; y <= ROCKFALL_BOUNDS.maxY; y += 1) {
+            randomTiles.push({ x, y, level: npc.level });
         }
     }
+    // Prevent the ordinary attack animation from immediately replacing Jump.
+    services.npc.queueNpcSeq(npc, 10698);
     runtime.runMechanic("scurrius-falling-rocks", "stack", () =>
         spawnFloorHazard(runtime, services, {
             id: "scurrius-falling-rocks",
             randomTiles,
             targetMode: "current-target",
             currentTargetId: target.id,
-            hazardQuantity: 4,
-            // Cache NPC 764 is a compact one-tile shadow. It is
-            // stationary and persists for the complete five-tick warning.
-            tell: { npcId: 764 },
+            hazardQuantity: 15,
+            // Cache loc 56358 is the selected one-tile rockfall shadow.
+            // A loc tell is guaranteed to be rendered as scenery rather than
+            // as an invisible NPC footprint.
+            tell: { locId: ROCKFALL_TELL_LOC_ID, locShape: 10 },
             projectileId: 10,
             hazardTime: 5,
             liveTicks: 1,
@@ -228,7 +232,6 @@ function fallingRocks(npc: NpcState, target: PlayerState, services: ScriptServic
             appliesTo: "all-members",
         }),
     );
-    services.npc.queueNpcSeq(npc, 10698);
 }
 
 function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
@@ -241,7 +244,11 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     if (!state.finalPhase && healthPercent <= 30) { state.finalPhase = true; state.eating = false; services.npc.moveNpcTo(npc, CENTRE_TILE, true); }
     const rng = services.encounters.ensure(npc)?.rng;
     if (tick >= state.summonReadyAt && (rng?.next() ?? 1) < 1 / 12) { state.summonReadyAt = tick + 30; services.npc.queueNpcSeq(npc, 10700); summonRats(npc, target, services, state); }
-    if (tick >= state.rockReadyAt && (rng?.next() ?? 1) < (state.finalPhase ? 1 / 4 : 1 / 10)) { state.rockReadyAt = tick + 10; fallingRocks(npc, target, services, room.id); }
+    if (tick >= state.rockReadyAt && (rng?.next() ?? 1) < (state.finalPhase ? 1 / 4 : 1 / 10)) {
+        state.rockReadyAt = tick + 10;
+        fallingRocks(npc, target, services, room.id);
+        return NpcAttackDecision.Prevent;
+    }
     // The normal planner correctly gives melee absolute preference at one tile.
     // At a food pile, however, the live fight swaps that planned melee into a
     // projectile without changing the attack clock.

@@ -53,10 +53,12 @@ type MoonSpecialState = {
 };
 const moonSpecials = new WeakMap<NpcState, MoonSpecialState>();
 const specialChildOwners = new Map<number, NpcState>();
-const BRAZIER = 52992;
-// This is the live loc id the client reports at both brazier tiles. Replacing
-// it directly is important: a remove followed by `0 -> new id` leaves the
-// static scene loc intact on clients whose map chunk has not yet seen a 0 loc.
+// 51312 is the ID encoded in the Moon room's map data. 52992/52993 are the
+// client-visible transformed/animated variants, but cannot be used as the
+// `oldId` for a scene replacement because override matching happens against
+// the map-data ID before the renderer resolves a loc's live appearance.
+const BRAZIER = 51312;
+const BRAZIER_VISIBLE_VARIANTS = [52992, 52993] as const;
 const UNLIT_BRAZIERS = [51313, 51314] as const;
 const BLUE_BRAZIERS = [
     { tile: { x: 1427, y: 9680 }, unlitId: 51313 },
@@ -637,7 +639,7 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
             }, { kind: "npc", id: boss.id });
         }
     };
-    for (const locId of [BRAZIER, ...UNLIT_BRAZIERS]) {
+    for (const locId of [BRAZIER, ...BRAZIER_VISIBLE_VARIANTS, ...UNLIT_BRAZIERS]) {
         for (const action of [undefined, "light", "investigate", "feed"]) {
             registry.registerLocInteraction(locId, relightBrazier, action);
         }
