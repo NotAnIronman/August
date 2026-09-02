@@ -80,7 +80,7 @@ export class CompanionHitHandler {
             tick,
             maxHit,
         );
-        if (npcHitsplat.hpCurrent > 0) {
+        if (npcHitsplat.hpCurrent > 0 && !npc.suppressDefenceAnimation) {
             const npcCombatSeq = this.services.getNpcCombatSequences(npc.typeId);
             if (npcCombatSeq?.block !== undefined) {
                 this.services.broadcastNpcSequence(npc, npcCombatSeq.block);

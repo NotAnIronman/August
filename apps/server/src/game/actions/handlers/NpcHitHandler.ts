@@ -189,7 +189,7 @@ export class NpcHitHandler {
             hitsplatTick,
             maxHit,
         );
-        if (npcHitsplat.hpCurrent > 0 && !(isMagicAttack && magicImpactEffectsScheduled)) {
+        if (npcHitsplat.hpCurrent > 0 && !npc.suppressDefenceAnimation && !(isMagicAttack && magicImpactEffectsScheduled)) {
             const npcCombatSeq = this.services.getNpcCombatSequences(npc.typeId);
             if (npcCombatSeq?.block !== undefined) {
                 // Blocks never replace a sequence already broadcast this tick

@@ -273,6 +273,8 @@ export class NpcState extends Actor {
      * always ignore this stat, matching OSRS. Undefined/0 has no effect.
      */
     incomingPlayerFlatArmourModifier?: number;
+    /** Content-controlled opt-out for NPC hit-react/block animations. */
+    suppressDefenceAnimation = false;
     /** A short encounter window in which landed player hits use their max hit. */
     forcePlayerMaxHit = false;
     /**

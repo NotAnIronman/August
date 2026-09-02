@@ -24,6 +24,7 @@ const FISHING_SPOTS = [51367, 51368] as const;
 const NET = 303, ROPE = 954, BUTTERFLY_NET = 10010, PESTLE = 233, VIAL = 227, GRUB = 29078, PASTE = 29079, BREAM = 29216, COOKED_BREAM = 29217;
 const MOONLIGHT_MOTHS = [12771, 12772, 12773] as const;
 const GLYPH_NPC_ID = 13015, BLUE_ICE_STORM_NPC_ID = 13027, BLOOD_JAGUAR_NPC_ID = 13021;
+const BLOOD_JAGUAR_MELEE_SEQUENCE = 12491;
 const STATUES = [51372, 51373, 51374] as const;
 const CHEST_TILE = { x: 1513, y: 9578, level: 0 };
 type Moon = "blood" | "eclipse" | "blue";
@@ -205,6 +206,7 @@ function stopMoonSpecial(npc: NpcState, services: ScriptServices): void {
             pushPlayersOutOfMoonFootprint(npc, services, special);
         }
     }
+    if (special.kind === "eclipse") special.owner.releaseMovementHold();
     npc.forcePlayerMaxHit = false;
     npc.isUnattackable = false;
 }
@@ -289,6 +291,7 @@ function startBloodSpecial(npc: NpcState, player: PlayerState, services: ScriptS
             combatLeashRadius: 2_147_483_647, respawns: false,
         });
         if (!jaguar) continue;
+        jaguar.suppressDefenceAnimation = true;
         special.childIds.add(jaguar.id);
         specialChildOwners.set(jaguar.id, npc);
         services.npc.engageCombat(jaguar, player);
@@ -300,6 +303,7 @@ function moonJaguarAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     const bloodMoon = specialChildOwners.get(event.npc.id);
     const special = bloodMoon ? moonSpecials.get(bloodMoon) : undefined;
     if (!bloodMoon || !special?.active || special.kind !== "blood") return;
+    event.services.npc.queueNpcSeq(event.npc, BLOOD_JAGUAR_MELEE_SEQUENCE);
     const damage = 1 + Math.floor(Math.random() * 8);
     const hit = event.services.combat.applyNpcDamageToPlayer(
         event.npc, event.target, HITMARK_DAMAGE, damage, event.tick,
@@ -321,13 +325,16 @@ function startEclipseSpecial(npc: NpcState, player: PlayerState, services: Scrip
     const state = glyphStates.get(npc);
     if (!state) return;
     services.movement.teleportPlayer(player, MOONS.eclipse.boss.x, MOONS.eclipse.boss.y, MOONS.eclipse.boss.level);
+    // Hold movement only: attacking and turning remain available so the player
+    // can deliberately face and attack each Eclipse teleport.
+    player.holdMovementUntil(services.system.getCurrentTick() + 51);
     let jumps = 0;
     const jump = (): void => {
         if (!special.active || npc.getHitpoints() <= 0 || player.worldViewId !== npc.worldViewId) return;
         const [dx, dy] = state.offsets[Math.floor(Math.random() * state.offsets.length)]!;
         services.npc.teleportNpc(npc, { x: npc.spawnX + dx, y: npc.spawnY + dy, level: npc.level });
         npc.forcePlayerMaxHit = false;
-        services.scheduler.after(3, (tick) => {
+        services.scheduler.after(4, (tick) => {
             if (!special.active || player.worldViewId !== npc.worldViewId) return;
             if (playerIsFacingNpc(player, npc)) {
                 npc.forcePlayerMaxHit = true;
@@ -337,7 +344,7 @@ function startEclipseSpecial(npc: NpcState, player: PlayerState, services: Scrip
                 services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 8 + Math.floor(Math.random() * 13), tick);
             }
             jumps += 1;
-            if (jumps >= 5) {
+            if (jumps >= 12) {
                 services.scheduler.after(3, () => {
                     if (!special.active) return;
                     services.movement.teleportPlayer(player, MOONS.eclipse.entry.x, MOONS.eclipse.entry.y, MOONS.eclipse.entry.level);
@@ -584,6 +591,7 @@ function spawnMoon(player: PlayerState, services: ScriptServices, moon: Moon): v
     services.movement.teleportPlayer(player, def.entry.x, def.entry.y, def.entry.level);
     const npc = services.npc.spawnNpc({ id: def.id, x: def.boss.x, y: def.boss.y, level: 0, size: 3, idleSeqId: MOON_IDLE_SEQUENCES[moon], worldViewId: player.worldViewId, ownerPlayerId: player.id, wanderRadius: 0, attackSpeed: 6, isAggressive: false, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, isImmovable: true, respawns: false });
     if (!npc) { services.messaging.sendGameMessage(player, "The Moon fails to awaken. Please try again."); return; }
+    npc.suppressDefenceAnimation = true;
     // OSRS flat armour: the Blue Moon has -5 flat armour, increasing every
     // successful melee/ranged hitsplat dealt to her by 5 (magic ignores it).
     // See https://oldschool.runescape.wiki/w/Flat_armour and
@@ -786,32 +794,6 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerItemOnLoc(BREAM, STOVE, ({ player, services }) => startCookingBream(player, services));
     for (const potion of [29080, 29081, 29082, 29083]) registry.registerItemAction(potion, ({ player, services }) => drinkMoonlightPotion(player, services, potion), "drink");
     const relightBrazier = ({ player, services, tile, level }: { player: PlayerState; services: ScriptServices; tile: { x: number; y: number }; level: number }) => {
-<<<<<<< Updated upstream
-        const run = runs.get(player.id);
-        const boss = run?.npcId === undefined ? undefined : services.combat.getNpc(run.npcId);
-        const special = boss ? moonSpecials.get(boss) : undefined;
-        if (!boss || !special?.active || special.kind !== "blue") {
-            services.messaging.sendGameMessage(player, "The brazier burns steadily.");
-            return;
-        }
-        const brazier = BLUE_BRAZIERS.find(({ tile: expected }) => expected.x === tile.x && expected.y === tile.y);
-        if (!brazier) return;
-        const key = tileKey({ x: tile.x, y: tile.y, level });
-        if (special.brazierTiles.has(key)) {
-            services.messaging.sendGameMessage(player, "This brazier is already lit.");
-            return;
-        }
-        special.brazierTiles.add(key);
-        // Return only this controller to its burning child; the other side
-        // remains unlit until the player explicitly lights it too.
-        setBlueBrazierVarbit(special, services, brazier.varbitId, 0);
-        services.messaging.sendGameMessage(player, "You relight the brazier.");
-        if (special.brazierTiles.size >= 2) {
-            services.messaging.sendGameMessage(player, "The ice storm subsides.");
-            services.scheduler.after(15, () => {
-                if (special.active) restartGlyphCycle(boss, player, services);
-            }, { kind: "npc", id: boss.id });
-=======
         try {
             const run = runs.get(player.id);
             const boss = run?.npcId === undefined ? undefined : services.combat.getNpc(run.npcId);
@@ -895,7 +877,6 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
             // Surface it loudly so a regression here is never silent again.
             logger.error("[moons-of-peril] relightBrazier threw", err);
             services.messaging.sendGameMessage(player, "The brazier fizzles strangely. (error logged, please report)");
->>>>>>> Stashed changes
         }
     };
     for (const locId of [BRAZIER, ...BRAZIER_VISIBLE_VARIANTS, ...UNLIT_BRAZIERS]) {

@@ -313,7 +313,7 @@ export class SpellActionHandler {
             }
         }
 
-        if (opts.targetNpc) {
+        if (opts.targetNpc && !opts.targetNpc.suppressDefenceAnimation) {
             const npcCombatSeq = this.svc.combatDataService.getNpcCombatSequences(
                 opts.targetNpc.typeId,
             );
