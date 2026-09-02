@@ -659,7 +659,7 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerItemOnItem(PASTE, VIAL, ({ player, services }) => { if (player.items.removeItem(PASTE, 1, { assureFullRemoval: true }).completed && player.items.removeItem(VIAL, 1, { assureFullRemoval: true }).completed) { addOrDrop(player, services, 29080, 1); services.inventory.snapshotInventoryImmediate(player); } });
     registry.registerItemOnLoc(BREAM, STOVE, ({ player, services }) => startCookingBream(player, services));
     for (const potion of [29080, 29081, 29082, 29083]) registry.registerItemAction(potion, ({ player, services }) => drinkMoonlightPotion(player, services, potion), "drink");
-    const relightBrazier = ({ player, services, tile }: { player: PlayerState; services: ScriptServices; tile: { x: number; y: number } }) => {
+    const relightBrazier = ({ player, services, tile, level }: { player: PlayerState; services: ScriptServices; tile: { x: number; y: number }; level: number }) => {
         const run = runs.get(player.id);
         const boss = run?.npcId === undefined ? undefined : services.combat.getNpc(run.npcId);
         const special = boss ? moonSpecials.get(boss) : undefined;
