@@ -194,20 +194,38 @@ function summonRats(npc: NpcState, target: PlayerState, services: ScriptServices
     );
 }
 
-function fallingRocks(npc: NpcState, services: ScriptServices, roomId: string): void {
+function fallingRocks(npc: NpcState, target: PlayerState, services: ScriptServices, roomId: string): void {
     const room = services.instances.getById(roomId);
     if (!room) return;
     const runtime = services.encounters.ensure(npc);
     if (!runtime) return;
     const players = services.instances.getMemberPlayers(room.id);
+    const randomTiles = [] as Array<{ x: number; y: number; level: number }>;
+    // Keep the random tells around Scurrius rather than inside his footprint.
+    // The targeted tell below is separately reserved at the victim's current
+    // tile, guaranteeing each rock event asks that player to move.
+    for (let xOffset = -5; xOffset <= 5; xOffset += 1) {
+        for (let yOffset = -5; yOffset <= 5; yOffset += 1) {
+            if (Math.max(Math.abs(xOffset), Math.abs(yOffset)) < 2) continue;
+            randomTiles.push({ x: npc.tileX + xOffset, y: npc.tileY + yOffset, level: npc.level });
+        }
+    }
     runtime.runMechanic("scurrius-falling-rocks", "stack", () =>
         spawnFloorHazard(runtime, services, {
             id: "scurrius-falling-rocks",
-            tiles: players.map((player) => ({ x: player.tileX, y: player.tileY, level: player.level })),
-            // The glyph marker remains visible for the full warning window;
-            // the spot GFX is a supplemental impact effect.
-            players, graphicId: 60, markerNpcId: 13015, projectileId: 10, telegraphTicks: 5, liveTicks: 1,
-            damage: (rng) => 15 + rng.nextInt(8), appliesTo: "all-members",
+            randomTiles,
+            targetMode: "current-target",
+            currentTargetId: target.id,
+            hazardQuantity: 4,
+            // Cache NPC 10628 is the shooting-star ground shadow. It is
+            // stationary and persists for the complete five-tick warning.
+            tell: { npcId: 10628 },
+            projectileId: 10,
+            hazardTime: 5,
+            liveTicks: 1,
+            hazardDamage: (rng) => 15 + rng.nextInt(8),
+            players,
+            appliesTo: "all-members",
         }),
     );
     services.npc.queueNpcSeq(npc, 10698);
@@ -223,7 +241,7 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     if (!state.finalPhase && healthPercent <= 30) { state.finalPhase = true; state.eating = false; services.npc.moveNpcTo(npc, CENTRE_TILE, true); }
     const rng = services.encounters.ensure(npc)?.rng;
     if (tick >= state.summonReadyAt && (rng?.next() ?? 1) < 1 / 12) { state.summonReadyAt = tick + 30; services.npc.queueNpcSeq(npc, 10700); summonRats(npc, target, services, state); }
-    if (tick >= state.rockReadyAt && (rng?.next() ?? 1) < (state.finalPhase ? 1 / 4 : 1 / 10)) { state.rockReadyAt = tick + 10; fallingRocks(npc, services, room.id); }
+    if (tick >= state.rockReadyAt && (rng?.next() ?? 1) < (state.finalPhase ? 1 / 4 : 1 / 10)) { state.rockReadyAt = tick + 10; fallingRocks(npc, target, services, room.id); }
     // The normal planner correctly gives melee absolute preference at one tile.
     // At a food pile, however, the live fight swaps that planned melee into a
     // projectile without changing the attack clock.

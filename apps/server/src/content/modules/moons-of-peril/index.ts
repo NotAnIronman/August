@@ -58,10 +58,15 @@ type MoonSpecialState = {
 const moonSpecials = new WeakMap<NpcState, MoonSpecialState>();
 const specialChildOwners = new Map<number, NpcState>();
 const BRAZIER = 52992;
-const UNLIT_BRAZIERS = [53048, 53049] as const;
+// 51312 is the cache's named Blue Moon Brazier. The live map currently
+// presents it as 52992, so remove either source before placing the matching
+// Blue Moon-specific dark variants. The generic 53048/53049 braziers do not
+// belong to this encounter.
+const BLUE_BRAZIER_SOURCES = [BRAZIER, 51312] as const;
+const UNLIT_BRAZIERS = [51313, 51314] as const;
 const BLUE_BRAZIERS = [
-    { tile: { x: 1427, y: 9680 }, unlitId: 53048 },
-    { tile: { x: 1453, y: 9680 }, unlitId: 53049 },
+    { tile: { x: 1427, y: 9680 }, unlitId: 51313 },
+    { tile: { x: 1453, y: 9680 }, unlitId: 51314 },
 ] as const;
 
 function glyphTile(npc: NpcState, state: GlyphState): Tile {
@@ -224,17 +229,24 @@ function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: Script
             if (special.active) spawnBlueStormWave(npc, player, services, special);
         }, { kind: "npc", id: npc.id });
     };
+    const rng = services.encounters.ensure(npc)?.rng;
+    const random = (): number => rng?.next() ?? Math.random();
     // Five storms use the western lanes and five use the eastern lanes. Each
-    // storm independently travels north-to-south or south-to-north.
+    // begins at a distinct random point, then travels toward the farther end
+    // of its lane so a storm can never begin at its own destination.
     for (const lanes of [[1429, 1430, 1431, 1432, 1433, 1434, 1435], [1445, 1446, 1447, 1448, 1449, 1450, 1451]]) {
         const availableLanes = [...lanes];
         for (let index = 0; index < 5; index += 1) {
-            const laneIndex = Math.floor(Math.random() * availableLanes.length);
+            const laneIndex = Math.floor(random() * availableLanes.length);
             const laneX = availableLanes.splice(laneIndex, 1)[0]!;
-            const directionY = Math.random() < 0.5 ? 1 : -1;
             // Each storm begins at its own point in the chamber rather than
             // a predictable shared edge, while still travelling straight.
-            const startY = 9671 + Math.floor(Math.random() * 19);
+            const startY = 9672 + Math.floor(random() * 17);
+            const southDistance = startY - 9670;
+            const northDistance = 9690 - startY;
+            const directionY = northDistance === southDistance
+                ? (random() < 0.5 ? 1 : -1)
+                : northDistance > southDistance ? 1 : -1;
             const storm = services.npc.spawnNpc({
                 id: BLUE_ICE_STORM_NPC_ID, x: laneX, y: startY, level: npc.level,
                 worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
@@ -258,7 +270,7 @@ function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: Script
                 if (player.tileX === storm.tileX && player.tileY === storm.tileY && player.level === storm.level) {
                     player.energy.setRunEnergyPercent(0);
                     player.setRunToggle(false);
-                    services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 5 + Math.floor(Math.random() * 11), services.system.getCurrentTick());
+                    services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 5 + Math.floor(random() * 11), services.system.getCurrentTick());
                     finishStorm(storm);
                     return;
                 }
@@ -289,10 +301,12 @@ function startBlueSpecial(npc: NpcState, player: PlayerState, services: ScriptSe
         // are dynamic locs. Explicitly remove then add so the visual cannot
         // silently fail when the client's loc replacement lookup misses the
         // source object's shape/rotation.
-        services.location.replaceTemporaryLoc(
-            { worldViewId: npc.worldViewId }, BRAZIER, 0, tile, npc.level,
-            { oldShape: 10, newShape: 10 },
-        );
+        for (const sourceId of BLUE_BRAZIER_SOURCES) {
+            services.location.replaceTemporaryLoc(
+                { worldViewId: npc.worldViewId }, sourceId, 0, tile, npc.level,
+                { oldShape: 10, newShape: 10 },
+            );
+        }
         services.location.replaceTemporaryLoc(
             { worldViewId: npc.worldViewId }, 0, unlitId, tile, npc.level,
             { oldShape: 10, newShape: 10 },
@@ -643,12 +657,12 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
         services.messaging.sendGameMessage(player, "You relight the brazier.");
         if (special.brazierTiles.size >= 2) {
             services.messaging.sendGameMessage(player, "The ice storm subsides.");
-            services.scheduler.after(6, () => {
+            services.scheduler.after(15, () => {
                 if (special.active) restartGlyphCycle(boss, player, services);
             }, { kind: "npc", id: boss.id });
         }
     };
-    for (const locId of [BRAZIER, ...UNLIT_BRAZIERS]) {
+    for (const locId of [...BLUE_BRAZIER_SOURCES, ...UNLIT_BRAZIERS]) {
         for (const action of [undefined, "light", "investigate", "feed"]) {
             registry.registerLocInteraction(locId, relightBrazier, action);
         }
