@@ -49,20 +49,14 @@ type MoonSpecialState = {
     active: boolean;
     childIds: Set<number>;
     brazierTiles: Set<string>;
-    waves: number;
-    /** Blue Moon's current ten-storm wave. A fresh wave starts only after all of these finish. */
-    activeStorms: number;
-    nextWaveQueued: boolean;
     shieldMechanic?: MechanicHandle;
 };
 const moonSpecials = new WeakMap<NpcState, MoonSpecialState>();
 const specialChildOwners = new Map<number, NpcState>();
 const BRAZIER = 52992;
-// 51312 is the cache's named Blue Moon Brazier. The live map currently
-// presents it as 52992, so remove either source before placing the matching
-// Blue Moon-specific dark variants. The generic 53048/53049 braziers do not
-// belong to this encounter.
-const BLUE_BRAZIER_SOURCES = [BRAZIER, 51312] as const;
+// This is the live loc id the client reports at both brazier tiles. Replacing
+// it directly is important: a remove followed by `0 -> new id` leaves the
+// static scene loc intact on clients whose map chunk has not yet seen a 0 loc.
 const UNLIT_BRAZIERS = [51313, 51314] as const;
 const BLUE_BRAZIERS = [
     { tile: { x: 1427, y: 9680 }, unlitId: 51313 },
@@ -213,79 +207,67 @@ function startEclipseSpecial(npc: NpcState, player: PlayerState, services: Scrip
     jump();
 }
 
-function spawnBlueStormWave(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
-    if (!special.active || special.activeStorms > 0) return;
-    special.nextWaveQueued = false;
-    const finishStorm = (storm: NpcState): void => {
+function spawnBlueStorm(
+    npc: NpcState,
+    player: PlayerState,
+    services: ScriptServices,
+    special: MoonSpecialState,
+    lanes: readonly number[],
+): void {
+    if (!special.active) return;
+    const rng = services.encounters.ensure(npc)?.rng;
+    const random = (): number => rng?.next() ?? Math.random();
+    const occupiedLanes = new Set(
+        [...special.childIds]
+            .map((id) => services.combat.getNpc(id))
+            .filter((storm): storm is NpcState => storm !== undefined && lanes.includes(storm.tileX))
+            .map((storm) => storm.tileX),
+    );
+    const availableLanes = lanes.filter((lane) => !occupiedLanes.has(lane));
+    if (availableLanes.length === 0) return;
+    const laneX = availableLanes[Math.floor(random() * availableLanes.length)]!;
+    const startY = 9672 + Math.floor(random() * 17);
+    const southDistance = startY - 9670;
+    const northDistance = 9690 - startY;
+    const directionY = northDistance === southDistance
+        ? (random() < 0.5 ? 1 : -1)
+        : northDistance > southDistance ? 1 : -1;
+    const storm = services.npc.spawnNpc({
+        id: BLUE_ICE_STORM_NPC_ID, x: laneX, y: startY, level: npc.level,
+        worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
+        isUnattackable: true, isImmovable: true, respawns: false,
+    });
+    if (!storm) return;
+    special.childIds.add(storm.id);
+    specialChildOwners.set(storm.id, npc);
+    const finishStorm = (): void => {
         special.childIds.delete(storm.id);
         specialChildOwners.delete(storm.id);
         services.npc.removeNpc(storm.id);
-        special.activeStorms = Math.max(0, special.activeStorms - 1);
-        // A storm phase is continuous: after every storm has reached a wall
-        // (or hit the player), begin a fresh randomized wave on the next tick.
-        if (!special.active || special.activeStorms !== 0 || special.nextWaveQueued) return;
-        special.nextWaveQueued = true;
-        services.scheduler.after(1, () => {
-            if (special.active) spawnBlueStormWave(npc, player, services, special);
-        }, { kind: "npc", id: npc.id });
+        // Storms recycle individually; one lane finishing never waits for the
+        // other nine to reach an edge.
+        if (special.active) services.scheduler.after(1, () => spawnBlueStorm(npc, player, services, special, lanes), { kind: "npc", id: npc.id });
     };
-    const rng = services.encounters.ensure(npc)?.rng;
-    const random = (): number => rng?.next() ?? Math.random();
-    // Five storms use the western lanes and five use the eastern lanes. Each
-    // begins at a distinct random point, then travels toward the farther end
-    // of its lane so a storm can never begin at its own destination.
-    for (const lanes of [[1429, 1430, 1431, 1432, 1433, 1434, 1435], [1445, 1446, 1447, 1448, 1449, 1450, 1451]]) {
-        const availableLanes = [...lanes];
-        for (let index = 0; index < 5; index += 1) {
-            const laneIndex = Math.floor(random() * availableLanes.length);
-            const laneX = availableLanes.splice(laneIndex, 1)[0]!;
-            // Each storm begins at its own point in the chamber rather than
-            // a predictable shared edge, while still travelling straight.
-            const startY = 9672 + Math.floor(random() * 17);
-            const southDistance = startY - 9670;
-            const northDistance = 9690 - startY;
-            const directionY = northDistance === southDistance
-                ? (random() < 0.5 ? 1 : -1)
-                : northDistance > southDistance ? 1 : -1;
-            const storm = services.npc.spawnNpc({
-                id: BLUE_ICE_STORM_NPC_ID, x: laneX, y: startY, level: npc.level,
-                worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
-                isUnattackable: true, isImmovable: true, respawns: false,
-            });
-            if (!storm) continue;
-            special.childIds.add(storm.id);
-            specialChildOwners.set(storm.id, npc);
-            special.activeStorms += 1;
-            const advance = (): void => {
-                if (!special.active || player.worldViewId !== npc.worldViewId) {
-                    finishStorm(storm);
-                    return;
-                }
-                const nextY = storm.tileY + directionY;
-                if (nextY <= 9670 || nextY >= 9690) {
-                    finishStorm(storm);
-                    return;
-                }
-                services.npc.teleportNpc(storm, { x: storm.tileX, y: nextY, level: storm.level });
-                if (player.tileX === storm.tileX && player.tileY === storm.tileY && player.level === storm.level) {
-                    player.energy.setRunEnergyPercent(0);
-                    player.setRunToggle(false);
-                    services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 5 + Math.floor(random() * 11), services.system.getCurrentTick());
-                    finishStorm(storm);
-                    return;
-                }
-                services.scheduler.after(1, advance, { kind: "npc", id: npc.id });
-            };
-            services.scheduler.after(1, advance, { kind: "npc", id: npc.id });
+    const advance = (): void => {
+        if (!special.active || player.worldViewId !== npc.worldViewId) { finishStorm(); return; }
+        const nextY = storm.tileY + directionY;
+        if (nextY <= 9670 || nextY >= 9690) { finishStorm(); return; }
+        services.npc.teleportNpc(storm, { x: storm.tileX, y: nextY, level: storm.level });
+        if (player.tileX === storm.tileX && player.tileY === storm.tileY && player.level === storm.level) {
+            player.energy.setRunEnergyPercent(0);
+            player.setRunToggle(false);
+            services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, 5 + Math.floor(random() * 11), services.system.getCurrentTick());
+            finishStorm();
+            return;
         }
-    }
-    special.waves += 1;
-    // A failed spawn must not leave the phase inert forever.
-    if (special.activeStorms === 0 && !special.nextWaveQueued) {
-        special.nextWaveQueued = true;
-        services.scheduler.after(1, () => {
-            if (special.active) spawnBlueStormWave(npc, player, services, special);
-        }, { kind: "npc", id: npc.id });
+        services.scheduler.after(1, advance, { kind: "npc", id: npc.id });
+    };
+    services.scheduler.after(1, advance, { kind: "npc", id: npc.id });
+}
+
+function spawnBlueStorms(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
+    for (const lanes of [[1429, 1430, 1431, 1432, 1433, 1434, 1435], [1445, 1446, 1447, 1448, 1449, 1450, 1451]] as const) {
+        for (let count = 0; count < 5; count += 1) spawnBlueStorm(npc, player, services, special, lanes);
     }
 }
 
@@ -301,19 +283,13 @@ function startBlueSpecial(npc: NpcState, player: PlayerState, services: ScriptSe
         // are dynamic locs. Explicitly remove then add so the visual cannot
         // silently fail when the client's loc replacement lookup misses the
         // source object's shape/rotation.
-        for (const sourceId of BLUE_BRAZIER_SOURCES) {
-            services.location.replaceTemporaryLoc(
-                { worldViewId: npc.worldViewId }, sourceId, 0, tile, npc.level,
-                { oldShape: 10, newShape: 10 },
-            );
-        }
         services.location.replaceTemporaryLoc(
-            { worldViewId: npc.worldViewId }, 0, unlitId, tile, npc.level,
-            { oldShape: 10, newShape: 10 },
+            { worldViewId: npc.worldViewId }, BRAZIER, unlitId, tile, npc.level,
+            { oldShape: 10, newShape: 10, newRotation: 0 },
         );
     }
     services.messaging.sendGameMessage(player, "The braziers go dark as an ice storm sweeps the chamber.");
-    spawnBlueStormWave(npc, player, services, special);
+    spawnBlueStorms(npc, player, services, special);
     const healWhileUnlit = (tick: number): void => {
         if (!special.active) return;
         const unlitCount = Math.max(0, 2 - special.brazierTiles.size);
@@ -333,8 +309,7 @@ function startMoonSpecial(npc: NpcState, player: PlayerState, services: ScriptSe
     if (!state) return;
     if (state.markerId !== undefined) services.npc.removeNpc(state.markerId);
     const special: MoonSpecialState = {
-        kind: moon, owner: player, active: true, childIds: new Set(), brazierTiles: new Set(), waves: 0,
-        activeStorms: 0, nextWaveQueued: false,
+        kind: moon, owner: player, active: true, childIds: new Set(), brazierTiles: new Set(),
     };
     moonSpecials.set(npc, special);
     if (moon === "blood") startBloodSpecial(npc, player, services, special);
@@ -662,7 +637,7 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
             }, { kind: "npc", id: boss.id });
         }
     };
-    for (const locId of [...BLUE_BRAZIER_SOURCES, ...UNLIT_BRAZIERS]) {
+    for (const locId of [BRAZIER, ...UNLIT_BRAZIERS]) {
         for (const action of [undefined, "light", "investigate", "feed"]) {
             registry.registerLocInteraction(locId, relightBrazier, action);
         }

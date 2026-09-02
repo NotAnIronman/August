@@ -253,6 +253,8 @@ export class NpcState extends Actor {
     /** Presentation-only NPCs (such as animation previews) cannot be targeted
      * by combat, but can still receive explicitly queued visual sequences. */
     isUnattackable: boolean;
+    /** Encounter-owned utility NPCs may participate in combat without rolling loot. */
+    suppressDrops = false;
     readonly isImmovable: boolean;
     /**
      * Encounter-controlled multiplier for damage dealt by players to this NPC.

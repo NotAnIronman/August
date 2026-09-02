@@ -16,6 +16,8 @@ export interface SpawnAddsParams {
     readonly target?: PlayerState;
     readonly lifetimeTicks?: number;
     readonly attackSpeed?: number;
+    /** Use for encounter-only helpers such as Scurrius' summoned rats. */
+    readonly suppressDrops?: boolean;
 }
 
 const RING: readonly (readonly [number, number])[] = [
@@ -62,6 +64,7 @@ export function spawnAdds(
                 respawns: false,
             });
             if (!add) continue;
+            add.suppressDrops = params.suppressDrops === true;
             spawnedIds.add(add.id);
             runtime.ownNpc(add.id);
             if (params.target) services.npc.engageCombat(add, params.target);

@@ -189,7 +189,7 @@ function summonRats(npc: NpcState, target: PlayerState, services: ScriptServices
     state.ratMechanic = runtime.runMechanic("scurrius-rats", "ignore", () =>
         spawnAdds(runtime, services, {
             id: "scurrius-rats", npcTypeId: RAT_ID, count: 6, formation: "ring", radius: 2,
-            target, attackSpeed: 4, lifetimeTicks: 150,
+            target, attackSpeed: 4, lifetimeTicks: 150, suppressDrops: true,
         }),
     );
 }
@@ -217,9 +217,9 @@ function fallingRocks(npc: NpcState, target: PlayerState, services: ScriptServic
             targetMode: "current-target",
             currentTargetId: target.id,
             hazardQuantity: 4,
-            // Cache NPC 10628 is the shooting-star ground shadow. It is
+            // Cache NPC 764 is a compact one-tile shadow. It is
             // stationary and persists for the complete five-tick warning.
-            tell: { npcId: 10628 },
+            tell: { npcId: 764 },
             projectileId: 10,
             hazardTime: 5,
             liveTicks: 1,
@@ -251,8 +251,13 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
             launchDelayedAttack(event, type, type === AttackType.Magic ? 8 : 7);
             return NpcAttackDecision.Prevent;
         }
+        // The generic hit path is authoritative for a melee swing, but queue
+        // the explicit reviewed sequence first so diagonal melee attacks can
+        // never land without visual feedback.
+        services.npc.queueNpcSeq(npc, 10693);
         return;
     }
+    services.npc.queueNpcSeq(npc, attack.traits.type === AttackType.Magic ? 10696 : 10695);
     launchDelayedAttack(event);
     return NpcAttackDecision.Prevent;
 }
