@@ -929,11 +929,20 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                         continue;
                     }
 
-                    // LOC actions inserted 4..0, then Examine.
-                    const locActions = resolveLocActions(
-                        interactId,
-                        resolvedLocType.actions,
-                    );
+                    // The Blue Moon braziers retain their authored loc ID
+                    // through a visual morph. Their interaction must follow
+                    // the per-side storm varbit rather than the parent loc's
+                    // static Feed action: Light exists only while unlit.
+                    const moonBrazierVarbit = worldTileX === 1427 && worldTileY === 9680
+                        ? 9855
+                        : worldTileX === 1453 && worldTileY === 9680
+                            ? 9856
+                            : undefined;
+                    const locActions = moonBrazierVarbit === undefined
+                        ? resolveLocActions(interactId, resolvedLocType.actions)
+                        : host.osrsClient.varManager.getVarbit(moonBrazierVarbit) === 1
+                            ? ["Light"]
+                            : [];
                     for (let actionIdx = 4; actionIdx >= 0; actionIdx--) {
                         const option = locActions[actionIdx];
                         if (!option) continue;

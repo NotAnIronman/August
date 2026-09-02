@@ -48,6 +48,7 @@ function registerSaradominEncounters(): void {
         registerEncounter({
             id: "commander-zilyana", npcTypeIds: [2205], maxHealth: 255,
             bossHealthBar: { name: "Commander Zilyana", npcTypeId: 2205 },
+            killcount: { name: "Commander Zilyana", collectionLogStructId: 483 },
             movement: { wanderRadius: 12, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
             immunities: { poison: true, venom: true },
             // Both attacks require melee distance: Zilyana cannot attack a kited target.

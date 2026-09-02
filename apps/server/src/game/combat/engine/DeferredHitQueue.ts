@@ -2,7 +2,7 @@ import type { TickFrame } from "@server/network/wsServerTypes";
 import { resolveTypedHitsplatStyle } from "@august/protocol/combat/TypedHitsplatStyles";
 import { NpcState } from "@server/game/npc";
 import { PlayerState } from "@server/game/player";
-import type { AttackType } from "@server/game/combat/AttackType";
+import { AttackType } from "@server/game/combat/AttackType";
 import type { EnchantedBoltEffect } from "@server/game/combat/AmmoSystem";
 import { combatEffectApplicator } from "@server/game/combat/CombatEffectApplicator";
 import { HITMARK_BLOCK, HITMARK_DAMAGE, HITMARK_POISON } from "@server/game/combat/HitEffects";
@@ -130,6 +130,31 @@ export class DeferredHitQueue {
                     ? 0
                     : (this.options.transformDamage?.(pending, target, source) ?? pending.damage);
             let damage = this.nonNegativeInteger(requestedDamage, "transformed damage");
+            // Encounter damage windows apply after accuracy has been resolved.
+            // This mirrors the action-based combat path and keeps both combat
+            // engines consistent for targets such as the Moons of Peril.
+            if (target instanceof NpcState && source instanceof PlayerState) {
+                if (target.forcePlayerMaxHit && pending.maxHit > 0) {
+                    damage = pending.maxHit;
+                }
+                damage = Math.floor(
+                    damage * Math.max(0, target.incomingPlayerDamageMultiplier),
+                );
+                if (target.incomingPlayerDamageCap !== undefined) {
+                    damage = Math.min(damage, Math.max(0, Math.trunc(target.incomingPlayerDamageCap)));
+                }
+                // OSRS flat armour (see NpcState.incomingPlayerFlatArmourModifier):
+                // applies only to successful melee/ranged hits, per-hitsplat,
+                // after every other damage modifier. Magic ignores it.
+                if (
+                    pending.landed &&
+                    damage > 0 &&
+                    pending.attackType !== AttackType.Magic &&
+                    target.incomingPlayerFlatArmourModifier
+                ) {
+                    damage = Math.max(0, damage - target.incomingPlayerFlatArmourModifier);
+                }
+            }
             const style = this.resolveStyle(pending.hitsplatType);
             if (target instanceof NpcState) {
                 const hitpointsBefore = target.getHitpoints();
@@ -163,7 +188,17 @@ export class DeferredHitQueue {
                           style,
                           damage,
                           clock,
-                          pending.maxHit,
+                          source instanceof PlayerState
+                              ? Math.min(
+                                    Math.floor(
+                                        Math.max(0, pending.maxHit ?? 0) *
+                                            Math.max(0, target.incomingPlayerDamageMultiplier),
+                                    ),
+                                    target.incomingPlayerDamageCap === undefined
+                                        ? Number.POSITIVE_INFINITY
+                                        : Math.max(0, Math.trunc(target.incomingPlayerDamageCap)),
+                                )
+                              : pending.maxHit,
                       );
 
             const hit: AppliedCombatHit = Object.freeze({

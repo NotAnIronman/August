@@ -101,6 +101,36 @@ function tileLabel(tile: Tile): string {
     return `${tile.x}, ${tile.y}, ${tile.level}`;
 }
 
+function chebyshevDistance(a: Tile, b: Tile): number {
+    return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+}
+
+/** How far (in tiles, any direction incl. diagonals) a player can stand from
+ *  a rule's registered source tile and still trigger it, when they aren't
+ *  standing on an exact match for this object. Lets one rule near a wide
+ *  door/gap cover every standable tile instead of needing a duplicate rule
+ *  per tile. */
+const NEARBY_TRANSITION_TOLERANCE = 1;
+
+/** Picks the closest same-level rule within tolerance. Only ever consulted
+ *  when no exact-tile rule matched (see the registration priority note in
+ *  refresh() below), so an exact match always wins over a nearby one. */
+function resolveNearbyTransition(
+    candidates: readonly ObjectTransition[],
+    playerTile: Tile,
+): ObjectTransition | undefined {
+    let best: ObjectTransition | undefined;
+    let bestDistance = Infinity;
+    for (const candidate of candidates) {
+        if (candidate.from.level !== playerTile.level) continue;
+        const distance = chebyshevDistance(candidate.from, playerTile);
+        if (distance > NEARBY_TRANSITION_TOLERANCE || distance >= bestDistance) continue;
+        best = candidate;
+        bestDistance = distance;
+    }
+    return best;
+}
+
 function itemLabel(itemId: number, services: ScriptServices): string {
     return services.data.getItemDefinition(itemId)?.name ?? `item ${itemId}`;
 }
@@ -144,6 +174,15 @@ function executeTransition(event: LocInteractionEvent, transition: ObjectTransit
  * Live, source-controlled editor for simple doorway, ladder, and traversal
  * transitions. Rules are keyed by the player's source tile, not the target
  * object's world tile, which keeps shared loc ids safe everywhere else.
+ *
+ * Exact-tile rules always take priority (the registry's own dispatch order:
+ * findLocTileInteraction before findLocInteraction - see ScriptRuntime).
+ * On top of that, one loc-level "nearby" handler is registered per distinct
+ * (locId, action) pair, plus one action-agnostic one per locId, so a player
+ * standing up to NEARBY_TRANSITION_TOLERANCE tiles from a rule - and not
+ * standing exactly on any rule for that object - still triggers the
+ * closest one. This is what lets a single rule near a wide door/gap cover
+ * every standable tile instead of needing a duplicate rule per tile.
  */
 export function registerDevObjectTransitions(registry: IScriptRegistry, services: ScriptServices): void {
     let catalog = readCatalog();
@@ -153,6 +192,12 @@ export function registerDevObjectTransitions(registry: IScriptRegistry, services
     const refresh = (): void => {
         for (const registration of registrations.values()) registration.unregister();
         registrations.clear();
+
+        // locId -> all its transitions (any action), for the action-agnostic fallback.
+        const byLocId = new Map<number, ObjectTransition[]>();
+        // "locId#action" -> transitions sharing that exact action label.
+        const byLocIdAndAction = new Map<string, ObjectTransition[]>();
+
         for (const transition of catalog.transitions) {
             const handler = (event: LocInteractionEvent) => executeTransition(event, transition);
             const actionRegistration = registry.registerLocTileInteraction(
@@ -169,6 +214,39 @@ export function registerDevObjectTransitions(registry: IScriptRegistry, services
                     fallbackRegistration.unregister();
                 },
             });
+
+            const locList = byLocId.get(transition.locId) ?? [];
+            locList.push(transition);
+            byLocId.set(transition.locId, locList);
+
+            const actionKey = `${transition.locId}#${transition.action}`;
+            const actionList = byLocIdAndAction.get(actionKey) ?? [];
+            actionList.push(transition);
+            byLocIdAndAction.set(actionKey, actionList);
+        }
+
+        const nearbyHandler = (candidates: readonly ObjectTransition[]) => (event: LocInteractionEvent): void => {
+            const playerTile = { x: event.player.tileX, y: event.player.tileY, level: event.player.level };
+            const match = resolveNearbyTransition(candidates, playerTile);
+            if (match) {
+                executeTransition(event, match);
+                return;
+            }
+            event.services.messaging.sendGameMessage(
+                event.player,
+                `[objmove] No rule for object ${event.locId} from ${tileLabel(playerTile)} (action: ${event.action || "none"}).`,
+            );
+        };
+
+        for (const [actionKey, transitions] of byLocIdAndAction) {
+            const locId = transitions[0].locId;
+            const action = transitions[0].action;
+            const registration = registry.registerLocInteraction(locId, nearbyHandler(transitions), action);
+            registrations.set(`nearby-action-${actionKey}`, registration);
+        }
+        for (const [locId, transitions] of byLocId) {
+            const registration = registry.registerLocInteraction(locId, nearbyHandler(transitions));
+            registrations.set(`nearby-locid-${locId}`, registration);
         }
     };
 

@@ -100,6 +100,7 @@ export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
     const [hideUi, setHideUi] = useState(false);
 
     const [fps, setFps] = useState(0);
+    const [framePacing, setFramePacing] = useState({ rafHz: 0, cap: 0, skipped: 0, jsMs: 0 });
 
     const [, forceStatsOverlayRefresh] = useState(0);
 
@@ -124,6 +125,12 @@ export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
             if (now - fpsUiLastMs.current >= 250) {
                 fpsUiLastMs.current = now;
                 setFps(Math.round(renderer.stats.frameTimeFps));
+                setFramePacing({
+                    rafHz: Math.round(renderer.stats.estimatedRefreshHz),
+                    cap: Math.max(0, Math.trunc(osrsClient.targetFps)),
+                    skipped: Math.max(0, Math.trunc(renderer.stats.limiterSkippedCallbacks)),
+                    jsMs: Math.max(0, renderer.stats.frameTimeJs),
+                });
                 if (!hideUi && osrsClient.hoverOverlayEnabled) {
                     forceStatsOverlayRefresh(renderer.stats.frameCount | 0);
                 }
@@ -365,7 +372,11 @@ export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
                         {loadingBarOverlay}
 
                         <div className="hud right-top">
-                            <div className="fps-counter content-text">{fps}</div>
+                            <div className="fps-counter content-text">
+                                FPS {fps} | rAF {framePacing.rafHz || "?"} Hz | cap {framePacing.cap || "off"}
+                                {` | JS ${framePacing.jsMs.toFixed(1)} ms`}
+                                {framePacing.skipped > 0 ? ` | skipped ${framePacing.skipped}` : ""}
+                            </div>
 
                             {!hideUi && (
                                 <>

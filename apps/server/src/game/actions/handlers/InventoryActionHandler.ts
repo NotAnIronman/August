@@ -111,6 +111,10 @@ export interface PathResult {
     ok: boolean;
     steps?: Vec2[];
     end?: Vec2;
+    /** See PathService.findPathSteps: true when this is deliberately
+     *  partial progress toward a destination outside the local search
+     *  graph, not arrival at it. */
+    clamped?: boolean;
 }
 
 function pathResultSatisfiesStrategy(
@@ -120,6 +124,13 @@ function pathResultSatisfiesStrategy(
 ): boolean {
     if (!result.ok || !Array.isArray(result.steps)) {
         return false;
+    }
+
+    // See the identical note in PlayerInteractionSystem.extractValidatedStrategyPathSteps:
+    // a clamped result is genuine progress toward a far destination, not
+    // arrival, and should be accepted as long as it actually moves the actor.
+    if (result.clamped) {
+        return result.steps.length > 0;
     }
 
     const selectedEnd =
@@ -259,7 +270,7 @@ export class InventoryActionHandler {
                         { from, to: { x: targetX, y: targetY }, size: 1 },
                         { maxSteps: 128, routeStrategy: strategy },
                     );
-                    const pathResult: PathResult = { ok: res.ok, steps: res.steps, end: res.end };
+                    const pathResult: PathResult = { ok: res.ok, steps: res.steps, end: res.end, clamped: res.clamped };
                     if (
                         pathResultSatisfiesStrategy(from, pathResult, strategy) &&
                         Array.isArray(pathResult.steps) &&

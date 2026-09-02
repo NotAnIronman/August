@@ -3,6 +3,7 @@
  */
 import { Opcodes } from "@client/engine/cs2/Opcodes";
 import type { HandlerMap } from "@client/engine/cs2/handlers/HandlerTypes";
+import { escapeBracketsOsrs } from "@august/osrs-engine/chat/ChatText";
 
 export function registerStringOps(handlers: HandlerMap): void {
     const MONTHS = [
@@ -147,9 +148,24 @@ export function registerStringOps(handlers: HandlerMap): void {
     });
 
     // === Text formatting ===
+    // Real OSRS's CS2 `escape` op (called by the chat input widget's script
+    // on every keystroke to safely preview live-typed text, among other
+    // uses) encodes literal '<'/'>' as the tokens '<lt>'/'<gt>' - the same
+    // convention the rest of the client's text renderers decode back to
+    // display characters (see TextRenderer.ts / OverheadTextOverlay.ts).
+    // This previously used HTML entities ('&lt;'/'&gt;') instead, which
+    // nothing in the game's own text pipeline ever decodes, so a player
+    // typing '<' or '>' would see the literal escaped token in the chat
+    // input box rather than the character they typed.
+    //
+    // escapeBracketsOsrs does this in a single pass over the *original*
+    // string; a naive chained .replace(/</g,"<lt>").replace(/>/g,"<gt>")
+    // is unsafe here because the first replacement inserts a literal '>'
+    // as part of "<lt>", which the second replace would then also catch
+    // and corrupt (e.g. a single typed '<' becoming "<lt<gt>").
     handlers.set(Opcodes.ESCAPE, (ctx) => {
         const str = ctx.stringStack[--ctx.stringStackSize] ?? "";
-        ctx.pushString(str.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+        ctx.pushString(escapeBracketsOsrs(str));
     });
 
     handlers.set(Opcodes.REMOVETAGS, (ctx) => {

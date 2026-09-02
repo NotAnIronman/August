@@ -3,6 +3,7 @@ import { SkillId } from "@august/osrs-engine/skill/skills";
 import { PRAYER_RECHARGE_SOUND_ID } from "@august/osrs-engine/prayer/prayers";
 import { AttackType } from "@server/game/combat/AttackType";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
+import { knockback } from "@server/game/encounters/mechanics";
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
 import type { PlayerState } from "@server/game/player";
 import { NpcAttackDecision, type IScriptRegistry, type LocInteractionEvent, type NpcAttackEvent, type ScriptServices } from "@server/game/scripts/types";
@@ -38,6 +39,7 @@ function registerArmadylEncounters(): void {
         registerEncounter({
             id: "kreearra", npcTypeIds: [3162], maxHealth: 255,
             bossHealthBar: { name: "Kree'arra", npcTypeId: 3162 },
+            killcount: { name: "Kree'arra", collectionLogStructId: 493 },
             movement: { wanderRadius: 10, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
             immunities: { poison: true, venom: true },
             attacks: [
@@ -121,9 +123,11 @@ function entryOptions(player: PlayerState, services: ScriptServices): void {
     if (inKreeRoom(player, services)) { services.instances.leave(player, INSTANCE_EXIT); return; }
     services.dialog.openDialogOptions(player, { id: "armadyl-instance-entry", title: "Enter the Armadyl chamber", options: ["Enter solo", "Create a party instance", "Join a party instance"], modal: true, onSelect: (choice) => { if (choice === 0) createRoom(player, services, "solo"); else if (choice === 1) createRoom(player, services, "party"); else if (choice === 2) joinOptions(player, services); } });
 }
-function knockback(event: NpcAttackEvent): void {
+function kreeTornado(event: NpcAttackEvent): void {
     const room = event.services.instances.get(event.target.id);
     if (room?.definitionId !== ARMADYL_DEFINITION_ID) return;
+    const runtime = event.services.encounters.ensure(event.npc);
+    if (!runtime) return;
     for (const player of event.services.instances.getMemberPlayers(room.id)) {
         // The primary target is resolved through the normal combat evaluator,
         // preserving its accuracy and prayer calculation. Every other player
@@ -134,29 +138,22 @@ function knockback(event: NpcAttackEvent): void {
                 event.npc,
                 player,
                 event.attack.traits.type === AttackType.Magic ? 2 : 1,
-                Math.floor(Math.random() * (maximum + 1)),
+                runtime.rng.nextInt(maximum + 1),
                 event.tick,
             );
         }
-        const dx = Math.sign(player.tileX - event.npc.tileX) || 1;
-        const dy = Math.sign(player.tileY - event.npc.tileY) || 1;
-        const destination = { x: player.tileX + dx, y: player.tileY + dy };
-        const path = event.services.movement.getPathService()?.findPathSteps({ from: { x: player.tileX, y: player.tileY, plane: player.level }, to: destination, size: 1, worldViewId: player.worldViewId }, { maxSteps: 1 });
-        if (path?.ok && path.steps?.length === 1 && path.steps[0].x === destination.x && path.steps[0].y === destination.y) {
-            const startTile = { x: player.tileX, y: player.tileY };
-            event.services.movement.teleportPlayer(player, destination.x, destination.y, player.level);
-            event.services.movement.queueForcedMovement(player, { startTile, endTile: destination, endTick: event.tick + 1 });
-            // MovementService deliberately clears interactions on teleports. Kree's
-            // tornado is forced movement, not a target change, so restore it.
-            player.setCombatTarget(event.npc);
-            player.setInteraction("npc", event.npc.id);
-            event.services.combat.stunPlayer(player, 2);
-        }
+        knockback(runtime, event.services, {
+            target: player,
+            distance: 1,
+            tick: event.tick,
+            stunTicks: 2,
+            preserveNpcTarget: true,
+        });
     }
 }
 function kreeAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     if (event.attack.traits.type === AttackType.Melee) return;
-    knockback(event);
+    kreeTornado(event);
 }
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     registerArmadylEncounters();

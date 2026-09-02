@@ -97,7 +97,7 @@ export interface LocInteractionSystemBridge {
     resolveRunMode(player: PlayerState, modifierFlags?: number): boolean;
     extractValidatedStrategyPathSteps(
         actor: { tileX: number; tileY: number; level: number },
-        res: { ok: boolean; steps?: { x: number; y: number }[]; end?: { x: number; y: number } },
+        res: { ok: boolean; steps?: { x: number; y: number }[]; end?: { x: number; y: number }; clamped?: boolean },
         strategy: RouteStrategy,
     ): { x: number; y: number }[] | undefined;
     applyPathSteps(actor: Actor, steps: { x: number; y: number }[], run: boolean): boolean;
@@ -157,11 +157,13 @@ export class LocInteractionHandler {
             // tile as their source. Do not path them toward the loc: a wall
             // transition is commonly unreachable from the very side that
             // needs to activate it.
-            bypassRoute: this.scriptRuntime?.hasLocTileInteractionAt(
-                data.id,
-                { x: me.tileX, y: me.tileY, level: me.level },
-                data.action,
-            ) ?? false,
+            bypassRoute:
+                data.action?.trim().toLowerCase() === "quick-escape" ||
+                (this.scriptRuntime?.hasLocTileInteractionAt(
+                    data.id,
+                    { x: me.tileX, y: me.tileY, level: me.level },
+                    data.action,
+                ) ?? false),
         };
         const resolved = this.resolvePendingLocInteraction(me, pending);
 

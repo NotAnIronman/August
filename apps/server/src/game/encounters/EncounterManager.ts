@@ -1,4 +1,5 @@
 import type { NpcHealthChange, NpcState } from "@server/game/npc";
+import { randomInt } from "node:crypto";
 import type { PlayerState } from "@server/game/player";
 import { CombatAttributes } from "@server/game/combat/state/CombatAttributes";
 import { OverheadType } from "@server/game/prayer/OverheadType";
@@ -111,8 +112,9 @@ export class EncounterManager {
             npc.id,
             npc.typeId,
             npc.getMaxHitpoints(),
-            this.seed(definition.id, serial, npc.id),
+            this.seed(),
         );
+        logger.debug(`[encounter] spawned ${id} with seed ${runtime.rng.seed}`);
         this.byNpcRuntimeId.set(npc.id, runtime);
         this.byId.set(id, runtime);
         this.observeHealth(npc, runtime);
@@ -190,13 +192,10 @@ export class EncounterManager {
         for (const locationId of resources.locationIds) this.cleanup.removeLocation?.(locationId);
     }
 
-    private seed(definitionId: string, serial: number, npcRuntimeId: number): number {
-        let hash = 2166136261;
-        for (const char of definitionId) {
-            hash ^= char.charCodeAt(0);
-            hash = Math.imul(hash, 16777619);
-        }
-        return (hash ^ Math.imul(serial, 31) ^ Math.imul(npcRuntimeId, 131)) >>> 0;
+    private seed(): number {
+        // One unpredictable seed per real NPC spawn. Encounter resets retain
+        // the existing stream, preventing reset-based seed hunting.
+        return randomInt(1, 0x1_0000_0000);
     }
 
     private observeHealth(

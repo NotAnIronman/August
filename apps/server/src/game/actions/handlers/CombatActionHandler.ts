@@ -1003,7 +1003,12 @@ export class CombatActionHandler {
         }
 
         const effects: ActionEffect[] = [];
-        const reach = Math.max(1, this.svc.playerCombatService!.getPlayerAttackReach(player));
+        const isMoonMelee =
+            resolvePlayerAttackType(player.combat) === AttackType.Melee &&
+            (npc.typeId === 13011 || npc.typeId === 13012 || npc.typeId === 13013);
+        const reach = isMoonMelee
+            ? 5
+            : Math.max(1, this.svc.playerCombatService!.getPlayerAttackReach(player));
         const pathService = this.svc.pathService;
 
         // Range validation

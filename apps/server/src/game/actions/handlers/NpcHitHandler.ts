@@ -142,8 +142,17 @@ export class NpcHitHandler {
             spellId: explicitSpellIdRaw,
             special,
         } = data;
-        const damage = Math.max(0, rawDamage);
-        const maxHit = Math.max(0, rawMaxHit);
+        // Some encounters reduce damage after the attack has already passed
+        // its normal accuracy calculation. Apply that reduction here rather
+        // than by inflating NPC defence, so a hit still lands but is visibly
+        // reduced to the intended amount.
+        const incomingDamageMultiplier = Math.max(0, npc.incomingPlayerDamageMultiplier);
+        const resolvedRawDamage = npc.forcePlayerMaxHit && rawMaxHit > 0 ? rawMaxHit : rawDamage;
+        const damageCap = npc.incomingPlayerDamageCap;
+        const capDamage = (value: number): number =>
+            damageCap === undefined ? value : Math.min(value, Math.max(0, Math.trunc(damageCap)));
+        let damage = capDamage(Math.floor(Math.max(0, resolvedRawDamage) * incomingDamageMultiplier));
+        const maxHit = capDamage(Math.floor(Math.max(0, rawMaxHit) * incomingDamageMultiplier));
         const type2 = Number.isFinite(rawType2) ? rawType2 : undefined;
         const damage2 = Number.isFinite(rawDamage2) ? rawDamage2 : undefined;
         const clientDelayTicks = Math.max(0, rawClientDelayTicks);
@@ -153,6 +162,12 @@ export class NpcHitHandler {
         // Accuracy determines the landed flag independently of the rolled damage.
         // Accept truthy values (not just strict boolean) to handle serialization edge cases.
         const hitLanded = this.resolveHitLanded(landed, style, damage);
+        // OSRS flat armour (see NpcState.incomingPlayerFlatArmourModifier):
+        // applies only to successful melee/ranged hits, per-hitsplat, after
+        // every other damage modifier. Magic explicitly ignores it.
+        if (hitLanded && damage > 0 && !isMagicAttack && npc.incomingPlayerFlatArmourModifier) {
+            damage = Math.max(0, damage - npc.incomingPlayerFlatArmourModifier);
+        }
         const magicImpactEffectsScheduled =
             data.magicImpactEffectsScheduled === true ||
             data.hit?.magicImpactEffectsScheduled === true;
@@ -174,7 +189,7 @@ export class NpcHitHandler {
             hitsplatTick,
             maxHit,
         );
-        if (npcHitsplat.hpCurrent > 0 && !(isMagicAttack && magicImpactEffectsScheduled)) {
+        if (npcHitsplat.hpCurrent > 0 && !npc.suppressDefenceAnimation && !(isMagicAttack && magicImpactEffectsScheduled)) {
             const npcCombatSeq = this.services.getNpcCombatSequences(npc.typeId);
             if (npcCombatSeq?.block !== undefined) {
                 // Blocks never replace a sequence already broadcast this tick

@@ -180,6 +180,13 @@ export abstract class Renderer {
     };
 
     frameCallback = (time: DOMHighResTimeStamp) => {
+        // Queue the following callback before doing any frame work. At high
+        // refresh rates, scheduling only after rendering can miss the
+        // compositor's next-frame deadline even when the render itself is
+        // short, producing an avoidable 60–90 Hz callback cadence.
+        if (this.running) {
+            this._scheduleNextFrame();
+        }
         try {
             if (this.shouldSkipFrame(time)) {
                 return;
@@ -226,9 +233,7 @@ export abstract class Renderer {
 
             this.onFrameEnd();
         } finally {
-            if (this.running) {
-                this._scheduleNextFrame();
-            }
+            // The next callback was deliberately scheduled before rendering.
         }
     };
 

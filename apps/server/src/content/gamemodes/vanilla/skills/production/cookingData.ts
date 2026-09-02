@@ -24,6 +24,16 @@ export const DEFAULT_COOKING_BURN_BONUS = 3;
 
 export const COOKING_RECIPES: CookingRecipe[] = [
     {
+        id: "cook_bream",
+        name: "Bream",
+        level: 30,
+        xp: 45,
+        rawItemId: 29216,
+        cookedItemId: 29217,
+        animation: 897,
+        delayTicks: 3,
+    },
+    {
         id: "cook_shrimps",
         name: "Shrimps",
         level: 1,

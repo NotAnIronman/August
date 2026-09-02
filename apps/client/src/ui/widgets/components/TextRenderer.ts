@@ -175,6 +175,25 @@ function parseOsrsMarkup(text: string, defaultColor: number): TextSegment[] {
                 continue;
             }
 
+            // Handle <lt> / <gt> - literal '<'/'>' glyph escapes. Real OSRS
+            // convention: raw '<' and '>' are reserved for markup tags (like
+            // <col=...>), so any text a player can type or that gets stored
+            // (chat, item/NPC names, etc.) encodes literal angle brackets as
+            // <lt>/<gt> instead. Without this case they fall through to the
+            // "unknown tag" branch below, which only consumes the '<' and
+            // re-parses "lt>"/"gt>" as plain text - reconstructing the
+            // original literal "<lt>"/"<gt>" on screen instead of "<"/">".
+            if (tagContent === "lt") {
+                segments.push(makeSegment("<"));
+                i = tagEnd + 1;
+                continue;
+            }
+            if (tagContent === "gt") {
+                segments.push(makeSegment(">"));
+                i = tagEnd + 1;
+                continue;
+            }
+
             // Unknown tag, include the < character as text
             segments.push(makeSegment("<"));
             i++;
@@ -197,7 +216,7 @@ function parseOsrsMarkup(text: string, defaultColor: number): TextSegment[] {
 
 /** Check if text contains OSRS markup tags */
 function hasOsrsMarkup(text: string): boolean {
-    return /<col=|<\/col>|<color=|<\/color>|<shad|<\/shad>|<br>|<img=|<u>|<u=|<\/u>|<str>|<\/str>|<b>|<\/b>/i.test(
+    return /<col=|<\/col>|<color=|<\/color>|<shad|<\/shad>|<br>|<img=|<u>|<u=|<\/u>|<str>|<\/str>|<b>|<\/b>|<lt>|<gt>/i.test(
         text,
     );
 }

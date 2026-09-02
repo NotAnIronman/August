@@ -491,6 +491,7 @@ export class ServerBinaryEncoder {
         npcId?: number,
         height?: number,
         delay?: number,
+        tile?: { x: number; y: number; level?: number },
     ): Uint8Array {
         this.buffer.reset();
         this.buffer.writeShort(spotId);
@@ -499,6 +500,10 @@ export class ServerBinaryEncoder {
             this.buffer.writeShort(playerId);
         } else if (npcId !== undefined) {
             this.buffer.writeShort(npcId);
+        } else if (tile) {
+            this.buffer.writeShort(tile.x);
+            this.buffer.writeShort(tile.y);
+            this.buffer.writeByte(tile.level ?? 0);
         }
         this.buffer.writeByte(height ?? 0);
         this.buffer.writeShort(delay ?? 0);

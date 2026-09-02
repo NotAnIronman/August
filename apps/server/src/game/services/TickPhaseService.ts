@@ -119,7 +119,45 @@ export class TickPhaseService {
         if (!this.svc.pathService) {
             throw new Error("MovementProcessor requires PathService initialization.");
         }
-        this.movementProcessor = new MovementProcessor(this.svc.pathService);
+        this.movementProcessor = new MovementProcessor(this.svc.pathService, (entity, tileX, tileY) => {
+            // The Moons are stationary 3x3 encounters. Their footprint is a
+            // real player collision area, rather than merely a combat rule.
+            if (!(entity instanceof PlayerState)) return false;
+            let blocked = false;
+            this.svc.npcManager?.forEach((npc) => {
+                if (blocked || npc.worldViewId !== entity.worldViewId || npc.level !== entity.level) return;
+                if (npc.typeId !== 13011 && npc.typeId !== 13012 && npc.typeId !== 13013) return;
+                // The Blue Moon's two braziers (confirmed footprints:
+                // 1425,9679 -> 1427,9681 and 1453,9679 -> 1455,9681) are
+                // always solid, independent of the boss's own walk-through
+                // window below - scoped to only apply inside a worldView
+                // that actually has the Blue Moon boss present, so these
+                // fixed world coordinates can never block anyone outside
+                // this specific encounter.
+                if (npc.typeId === 13013) {
+                    const inWestBrazier = tileX >= 1425 && tileX <= 1427 && tileY >= 9679 && tileY <= 9681;
+                    const inEastBrazier = tileX >= 1453 && tileX <= 1455 && tileY >= 9679 && tileY <= 9681;
+                    if (inWestBrazier || inEastBrazier) {
+                        blocked = true;
+                        return;
+                    }
+                }
+                // Content modules can temporarily lift this reservation (e.g.
+                // moons-of-peril during the Blue Moon ice storm, when players
+                // must run between the two braziers on either side of the
+                // boss). See NpcState.allowPlayerWalkThrough.
+                if (npc.allowPlayerWalkThrough) return;
+                // Moon map coordinates are the visual centre of the model.
+                // Reserve the complete 3x3 square around that centre, not
+                // only the actor's south-west anchor tile.
+                blocked =
+                    tileX >= npc.tileX - 1 &&
+                    tileX <= npc.tileX + 1 &&
+                    tileY >= npc.tileY - 1 &&
+                    tileY <= npc.tileY + 1;
+            });
+            return blocked;
+        });
         return this.movementProcessor;
     }
 
@@ -1048,7 +1086,14 @@ export class TickPhaseService {
         return {
             type,
             style,
-            rangeTiles: Math.max(1, Math.trunc(service.getPlayerAttackReach(attacker))),
+            // Moon bosses expose their whole 3x3 footprint: melee can strike
+            // from five tiles beyond its edge.
+            rangeTiles:
+                target instanceof NpcState &&
+                type === AttackType.Melee &&
+                (target.typeId === 13011 || target.typeId === 13012 || target.typeId === 13013)
+                    ? 5
+                    : Math.max(1, Math.trunc(service.getPlayerAttackReach(attacker))),
             speedTicks,
             weaponId: weaponId > 0 ? weaponId : undefined,
             spellId: type === AttackType.Magic && spellId > 0 ? spellId : undefined,

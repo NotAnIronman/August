@@ -1,0 +1,31 @@
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'run_script', scriptId: 3970, args: Array(3), varps: undefined, varbits: undefined}action: "run_script"args: Array(3)0: 466616341: 466616352: 2223length: 3[[Prototype]]: Array(0)scriptId: 3970varbits: undefinedvarps: undefined[[Prototype]]: Object
+OsrsClient.ts:2184 [OsrsClient] widget event {action: 'run_script', scriptId: 3970, args: Array(3), varps: undefined, varbits: undefined}action: "run_script"args: (3) [46661634, 46661635, 2223]scriptId: 3970varbits: undefinedvarps: undefined[[Prototype]]: Object
+OsrsClient.ts:2665 [OsrsClient] run_script: scriptId=3970, args= (3) [46661634, 46661635, 2223]0: 466616341: 466616352: 2223length: 3[[Prototype]]: Array(0)
+WidgetInputBridge.ts:105 [ui-input] unchanged input processed because targets changed count=1 targets=45 targetVersion=10 prevTargetVersion=9 mouse=461,299 clickMode2=0 clickMode3=0
+WidgetInputBridge.ts:105 [ui-input] unchanged input processed because targets changed count=4 targets=45 targetVersion=14 prevTargetVersion=13 mouse=461,299 clickMode2=0 clickMode3=0
+modelViewerPanel.ts:19 [modelviewer] loc definition {id: 52992, name: 'null', models: undefined, types: undefined, seqId: 7321, …}id: 52992models: undefinedname: "null"randomSeqIds: undefinedseqId: 7321sizeX: 3sizeY: 3transformVarbit: 9855transformVarp: -1transforms: Array(3)0: 510521: 510512: -1length: 3[[Prototype]]: Array(0)types: undefined[[Prototype]]: Object
+OsrsClient.ts:6911 [OsrsClient] Loc del at (1445, 9658, 0) shape=10 rot=0
+OsrsClient.ts:6898 [OsrsClient] Loc add: 52992 at (1445, 9658, 0) shape=10 rot=0
+locs.ts:486 [WebGLRenderer] Loc add: 52992 at (1445, 9658, 0) shape=10 -> map (22, 150)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'open_sub', targetUid: 10551312, groupId: 30036, type: 0, varps: undefined, …}action: "open_sub"groupId: 30036hiddenUids: undefinedpostScripts: undefinedpreScripts: undefinedtargetUid: 10551312type: 0varbits: undefinedvarps: undefined[[Prototype]]: Object
+OsrsClient.ts:2184 [OsrsClient] widget event {action: 'open_sub', targetUid: 10551312, groupId: 30036, type: 0, varps: undefined, …}action: "open_sub"groupId: 30036hiddenUids: undefinedpostScripts: undefinedpreScripts: undefinedtargetUid: 10551312type: 0varbits: undefinedvarps: undefined[[Prototype]]: Object
+OsrsClient.ts:2274 [OsrsClient] Server opening sub-interface: group 30036 into widget 10551312 (0xa10010)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'run_script', scriptId: 227, args: Array(2), varps: undefined, varbits: undefined}action: "run_script"args: (2) [1968439297, 'Cache object model viewer']scriptId: 227varbits: undefinedvarps: undefined[[Prototype]]: Object
+OsrsClient.ts:2184 [OsrsClient] widget event {action: 'run_script', scriptId: 227, args: Array(2), varps: undefined, varbits: undefined}action: "run_script"args: (2) [1968439297, 'Cache object model viewer']scriptId: 227varbits: undefinedvarps: undefined[[Prototype]]: Object
+OsrsClient.ts:2665 [OsrsClient] run_script: scriptId=227, args= (2) [1968439297, 'Cache object model viewer']0: 19684392971: "Cache object model viewer"length: 2[[Prototype]]: Array(0)
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_hidden', uid: 1968440196, hidden: false}action: "set_hidden"hidden: falseuid: 1968440196[[Prototype]]: Object
+OsrsClient.ts:2184 [OsrsClient] widget event {action: 'set_hidden', uid: 1968440196, hidden: false}action: "set_hidden"hidden: falseuid: 1968440196[[Prototype]]: Object
+inboundUi.ts:218 [ServerConnection] recv widget {action: 'set_hidden', uid: 1968440197, hidden: false}action: "set_hidden"hidden: falseuid: 1968440197[[Prototype]]: Object
+OsrsClient.ts:2184 [OsrsClient] widget event {action: 'set_hidden', uid: 1968440197, hidden: false}action: "set_hidden"hidden: falseuid: 1968440197[[Prototype]]: Object
+SdMapDataLoader.ts:1308 [SdMapDataLoader] Received 1 loc overrides for map (22,150)
+SdMapDataLoader.ts:1346 [SdMapDataLoader] Processing override: 1445,9658,0,-1 -> 0
+SdMapDataLoader.ts:1362 [SdMapDataLoader] Converted world (1445,9658) to scene (43,64), baseX=1402, baseY=9594
+SceneBuilder.ts:131 [SceneBuilder] setLocOverride: key="43,64,0,-1" -> {id: 0, rot: unchanged, move: unchanged, seq: unchanged}
+SdMapDataLoader.ts:1495 build scene 22,150: 134.471923828125 ms
+SdMapDataLoader.ts:1572 animated locs: 46
+SdMapDataLoader.ts:1779 draw ranges: 0, alpha: 0 22 150
+SdMapDataLoader.ts:1803 draw ranges lod: 0, alpha: 0 22 150
+SdMapDataLoader.ts:1827 draw ranges interact: 0 22 150
+SdMapDataLoader.ts:2082 load map 22,150: 656.14013671875 ms
+SdMapDataLoader.ts:2168 total bytes: 8889401 22,150 Set(0) {size: 0} 0
+render.ts:1610 [WebGLOsrsRenderer] mapsToLoad applying: mapX=22 mapY=150 verts=0

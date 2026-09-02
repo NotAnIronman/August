@@ -1,6 +1,7 @@
 import { AttackType } from "@server/game/combat/AttackType";
 import { CombatAttributes } from "@server/game/combat/state/CombatAttributes";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
+import { spawnAdds, spawnFloorHazard, type MechanicHandle } from "@server/game/encounters/mechanics";
 import type { NpcState } from "@server/game/npc";
 import type { PlayerState } from "@server/game/player";
 import { OverheadType } from "@server/game/prayer/OverheadType";
@@ -22,6 +23,8 @@ const INSIDE = Object.freeze({ x: 3290, y: 9868, level: 0 });
 const GRAVE = Object.freeze({ locId: 9359, tile: { x: 3281, y: 9867 }, level: 0 });
 const BOSS_TILE = Object.freeze({ x: 3303, y: 9872, level: 0 });
 const CENTRE_TILE = Object.freeze({ x: 3298, y: 9867, level: 0 });
+const ROCKFALL_BOUNDS = Object.freeze({ minX: 3292, maxX: 3305, minY: 9861, maxY: 9874 });
+const ROCKFALL_TELL_LOC_ID = 56358;
 const FOOD_PILES = Object.freeze([
     Object.freeze({ x: 3298, y: 9875 }),
     Object.freeze({ x: 3306, y: 9868 }),
@@ -35,7 +38,7 @@ interface ScurriusState {
     bites: number;
     summonReadyAt: number;
     rockReadyAt: number;
-    ratIds: Set<number>;
+    ratMechanic?: MechanicHandle;
 }
 
 const states = new WeakMap<NpcState, ScurriusState>();
@@ -44,7 +47,7 @@ const cheeseCreditsByPlayer = new WeakMap<PlayerState, number>();
 function stateFor(npc: NpcState): ScurriusState {
     let state = states.get(npc);
     if (!state) {
-        state = { fed: false, finalPhase: false, eating: false, bites: 0, summonReadyAt: 0, rockReadyAt: 0, ratIds: new Set() };
+        state = { fed: false, finalPhase: false, eating: false, bites: 0, summonReadyAt: 0, rockReadyAt: 0 };
         states.set(npc, state);
     }
     return state;
@@ -61,6 +64,7 @@ function registerEncounters(): void {
             npcTypeIds: [SCURRIUS_ID],
             maxHealth: 150,
             bossHealthBar: { name: "Scurrius", npcTypeId: SCURRIUS_ID },
+            killcount: { name: "Scurrius", collectionLogStructId: 777 },
             movement: { wanderRadius: 8, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 40, retreatInteractionRange: 45 },
             attacks: [
                 { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 5, maxHit: 13, animation: "melee", condition: (context) => context.targetDistance <= 1 && context.healthPercent > 30 },
@@ -106,7 +110,8 @@ function beginEating(npc: NpcState, state: ScurriusState, roomId: string, servic
     state.fed = true;
     state.eating = true;
     state.bites = 0;
-    const pile = FOOD_PILES[Math.floor(Math.random() * FOOD_PILES.length)] ?? FOOD_PILES[0];
+    const rng = services.encounters.ensure(npc)?.rng;
+    const pile = FOOD_PILES[rng?.nextInt(FOOD_PILES.length) ?? 0] ?? FOOD_PILES[0];
     // Clear the active chase before sending him to food.  Eating only begins
     // after the route completes, never at the tile where he crossed 80% HP.
     services.npc.disengageCombat(npc);
@@ -120,7 +125,7 @@ function beginEating(npc: NpcState, state: ScurriusState, roomId: string, servic
         services.npc.queueNpcSeq(npc, state.bites === 0 ? 10688 : 10689);
         // Cache spot 84 is the standard green healing indicator.
         services.npc.queueNpcSpotAnim(npc, 84);
-        npc.heal((5 + Math.floor(Math.random() * 2) * 5) * Math.max(1, services.instances.getMemberPlayers(roomId).length));
+        npc.heal((5 + (rng?.nextInt(2) ?? 0) * 5) * Math.max(1, services.instances.getMemberPlayers(roomId).length));
         state.bites++;
         if (state.bites >= 5) { state.eating = false; return; }
         services.scheduler.after(4, takeBite, { kind: "npc", id: npc.id });
@@ -132,7 +137,8 @@ function installScurriusHealthController(npc: NpcState, roomId: string, services
     npc.onHealthChange((change) => {
         const state = stateFor(npc);
         if (change.reason === "reset") {
-            states.set(npc, { fed: false, finalPhase: false, eating: false, bites: 0, summonReadyAt: 0, rockReadyAt: 0, ratIds: new Set() });
+            state.ratMechanic?.cancel();
+            states.set(npc, { fed: false, finalPhase: false, eating: false, bites: 0, summonReadyAt: 0, rockReadyAt: 0 });
             return;
         }
         if (change.current <= 0) return;
@@ -170,42 +176,62 @@ function launchDelayedAttack(event: NpcAttackEvent, forcedType?: AttackType, for
     const distance = Math.max(Math.abs(npc.tileX - target.tileX), Math.abs(npc.tileY - target.tileY));
     const travel = Math.max(2, Math.min(5, Math.ceil(distance / 3) + 1));
     services.projectiles.launch({ projectileId: type === AttackType.Magic ? 711 : 10, source: { tileX: npc.tileX, tileY: npc.tileY, plane: npc.level, actor: { kind: "npc", serverId: npc.id } }, target: { tileX: target.tileX, tileY: target.tileY, plane: target.level, actor: { kind: "player", serverId: target.id } }, sourceHeight: 90, endHeight: 20, slope: 20, startPos: 0, startCycleOffset: 0, endCycleOffset: travel * 30 });
+    const rng = services.encounters.ensure(npc)?.rng;
     services.scheduler.after(travel, (impactTick) => {
         if (target.worldViewId !== npc.worldViewId || target.level !== npc.level) return;
-        const damage = protectedFrom(target, type) ? 0 : Math.floor(Math.random() * (maxHit + 1));
+        const damage = protectedFrom(target, type) ? 0 : (rng?.nextInt(maxHit + 1) ?? 0);
         services.combat.applyNpcDamageToPlayer(npc, target, type === AttackType.Magic ? 2 : 1, damage, impactTick);
     }, { kind: "npc", id: npc.id });
 }
 
 function summonRats(npc: NpcState, target: PlayerState, services: ScriptServices, state: ScurriusState): void {
-    for (const id of state.ratIds) {
-        const rat = services.combat.getNpc(id);
-        if (!rat || rat.getHitpoints() <= 0) state.ratIds.delete(id);
-    }
-    if (state.ratIds.size >= 6) return;
-    const candidates = [[-2, -2], [0, -2], [2, -2], [-2, 0], [2, 0], [0, 2]];
-    for (const [dx, dy] of candidates) {
-        if (state.ratIds.size >= 6) break;
-        const rat = services.npc.spawnNpc({ id: RAT_ID, x: npc.tileX + dx, y: npc.tileY + dy, level: npc.level, worldViewId: npc.worldViewId, ownerPlayerId: npc.ownerPlayerId, wanderRadius: 3, isAggressive: true, aggressionRadius: 12, attackSpeed: 4, lifetimeTicks: 150 });
-        if (rat) {
-            state.ratIds.add(rat.id);
-            // Directly engage on spawn: standard aggression rules intentionally
-            // ignore low-level NPCs when the player is much stronger.
-            services.npc.engageCombat(rat, target);
-        }
-    }
+    if (state.ratMechanic?.isActive) return;
+    const runtime = services.encounters.ensure(npc);
+    if (!runtime) return;
+    state.ratMechanic = runtime.runMechanic("scurrius-rats", "ignore", () =>
+        spawnAdds(runtime, services, {
+            id: "scurrius-rats", npcTypeId: RAT_ID, count: 6, formation: "ring", radius: 2,
+            target, attackSpeed: 4, lifetimeTicks: 150, suppressDrops: true,
+        }),
+    );
 }
 
-function fallingRocks(npc: NpcState, services: ScriptServices, roomId: string): void {
+function fallingRocks(npc: NpcState, target: PlayerState, services: ScriptServices, roomId: string): void {
     const room = services.instances.getById(roomId);
     if (!room) return;
-    for (const player of services.instances.getMemberPlayers(room.id)) {
-        const tile = { x: player.tileX, y: player.tileY, level: player.level };
-        services.animation.playLocGraphic({ spotId: 60, tile, level: tile.level });
-        services.projectiles.launch({ projectileId: 10, source: { tileX: npc.tileX, tileY: npc.tileY, plane: npc.level }, target: { tileX: tile.x, tileY: tile.y, plane: tile.level }, sourceHeight: 240, endHeight: 0, slope: 45, startPos: 0, startCycleOffset: 0, endCycleOffset: 150 });
-        services.scheduler.after(5, (impactTick) => { if (player.worldViewId === npc.worldViewId && player.tileX === tile.x && player.tileY === tile.y && player.level === tile.level) services.combat.applyNpcDamageToPlayer(npc, player, 0, 15 + Math.floor(Math.random() * 8), impactTick); }, { kind: "npc", id: npc.id });
+    const runtime = services.encounters.ensure(npc);
+    if (!runtime) return;
+    const players = services.instances.getMemberPlayers(room.id);
+    const randomTiles = [] as Array<{ x: number; y: number; level: number }>;
+    // Every shadow remains inside the room's playable 14x14 arena. The
+    // current target receives one reserved tell; the other fourteen are
+    // independently sampled from this full square.
+    for (let x = ROCKFALL_BOUNDS.minX; x <= ROCKFALL_BOUNDS.maxX; x += 1) {
+        for (let y = ROCKFALL_BOUNDS.minY; y <= ROCKFALL_BOUNDS.maxY; y += 1) {
+            randomTiles.push({ x, y, level: npc.level });
+        }
     }
+    // Prevent the ordinary attack animation from immediately replacing Jump.
     services.npc.queueNpcSeq(npc, 10698);
+    runtime.runMechanic("scurrius-falling-rocks", "stack", () =>
+        spawnFloorHazard(runtime, services, {
+            id: "scurrius-falling-rocks",
+            randomTiles,
+            targetMode: "current-target",
+            currentTargetId: target.id,
+            hazardQuantity: 15,
+            // Cache loc 56358 is the selected one-tile rockfall shadow.
+            // A loc tell is guaranteed to be rendered as scenery rather than
+            // as an invisible NPC footprint.
+            tell: { locId: ROCKFALL_TELL_LOC_ID, locShape: 10 },
+            projectileId: 10,
+            hazardTime: 5,
+            liveTicks: 1,
+            hazardDamage: (rng) => 15 + rng.nextInt(8),
+            players,
+            appliesTo: "all-members",
+        }),
+    );
 }
 
 function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
@@ -216,19 +242,29 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     const healthPercent = (npc.getHitpoints() / Math.max(1, npc.getMaxHitpoints())) * 100;
     if (!state.fed && healthPercent <= 80) beginEating(npc, state, room.id, services);
     if (!state.finalPhase && healthPercent <= 30) { state.finalPhase = true; state.eating = false; services.npc.moveNpcTo(npc, CENTRE_TILE, true); }
-    if (tick >= state.summonReadyAt && Math.random() < 1 / 12) { state.summonReadyAt = tick + 30; services.npc.queueNpcSeq(npc, 10700); summonRats(npc, target, services, state); }
-    if (tick >= state.rockReadyAt && Math.random() < (state.finalPhase ? 1 / 4 : 1 / 10)) { state.rockReadyAt = tick + 10; fallingRocks(npc, services, room.id); }
+    const rng = services.encounters.ensure(npc)?.rng;
+    if (tick >= state.summonReadyAt && (rng?.next() ?? 1) < 1 / 12) { state.summonReadyAt = tick + 30; services.npc.queueNpcSeq(npc, 10700); summonRats(npc, target, services, state); }
+    if (tick >= state.rockReadyAt && (rng?.next() ?? 1) < (state.finalPhase ? 1 / 4 : 1 / 10)) {
+        state.rockReadyAt = tick + 10;
+        fallingRocks(npc, target, services, room.id);
+        return NpcAttackDecision.Prevent;
+    }
     // The normal planner correctly gives melee absolute preference at one tile.
     // At a food pile, however, the live fight swaps that planned melee into a
     // projectile without changing the attack clock.
     if (attack.traits.type === AttackType.Melee) {
         if (state.eating) {
-            const type = Math.random() < 0.5 ? AttackType.Ranged : AttackType.Magic;
+            const type = (rng?.next() ?? 0) < 0.5 ? AttackType.Ranged : AttackType.Magic;
             launchDelayedAttack(event, type, type === AttackType.Magic ? 8 : 7);
             return NpcAttackDecision.Prevent;
         }
+        // The generic hit path is authoritative for a melee swing, but queue
+        // the explicit reviewed sequence first so diagonal melee attacks can
+        // never land without visual feedback.
+        services.npc.queueNpcSeq(npc, 10693);
         return;
     }
+    services.npc.queueNpcSeq(npc, attack.traits.type === AttackType.Magic ? 10696 : 10695);
     launchDelayedAttack(event);
     return NpcAttackDecision.Prevent;
 }

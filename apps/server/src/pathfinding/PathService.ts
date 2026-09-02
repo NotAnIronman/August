@@ -33,7 +33,7 @@ export class PathService {
     private readonly scopedCollisionOverlays = new Map<number, CollisionOverlayStore>();
     private worldViewCollision: Map<number, SailingWorldView> = new Map();
 
-    constructor(map: MapCollisionService, graphSize = 32) {
+    constructor(map: MapCollisionService, graphSize = 128) {
         this.map = map;
         this.pf = new Pathfinder(graphSize);
     }
@@ -360,6 +360,41 @@ export class PathService {
         return this.pf.graphSize;
     }
 
+    /**
+     * The local pathfinding graph is a fixed window (32x32 by default,
+     * matching real OSRS/RSMod's own BFS-based route finder - not A*, which
+     * this engine never used) centered on the mover. A destination farther
+     * than roughly half that window can never be reached in one search: it
+     * simply never enters the BFS's queue. `PlayerManager.routePlayer` /
+     * `continueWalkToDestination` already solve this for plain "walk here"
+     * ground clicks by clamping to a reachable intermediate point and
+     * re-segmenting each tick. Interaction-driven routing (approaching an
+     * object, NPC, or ground item) goes through this method instead, calls
+     * it directly at the full (possibly far) target, and has no equivalent
+     * clamping - so a distant click just fails outright and the caller's
+     * own per-tick "not arrived yet, re-route" polling loop keeps retrying
+     * the same too-far target forever, which looks like the player simply
+     * stopping. Clamping the route strategy's target here, centrally, fixes
+     * every interaction-routing call site at once: each poll now makes real
+     * progress toward the true destination until it's finally in range.
+     */
+    private clampApproxDestForGraph(
+        rs: RouteStrategy,
+        fromX: number,
+        fromY: number,
+    ): { x: number; y: number } | undefined {
+        const maxDelta = Math.max(1, (this.pf.graphSize >> 1) - 3);
+        const dx = rs.approxDestX - fromX;
+        const dy = rs.approxDestY - fromY;
+        if (Math.abs(dx) <= maxDelta && Math.abs(dy) <= maxDelta) return undefined;
+        const original = { x: rs.approxDestX, y: rs.approxDestY };
+        const clampedDx = Math.max(-maxDelta, Math.min(maxDelta, dx));
+        const clampedDy = Math.max(-maxDelta, Math.min(maxDelta, dy));
+        rs.approxDestX = fromX + clampedDx;
+        rs.approxDestY = fromY + clampedDy;
+        return original;
+    }
+
     private prepareRouteStrategy(
         routeStrategy: RouteStrategy | undefined,
         plane: number,
@@ -415,6 +450,11 @@ export class PathService {
         steps?: { x: number; y: number }[];
         end?: { x: number; y: number };
         message?: string;
+        /** True when the destination was outside the local search graph and
+         *  this result is deliberately partial - progress toward the real
+         *  target, not arrival at it (see clampApproxDestForGraph). Callers
+         *  that gate on "did we actually arrive" should also accept this. */
+        clamped?: boolean;
     } {
         try {
             const { from, to } = req;
@@ -446,25 +486,39 @@ export class PathService {
                 rs.destSizeY = 1;
             }
 
-            const result = this.pf.findPath(
-                fromX,
-                fromY,
-                size,
-                plane,
-                rs,
-                collisionStrategy,
-                0,
-                true,
-            );
+            // See clampApproxDestForGraph(): keeps far interaction-click
+            // targets (objects, NPCs, ground items) reachable by aiming this
+            // single search at the closest point within the local graph,
+            // instead of failing outright. Always restored before returning.
+            const restoreApproxDest = this.clampApproxDestForGraph(rs, fromX, fromY);
+            let result: number;
+            try {
+                result = this.pf.findPath(
+                    fromX,
+                    fromY,
+                    size,
+                    plane,
+                    rs,
+                    collisionStrategy,
+                    0,
+                    true,
+                );
+            } finally {
+                if (restoreApproxDest) {
+                    rs.approxDestX = restoreApproxDest.x;
+                    rs.approxDestY = restoreApproxDest.y;
+                }
+            }
             const normalizedResult = result;
+            const clamped = !!restoreApproxDest;
             if (normalizedResult < 0) {
                 return { ok: false, message: "no path" };
             }
             if (normalizedResult === 0) {
-                return { ok: true, steps: [] };
+                return { ok: true, steps: [], clamped };
             }
             if (maxSteps === 0) {
-                return { ok: true, steps: [] };
+                return { ok: true, steps: [], clamped };
             }
 
             const graphBaseX = fromX - (this.pf.graphSize >> 1);
@@ -545,7 +599,7 @@ export class PathService {
                 validateY = step.y;
             }
 
-            return { ok: true, steps: out, end: selectedEnd };
+            return { ok: true, steps: out, end: selectedEnd, clamped };
         } catch (e: unknown) {
             return { ok: false, message: e instanceof Error ? e.message : String(e) };
         }
@@ -662,16 +716,26 @@ export class PathService {
                 rs.destSizeY = 1;
             }
 
-            const steps = this.pf.findPath(
-                fromX,
-                fromY,
-                size,
-                plane,
-                rs,
-                collisionStrategy,
-                0,
-                true,
-            );
+            // See clampApproxDestForGraph() above findPathSteps().
+            const restoreApproxDest = this.clampApproxDestForGraph(rs, fromX, fromY);
+            let steps: number;
+            try {
+                steps = this.pf.findPath(
+                    fromX,
+                    fromY,
+                    size,
+                    plane,
+                    rs,
+                    collisionStrategy,
+                    0,
+                    true,
+                );
+            } finally {
+                if (restoreApproxDest) {
+                    rs.approxDestX = restoreApproxDest.x;
+                    rs.approxDestY = restoreApproxDest.y;
+                }
+            }
             const totalWaypoints = steps;
             if (totalWaypoints < 0) return { ok: false, message: "no path" };
             const waypoints: { x: number; y: number }[] = new Array(totalWaypoints);

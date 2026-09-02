@@ -39,3 +39,5 @@ export const DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID = 30033;
 export const DEV_DIG_PANEL_GROUP_ID = 30034;
 /** Reusable player-facing 4x3 visual reward grid (clues, chests, etc.). */
 export const REWARD_DISPLAY_PANEL_GROUP_ID = 30035;
+/** Developer-only world object previewer (opened with ::modelviewer <loc id>). */
+export const DEV_MODEL_VIEWER_PANEL_GROUP_ID = 30036;

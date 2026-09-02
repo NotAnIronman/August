@@ -78,6 +78,7 @@ const FOOD_DEFS: FoodDef[] = [
     { itemId: 385, heal: 20, label: "shark" },
     { itemId: 391, heal: 21, label: "manta ray" },
     { itemId: 11936, heal: 22, label: "dark crab" },
+    { itemId: 29217, heal: 14, label: "cooked bream" },
     {
         itemId: 13441,
         heal: 0,

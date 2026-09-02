@@ -981,6 +981,26 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                 });
                 return result;
             },
+            applyNpcHitsplat: (npc, style, damage, tick, maxHit) => {
+                const currentTick = tick ?? deps.getCurrentTick();
+                const result = deps.combatEffectApplicator.applyNpcHitsplat(
+                    npc,
+                    style,
+                    damage,
+                    currentTick,
+                    maxHit,
+                );
+                deps.activeFrame()?.hitsplats.push({
+                    targetType: "npc",
+                    targetId: npc.id,
+                    damage: result.amount,
+                    style: result.style,
+                    sourceType: "npc",
+                    hpCurrent: result.hpCurrent,
+                    hpMax: result.hpMax,
+                });
+                return result;
+            },
             stunPlayer: (player, ticks) => {
                 player.timers.set(STUN_TIMER, ticks);
             },
@@ -1092,6 +1112,10 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                 }
                 return replacement;
             },
+        },
+        encounters: {
+            ensure: (npc) => deps.encounterManager.ensureForNpc(npc),
+            getByNpcRuntimeId: (npcRuntimeId) => deps.encounterManager.getByNpcRuntimeId(npcRuntimeId),
         },
         collectionLog: {
             trackCollectionLogItem: (player, itemId) =>

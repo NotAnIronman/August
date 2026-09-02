@@ -65,10 +65,9 @@ function slotWidget(componentId: number, parentUid: number, x: number, y: number
         scrollWidth: 0, scrollHeight: 0, isHidden: false, hidden: false, cachedHidden: false,
         rootIndex: -1, cycle: -1, modelFrame: 0, modelFrameCycle: 0, aspectWidth: 1,
         aspectHeight: 1, itemId: -1, itemQuantity: 0, itemQuantityMode: 2, noClickThrough: true,
-        // Rasterize the icon natively at the slot's real size instead of the
-        // classic 36x32-then-GL-stretch, which is what was causing the
-        // pixelated/aliased look at this larger slot size.
-        itemIconRenderWidth: SLOT_SIZE, itemIconRenderHeight: SLOT_SIZE,
+        // Keep the cache's native item-icon canvas. In particular, noted
+        // items compose their banknote layer at this native size; forcing a
+        // square 64px render offsets that layer beyond the reward slot.
     };
 }
 

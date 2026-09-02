@@ -1,5 +1,7 @@
 import type { CombatAttackTraits } from "@server/game/combat/model/CombatAttack";
 import { EncounterRandom } from "@server/game/encounters/EncounterRandom";
+import type { MechanicHandle } from "@server/game/encounters/mechanics/MechanicHandle";
+import { logger } from "@server/observability/logger";
 import type {
     EncounterContext,
     EncounterDefinition,
@@ -9,6 +11,8 @@ import type {
     PlannedEncounterAttack,
 } from "@server/game/encounters/EncounterTypes";
 
+export type MechanicReentrancyPolicy = "replace" | "ignore" | "stack";
+
 export class EncounterRuntime {
     lifecycle: EncounterLifecycle = "idle";
     currentNpcRuntimeId: number;
@@ -16,7 +20,7 @@ export class EncounterRuntime {
     healthCurrent: number;
     readonly healthMax: number;
 
-    private readonly random: EncounterRandom;
+    readonly rng: EncounterRandom;
     private readonly animationRandom: EncounterRandom;
     private readonly cooldownUntil = new Map<string, number>();
     private readonly firedThresholds = new Set<string>();
@@ -26,6 +30,9 @@ export class EncounterRuntime {
     private readonly ownedLocationIds = new Set<string>();
     private plannedAttack?: PlannedEncounterAttack;
     private previousAttackId?: string;
+    private readonly activeMechanics = new Set<MechanicHandle>();
+    private readonly mechanicsByBinding = new Map<string, Set<MechanicHandle>>();
+    private mechanicSerial = 0;
 
     constructor(
         readonly id: string,
@@ -39,7 +46,7 @@ export class EncounterRuntime {
         this.currentNpcTypeId = npcTypeId;
         this.healthMax = Math.max(1, Math.trunc(definition.maxHealth ?? actorMaxHealth));
         this.healthCurrent = this.healthMax;
-        this.random = new EncounterRandom(seed);
+        this.rng = new EncounterRandom(seed);
         // Keep animation variation on an independent deterministic stream so
         // adding a pool never changes which attacks the encounter selects.
         this.animationRandom = new EncounterRandom(seed ^ 0x51f15e5d);
@@ -98,7 +105,7 @@ export class EncounterRuntime {
             (attack) => (attack.priority ?? 0) === highestPriority,
         );
         const selected = prioritized[
-            this.random.weightedIndex(
+            this.rng.weightedIndex(
                 prioritized.map((attack) => {
                     const weight = typeof attack.weight === "function" ? attack.weight(context) : attack.weight;
                     return Math.max(0, Number.isFinite(weight) ? (weight ?? 1) : 0);
@@ -174,6 +181,7 @@ export class EncounterRuntime {
     resetHealth(): void {
         if (this.lifecycle === "disposed") return;
         this.lifecycle = "resetting";
+        this.cancelMechanics();
         this.healthCurrent = this.healthMax;
         this.cooldownUntil.clear();
         this.firedThresholds.clear();
@@ -208,6 +216,59 @@ export class EncounterRuntime {
         this.ownedLocationIds.add(locationId);
     }
 
+    ownMechanic(handle: MechanicHandle): void {
+        this.activeMechanics.add(handle);
+    }
+
+    releaseMechanic(handle: MechanicHandle): void {
+        this.activeMechanics.delete(handle);
+        for (const [bindingId, handles] of this.mechanicsByBinding) {
+            handles.delete(handle);
+            if (handles.size === 0) this.mechanicsByBinding.delete(bindingId);
+        }
+    }
+
+    /**
+     * Starts a named mechanic binding with explicit re-entrancy behavior.
+     * Mechanics themselves remain independent factories; this is the small
+     * policy layer content uses when a trigger can fire again while active.
+     */
+    runMechanic(
+        bindingId: string,
+        policy: MechanicReentrancyPolicy,
+        create: () => MechanicHandle,
+    ): MechanicHandle | undefined {
+        const key = bindingId.trim();
+        if (!key) throw new Error("Encounter mechanic binding id cannot be empty.");
+        const existing = [...(this.mechanicsByBinding.get(key) ?? [])].filter(
+            (handle) => handle.isActive,
+        );
+        if (policy === "ignore" && existing.length > 0) return existing[0];
+        if (policy === "replace") {
+            for (const handle of existing) handle.cancel();
+        }
+        let handle: MechanicHandle;
+        try {
+            handle = create();
+        } catch (error) {
+            logger.warn(`[encounter] mechanic binding '${key}' failed for ${this.id}`, error);
+            return undefined;
+        }
+        if (!handle.isActive) return handle;
+        let handles = this.mechanicsByBinding.get(key);
+        if (!handles) {
+            handles = new Set();
+            this.mechanicsByBinding.set(key, handles);
+        }
+        handles.add(handle);
+        return handle;
+    }
+
+    nextMechanicSerial(): number {
+        this.mechanicSerial += 1;
+        return this.mechanicSerial;
+    }
+
     snapshotOwnedResources(): EncounterOwnedResources {
         return {
             npcRuntimeIds: new Set(this.ownedNpcRuntimeIds),
@@ -220,12 +281,25 @@ export class EncounterRuntime {
     dispose(): EncounterOwnedResources {
         const resources = this.snapshotOwnedResources();
         this.lifecycle = "disposed";
+        this.cancelMechanics();
         this.plannedAttack = undefined;
         this.ownedNpcRuntimeIds.clear();
         this.ownedTaskIds.clear();
         this.ownedHazardIds.clear();
         this.ownedLocationIds.clear();
         return resources;
+    }
+
+    private cancelMechanics(): void {
+        for (const mechanic of [...this.activeMechanics]) {
+            try {
+                mechanic.cancel();
+            } catch {
+                // Individual mechanics must not be able to block lifecycle cleanup.
+            }
+        }
+        this.activeMechanics.clear();
+        this.mechanicsByBinding.clear();
     }
 
     private createContext(input: {

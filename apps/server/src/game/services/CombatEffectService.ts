@@ -499,6 +499,7 @@ export class CombatEffectService {
     }
 
     rollNpcDrops(npc: NpcState, eligibility: DropEligibility | undefined): PendingNpcDrop[] {
+        if (npc.suppressDrops) return [];
         const service = this.getNpcDropRollService();
         if (!service) return [];
         const recipients: DropRecipient[] = [];

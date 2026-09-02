@@ -12,7 +12,6 @@ import {
     syncInstanceGravePresentation,
 } from "@server/game/death/InstanceGravePresentation";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
-import { syncCollectionDisplayVarps } from "@server/game/collectionlog";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { PRAYER_RECHARGE_SOUND_ID } from "@august/osrs-engine/prayer/prayers";
 import { LockState } from "@server/game/model/LockState";
@@ -27,64 +26,6 @@ const lastBandosAltarUse = new WeakMap<PlayerState, number>();
 const BANDOS_STRONGHOLD_OUTSIDE = Object.freeze({ x: 2851, y: 5333, level: 2 });
 const BANDOS_STRONGHOLD_INSIDE = Object.freeze({ x: 2850, y: 5333, level: 2 });
 const BANDOS_DOOR_HAMMERING_SEQ = 898;
-const GENERAL_GRAARDOR_NPC_TYPE_ID = 2215;
-/** "General Graardor" category struct id in data/catalogs/collection-log.json. */
-const GENERAL_GRAARDOR_COLLECTION_LOG_STRUCT_ID = 487;
-const GENERAL_GRAARDOR_KC_MILESTONE_INTERVAL = 100;
-
-// eventBus fires npc:death with only a killerPlayerId, not a PlayerState — this
-// mirrors the same known-players-by-id tracking pattern already used by other
-// content modules (e.g. the Vampyre Slayer and Desert Treasure quest death
-// handlers) since the killer may have logged out by the time this runs.
-const knownPlayersById = new Map<number, PlayerState>();
-let bandosKillTrackingRegistered = false;
-
-/**
- * Tracks General Graardor kills the same way collection-log-tracked drops
- * are already reported: increments the boss's persisted collection log kill
- * count, syncs it live to the client if the log happens to be open, posts a
- * chat message with the running total, and calls out every 100th kill.
- */
-function registerGraardorKillTracking(services: ScriptServices): void {
-    if (bandosKillTrackingRegistered) return;
-    bandosKillTrackingRegistered = true;
-
-    const eventBus = services.system.eventBus;
-    if (!eventBus) return;
-
-    eventBus.on("player:login", ({ player }) => knownPlayersById.set(player.id, player));
-    eventBus.on("player:logout", ({ playerId }) => knownPlayersById.delete(playerId));
-
-    eventBus.on("npc:death", ({ npcTypeId, killerPlayerId }) => {
-        if (npcTypeId !== GENERAL_GRAARDOR_NPC_TYPE_ID || killerPlayerId === undefined) return;
-        const player = knownPlayersById.get(killerPlayerId);
-        if (!player) return;
-
-        player.collectionLog.incrementCategoryStat(GENERAL_GRAARDOR_COLLECTION_LOG_STRUCT_ID);
-        const killCount =
-            player.collectionLog.getCategoryStat(GENERAL_GRAARDOR_COLLECTION_LOG_STRUCT_ID)
-                ?.count1 ?? 0;
-
-        // Live-update the collection log UI if the player happens to have it
-        // open — a no-op otherwise, same as trackCollectionLogItem's pattern.
-        const displayVarps = syncCollectionDisplayVarps(player);
-        for (const [varpIdRaw, valueRaw] of Object.entries(displayVarps)) {
-            services.variables.queueVarp(player.id, Number(varpIdRaw), valueRaw | 0);
-        }
-
-        services.messaging.sendGameMessage(
-            player,
-            `Your General Graardor kill count is: ${killCount}.`,
-        );
-        if (killCount > 0 && killCount % GENERAL_GRAARDOR_KC_MILESTONE_INTERVAL === 0) {
-            services.messaging.sendGameMessage(
-                player,
-                `Congratulations! You have defeated General Graardor ${killCount} times!`,
-            );
-        }
-    });
-}
-
 function isBandosDoorHammer(itemId: number, services: ScriptServices): boolean {
     const item = services.data.getItemDefinition(itemId);
     if (!item || item.noted) return false;
@@ -188,6 +129,7 @@ function registerBandosEncounters(): void {
                 name: "General Graardor",
                 npcTypeId: 2215,
             },
+            killcount: { name: "General Graardor", collectionLogStructId: 487 },
             movement: {
                 wanderRadius: 10,
                 aggressionRadius: 15,
@@ -488,7 +430,6 @@ export function reclaimInstanceGrave({
 
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     registerBandosEncounters();
-    registerGraardorKillTracking(_services);
     // Remove the legacy shared reclaim loc during hot reloads. Owner-scoped
     // graves are created from persistent storage by the death/login flow.
     _services.location.clearTemporaryLoc(

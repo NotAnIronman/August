@@ -354,9 +354,22 @@ export class MovementService {
         return total;
     }
 
-    computeRunEnergyDrainUnits(weightKg: number, _agilityLevel: number): number {
+    /**
+     * Live OSRS "Run Energy Changes" rework formula (the update this was
+     * missing): drain = (60 + (67 * Weight / 64)) * (1 - Agility / 300).
+     * Before this, agility only affected regen, not drain, matching the
+     * pre-rework formula 67 + (67 * Weight / 64) - which is what this
+     * function used to compute regardless of the ignored agility
+     * parameter (previously named `_agilityLevel`). Missing the agility
+     * term here means drain never lightens as Agility increases, which
+     * matches "losing energy faster than I can gain it" - especially at
+     * higher Agility levels, where the real game drains up to ~33% slower.
+     */
+    computeRunEnergyDrainUnits(weightKg: number, agilityLevel: number): number {
         const cappedWeight = Math.min(64, Math.max(0, weightKg));
-        return 67 + Math.floor((67 * cappedWeight) / 64);
+        const clampedAgility = Math.max(1, Math.min(99, agilityLevel));
+        const drain = (60 + (67 * cappedWeight) / 64) * (1 - clampedAgility / 300);
+        return Math.max(0, Math.floor(drain));
     }
 
     computeRunEnergyRegenUnits(
