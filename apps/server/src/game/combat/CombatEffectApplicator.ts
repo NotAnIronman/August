@@ -187,6 +187,23 @@ export class CombatEffectApplicator {
         const current = npc.getHitpoints();
         const max = npc.getMaxHitpoints();
 
+        // Healing is an internal state change, not an attack. Boss mechanics
+        // must be able to heal and show their green hitsplat while the NPC is
+        // protected from incoming player damage during a special phase.
+        if (effect.type === HitEffectType.Heal) {
+            const healAmount = amount > 0 ? amount : (effect.defaultAmount ?? 0);
+            if (healAmount <= 0) {
+                return { style: HITMARK_HEAL, amount: 0, hpCurrent: current, hpMax: max };
+            }
+            const next = npc.heal(healAmount);
+            return {
+                style: HITMARK_HEAL,
+                amount: Math.max(0, next.current - current),
+                hpCurrent: next.current,
+                hpMax: next.max,
+            };
+        }
+
         // Followers are cosmetic companions, not combat participants.
         if (!npc.isCombatTargetable(tick)) {
             return { style: HITMARK_BLOCK, amount: 0, hpCurrent: current, hpMax: max };
@@ -196,21 +213,6 @@ export class CombatEffectApplicator {
             case HitEffectType.Block:
             case HitEffectType.PrayerSplash:
                 return { style: HITMARK_BLOCK, amount: 0, hpCurrent: current, hpMax: max };
-
-            case HitEffectType.Heal: {
-                const healAmount = amount > 0 ? amount : (effect.defaultAmount ?? 0);
-                if (healAmount <= 0) {
-                    return { style: HITMARK_HEAL, amount: 0, hpCurrent: current, hpMax: max };
-                }
-                const next = npc.heal(healAmount);
-                const healed = Math.max(0, next.current - current);
-                return {
-                    style: HITMARK_HEAL,
-                    amount: healed,
-                    hpCurrent: next.current,
-                    hpMax: next.max,
-                };
-            }
 
             case HitEffectType.Poison: {
                 const potency = amount > 0 ? amount : (effect.defaultAmount ?? 1);
