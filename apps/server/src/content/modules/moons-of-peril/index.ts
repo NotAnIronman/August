@@ -59,10 +59,12 @@ const specialChildOwners = new Map<number, NpcState>();
 // the map-data ID before the renderer resolves a loc's live appearance.
 const BRAZIER = 51312;
 const BRAZIER_VISIBLE_VARIANTS = [52992, 52993] as const;
-const UNLIT_BRAZIERS = [51313, 51314] as const;
+// 51051 is the actual cache loc for an unlit brazier (with a Light action).
+// It is the morph supplied by the client inspector for the burning 52992.
+const UNLIT_BRAZIERS = [51051] as const;
 const BLUE_BRAZIERS = [
-    { tile: { x: 1427, y: 9680 }, unlitId: 51313 },
-    { tile: { x: 1453, y: 9680 }, unlitId: 51314 },
+    { tile: { x: 1427, y: 9680 }, unlitId: 51051 },
+    { tile: { x: 1453, y: 9680 }, unlitId: 51051 },
 ] as const;
 
 function glyphTile(npc: NpcState, state: GlyphState): Tile {
