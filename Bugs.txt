@@ -1,0 +1,36 @@
+[OsrsClient] Loc add: 52992 at (1445, 9658, 0) shape=10 rot=0
+locs.ts:486 [WebGLRenderer] Loc add: 52992 at (1445, 9658, 0) shape=10 -> map (22, 150)
+inboundUi.ts:218 [ServerConnection] recv widget Object
+OsrsClient.ts:2184 [OsrsClient] widget event Object
+OsrsClient.ts:2274 [OsrsClient] Server opening sub-interface: group 30036 into widget 10551312 (0xa10010)
+inboundUi.ts:218 [ServerConnection] recv widget Object
+OsrsClient.ts:2184 [OsrsClient] widget event Object
+OsrsClient.ts:2665 [OsrsClient] run_script: scriptId=227, args= Array(2)
+inboundUi.ts:218 [ServerConnection] recv widget Object
+OsrsClient.ts:2184 [OsrsClient] widget event Object
+inboundUi.ts:218 [ServerConnection] recv widget Object
+OsrsClient.ts:2184 [OsrsClient] widget event Object
+WidgetInputBridge.ts:105 [ui-input] unchanged input processed because targets changed count=1 targets=44 targetVersion=5 prevTargetVersion=4 mouse=896,558 clickMode2=0 clickMode3=0
+SdMapDataLoader.ts:1308 [SdMapDataLoader] Received 1 loc overrides for map (22,150)
+SdMapDataLoader.ts:1346 [SdMapDataLoader] Processing override: 1445,9658,0,-1 -> 0
+SdMapDataLoader.ts:1362 [SdMapDataLoader] Converted world (1445,9658) to scene (43,64), baseX=1402, baseY=9594
+SceneBuilder.ts:131 [SceneBuilder] setLocOverride: key="43,64,0,-1" -> {id: 0, rot: unchanged, move: unchanged, seq: unchanged}
+SdMapDataLoader.ts:1495 build scene 22,150: 49.39599609375 ms
+SdMapDataLoader.ts:1572 animated locs: 46
+SdMapDataLoader.ts:1779 draw ranges: 0, alpha: 0 22 150
+SdMapDataLoader.ts:1803 draw ranges lod: 0, alpha: 0 22 150
+SdMapDataLoader.ts:1827 draw ranges interact: 0 22 150
+SdMapDataLoader.ts:2082 load map 22,150: 522.576904296875 ms
+SdMapDataLoader.ts:2168 total bytes: 8889401 22,150 Set(0) 0
+render.ts:1610 [WebGLOsrsRenderer] mapsToLoad applying: mapX=22 mapY=150 verts=0
+inboundUi.ts:218 [ServerConnection] recv widget Object
+OsrsClient.ts:2184 [OsrsClient] widget event Object
+OsrsClient.ts:2665 [OsrsClient] run_script: scriptId=3970, args= Array(3)
+inboundUi.ts:218 [ServerConnection] recv widget Object
+OsrsClient.ts:2184 [OsrsClient] widget event Object
+OsrsClient.ts:2665 [OsrsClient] run_script: scriptId=3970, args= Array(3)
+WidgetManager.ts:484 [WidgetManager] Screen size: 1920x999
+WidgetsOverlay.ts:193 WidgetsOverlay: Resized to 1920x999
+WidgetManager.ts:484 [WidgetManager] Screen size: 1376x999
+WidgetsOverlay.ts:193 WidgetsOverlay: Resized to 1376x999
+WidgetInputBridge.ts:105 [ui-input] unchanged input processed because targets changed count=1 targets=45 targetVersion=8 prevTargetVersion=7 mouse=1121,946 clickMode2=0 clickMode3=0

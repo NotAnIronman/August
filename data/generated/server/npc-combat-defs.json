@@ -3099,7 +3099,10 @@
     },
     "13011": {
       "anims": {
-        "melee": 11001,
+        "melee": [
+          11001,
+          11004
+        ],
         "attack": 11004,
         "death": 11005,
         "specials": [
@@ -3107,8 +3110,12 @@
           11000
         ],
         "namedSpecials": {
-          "idle": 10995
-        }
+          "idle": 10995,
+          "spawns": 10997
+        },
+        "spawn": 10996,
+        "ranged": 11004,
+        "magic": 11004
       }
     },
     "13012": {
@@ -3117,17 +3124,26 @@
           11017
         ],
         "block": 11018,
-        "melee": 11022,
+        "melee": [
+          11022,
+          11023
+        ],
         "attack": 11023,
         "death": 11024,
         "namedSpecials": {
           "idle": 11016
-        }
+        },
+        "spawn": 11016,
+        "ranged": 11023,
+        "magic": 11023
       }
     },
     "13013": {
       "anims": {
-        "melee": 10987,
+        "melee": [
+          10987,
+          11004
+        ],
         "attack": 11004,
         "death": 11005,
         "specials": [

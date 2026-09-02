@@ -96,8 +96,10 @@
 .hud.left-bottom {
     position: absolute;
     left: 0;
-    bottom: 0;
-    padding: 10px;
+    /* Numpad1/2 debug stats panel was sitting directly on top of the chat
+     * box (both anchor to the bottom-left corner). Pushed up clear of it. */
+    bottom: 170px;
+    padding: 0px;
     z-index: 10;
 }
 .hud.right-top {
