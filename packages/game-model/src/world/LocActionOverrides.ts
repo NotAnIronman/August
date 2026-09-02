@@ -42,6 +42,13 @@ export const LOC_ACTION_OVERRIDES: Readonly<Record<number, readonly (string | nu
         51372: Object.freeze(["Start solo"]),
         51373: Object.freeze(["Start solo"]),
         51374: Object.freeze(["Start solo"]),
+        // Blue Moon braziers morph visually during Frost Storm, but the
+        // interaction packet retains the authored/controller loc ID. Keep a
+        // stable Light action on each source so the server can resolve the
+        // per-instance storm state from the exact clicked tile.
+        51312: Object.freeze(["Light"]),
+        52992: Object.freeze(["Light"]),
+        52993: Object.freeze(["Light"]),
     });
 
 export function resolveLocActions(
