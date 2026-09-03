@@ -150,6 +150,16 @@ function entryOptions(player: PlayerState, services: ScriptServices): void {
     services.dialog.openDialogOptions(player, { id: "araxxor-entry", title: "Enter Araxxor's lair", options: ["Enter solo", "Create a party instance", "Join a party instance"], modal: true, onSelect: choice => { if (choice === 0) createRoom(player, services, "solo"); else if (choice === 1) createRoom(player, services, "party"); else if (choice === 2) showJoinOptions(player, services); } });
 }
 
+function peek({ player, services }: LocInteractionEvent): void {
+    const room = services.instances.get(player.id);
+    const count = room?.definitionId === INSTANCE_ID
+        ? room.memberPlayerIds.length
+        : services.instances.listJoinable(INSTANCE_ID).reduce((total, entry) => total + entry.memberPlayerIds.length, 0);
+    services.messaging.sendGameMessage(player, count > 0
+        ? `You can see ${count} adventurer${count === 1 ? "" : "s"} in an Araxxor lair.`
+        : "You cannot see anyone waiting in a joinable Araxxor lair.");
+}
+
 function roomTiles(): Array<{ x: number; y: number; level: number }> {
     const tiles: Array<{ x: number; y: number; level: number }> = [];
     for (let x = ROOM.minX + 1; x < ROOM.maxX; x += 1) for (let y = ROOM.minY + 1; y < ROOM.maxY; y += 1) tiles.push({ x, y, level: 0 });
@@ -223,6 +233,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     // option. Keep the id-specific fallback in addition to named actions.
     registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services: eventServices }) => entryOptions(player, eventServices));
     for (const action of ["enter", "open", "climb", "enter solo"]) registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services: eventServices }) => action === "enter solo" ? createRoom(player, eventServices, "solo") : entryOptions(player, eventServices), action);
+    registry.registerLocInteraction(ENTRANCE_LOC_ID, peek, "peek");
     registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services: eventServices }) => createRoom(player, eventServices, "party"), "enter party");
     registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services: eventServices }) => showJoinOptions(player, eventServices), "join party");
     for (const action of ["quick-escape", "escape", "exit", "climb-up"]) registry.registerLocInteraction(ESCAPE_LOC_ID, escape, action);
