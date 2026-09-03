@@ -43,6 +43,7 @@ import type { RuneDataProvider } from "@server/game/data/RuneDataProvider";
 import type { GameEventBus } from "@server/game/events/GameEventBus";
 import type { OwnedItemLocation } from "@server/game/items/playerItemOwnership";
 import type { NpcSpawnConfig, NpcState } from "@server/game/npc";
+import type { PendingNpcDrop } from "@server/game/npcManager";
 import type { EncounterRuntime } from "@server/game/encounters/EncounterRuntime";
 import type { PlayerState } from "@server/game/player";
 import type { QueueTask, TaskGenerator } from "@server/game/model/queue";
@@ -937,6 +938,9 @@ export interface CombatFacade {
     ): { ok: boolean; reason?: string };
     clearPlayerFaceTarget(player: PlayerState): void;
     getDropEligibility(npc: NpcState): DropEligibility;
+    /** Rolls an NPC's normal table without spawning it. Encounter corpses use
+     * this to defer rewards until the player selects their loot option. */
+    rollNpcDrops(npc: NpcState, eligibility: DropEligibility | undefined): PendingNpcDrop[];
     clearNpcDamageRecords(npc: NpcState): void;
     getLastAttacker(actor: Actor, currentTick: number): Actor | null;
     isMultiCombat(x: number, y: number, plane: number): boolean;

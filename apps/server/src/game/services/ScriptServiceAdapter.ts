@@ -44,6 +44,7 @@ import type { WidgetDialogHandler } from "@server/game/actions/handlers/WidgetDi
 import { applyAutocastState, clearAutocastState } from "@server/game/combat/AutocastState";
 import { hasNpcLineOfSightToPlayer } from "@server/game/combat/CombatAction";
 import type { CombatEffectApplicator } from "@server/game/combat/CombatEffectApplicator";
+import type { CombatEffectService } from "@server/game/services/CombatEffectService";
 import type { DamageTracker } from "@server/game/combat/DamageTracker";
 import type { MultiCombatSystem } from "@server/game/combat/MultiCombatZones";
 import { getEmoteSeq } from "@server/game/emotes";
@@ -138,6 +139,8 @@ export interface ScriptServiceAdapterDeps {
     inventoryActionHandler: InventoryActionHandler;
     effectDispatcher: EffectDispatcher;
     combatEffectApplicator: CombatEffectApplicator;
+    /** Deferred until the combat service has completed its construction. */
+    combatEffectService?: CombatEffectService;
     combatActionHandler?: CombatActionHandler;
     damageTracker: DamageTracker;
     multiCombatSystem: MultiCombatSystem;
@@ -1012,6 +1015,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                 } catch {}
             },
             getDropEligibility: (npc) => deps.damageTracker.getDropEligibility(npc),
+            rollNpcDrops: (npc, eligibility) =>
+                deps.combatEffectService?.rollNpcDrops(npc, eligibility) ?? [],
             clearNpcDamageRecords: (npc) => deps.damageTracker.clearNpc(npc),
             getLastAttacker: (actor, currentTick) =>
                 deps.multiCombatSystem.getLastAttacker(actor, currentTick),

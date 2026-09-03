@@ -96,6 +96,13 @@ const MULTI_COMBAT_ZONES: CombatZone[] = [
         minX: 2848, minY: 5152, maxX: 2943, maxY: 5247,
         plane: 0, isMultiCombat: true, name: "Ancient Prison",
     },
+    // The Araxxor cave is instanced but preserves its native coordinates in
+    // every private world view. This rectangle therefore makes both the boss
+    // and summoned araxytes multi-combat without leaking to unrelated maps.
+    {
+        minX: 3624, minY: 9800, maxX: 3647, maxY: 9831,
+        plane: 0, isMultiCombat: true, name: "Araxxor Lair",
+    },
 
     // Corporeal Beast
     {

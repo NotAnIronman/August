@@ -1,13 +1,16 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { AttackType } from "@server/game/combat/AttackType";
 import { HITMARK_DAMAGE } from "@server/game/combat/HitEffects";
+import { VARP_COLLECTION_CATEGORY_COUNT } from "@server/game/collectionlog";
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
 import { spawnAdds, spawnFloorHazard, type MechanicHandle } from "@server/game/encounters/mechanics";
 import type { NpcState } from "@server/game/npc";
+import type { PendingNpcDrop } from "@server/game/npcManager";
 import type { PlayerState } from "@server/game/player";
 import {
     NpcAttackDecision,
+    NpcPreDeathDecision,
     type IScriptRegistry,
     type LocInteractionEvent,
     type NpcAttackEvent,
@@ -35,6 +38,12 @@ const ROOM = Object.freeze({ minX: 3626, maxX: 3644, minY: 9803, maxY: 9828 });
 // A cache loc tell is deliberately used for acid. It remains visible for the
 // whole warning window even on caches whose spot graphic is an empty emitter.
 const ACID_TELL_LOC_ID = 56358;
+const COAGULATED_VENOM_ID = 29781;
+const NID_ID = 29836;
+const NID_VARIANT_ID = 29837;
+const ELITE_CLUE_ID = 19835;
+const TICK_MS = Math.max(1, Number(process.env.TICK_MS) || 600);
+const VENOM_TIME_LIMIT_TICKS = Math.floor((75 * 1000) / TICK_MS);
 const ANIM = Object.freeze({
     idle: 11473, walk: 11474, run: 11475, ranged: 11476, acidDrip: 11477,
     acidSpray: 11478, magic: 11479, melee: 11480, death: 11481, spawn: 11482,
@@ -46,6 +55,7 @@ const ANIM = Object.freeze({
 
 type Special = "acid-ball" | "acid-splatter" | "acid-drip";
 interface AraxxorState {
+    startedAt: number;
     normalAttacks: number;
     special: Special;
     enraged: boolean;
@@ -53,12 +63,19 @@ interface AraxxorState {
     activeAdds?: MechanicHandle;
 }
 const states = new WeakMap<NpcState, AraxxorState>();
+interface AraxxorCorpse {
+    readonly owner: PlayerState;
+    readonly drops: readonly PendingNpcDrop[];
+    readonly venomEligible: boolean;
+    resolved: boolean;
+}
+const corpses = new WeakMap<NpcState, AraxxorCorpse>();
 
 function stateFor(npc: NpcState, services: ScriptServices): AraxxorState {
     let state = states.get(npc);
     if (!state) {
         const special = (["acid-ball", "acid-splatter", "acid-drip"] as const)[services.encounters.ensure(npc)?.rng.nextInt(3) ?? 0]!;
-        state = { normalAttacks: 0, special, enraged: false, nextAddAt: 12 };
+        state = { startedAt: services.system.getCurrentTick(), normalAttacks: 0, special, enraged: false, nextAddAt: 12 };
         states.set(npc, state);
     }
     return state;
@@ -70,7 +87,14 @@ function inLair(player: PlayerState, services: ScriptServices): boolean {
 
 function slayerEligible(player: PlayerState): boolean {
     const skill = player.skillSystem.getSkill(SkillId.Slayer);
-    return skill.baseLevel + skill.boost >= SLAYER_LEVEL;
+    if (skill.baseLevel + skill.boost < SLAYER_LEVEL) return false;
+    const task = player.skillSystem.getSlayerTaskInfo(player.combat.slayerTask);
+    if (!task.onTask) return false;
+    const assigned = [task.monsterName, ...(task.monsterSpecies ?? [])]
+        .map(value => String(value ?? "").trim().toLowerCase())
+        .filter(Boolean);
+    // Araxxor may be fought on an Araxyte/spider task or a direct boss task.
+    return assigned.some(name => name.includes("araxyte") || name.includes("spider") || name === "araxxor");
 }
 
 function registerEncounters(): void {
@@ -83,14 +107,16 @@ function registerEncounters(): void {
             movement: { wanderRadius: 5, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
             immunities: { poison: true, venom: true },
             attacks: [
-                { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 6, maxHit: 31, animationId: ANIM.melee },
-                { id: "magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 6, maxHit: 28, animationId: ANIM.magic, effects: { poisonDamage: 8 } },
-                { id: "enraged-melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 4, maxHit: 31, animationId: ANIM.enragedMelee },
-                { id: "enraged-magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 28, animationId: ANIM.slowRanged, effects: { poisonDamage: 8 } },
+                { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 6, maxHit: 38, animationId: ANIM.melee, effects: { poisonDamage: 8 } },
+                { id: "magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 6, maxHit: 21, animationId: ANIM.magic, effects: { poisonDamage: 8 } },
+                { id: "ranged", type: AttackType.Ranged, rangeTiles: 10, preferredDistance: 1, speedTicks: 6, maxHit: 34, animationId: ANIM.ranged, effects: { poisonDamage: 8 } },
+                { id: "enraged-melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 4, maxHit: 38, animationId: ANIM.enragedMelee, effects: { poisonDamage: 8 } },
+                { id: "enraged-magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 21, animationId: ANIM.slowRanged, effects: { poisonDamage: 8 } },
+                { id: "enraged-ranged", type: AttackType.Ranged, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 34, animationId: ANIM.ranged, effects: { poisonDamage: 8 } },
             ],
             phases: [
-                { id: "normal", startsAtHealthPercent: 100, attackIds: ["melee", "magic"] },
-                { id: "enraged", startsAtHealthPercent: 25, attackIds: ["enraged-melee", "enraged-magic"] },
+                { id: "normal", startsAtHealthPercent: 100, attackIds: ["melee", "magic", "ranged"] },
+                { id: "enraged", startsAtHealthPercent: 25, attackIds: ["enraged-melee", "enraged-magic", "enraged-ranged"] },
             ],
         });
     }
@@ -109,7 +135,7 @@ function registerEncounters(): void {
 }
 
 function createRoom(player: PlayerState, services: ScriptServices, access: "solo" | "party"): void {
-    if (!slayerEligible(player)) { services.messaging.sendGameMessage(player, "You need a Slayer level of 92 to fight Araxxor."); return; }
+    if (!slayerEligible(player)) { services.messaging.sendGameMessage(player, "You need level 92 Slayer and an active araxyte, spider, or Araxxor task to fight Araxxor."); return; }
     if (services.instances.get(player.id)) { services.messaging.sendGameMessage(player, "You are already inside an instance."); return; }
     // Native room bounds are 3626..3644, 9803..9828. The extra border chunks
     // preserve wall collision and prevent the private scene from clipping.
@@ -119,11 +145,12 @@ function createRoom(player: PlayerState, services: ScriptServices, access: "solo
     const room = services.instances.create(player, {
         definitionId: INSTANCE_ID, access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party",
         templateChunks, destination: INSIDE, exit: EXIT, grave: GRAVE,
-        npcs: [{ id: ARAXXOR_ID, offsetX: BOSS_TILE.x - baseX, offsetY: BOSS_TILE.y - baseY, level: 0, size: 3, attackSpeed: 6, isAggressive: true, aggressionRadius: 30, wanderRadius: 5 }],
+        npcs: [{ id: ARAXXOR_ID, offsetX: BOSS_TILE.x - baseX, offsetY: BOSS_TILE.y - baseY, level: 0, size: 7, attackSpeed: 6, isAggressive: true, aggressionRadius: 30, wanderRadius: 5 }],
     });
     if (!room) { services.messaging.sendGameMessage(player, "Araxxor's lair is unavailable right now."); return; }
     const boss = services.npc.findNearbyNpc(player, ARAXXOR_ID, 40);
     if (boss) {
+        boss.suppressDefenceAnimation = true;
         services.npc.queueNpcSeq(boss, ANIM.spawn);
         boss.onHealthChange((change) => {
             const state = stateFor(boss, services);
@@ -227,6 +254,95 @@ function escape({ player, services }: LocInteractionEvent): void {
     else services.movement.teleportPlayer(player, INSIDE.x, INSIDE.y, INSIDE.level);
 }
 
+function recordAraxxorKill(player: PlayerState, services: ScriptServices): void {
+    player.collectionLog.incrementCategoryStat(995);
+    const killcount = player.collectionLog.getCategoryStat(995)?.count1 ?? 0;
+    services.variables.queueVarp?.(player.id, VARP_COLLECTION_CATEGORY_COUNT, killcount);
+    services.messaging.sendGameMessage(player, `Araxxor killcount : ${killcount}`);
+    if (killcount > 0 && killcount % 100 === 0) {
+        services.messaging.sendGameMessage(player, `Congratulations! You reached the ${killcount} kills Milestone!`);
+    }
+}
+
+function spawnCorpseDrop(corpse: NpcState, services: ScriptServices, drop: PendingNpcDrop): void {
+    services.groundItems.spawn(drop.itemId, drop.quantity, drop.tile, {
+        ownerId: drop.ownerId,
+        privateTicks: drop.isWilderness ? 0 : 100,
+        isMonsterDrop: true,
+        worldViewId: drop.worldViewId ?? corpse.worldViewId,
+        isWilderness: drop.isWilderness,
+    });
+}
+
+function awardNid(player: PlayerState, corpse: NpcState, services: ScriptServices, chance: number): void {
+    if (player.collectionLog.hasItem(NID_ID) || player.collectionLog.hasItem(NID_VARIANT_ID) || Math.random() >= chance) return;
+    const added = player.items.addItem(NID_ID, 1, { assureFullInsertion: false }).completed;
+    if (added < 1) {
+        services.groundItems.spawn(NID_ID, 1, { x: corpse.tileX, y: corpse.tileY, level: corpse.level }, {
+            ownerId: player.id, privateTicks: 100, isMonsterDrop: true, worldViewId: corpse.worldViewId,
+        });
+    }
+    services.collectionLog.trackCollectionLogItem(player, NID_ID);
+    services.messaging.sendGameMessage(player, "You have a funny feeling like you're being followed.");
+}
+
+function finishCorpse(corpse: NpcState, services: ScriptServices): void {
+    const state = corpses.get(corpse);
+    if (state) state.resolved = true;
+    services.npc.removeNpc(corpse.id);
+}
+
+function harvestCorpse({ player, npc, services }: { player: PlayerState; npc: NpcState; services: ScriptServices }): void {
+    const state = corpses.get(npc);
+    if (!state || state.owner.id !== player.id || state.resolved) return;
+    for (const drop of state.drops) spawnCorpseDrop(npc, services, drop);
+    if (state.venomEligible && !player.collectionLog.hasItem(COAGULATED_VENOM_ID)) {
+        spawnCorpseDrop(npc, services, { itemId: COAGULATED_VENOM_ID, quantity: 1, tile: { x: npc.tileX, y: npc.tileY, level: npc.level }, ownerId: player.id, isMonsterDrop: true, isWilderness: false, worldViewId: npc.worldViewId });
+    }
+    awardNid(player, npc, services, 1 / 3000);
+    services.messaging.sendGameMessage(player, "You harvest Araxxor's corpse.");
+    finishCorpse(npc, services);
+}
+
+function destroyCorpse({ player, npc, services }: { player: PlayerState; npc: NpcState; services: ScriptServices }): void {
+    const state = corpses.get(npc);
+    if (!state || state.owner.id !== player.id || state.resolved) return;
+    services.dialog.openDialogOptions(player, {
+        id: "araxxor-destroy-corpse", title: "Destroy Araxxor's corpse?",
+        options: ["Yes - sacrifice normal loot", "No"], modal: true,
+        onSelect: choice => {
+            if (choice !== 0 || state.resolved) return;
+            // Destroy keeps the elite-clue roll but forfeits every normal and
+            // unique reward; Nid's independent chance doubles to 1/1,500.
+            for (const drop of state.drops) if (drop.itemId === ELITE_CLUE_ID) spawnCorpseDrop(npc, services, drop);
+            awardNid(player, npc, services, 1 / 1500);
+            services.messaging.sendGameMessage(player, "You destroy Araxxor's corpse, sacrificing its normal loot.");
+            finishCorpse(npc, services);
+        },
+    });
+}
+
+function becomeCorpse(event: Parameters<IScriptRegistry["registerNpcPreDeath"]>[1] extends (event: infer E) => unknown ? E : never): NpcPreDeathDecision | void {
+    if (event.npc.typeId !== ARAXXOR_ID || !event.killer || !inLair(event.killer, event.services)) return;
+    const fight = stateFor(event.npc, event.services);
+    const drops = event.services.combat.rollNpcDrops(event.npc, event.services.combat.getDropEligibility(event.npc))
+        // Coagulated venom and Nid are governed by the corpse choice/timer,
+        // not by a generic death roll.
+        .filter(drop => drop.itemId !== COAGULATED_VENOM_ID && drop.itemId !== NID_ID && drop.itemId !== NID_VARIANT_ID);
+    const corpse = event.services.npc.replaceNpc(event.npc, DEAD_ARAXXOR_ID, 500);
+    if (!corpse) return;
+    corpse.isUnattackable = true;
+    corpse.suppressDefenceAnimation = true;
+    corpses.set(corpse, {
+        owner: event.killer,
+        drops,
+        venomEligible: event.tick - fight.startedAt <= VENOM_TIME_LIMIT_TICKS,
+        resolved: false,
+    });
+    recordAraxxorKill(event.killer, event.services);
+    return NpcPreDeathDecision.Prevent;
+}
+
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
     registerEncounters();
     // Some cache definitions expose the cave entrance as an unnamed first
@@ -240,10 +356,9 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     registry.registerLocInteraction(ESCAPE_LOC_ID, escape);
     registry.registerNpcAttack(ARAXXOR_ID, araxxorAttack);
     registry.registerNpcAttack(RUPTURA_ID, rupturaAttack);
+    registry.registerNpcPreDeath(ARAXXOR_ID, becomeCorpse);
+    registry.registerNpcScript({ npcId: DEAD_ARAXXOR_ID, option: "harvest", handler: harvestCorpse });
+    registry.registerNpcScript({ npcId: DEAD_ARAXXOR_ID, option: "destroy", handler: destroyCorpse });
     // Keep the encounter hostile in a party even when its original target
     // leaves: the generic aggressive target selector picks another member.
-    services.combat.registerOnNpcKilled?.((killer, npc) => {
-        if (npc.typeId !== ARAXXOR_ID || !inLair(killer, services)) return;
-        services.messaging.sendGameMessage(killer, "Araxxor collapses into a pool of acid.");
-    });
 }

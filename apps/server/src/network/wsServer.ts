@@ -906,6 +906,7 @@ export class WSServer {
             effectDispatcher: undefined!, // Deferred: wired after creation
             combatActionHandler: undefined, // Deferred: wired after creation
             combatEffectApplicator: combatEffectApplicator,
+            combatEffectService: undefined, // Deferred: wired after creation
             damageTracker: damageTracker,
             multiCombatSystem: multiCombatSystem,
             getPlayers: () => this.players,
@@ -1286,6 +1287,7 @@ export class WSServer {
         this.scriptAdapterDeps.followerCombatManager = this.followerCombatManager;
         this.scriptAdapterDeps.inventoryActionHandler = this.inventoryActionHandler;
         this.scriptAdapterDeps.effectDispatcher = this.effectDispatcher;
+        this.scriptAdapterDeps.combatEffectService = this.combatEffectService;
 
         // Register gamemode/content modules after deferred services (gathering, etc.) exist.
         bootstrapScripts(this.scriptRuntime, this.gamemode);
