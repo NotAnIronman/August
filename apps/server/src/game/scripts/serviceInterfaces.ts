@@ -532,6 +532,9 @@ export interface SystemFacade {
         debug: (...args: unknown[]) => void;
     };
     getCurrentTick(): number;
+    /** Permission-aware development bypass for content that must remain gated
+     * for normal accounts while an unfinished system is being tested. */
+    isDeveloper?(player: PlayerState): boolean;
     eventBus?: GameEventBus;
     gamemodeServices?: Record<string, unknown>;
 }

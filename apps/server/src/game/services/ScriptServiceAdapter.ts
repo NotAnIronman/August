@@ -121,6 +121,7 @@ export interface ScriptServiceAdapterDeps {
     instancedAreaManager: InstancedAreaManager;
     // Not-yet-extracted deps (still on WSServer)
     getCurrentTick: () => number;
+    isDeveloper?: (player: PlayerState) => boolean;
     getPathService: () => PathService;
     doorManager: DoorStateManager;
     npcManager: NpcManager;
@@ -530,6 +531,7 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
         system: {
             logger,
             getCurrentTick: () => deps.getCurrentTick(),
+            isDeveloper: (player) => deps.isDeveloper?.(player) ?? false,
             eventBus: deps.eventBus,
         },
         inventory: {

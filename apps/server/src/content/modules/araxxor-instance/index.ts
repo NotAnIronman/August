@@ -1,6 +1,7 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { AttackType } from "@server/game/combat/AttackType";
 import { HITMARK_DAMAGE } from "@server/game/combat/HitEffects";
+import { isDeveloperGodmodeEnabled, isDeveloperInstakillEnabled } from "@server/game/dev/DeveloperFlags";
 import { VARP_COLLECTION_CATEGORY_COUNT } from "@server/game/collectionlog";
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
@@ -33,8 +34,10 @@ const ENTRANCE = Object.freeze({ x: 3658, y: 9815, level: 0 });
 const INSIDE = Object.freeze({ x: 3647, y: 9816, level: 0 });
 const EXIT = ENTRANCE;
 const GRAVE = Object.freeze({ locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: { x: 3660, y: 9818 }, level: 0 });
-const BOSS_TILE = Object.freeze({ x: 3633, y: 9816, level: 0 });
-const ROOM = Object.freeze({ minX: 3626, maxX: 3644, minY: 9803, maxY: 9828 });
+const BOSS_TILE = Object.freeze({ x: 3630, y: 9813, level: 0 });
+// Native room expanded five tiles in each direction for the encounter's
+// hazards and seven-by-seven body, while retaining a complete terrain border.
+const ROOM = Object.freeze({ minX: 3621, maxX: 3649, minY: 9798, maxY: 9833 });
 // A cache loc tell is deliberately used for acid. It remains visible for the
 // whole warning window even on caches whose spot graphic is an empty emitter.
 const ACID_TELL_LOC_ID = 56358;
@@ -85,7 +88,10 @@ function inLair(player: PlayerState, services: ScriptServices): boolean {
     return services.instances.get(player.id)?.definitionId === INSTANCE_ID;
 }
 
-function slayerEligible(player: PlayerState): boolean {
+function slayerEligible(player: PlayerState, services: ScriptServices): boolean {
+    // Development combat modes stand in for an Araxxor task until the Slayer
+    // assignment system ships. Normal players still need the real task.
+    if (services.system.isDeveloper?.(player) || isDeveloperInstakillEnabled(player) || isDeveloperGodmodeEnabled(player)) return true;
     const skill = player.skillSystem.getSkill(SkillId.Slayer);
     if (skill.baseLevel + skill.boost < SLAYER_LEVEL) return false;
     const task = player.skillSystem.getSlayerTaskInfo(player.combat.slayerTask);
@@ -135,11 +141,12 @@ function registerEncounters(): void {
 }
 
 function createRoom(player: PlayerState, services: ScriptServices, access: "solo" | "party"): void {
-    if (!slayerEligible(player)) { services.messaging.sendGameMessage(player, "You need level 92 Slayer and an active araxyte, spider, or Araxxor task to fight Araxxor."); return; }
+    if (!slayerEligible(player, services)) { services.messaging.sendGameMessage(player, "You need level 92 Slayer and an active araxyte, spider, or Araxxor task to fight Araxxor."); return; }
     if (services.instances.get(player.id)) { services.messaging.sendGameMessage(player, "You are already inside an instance."); return; }
-    // Native room bounds are 3626..3644, 9803..9828. The extra border chunks
-    // preserve wall collision and prevent the private scene from clipping.
-    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: 3624, sourceBaseY: 9800, widthChunks: 3, heightChunks: 4, sourcePlanes: [0], destinationChunkX: 4, destinationChunkY: 4 }]);
+    // Copy the expanded 5x6-chunk slice, including the terrain border around
+    // the playable 3621..3649 / 9798..9833 arena. This prevents a larger
+    // logical bounds rectangle from becoming an empty or clipped scene.
+    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: 3616, sourceBaseY: 9792, widthChunks: 5, heightChunks: 6, sourcePlanes: [0], destinationChunkX: 3, destinationChunkY: 3 }]);
     const baseX = ((INSIDE.x >> 3) - 6) * 8;
     const baseY = ((INSIDE.y >> 3) - 6) * 8;
     const room = services.instances.create(player, {

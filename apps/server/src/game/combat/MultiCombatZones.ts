@@ -100,7 +100,7 @@ const MULTI_COMBAT_ZONES: CombatZone[] = [
     // every private world view. This rectangle therefore makes both the boss
     // and summoned araxytes multi-combat without leaking to unrelated maps.
     {
-        minX: 3624, minY: 9800, maxX: 3647, maxY: 9831,
+        minX: 3616, minY: 9792, maxX: 3655, maxY: 9839,
         plane: 0, isMultiCombat: true, name: "Araxxor Lair",
     },
 

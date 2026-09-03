@@ -887,6 +887,7 @@ export class WSServer {
             scriptScheduler: this.scriptScheduler,
             instancedAreaManager: this.instancedAreaManager!,
             getCurrentTick: () => this.options.ticker.currentTick(),
+            isDeveloper: (player) => this.authService?.getPlayerPermission(player) === "developer",
             getPathService: () => this.options.pathService!,
             doorManager: this.doorManager!,
             npcManager: this.npcManager!,
