@@ -13,11 +13,29 @@ import {
     getInventory,
     hasItem,
 } from "@server/content/gamemodes/vanilla/skills/production/productionActions";
-import { HAMMER_ITEM_ID, SMITHING_RECIPES, getSmithingRecipeById } from "@server/content/gamemodes/vanilla/skills/smithing/smithingData";
+import {
+    HAMMER_ITEM_ID,
+    IMCANDO_HAMMER_ITEM_IDS,
+    SMITHING_RECIPES,
+    getSmithingRecipeById,
+} from "@server/content/gamemodes/vanilla/skills/smithing/smithingData";
 
 interface SkillSmithActionData {
     recipeId: string;
     count: number;
+}
+
+function getEffectiveSmithingLevel(player: PlayerState): number {
+    const skill = player.skillSystem.getSkill(SkillId.Smithing);
+    return Math.max(1, (skill?.baseLevel ?? 1) + (skill?.boost ?? 0));
+}
+
+function hasSmithingHammer(player: PlayerState, services: ScriptServices): boolean {
+    if (services.inventory.playerHasItem(player, HAMMER_ITEM_ID)) return true;
+    if (IMCANDO_HAMMER_ITEM_IDS.some((itemId) => services.inventory.playerHasItem(player, itemId))) {
+        return true;
+    }
+    return IMCANDO_HAMMER_ITEM_IDS.some((itemId) => player.appearance.equip.includes(itemId));
 }
 
 function buildSmithingInterfaceFailure(
@@ -44,8 +62,7 @@ export function executeSmithAction(ctx: ScriptActionHandlerContext): ActionExecu
         );
     }
 
-    const skill = services.skills.getSkill(player, SkillId.Smithing);
-    if ((skill?.baseLevel ?? 1) < recipe.level) {
+    if (getEffectiveSmithingLevel(player) < recipe.level) {
         return buildSmithingInterfaceFailure(
             player,
             `You need Smithing level ${recipe.level} to smith that.`,
@@ -56,7 +73,7 @@ export function executeSmithAction(ctx: ScriptActionHandlerContext): ActionExecu
 
     if (
         recipe.requireHammer !== false &&
-        !services.inventory.playerHasItem(player, HAMMER_ITEM_ID)
+        !hasSmithingHammer(player, services)
     ) {
         return buildSmithingInterfaceFailure(
             player,
@@ -161,7 +178,7 @@ export function executeSmithAction(ctx: ScriptActionHandlerContext): ActionExecu
 export function registerSmithingInteractions(registry: IScriptRegistry, services: ScriptServices) {
     const openForge = (player: PlayerState, barItemId?: number) => {
         const inventory = getInventory(services, player);
-        if (!hasItem(inventory, HAMMER_ITEM_ID)) {
+        if (!hasSmithingHammer(player, services)) {
             services.messaging.sendGameMessage(player, "You need a hammer to smith.");
             return;
         }

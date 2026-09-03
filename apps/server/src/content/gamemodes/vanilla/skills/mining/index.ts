@@ -15,6 +15,7 @@ import {
 } from "@server/content/gamemodes/vanilla/skills/gatheringPrecheck";
 import {
     type MiningRockDefinition,
+    type MiningResourceResult,
     type PickaxeDefinition,
     buildMiningLocMap,
     getMiningRockById,
@@ -48,6 +49,21 @@ function rollMiningSuccess(level: number, rock: MiningRockDefinition): boolean {
         (low * (99 - clampedLevel)) / 98 + (high * (clampedLevel - 1)) / 98,
     ) + 1;
     return Math.random() * 255 < Math.min(255, Math.max(1, numerator));
+}
+
+function rollMiningResource(rock: MiningRockDefinition): MiningResourceResult {
+    const results = rock.resourceResults;
+    if (!results || results.length === 0) {
+        return { itemId: rock.oreItemId, xp: rock.xp, weight: 1 };
+    }
+    const totalWeight = results.reduce((sum, result) => sum + Math.max(0, result.weight), 0);
+    if (!(totalWeight > 0)) return { itemId: rock.oreItemId, xp: rock.xp, weight: 1 };
+    let roll = Math.random() * totalWeight;
+    for (const result of results) {
+        roll -= Math.max(0, result.weight);
+        if (roll < 0) return result;
+    }
+    return results[results.length - 1]!;
 }
 
 function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
@@ -156,8 +172,9 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     }
 
     if (success) {
+        const resource = rollMiningResource(rock);
         if (hasEchoPickaxePerk) {
-            const banked = services.banking?.addItemToBank?.(player, rock.oreItemId, 1);
+            const banked = services.banking?.addItemToBank?.(player, resource.itemId, 1);
             if (!banked) {
                 return failGatheringPrecheck(
                     player,
@@ -167,7 +184,7 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
             }
             bankSnapshot = true;
         } else {
-            const result = services.inventory.addItemToInventory(player, rock.oreItemId, 1);
+            const result = services.inventory.addItemToInventory(player, resource.itemId, 1);
             if (result.added <= 0) {
                 return failGatheringPrecheck(
                     player,
@@ -178,7 +195,7 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
             inventorySnapshot = true;
         }
 
-        const oreName = describeItem(services, rock.oreItemId);
+        const oreName = describeItem(services, resource.itemId);
         effects.push(buildMessageEffect(player, `You manage to mine some ${oreName}.`));
         if (hasEchoPickaxePerk) {
             const capitalizedOreName = oreName.charAt(0).toUpperCase() + oreName.slice(1);
@@ -189,7 +206,7 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
                 ),
             );
         }
-        services.skills.addSkillXp(player, SkillId.Mining, rock.xp);
+        services.skills.addSkillXp(player, SkillId.Mining, resource.xp);
 
         if (locId > 0) {
             nextEchoMinedCount = hasEchoPickaxePerk ? echoMinedCount + 1 : 0;

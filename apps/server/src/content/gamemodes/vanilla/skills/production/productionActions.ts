@@ -94,7 +94,7 @@ export const enqueueSkillAction = (
     delayTicks: number,
     tick: number | undefined,
     sendMessage: SendMessageFn,
-    extraData?: { heatSource?: CookingHeatSource },
+    extraData?: { heatSource?: CookingHeatSource; facilityLocId?: number },
 ): boolean => {
     const normalizedCount = Math.max(1, count);
     const delay = Math.max(1, delayTicks);
@@ -114,6 +114,9 @@ export const enqueueSkillAction = (
     const data: Record<string, unknown> = { recipeId, count: normalizedCount };
     if (kind === "cook" && extraData?.heatSource) {
         data.heatSource = extraData.heatSource;
+    }
+    if (kind === "smelt" && extraData?.facilityLocId) {
+        data.facilityLocId = extraData.facilityLocId;
     }
 
     const result = requestAction(

@@ -27,6 +27,7 @@ import {
     calculateIronSmeltChance,
     computeSmeltingBatchCount,
     getSmeltingRecipeById,
+    hasRequiredSmeltingTools,
 } from "@server/content/gamemodes/vanilla/skills/smithing/smithingData";
 
 const FURNACE_ANIMATION = 899;
@@ -34,6 +35,12 @@ const FURNACE_ANIMATION = 899;
 interface SkillSmeltActionData {
     recipeId: string;
     count: number;
+    facilityLocId?: number;
+}
+
+function getEffectiveSmithingLevel(player: PlayerState): number {
+    const skill = player.skillSystem.getSkill(SkillId.Smithing);
+    return Math.max(1, (skill?.baseLevel ?? 1) + (skill?.boost ?? 0));
 }
 
 function buildSmeltInterfaceFailure(
@@ -86,11 +93,33 @@ export function executeSmeltAction(ctx: ScriptActionHandlerContext): ActionExecu
     }
 
     const skill = services.skills.getSkill(player, SkillId.Smithing);
-    if ((skill?.baseLevel ?? 1) < recipe.level) {
+    if (getEffectiveSmithingLevel(player) < recipe.level) {
         return buildSmeltInterfaceFailure(
             player,
             `You need Smithing level ${recipe.level} to smelt that.`,
             "smelt_level",
+            services,
+        );
+    }
+
+    if (
+        recipe.allowedLocIds &&
+        !recipe.allowedLocIds.includes(data.facilityLocId ?? -1)
+    ) {
+        return buildSmeltInterfaceFailure(
+            player,
+            "This furnace is not hot enough to smelt that.",
+            "wrong_facility",
+            services,
+        );
+    }
+
+    const inventory = getInventory(services, player);
+    if (!hasRequiredSmeltingTools(inventory, recipe)) {
+        return buildSmeltInterfaceFailure(
+            player,
+            "You need the right mould to make that.",
+            "missing_tool",
             services,
         );
     }
@@ -198,9 +227,9 @@ export function registerSmeltingInteractions(registry: IScriptRegistry, services
         player: PlayerState,
         recipe: SmeltingRecipe,
         tick?: number,
-        opts?: { desiredCount?: number },
+        opts?: { desiredCount?: number; facilityLocId?: number },
     ) => {
-        const smithLevel = services.skills.getSkill(player, SkillId.Smithing)?.baseLevel ?? 1;
+        const smithLevel = getEffectiveSmithingLevel(player);
         if (smithLevel < recipe.level) {
             services.messaging.sendGameMessage(
                 player,
@@ -217,6 +246,14 @@ export function registerSmeltingInteractions(registry: IScriptRegistry, services
             );
             return;
         }
+        if (!hasRequiredSmeltingTools(inventoryNow, recipe)) {
+            services.messaging.sendGameMessage(player, "You need the right mould to make that.");
+            return;
+        }
+        if (recipe.allowedLocIds && !recipe.allowedLocIds.includes(opts?.facilityLocId ?? -1)) {
+            services.messaging.sendGameMessage(player, "This furnace is not hot enough to smelt that.");
+            return;
+        }
         const desired = Math.max(1, Math.min(batch, opts?.desiredCount ?? batch));
         enqueueSkillAction(
             requestAction,
@@ -227,17 +264,27 @@ export function registerSmeltingInteractions(registry: IScriptRegistry, services
             recipe.delayTicks ?? 4,
             tick,
             services.messaging.sendGameMessage,
+            { facilityLocId: opts?.facilityLocId },
         );
     };
 
-    const openSmeltDialog = (player: PlayerState, tick: number, preferredRecipeId?: string) => {
-        const smithLevel = services.skills.getSkill(player, SkillId.Smithing)?.baseLevel ?? 1;
+    const openSmeltDialog = (
+        player: PlayerState,
+        tick: number,
+        preferredRecipeId?: string,
+        facilityLocId?: number,
+    ) => {
+        const smithLevel = getEffectiveSmithingLevel(player);
         const inventory = getInventory(services, player);
 
         const withMaterials = SMELTING_RECIPES.map((recipe) => {
             const available = clampBatchCount(computeSmeltingBatchCount(inventory, recipe));
             return { recipe, available };
-        }).filter((entry) => entry.available > 0);
+        }).filter((entry) =>
+            entry.available > 0 &&
+            hasRequiredSmeltingTools(inventory, entry.recipe) &&
+            (!entry.recipe.allowedLocIds || entry.recipe.allowedLocIds.includes(facilityLocId ?? -1)),
+        );
 
         if (withMaterials.length === 0) {
             services.messaging.sendGameMessage(player, "You need ores to smelt any bars.");
@@ -289,13 +336,14 @@ export function registerSmeltingInteractions(registry: IScriptRegistry, services
                 }
                 trySmeltRecipe(player, selected.recipe, tick, {
                     desiredCount: Math.max(1, Math.min(selected.batch, quantity | 0)),
+                    facilityLocId,
                 });
             },
         });
     };
 
     registry.registerLocAction("smelt", (event) => {
-        openSmeltDialog(event.player, event.tick);
+        openSmeltDialog(event.player, event.tick, undefined, event.locId);
     });
 
     const oreItemIds = new Set<number>();
@@ -311,7 +359,7 @@ export function registerSmeltingInteractions(registry: IScriptRegistry, services
             const match = SMELTING_RECIPES.find((r) =>
                 r.inputs.some((i) => i.itemId === event.source.itemId),
             );
-            openSmeltDialog(event.player, event.tick, match?.id);
+            openSmeltDialog(event.player, event.tick, match?.id, event.target.locId);
         });
     }
 }

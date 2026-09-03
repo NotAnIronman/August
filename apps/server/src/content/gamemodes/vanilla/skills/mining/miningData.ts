@@ -60,6 +60,8 @@ export interface MiningRockDefinition {
     level: number;
     xp: number;
     oreItemId: number;
+    /** Some rocks (gems, sandstone, granite) choose one weighted result. */
+    resourceResults?: readonly MiningResourceResult[];
     depletedLocId?: number;
     respawnTicks: { min: number; max: number };
     swingTicks: number;
@@ -68,6 +70,12 @@ export interface MiningRockDefinition {
     mineRatio: number;
     /** Standard ore rocks deplete immediately after a successful extraction. */
     depleteChance: number;
+}
+
+export interface MiningResourceResult {
+    itemId: number;
+    xp: number;
+    weight: number;
 }
 
 const ROCK_DEFINITIONS: MiningRockDefinition[] = [
@@ -219,11 +227,38 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         depleteChance: 1,
     },
     {
+        id: "gem",
+        name: "Gem rocks",
+        level: 40,
+        xp: 65,
+        oreItemId: 1623,
+        resourceResults: [
+            { itemId: 1625, xp: 65, weight: 32 }, // Uncut opal
+            { itemId: 1627, xp: 65, weight: 16 }, // Uncut jade
+            { itemId: 1629, xp: 65, weight: 8 }, // Uncut red topaz
+            { itemId: 1623, xp: 65, weight: 32 }, // Uncut sapphire
+            { itemId: 1621, xp: 65, weight: 16 }, // Uncut emerald
+            { itemId: 1619, xp: 65, weight: 8 }, // Uncut ruby
+            { itemId: 1617, xp: 65, weight: 2 }, // Uncut diamond
+        ],
+        respawnTicks: { min: 30, max: 30 },
+        swingTicks: 3,
+        mineChance: 20,
+        mineRatio: 4.5,
+        depleteChance: 1,
+    },
+    {
         id: "sandstone",
         name: "Sandstone rocks",
         level: 35,
         xp: 60,
-        oreItemId: 6971, // Sandstone (1kg); larger variants are a future quarry-specific roll.
+        oreItemId: 6971,
+        resourceResults: [
+            { itemId: 6971, xp: 30, weight: 25 }, // 1kg
+            { itemId: 6973, xp: 40, weight: 16 }, // 2kg
+            { itemId: 6975, xp: 50, weight: 8 }, // 5kg
+            { itemId: 6977, xp: 60, weight: 4 }, // 10kg
+        ],
         respawnTicks: { min: 10, max: 10 },
         swingTicks: 3,
         mineChance: 25,
@@ -235,7 +270,12 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         name: "Granite rocks",
         level: 45,
         xp: 50,
-        oreItemId: 6981, // Granite (2kg); larger variants are a future quarry-specific roll.
+        oreItemId: 6979,
+        resourceResults: [
+            { itemId: 6979, xp: 50, weight: 16 }, // 500g
+            { itemId: 6981, xp: 60, weight: 8 }, // 2kg
+            { itemId: 6983, xp: 75, weight: 6 }, // 5kg
+        ],
         respawnTicks: { min: 10, max: 10 },
         swingTicks: 3,
         mineChance: 20,
@@ -282,6 +322,8 @@ const ROCK_NAME_ALIASES: Record<string, string> = {
     "runite ore vein": "runite",
     "amethyst crystals": "amethyst",
     "amethyst rocks": "amethyst",
+    "gem rock": "gem",
+    "gem rocks": "gem",
     "sandstone rocks": "sandstone",
     "granite rocks": "granite",
 };
