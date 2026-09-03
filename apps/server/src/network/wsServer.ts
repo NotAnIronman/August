@@ -19,7 +19,7 @@ import { MusicCatalogService } from "@server/audio/MusicCatalogService";
 import { MusicRegionService } from "@server/audio/MusicRegionService";
 import { MusicUnlockService } from "@server/audio/MusicUnlockService";
 import { NpcSoundLookup } from "@server/audio/NpcSoundLookup";
-import { config } from "@server/config";
+import { activeWorld, config } from "@server/config";
 import { getItemDefinition } from "@server/data/items";
 import { populateLocEffectsFromLoader } from "@server/data/locEffects";
 import { serverVarPath } from "@server/paths";
@@ -139,6 +139,7 @@ import { AccountStore } from "@server/network/AccountStore";
 import { AuthenticationService } from "@server/network/AuthenticationService";
 import { BroadcastService } from "@server/network/BroadcastService";
 import { LoginHandshakeService } from "@server/network/LoginHandshakeService";
+import { serveHostedClient } from "@server/network/ClientHosting";
 import {
     getHostingSnapshot,
     isLocalHostingRequest,
@@ -679,6 +680,12 @@ export class WSServer {
                             maxPlayers: opts.maxPlayers ?? config.maxPlayers,
                             players: () => this.players,
                         };
+                        const clientHostingOptions = {
+                            worldId: activeWorld.id,
+                            serverName: opts.serverName ?? config.serverName,
+                            gamePort: opts.port,
+                            maxPlayers: opts.maxPlayers ?? config.maxPlayers,
+                        };
                         if (req.url === "/hosting" && isLocalHostingRequest(req.socket.remoteAddress)) {
                             res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
                             res.end(renderHostingPortal(portalOptions));
@@ -699,8 +706,7 @@ export class WSServer {
                                 }),
                             );
                         } else {
-                            res.writeHead(426);
-                            res.end();
+                            serveHostedClient(req, res, clientHostingOptions);
                         }
                     },
                 );

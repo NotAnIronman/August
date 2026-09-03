@@ -28,6 +28,13 @@ IP or DNS name you plan to share, then forward TCP port `43594` to this computer
 and allow that port through its firewall. The dashboard is intentionally not
 available to LAN or internet clients.
 
+To let friends load the browser client from your own server, build it once with
+`pnpm --filter @august/client build`, then start the game server normally. They
+can open `http://YOUR_PUBLIC_IP:43594` directly. The server hosts the compiled
+client and supplies its matching public game address automatically. This is an
+HTTP/`ws://` setup; publishing it behind HTTPS later requires a TLS reverse proxy
+and `wss://` support.
+
 Before handing off a change, run:
 
 ```bash
