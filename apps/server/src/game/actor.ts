@@ -16,8 +16,8 @@ import { MovementQueue, type MovementPathfinder } from "@server/game/movement/Mo
 
 export type Tile = { x: number; y: number };
 
-// Debug logging: Player IDs are automatically added/removed on connect/disconnect
-// This enables path logging for all connected human players (not bots)
+// Opt-in path diagnostics. Keeping this empty in normal operation avoids a
+// second pathfinding pass and large route-string allocations on every click.
 export const DEBUG_PLAYER_IDS = new Set<number>();
 
 /** Signed angular delta in the range [-1024, 1024]. */

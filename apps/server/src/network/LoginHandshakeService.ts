@@ -1,5 +1,6 @@
 import { WebSocket } from "ws";
 import type { RawData } from "ws";
+import type { IncomingMessage } from "node:http";
 
 import {
     QUEST_LIST_ENTRY_EVENT_FLAGS,
@@ -13,6 +14,7 @@ import {
     VARP_SIDE_JOURNAL_STATE,
 } from "@august/game-model/state/vars";
 import { getItemDefinition } from "@server/data/items";
+import { readPositiveEnvInteger } from "@server/config/environment";
 import type { ServerServices } from "@server/game/ServerServices";
 import { syncInstanceGravePresentation } from "@server/game/death/InstanceGravePresentation";
 import type { PlayerState } from "@server/game/player";
@@ -37,6 +39,7 @@ import { getEnhancedClientLoginScripts, getViewportRootInitScripts } from "@serv
 import { ADMIN_CROWN_ICON } from "@server/network/AuthenticationService";
 import type { RoutedMessage } from "@server/network/MessageRouter";
 import { PlayerSyncSession } from "@server/network/PlayerSyncSession";
+import { resolveClientAddress } from "@server/network/TrustedProxyClientAddress";
 import { handleExaminePacket as handleExaminePacketFn } from "@server/network/handlers/examineHandler";
 import { encodeMessage } from "@server/network/messages";
 import {
@@ -70,6 +73,21 @@ type PendingLoginReservation = {
     socket: WebSocket;
 };
 
+export interface LoginHandshakeOptions {
+    /** Maximum password hashes allowed in the worker pool at once. */
+    maxConcurrentCredentialChecks?: number;
+    /** Maximum pre-authentication frames accepted from one socket per window. */
+    maxPreAuthMessages?: number;
+    preAuthWindowMs?: number;
+    /** Maximum time a socket may remain connected without entering the world. */
+    preAuthTimeoutMs?: number;
+    /** Test seam for deterministic connection-deadline coverage. */
+    scheduleTimeout?: (callback: () => void, delayMs: number) => NodeJS.Timeout;
+    cancelTimeout?: (timeout: NodeJS.Timeout) => void;
+}
+
+type PreAuthWindow = { count: number; resetAt: number };
+
 /**
  * Manages the login validation, handshake negotiation, and WebSocket
  * connection lifecycle (message routing + disconnect cleanup).
@@ -85,11 +103,109 @@ export class LoginHandshakeService {
      * cannot authenticate the same account and both enter the world.
      */
     private readonly pendingLoginSockets = new Map<string, PendingLoginReservation>();
+    private readonly credentialChecksInFlight = new WeakSet<WebSocket>();
+    private readonly authenticatingAccountNames = new Set<string>();
+    private readonly preAuthWindows = new WeakMap<WebSocket, PreAuthWindow>();
+    private readonly clientAddresses = new WeakMap<WebSocket, string>();
+    private readonly preAuthDeadlines = new WeakMap<WebSocket, NodeJS.Timeout>();
+    private readonly maxConcurrentCredentialChecks: number;
+    private readonly maxPreAuthMessages: number;
+    private readonly preAuthWindowMs: number;
+    private readonly preAuthTimeoutMs: number;
+    private readonly scheduleTimeout: (callback: () => void, delayMs: number) => NodeJS.Timeout;
+    private readonly cancelTimeout: (timeout: NodeJS.Timeout) => void;
+    private activeCredentialChecks = 0;
 
     constructor(
         private readonly svc: ServerServices,
         private readonly now: () => number = Date.now,
-    ) {}
+        options: LoginHandshakeOptions = {},
+    ) {
+        this.maxConcurrentCredentialChecks = Math.min(
+            64,
+            Math.max(
+                1,
+                Math.trunc(
+                    options.maxConcurrentCredentialChecks ??
+                        readPositiveEnvInteger("LOGIN_HASH_CONCURRENCY") ??
+                        4,
+                ),
+            ),
+        );
+        this.maxPreAuthMessages = Math.min(
+            1_000,
+            Math.max(
+                2,
+                Math.trunc(
+                    options.maxPreAuthMessages ??
+                        readPositiveEnvInteger("WS_PREAUTH_MESSAGES_PER_WINDOW") ??
+                        20,
+                ),
+            ),
+        );
+        this.preAuthWindowMs = Math.min(
+            60_000,
+            Math.max(
+                1_000,
+                Math.trunc(
+                    options.preAuthWindowMs ??
+                        readPositiveEnvInteger("WS_PREAUTH_WINDOW_MS") ??
+                        5_000,
+                ),
+            ),
+        );
+        this.preAuthTimeoutMs = Math.min(
+            120_000,
+            Math.max(
+                5_000,
+                Math.trunc(
+                    options.preAuthTimeoutMs ??
+                        readPositiveEnvInteger("WS_PREAUTH_TIMEOUT_MS") ??
+                        30_000,
+                ),
+            ),
+        );
+        this.scheduleTimeout =
+            options.scheduleTimeout ?? ((callback, delayMs) => setTimeout(callback, delayMs));
+        this.cancelTimeout = options.cancelTimeout ?? clearTimeout;
+    }
+
+    private armPreAuthDeadline(ws: WebSocket): void {
+        this.clearPreAuthDeadline(ws);
+        const timeout = this.scheduleTimeout(() => {
+            this.preAuthDeadlines.delete(ws);
+            if (this.svc.players?.get(ws)) return;
+            logger.warn(
+                `[login] closing connection that did not enter the world within ${this.preAuthTimeoutMs}ms`,
+            );
+            try {
+                ws.close(1008, "authentication_timeout");
+            } catch {
+                // Socket may already be gone.
+            }
+        }, this.preAuthTimeoutMs);
+        timeout.unref?.();
+        this.preAuthDeadlines.set(ws, timeout);
+    }
+
+    private clearPreAuthDeadline(ws: WebSocket): void {
+        const timeout = this.preAuthDeadlines.get(ws);
+        if (!timeout) return;
+        this.preAuthDeadlines.delete(ws);
+        this.cancelTimeout(timeout);
+    }
+
+    private acceptPreAuthMessage(ws: WebSocket): boolean {
+        const now = this.now();
+        const existing = this.preAuthWindows.get(ws);
+        if (!existing || now >= existing.resetAt) {
+            this.preAuthWindows.set(ws, { count: 1, resetAt: now + this.preAuthWindowMs });
+            return true;
+        }
+        if (existing.count >= this.maxPreAuthMessages) return false;
+        existing.count++;
+        return true;
+    }
 
     setPendingLoginName(ws: WebSocket, name: string): void {
         this.clearPendingLoginName(ws);
@@ -135,6 +251,8 @@ export class LoginHandshakeService {
     }
 
     getSocketRemoteAddress(ws: WebSocket): string | undefined {
+        const resolvedAddress = this.clientAddresses.get(ws);
+        if (resolvedAddress) return resolvedAddress;
         const transport = Reflect.get(ws, "_socket") as { remoteAddress?: string } | undefined;
         const remoteAddress = transport?.remoteAddress;
         return remoteAddress && remoteAddress.length > 0 ? remoteAddress : undefined;
@@ -176,10 +294,10 @@ export class LoginHandshakeService {
         }
     }
 
-    handleLoginMessage(
+    async handleLoginMessage(
         ws: WebSocket,
         payload: { username?: string; password?: string; revision?: number },
-    ): void {
+    ): Promise<void> {
         const { username, password, revision } = payload;
         const normalizedUsername = this.svc.authService.normalizePlayerNameForAuth(username);
 
@@ -243,11 +361,52 @@ export class LoginHandshakeService {
         // 6. Verify an existing password hash or register a new account.
         // Imported pre-password character saves require the temporary legacy
         // claim switch before a new password can be assigned to their name.
-        const authentication = this.svc.authService.authenticateCredentials(
-            username,
-            password,
-            this.svc.playerPersistence.hasKey(normalizedUsername),
-        );
+        if (this.credentialChecksInFlight.has(ws)) {
+            sendLoginError(9, "A login attempt is already in progress.");
+            return;
+        }
+        if (this.authenticatingAccountNames.has(normalizedUsername)) {
+            sendLoginError(5, "Your account is already logging in. Try again shortly.");
+            return;
+        }
+        if (this.activeCredentialChecks >= this.maxConcurrentCredentialChecks) {
+            sendLoginError(9, "The login service is busy. Please try again shortly.");
+            return;
+        }
+
+        this.credentialChecksInFlight.add(ws);
+        this.authenticatingAccountNames.add(normalizedUsername);
+        this.activeCredentialChecks++;
+        let authentication;
+        try {
+            authentication = await this.svc.authService.authenticateCredentialsAsync(
+                username,
+                password,
+                this.svc.playerPersistence.hasKey(normalizedUsername),
+            );
+        } catch (err) {
+            logger.warn(`[login] credential check failed for ${normalizedUsername}`, err);
+            sendLoginError(3, "Invalid username or password.");
+            return;
+        } finally {
+            this.activeCredentialChecks = Math.max(0, this.activeCredentialChecks - 1);
+            this.credentialChecksInFlight.delete(ws);
+            this.authenticatingAccountNames.delete(normalizedUsername);
+        }
+
+        if (ws.readyState !== WebSocket.OPEN) return;
+        // State may have changed while the password hash ran off-thread.
+        if (this.svc.authService.isWorldFull()) {
+            sendLoginError(2, "This world is full. Please use a different world.");
+            return;
+        }
+        if (
+            this.svc.authService.isPlayerAlreadyLoggedIn(normalizedUsername) ||
+            this.isLoginPendingForAnotherSocket(ws, normalizedUsername)
+        ) {
+            sendLoginError(5, "Your account is already logged in. Try again in 60 seconds.");
+            return;
+        }
         if (!authentication.ok) {
             sendLoginError(
                 3,
@@ -331,6 +490,7 @@ export class LoginHandshakeService {
                 }
                 return;
             }
+            this.clearPreAuthDeadline(ws);
             {
                 p.widgets.setDispatcher((action) => {
                     if (action.action === "close") {
@@ -359,7 +519,16 @@ export class LoginHandshakeService {
                         : this.svc.appearanceService.createDefaultAppearance();
 
                 if (!isReconnect) {
-                    p.name = name ?? "";
+                    if (!this.svc.players?.setConnectedPlayerName(ws, name ?? "")) {
+                        this.svc.actionScheduler.unregisterPlayer(p.id);
+                        this.svc.players?.remove(ws);
+                        try {
+                            ws.close(1008, "duplicate_account");
+                        } catch {
+                            // Socket may already be gone.
+                        }
+                        return;
+                    }
                     p.appearance = appearance;
                     this.svc.equipmentService.ensureEquipArray(p);
                     this.svc.appearanceService.refreshAppearanceKits(p);
@@ -807,8 +976,12 @@ export class LoginHandshakeService {
         }
     }
 
-    onConnection(ws: WebSocket): void {
+    onConnection(ws: WebSocket, request?: IncomingMessage): void {
         logger.info("Client connected");
+        this.armPreAuthDeadline(ws);
+        const peerAddress = request?.socket.remoteAddress ?? this.getSocketRemoteAddress(ws);
+        const clientAddress = resolveClientAddress(peerAddress, request?.headers ?? {});
+        if (clientAddress) this.clientAddresses.set(ws, clientAddress);
         this.svc.playerSyncSessions.set(ws, new PlayerSyncSession());
         this.svc.networkLayer.withDirectSendBypass("welcome_packet", () =>
             this.svc.networkLayer.sendWithGuard(
@@ -1021,7 +1194,14 @@ export class LoginHandshakeService {
             }
 
             if (parsed.type === "login") {
-                this.handleLoginMessage(ws, parsed.payload);
+                void this.handleLoginMessage(ws, parsed.payload).catch((err) => {
+                    logger.warn("[login] unexpected login handler failure", err);
+                    try {
+                        ws.close(1011, "login_failed");
+                    } catch {
+                        // Socket may already be gone.
+                    }
+                });
             } else if (parsed.type === "handshake") {
                 // World entry is tick-aligned: a handshake arriving between
                 // ticks is queued and re-processed during the client_input
@@ -1046,12 +1226,27 @@ export class LoginHandshakeService {
             if (this.svc.players?.get(ws) || this.svc.clientInputService.hasQueued(ws)) {
                 this.svc.clientInputService.enqueue(ws, raw);
             } else {
+                if (!this.acceptPreAuthMessage(ws)) {
+                    logger.warn(
+                        `[login] closing connection after more than ${this.maxPreAuthMessages} pre-auth messages in ${this.preAuthWindowMs}ms`,
+                    );
+                    try {
+                        ws.close(1008, "preauth_rate_limit");
+                    } catch {
+                        // Socket may already be gone.
+                    }
+                    return;
+                }
                 handleRawMessage(raw);
             }
         });
 
         ws.on("close", () => {
+            this.clearPreAuthDeadline(ws);
             this.svc.clientInputService.removeConnection(ws);
+            this.svc.networkLayer.removeConnection?.(ws);
+            this.preAuthWindows.delete(ws);
+            this.clientAddresses.delete(ws);
             this.clearPendingLoginName(ws);
             try {
                 this.svc.movementService.getPendingWalkCommands().delete(ws);

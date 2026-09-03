@@ -98,6 +98,21 @@ export class ReferenceTable {
             }
         }
 
+        const archiveCrcs = new DataView(
+            buffer.data.buffer,
+            buffer.data.byteOffset + buffer.offset,
+            archiveCount * 4,
+        );
+        buffer.offset += archiveCrcs.byteLength;
+
+        // Protocol 7 index flags append the uncompressed checksums immediately
+        // after the regular CRCs. We do not currently expose them, but they still
+        // have to be consumed or every subsequent table is decoded at the wrong
+        // offset.
+        if (hasUncompressedCrcs) {
+            buffer.readBytes(archiveCount * 4);
+        }
+
         const archiveWhirlpools = new Array<Int8Array>(archiveCount);
         if (hasWhirlpool) {
             for (let i = 0; i < archiveCount; i++) {
@@ -105,14 +120,15 @@ export class ReferenceTable {
             }
         }
 
-        const archiveCrcs = new DataView(buffer.data.buffer, buffer.offset, archiveCount * 4);
-        buffer.offset += archiveCrcs.byteLength;
-
         if (hasSizes) {
-            buffer.offset += archiveCount * 8;
+            buffer.readBytes(archiveCount * 8);
         }
 
-        const archiveRevisions = new DataView(buffer.data.buffer, buffer.offset, archiveCount * 4);
+        const archiveRevisions = new DataView(
+            buffer.data.buffer,
+            buffer.data.byteOffset + buffer.offset,
+            archiveCount * 4,
+        );
         buffer.offset += archiveRevisions.byteLength;
 
         const archiveFileCounts = new Int32Array(archiveCount);
@@ -185,6 +201,7 @@ export class ReferenceTable {
         private readonly _archiveFileIds: Int32Array[],
         private readonly _archiveFileNameHashes: Int32Array[],
         private readonly _archiveNameHashIdMap: Map<number, number> = new Map(),
+        private readonly _archiveReferenceCache: Map<number, ArchiveReference> = new Map(),
     ) {
         if (named) {
             for (let i = 0; i < this.archiveIds.length; i++) {
@@ -202,6 +219,10 @@ export class ReferenceTable {
     }
 
     getArchiveReference(id: number): ArchiveReference | undefined {
+        const cached = this._archiveReferenceCache.get(id);
+        if (cached) {
+            return cached;
+        }
         const i = this._archiveIdIndexMap.get(id);
         if (i === undefined) {
             return undefined;
@@ -220,7 +241,7 @@ export class ReferenceTable {
         for (let fileIdx = 0; fileIdx < fileCount; fileIdx++) {
             fileIdIndexMap.set(fileIds[fileIdx], fileIdx);
         }
-        return new ArchiveReference(
+        const reference = new ArchiveReference(
             id,
             nameHash,
             whirlpool,
@@ -232,6 +253,8 @@ export class ReferenceTable {
             fileIds,
             fileNameHashes,
         );
+        this._archiveReferenceCache.set(id, reference);
+        return reference;
     }
 
     get archiveReferences(): ArchiveReference[] {

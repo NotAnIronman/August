@@ -34,15 +34,18 @@ export function normalizeBossHealth(current: number, maximum: number): {
     maximum: number;
     percent: number;
 } {
-    const normalizedMaximum = Math.max(1, Math.trunc(maximum));
+    const normalizedMaximum = Number.isFinite(maximum)
+        ? Math.max(1, Math.trunc(maximum))
+        : 1;
+    const finiteCurrent = Number.isFinite(current) ? Math.trunc(current) : 0;
     const normalizedCurrent = Math.max(
         0,
-        Math.min(normalizedMaximum, Math.trunc(current)),
+        Math.min(normalizedMaximum, finiteCurrent),
     );
     return {
         current: normalizedCurrent,
         maximum: normalizedMaximum,
-        percent: Math.round((normalizedCurrent * 100) / normalizedMaximum),
+        percent: Math.round((normalizedCurrent / normalizedMaximum) * 100),
     };
 }
 

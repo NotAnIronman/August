@@ -2,7 +2,7 @@
  * Regression coverage for the Desert Treasure I quest chain and Ancient
  * Magicks unlock contract.
  *
- * Run with: npx tsx tests/desert-treasure-quests.test.ts
+ * Run with: pnpm exec tsx tests/desert-treasure-quests.test.ts
  */
 import assert from "node:assert/strict";
 
@@ -64,7 +64,11 @@ assert.equal(
     "every quest must have a distinct progress varp",
 );
 assert.equal(findBuiltinCommand("quest")?.permission, "developer");
-assert.equal(findBuiltinCommand("ancient")?.permission, "developer");
+assert.equal(
+    findBuiltinCommand("spellbook")?.permission,
+    "developer",
+    "the consolidated spellbook selector must remain developer-only",
+);
 assert.equal(
     findBuiltinCommand("completequests"),
     undefined,

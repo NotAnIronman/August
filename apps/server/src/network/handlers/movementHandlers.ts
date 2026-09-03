@@ -1,3 +1,5 @@
+import { performance } from "node:perf_hooks";
+
 import { logger } from "@server/observability/logger";
 import type { MessageHandlerServices } from "@server/network/MessageHandlers";
 import { normalizeModifierFlags, resolveRunWithModifier } from "@server/network/MessageHandlers";
@@ -67,10 +69,13 @@ export function registerMovementHandlers(
     router.register("walk", (ctx) => {
         const to = ctx.payload.to;
         const modifierFlags = normalizeModifierFlags(ctx.payload.modifierFlags);
-        logger.info(`[walk] received walk to (${to?.x}, ${to?.y}) player=${ctx.player?.id}`);
+        // Walking is a high-frequency packet. Keep its trace available without
+        // making ordinary production logging perform synchronous console I/O
+        // for every click.
+        logger.debug(`[walk] received walk to (${to?.x}, ${to?.y}) player=${ctx.player?.id}`);
 
         if (!ctx.player) {
-            logger.info("walk rejected: player not ready");
+            logger.debug("[walk] rejected: player not ready");
             return;
         }
 
@@ -138,6 +143,7 @@ export function registerMovementHandlers(
 
     router.register("pathfind", (ctx) => {
         const { id, from, to, size } = ctx.payload;
+        const startedAt = performance.now();
         const res = services.findPath({
             from,
             to,
@@ -154,10 +160,9 @@ export function registerMovementHandlers(
             );
             return;
         }
-        const t0 = Date.now();
-        const dt = Date.now() - t0;
+        const elapsedMs = performance.now() - startedAt;
         try {
-            logger.info(`pathfind request: ${dt}ms`);
+            logger.debug(`[pathfind] request: ${elapsedMs.toFixed(2)}ms`);
         } catch (err) {
             logger.warn("Failed to log pathfind timing", err);
         }

@@ -127,5 +127,10 @@ export const CLIENT_MESSAGE_LENGTHS: Record<ClientMessageId, number> = {
 
 /** Select the project message decoder for a valid one-byte client opcode. */
 export function isClientMessageId(opcode: number): boolean {
-    return opcode >= 180;
+    return (
+        Number.isInteger(opcode) &&
+        opcode >= 0 &&
+        opcode <= 0xff &&
+        CLIENT_MESSAGE_LENGTHS[opcode as ClientMessageId] !== undefined
+    );
 }

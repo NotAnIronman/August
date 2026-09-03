@@ -305,10 +305,6 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     const miningLocMap = buildMiningLocMap(locTypeLoader);
     services.getMiningRock = (locId) => getMiningRockFromMap(locId, miningLocMap);
 
-    if (!services.getMiningRock) {
-        console.log("[script:mining] rock lookup unavailable; module disabled");
-        return;
-    }
     for (const action of MINING_ACTIONS) {
         registry.registerLocAction(action, (event) => {
             const rock = services.getMiningRock?.(event.locId) as

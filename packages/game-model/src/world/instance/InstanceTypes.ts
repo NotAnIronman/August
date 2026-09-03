@@ -150,8 +150,15 @@ export function deriveRegionsFromTemplates(templateChunks: number[][][]): number
     for (let plane = 0; plane < PLANE_COUNT; plane++) {
         for (let cx = 0; cx < INSTANCE_CHUNK_COUNT; cx++) {
             for (let cy = 0; cy < INSTANCE_CHUNK_COUNT; cy++) {
-                const packed = templateChunks[plane][cx][cy];
-                if (packed === -1) continue;
+                const packed = templateChunks[plane]?.[cx]?.[cy];
+                if (
+                    !Number.isSafeInteger(packed) ||
+                    packed === undefined ||
+                    packed < 0 ||
+                    packed > 0x3ffffff
+                ) {
+                    continue;
+                }
 
                 const { chunkX, chunkY } = unpackTemplateChunk(packed);
                 const regionId = ((chunkX >> 3) << 8) | (chunkY >> 3);
@@ -175,6 +182,11 @@ export function deriveRegionsFromTemplates(templateChunks: number[][][]): number
  * @param regionY Center chunk Y coordinate
  */
 export function deriveRegionsFromCenter(regionX: number, regionY: number): number[] {
+    if (!Number.isFinite(regionX) || !Number.isFinite(regionY)) {
+        return [];
+    }
+    regionX = Math.trunc(regionX);
+    regionY = Math.trunc(regionY);
     const regions: number[] = [];
     const minMapX = ((regionX - 6) / 8) | 0;
     const maxMapX = ((regionX + 6) / 8) | 0;

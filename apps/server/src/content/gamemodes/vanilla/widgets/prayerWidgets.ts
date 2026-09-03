@@ -12,6 +12,7 @@ import {
     VARBIT_PRAYER_FILTER_BLOCK_LOW_TIER,
 } from "@august/game-model/state/vars";
 import type { PlayerState } from "@server/game/player";
+import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
 import {
     DisplayMode,
     type IScriptRegistry,
@@ -126,6 +127,23 @@ export function registerPrayerWidgetHandlers(
     const lastOrbSetupTickByPlayerId = new Map<number, number>();
     const lastQuickPrayerToggleTickByPlayerSlot = new Map<string, number>();
     const lastQuickPrayerDoneTickByPlayerId = new Map<number, number>();
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: (playerId) => {
+            lastOrbToggleTickByPlayerId.delete(playerId);
+            lastOrbSetupTickByPlayerId.delete(playerId);
+            lastQuickPrayerDoneTickByPlayerId.delete(playerId);
+            const playerPrefix = `${playerId}:`;
+            for (const key of lastQuickPrayerToggleTickByPlayerSlot.keys()) {
+                if (key.startsWith(playerPrefix)) lastQuickPrayerToggleTickByPlayerSlot.delete(key);
+            }
+        },
+        reset: () => {
+            lastOrbToggleTickByPlayerId.clear();
+            lastOrbSetupTickByPlayerId.clear();
+            lastQuickPrayerToggleTickByPlayerSlot.clear();
+            lastQuickPrayerDoneTickByPlayerId.clear();
+        },
+    });
 
     const queuePrayerFilterFlags = (playerId: number) => {
         services.dialog.queueWidgetEvent(playerId, {

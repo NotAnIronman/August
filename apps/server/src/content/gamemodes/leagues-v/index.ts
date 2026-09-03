@@ -21,7 +21,6 @@ import {
     VARP_MAP_FLAGS_CACHED,
     VARP_SIDE_JOURNAL_STATE,
 } from "@august/game-model/state/vars";
-import type { EventSubscription } from "@server/game/events";
 import type {
     GamemodeBridge,
     GamemodeInitContext,
@@ -30,6 +29,7 @@ import type {
     HandshakeBridge,
 } from "@server/game/gamemodes/GamemodeDefinition";
 import type { PlayerState } from "@server/game/player";
+import { logger } from "@server/observability/logger";
 import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
 import { VanillaGamemode } from "@server/content/gamemodes/vanilla/index";
 import { LeagueContentProvider } from "@server/content/gamemodes/leagues-v/LeagueContentProvider";
@@ -53,6 +53,7 @@ import { LeagueSummaryTracker } from "@server/content/gamemodes/leagues-v/league
 import { getLeagueSkillXpMultiplier } from "@server/content/gamemodes/leagues-v/leagueXp";
 import { getActiveLeagueType, getTutorialCompleteStep, isLeagueWorld } from "@server/content/gamemodes/leagues-v/playerWorldRules";
 import { registerLeagueTutorHandlers } from "@server/content/gamemodes/leagues-v/scripts/leagueTutor";
+import { registerLeagueTaskEventHandlers } from "@server/content/gamemodes/leagues-v/scripts/leagueTaskEvents";
 import { handleLeagueTutorialHintResume } from "@server/content/gamemodes/leagues-v/scripts/leagueTutorialHints";
 import {
     LEAGUE_TUTORIAL_STEP_WELCOME,
@@ -75,7 +76,6 @@ export class LeaguesVGamemode extends VanillaGamemode {
     private leagueSummary: LeagueSummaryTracker | undefined;
     private uiBridge: GamemodeUiBridge | undefined;
     private contentProvider: LeagueContentProvider = new LeagueContentProvider();
-    private eventSubscriptions: EventSubscription[] = [];
 
     // === XP ===
 
@@ -425,6 +425,10 @@ export class LeaguesVGamemode extends VanillaGamemode {
 
     override registerHandlers(registry: IScriptRegistry, services: ScriptServices): void {
         super.registerHandlers(registry, services);
+        const eventBus = services.system.eventBus;
+        if (eventBus) {
+            registerLeagueTaskEventHandlers(registry, eventBus, () => this.taskManager);
+        }
         registerLeagueTutorHandlers(registry, services);
         registerLeagueWidgetHandlers(registry, services);
         registerLeagueTutorialWidgetHandlers(registry, services);
@@ -465,37 +469,11 @@ export class LeaguesVGamemode extends VanillaGamemode {
                 },
             );
         } catch (err) {
-            console.log("[leagues-v] failed to initialize task manager", err);
+            logger.error("[leagues-v] failed to initialize task manager", err);
         }
-
-        const eventBus = context.serverServices.eventBus;
-
-        this.eventSubscriptions.push(
-            eventBus.on("npc:death", (e) => {
-                if (e.killerPlayerId != null) {
-                    this.taskManager?.onNpcKill(e.killerPlayerId, e.npcTypeId, e.combatLevel);
-                }
-            }),
-        );
-
-        this.eventSubscriptions.push(
-            eventBus.on("equipment:equip", (e) => {
-                this.taskManager?.onItemEquip(e.player.id, e.itemId);
-            }),
-        );
-
-        this.eventSubscriptions.push(
-            eventBus.on("item:craft", (e) => {
-                this.taskManager?.onItemCraft(e.playerId, e.itemId, e.count);
-            }),
-        );
     }
 
     override dispose(): void {
-        for (const sub of this.eventSubscriptions) {
-            sub.unsubscribe();
-        }
-        this.eventSubscriptions = [];
         this.taskManager = undefined;
         this.initBridge = undefined;
         super.dispose();

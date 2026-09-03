@@ -1,8 +1,10 @@
-import { existsSync, statSync } from "node:fs";
 import { createReadStream } from "node:fs";
-import { resolve, sep } from "node:path";
+import { resolve } from "node:path";
 
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { Stats } from "node:fs";
+import { resolvePublicGameEndpoint } from "@server/network/PublicGameEndpoint";
+import { resolveStaticFile } from "@server/network/StaticFileBoundary";
 
 export interface ClientHostingOptions {
     readonly worldId: number;
@@ -30,25 +32,15 @@ const CONTENT_TYPES: Readonly<Record<string, string>> = {
     ".woff2": "font/woff2",
 };
 
-function requestPath(url: string | undefined): string {
+function requestPath(url: string | undefined): string | undefined {
     try {
         return decodeURIComponent(new URL(url ?? "/", "http://localhost").pathname);
     } catch {
-        return "/";
+        return undefined;
     }
 }
 
-function isWithinDirectory(filePath: string, directory: string): boolean {
-    return filePath === directory || filePath.startsWith(`${directory}${sep}`);
-}
-
-function isWithinBuildDirectory(filePath: string): boolean {
-    return isWithinDirectory(filePath, CLIENT_BUILD_DIR);
-}
-
-function getSharedHost(req: IncomingMessage): string | undefined {
-    const configured = process.env.PUBLIC_HOST?.trim();
-    if (configured) return configured;
+function getRequestHost(req: IncomingMessage): string | undefined {
     const host = req.headers.host?.trim();
     if (!host) return undefined;
     if (host.startsWith("[")) return host.slice(0, host.indexOf("]") + 1);
@@ -56,31 +48,75 @@ function getSharedHost(req: IncomingMessage): string | undefined {
 }
 
 function serveMissingBuild(res: ServerResponse): void {
-    res.writeHead(503, { "Content-Type": "text/plain; charset=utf-8" });
+    res.writeHead(503, {
+        "Content-Type": "text/plain; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+    });
     res.end("The August client has not been built yet. Run: pnpm --filter @august/client build");
 }
 
 function serveNotFound(res: ServerResponse): void {
-    res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    res.writeHead(404, {
+        "Content-Type": "text/plain; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+    });
     res.end("Not found");
 }
 
-function streamFile(req: IncomingMessage, res: ServerResponse, filePath: string, cacheControl: string): void {
-    const stat = statSync(filePath);
+function serveBadRequest(res: ServerResponse): void {
+    res.writeHead(400, {
+        "Content-Type": "text/plain; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+    });
+    res.end("Bad request");
+}
+
+function serveMethodNotAllowed(res: ServerResponse): void {
+    res.writeHead(405, {
+        Allow: "GET, HEAD",
+        "Content-Type": "text/plain; charset=utf-8",
+        "X-Content-Type-Options": "nosniff",
+    });
+    res.end("Method not allowed");
+}
+
+function streamFile(
+    req: IncomingMessage,
+    res: ServerResponse,
+    filePath: string,
+    fileStat: Stats,
+    cacheControl: string,
+): void {
     const extensionIndex = filePath.lastIndexOf(".");
     const extension = extensionIndex >= 0 ? filePath.slice(extensionIndex).toLowerCase() : "";
     const range = req.headers.range?.match(/^bytes=(\d*)-(\d*)$/);
     let start = 0;
-    let end = stat.size - 1;
+    let end = fileStat.size - 1;
     let status = 200;
 
-    if (range && stat.size > 0) {
-        const requestedStart = range[1] ? Number(range[1]) : undefined;
-        const requestedEnd = range[2] ? Number(range[2]) : undefined;
-        start = Math.min(requestedStart ?? Math.max(0, stat.size - (requestedEnd ?? 0)), stat.size - 1);
-        end = Math.min(requestedEnd ?? stat.size - 1, stat.size - 1);
-        if (start > end || !Number.isSafeInteger(start) || !Number.isSafeInteger(end)) {
-            res.writeHead(416, { "Content-Range": `bytes */${stat.size}` });
+    if (range) {
+        const hasStart = range[1]?.length > 0;
+        const hasEnd = range[2]?.length > 0;
+        const requestedStart = hasStart ? Number(range[1]) : undefined;
+        const requestedEnd = hasEnd ? Number(range[2]) : undefined;
+        if (requestedStart !== undefined) {
+            start = requestedStart;
+            end = Math.min(requestedEnd ?? fileStat.size - 1, fileStat.size - 1);
+        } else {
+            const suffixLength = requestedEnd ?? 0;
+            start = Math.max(0, fileStat.size - suffixLength);
+            end = fileStat.size - 1;
+        }
+        if (
+            fileStat.size === 0 ||
+            (!hasStart && (!hasEnd || requestedEnd === 0)) ||
+            start < 0 ||
+            start >= fileStat.size ||
+            start > end ||
+            !Number.isSafeInteger(start) ||
+            !Number.isSafeInteger(end)
+        ) {
+            res.writeHead(416, { "Content-Range": `bytes */${fileStat.size}` });
             res.end();
             return;
         }
@@ -93,12 +129,17 @@ function streamFile(req: IncomingMessage, res: ServerResponse, filePath: string,
         "Cache-Control": cacheControl,
         "Content-Length": length,
         "Content-Type": CONTENT_TYPES[extension] ?? "application/octet-stream",
+        "X-Content-Type-Options": "nosniff",
         // The browser client uses isolated workers and SharedArrayBuffer where available.
         "Cross-Origin-Embedder-Policy": "require-corp",
         "Cross-Origin-Opener-Policy": "same-origin",
         "Cross-Origin-Resource-Policy": "same-origin",
-        ...(status === 206 ? { "Content-Range": `bytes ${start}-${end}/${stat.size}` } : {}),
+        ...(status === 206 ? { "Content-Range": `bytes ${start}-${end}/${fileStat.size}` } : {}),
     });
+    if (req.method === "HEAD" || fileStat.size === 0) {
+        res.end();
+        return;
+    }
     createReadStream(filePath, { start, end }).on("error", () => res.destroy()).pipe(res);
 }
 
@@ -106,21 +147,36 @@ function streamFile(req: IncomingMessage, res: ServerResponse, filePath: string,
  * Serves the pre-built browser client over the same HTTP server that owns the
  * WebSocket listener. The WebSocket upgrade path remains untouched by this.
  */
-export function serveHostedClient(
+export async function serveHostedClient(
     req: IncomingMessage,
     res: ServerResponse,
     options: ClientHostingOptions,
-): void {
+): Promise<void> {
+    const method = (req.method ?? "GET").toUpperCase();
+    if (method !== "GET" && method !== "HEAD") {
+        serveMethodNotAllowed(res);
+        return;
+    }
     const path = requestPath(req.url);
+    if (path === undefined) {
+        serveBadRequest(res);
+        return;
+    }
     if (path === "/servers.json") {
-        const host = getSharedHost(req);
-        const address = host ? `${host}:${options.gamePort}` : `localhost:${options.gamePort}`;
-        res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+        const endpoint = resolvePublicGameEndpoint(
+            options.gamePort,
+            getRequestHost(req),
+        );
+        res.writeHead(200, {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        });
         res.end(JSON.stringify([{
             id: options.worldId,
             name: options.serverName,
-            address,
-            secure: false,
+            address: endpoint.address,
+            secure: endpoint.secure,
             maxPlayers: options.maxPlayers,
             location: 0,
             activity: options.serverName,
@@ -130,31 +186,41 @@ export function serveHostedClient(
     }
 
     if (path.startsWith("/caches/")) {
-        const cachePath = resolve(SERVER_CACHE_DIR, path.slice("/caches/".length));
-        if (!isWithinDirectory(cachePath, SERVER_CACHE_DIR) || !existsSync(cachePath) || statSync(cachePath).isDirectory()) {
+        const hostedFile = await resolveStaticFile(
+            SERVER_CACHE_DIR,
+            path.slice("/caches/".length),
+        );
+        if (!hostedFile) {
             serveNotFound(res);
             return;
         }
-        streamFile(req, res, cachePath, "public, max-age=3600");
-        return;
-    }
-
-    if (!existsSync(CLIENT_BUILD_DIR)) {
-        serveMissingBuild(res);
+        streamFile(
+            req,
+            res,
+            hostedFile.filePath,
+            hostedFile.fileStat,
+            "public, max-age=3600",
+        );
         return;
     }
 
     const relativePath = path === "/" ? "index.html" : path.slice(1);
-    let filePath = resolve(CLIENT_BUILD_DIR, relativePath);
-    if (!isWithinBuildDirectory(filePath) || !existsSync(filePath) || statSync(filePath).isDirectory()) {
+    let hostedFile = await resolveStaticFile(CLIENT_BUILD_DIR, relativePath);
+    if (!hostedFile) {
         // Browser routes are client-owned, so serve the app shell as the SPA fallback.
-        filePath = resolve(CLIENT_BUILD_DIR, "index.html");
+        hostedFile = await resolveStaticFile(CLIENT_BUILD_DIR, "index.html");
     }
-    if (!existsSync(filePath)) {
+    if (!hostedFile) {
         serveMissingBuild(res);
         return;
     }
 
-    const isHashedAsset = /\.[a-f0-9]{8,}\./i.test(filePath);
-    streamFile(req, res, filePath, isHashedAsset ? "public, max-age=31536000, immutable" : "no-cache");
+    const isHashedAsset = /\.[a-f0-9]{8,}\./i.test(hostedFile.filePath);
+    streamFile(
+        req,
+        res,
+        hostedFile.filePath,
+        hostedFile.fileStat,
+        isHashedAsset ? "public, max-age=31536000, immutable" : "no-cache",
+    );
 }

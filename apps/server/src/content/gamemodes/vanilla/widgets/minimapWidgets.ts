@@ -1,5 +1,6 @@
 import { VARBIT_XPDROPS_ENABLED } from "@august/game-model/state/vars";
 import type { PlayerState } from "@server/game/player";
+import { registerPlayerScopedCollections } from "@server/game/scripts/ScriptLifecycle";
 import {
     DisplayMode,
     type IScriptRegistry,
@@ -280,6 +281,16 @@ export function registerMinimapWidgetHandlers(
     const lastWorldMapFullscreenTickByPlayerId = new Map<number, number>();
     const lastMinimapToggleTickByPlayerId = new Map<number, number>();
     const lastWorldMapCloseTickByPlayerId = new Map<number, number>();
+    registerPlayerScopedCollections(
+        registry,
+        services,
+        lastToggleTickByPlayerId,
+        lastSetupTickByPlayerId,
+        lastWorldMapFloatingTickByPlayerId,
+        lastWorldMapFullscreenTickByPlayerId,
+        lastMinimapToggleTickByPlayerId,
+        lastWorldMapCloseTickByPlayerId,
+    );
 
     // Minimap XP drops orb (160:6)
     registry.registerWidgetAction({

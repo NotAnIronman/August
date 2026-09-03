@@ -298,7 +298,7 @@ export class LocInteractionHandler {
 
         try {
             const action = info.action ? ` action="${info.action}"` : "";
-            logger.info(
+            logger.debug(
                 `Player ${player.id} interacted with loc ${info.id} at (${info.tile.x},${info.tile.y},${interactionLevel})${action}`,
             );
 
@@ -313,7 +313,7 @@ export class LocInteractionHandler {
             });
             if (doorResult?.success && doorResult.newLocId !== undefined) {
                 const level = interactionLevel;
-                logger.info(
+                logger.debug(
                     `[DOOR] Triggering loc change from ${info.id} to ${
                         doorResult.newLocId
                     } (action=${info.action ?? "unknown"})`,
@@ -339,7 +339,7 @@ export class LocInteractionHandler {
                             },
                         );
                     }
-                    logger.info("[DOOR] Loc change callback executed");
+                    logger.debug("[DOOR] Loc change callback executed");
                 } else {
                     logger.warn("[DOOR] No onLocChange callback set!");
                 }

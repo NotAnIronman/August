@@ -698,7 +698,7 @@ export class GroundItemHandler {
         this.svc.playerGroundSerial.delete(player.id);
 
         try {
-            logger.info(
+            logger.debug(
                 `[ground] pickup player=${player.id} item=${itemId} qty=${added} tile=(${tile.x},${tile.y},${tile.level})`,
             );
         } catch (err) {

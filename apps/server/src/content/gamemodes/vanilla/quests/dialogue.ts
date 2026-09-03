@@ -146,6 +146,15 @@ export function showTwoItems(
 const activeConversations = new Set<number>();
 let dialogSequence = 0;
 
+export function clearPlayerConversationState(playerId: number): void {
+    activeConversations.delete(playerId);
+}
+
+export function resetConversationRuntimeState(): void {
+    activeConversations.clear();
+    dialogSequence = 0;
+}
+
 export function startConversation(ctx: DialogueContext, steps: DialogueStep[]): void {
     const pid = ctx.player.id;
     if (activeConversations.has(pid)) {

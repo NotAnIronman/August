@@ -2,6 +2,8 @@ export type InteractionTargetType = "player" | "npc";
 
 export const NO_INTERACTION = -1;
 export const PLAYER_INDEX_OFFSET = 0x8000; // 32768
+export const MAX_INTERACTION_TARGET_ID = PLAYER_INDEX_OFFSET - 1;
+export const MAX_INTERACTION_INDEX = 0xffff;
 
 export type InteractionIndex = number;
 
@@ -9,14 +11,17 @@ export function encodeInteractionIndex(
     targetType: InteractionTargetType,
     targetId: number,
 ): InteractionIndex {
-    const normalizedId = targetId | 0;
-    if (normalizedId < 0) {
+    if (
+        !Number.isInteger(targetId) ||
+        targetId < 0 ||
+        targetId > MAX_INTERACTION_TARGET_ID
+    ) {
         return NO_INTERACTION;
     }
     if (targetType === "npc") {
-        return normalizedId;
+        return targetId;
     }
-    return PLAYER_INDEX_OFFSET + normalizedId;
+    return PLAYER_INDEX_OFFSET + targetId;
 }
 
 export function encodeInteractionTarget(
@@ -48,15 +53,19 @@ export function decodeInteractionTarget(
 }
 
 export function isValidInteractionIndex(index: InteractionIndex): boolean {
-    return Number.isInteger(index) && index >= 0;
+    return Number.isInteger(index) && index >= 0 && index <= MAX_INTERACTION_INDEX;
 }
 
 export function isNpcInteractionIndex(index: InteractionIndex): boolean {
-    return index >= 0 && index < PLAYER_INDEX_OFFSET;
+    return Number.isInteger(index) && index >= 0 && index < PLAYER_INDEX_OFFSET;
 }
 
 export function isPlayerInteractionIndex(index: InteractionIndex): boolean {
-    return index >= PLAYER_INDEX_OFFSET;
+    return (
+        Number.isInteger(index) &&
+        index >= PLAYER_INDEX_OFFSET &&
+        index <= MAX_INTERACTION_INDEX
+    );
 }
 
 export function clampInteractionIndex(
@@ -65,10 +74,7 @@ export function clampInteractionIndex(
     if (typeof index !== "number") {
         return NO_INTERACTION;
     }
-    if (index < NO_INTERACTION) {
-        return NO_INTERACTION;
-    }
-    return index | 0;
+    return isValidInteractionIndex(index) ? index : NO_INTERACTION;
 }
 
 export function resolveInteractionTargetId(index: InteractionIndex): number | undefined {

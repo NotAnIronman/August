@@ -57,7 +57,9 @@ export class CollectionLogService {
      * client keeps all tabs' completion state and just looks it up locally.
      */
     sendCollectionLogCategoryCompletion(player: PlayerState): void {
-        logger.info(`[collection-log] sendCollectionLogCategoryCompletion called for player=${player.id}`);
+        logger.debug(
+            `[collection-log] sendCollectionLogCategoryCompletion called for player=${player.id}`,
+        );
         const ws = this.services.players?.getSocketByPlayerId(player.id);
         if (!ws) {
             logger.warn(
@@ -67,8 +69,9 @@ export class CollectionLogService {
         }
 
         const completionByTab = getCategoryCompletionByTab(player);
-        logger.info(
-            `[collection-log] sending category_completion for player=${player.id}: ${JSON.stringify(completionByTab)}`,
+        logger.debug(
+            `[collection-log] sending category_completion for player=${player.id}`,
+            completionByTab,
         );
 
         this.services.networkLayer.withDirectSendBypass("collection_log_category_completion", () =>

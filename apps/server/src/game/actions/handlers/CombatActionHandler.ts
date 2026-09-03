@@ -1252,7 +1252,7 @@ export class CombatActionHandler {
         }
 
         const scheduleTick = Number.isFinite(tick) ? tick : this.svc.ticker.currentTick();
-        logger.info(
+        logger.debug(
             `[combat] player ${player.id} attack NPC ${npc.id} - tick ${scheduleTick}, animation ${
                 attackSeq ?? "none"
             }`,

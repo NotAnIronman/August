@@ -17,7 +17,7 @@ export function createWidgetHandler(services: MessageHandlerServices): MessageHa
                 modal?: boolean;
             };
             if (action === "open") {
-                logger.info(`[widget-open] player=${p.id} group=${groupId} modal=${modal}`);
+                logger.debug(`[widget-open] player=${p.id} group=${groupId} modal=${modal}`);
                 services.noteWidgetEventForLedger(p.id, { action: "open", groupId, modal });
                 p.widgets.open(groupId, { modal });
                 if (groupId === SIDE_JOURNAL_GROUP_ID) {
@@ -61,7 +61,7 @@ export function createWidgetHandler(services: MessageHandlerServices): MessageHa
                 const openHandler = services.getWidgetOpenHandler(groupId);
                 openHandler?.(p);
             } else if (action === "close") {
-                logger.info(`[widget-close] player=${p.id} group=${groupId}`);
+                logger.debug(`[widget-close] player=${p.id} group=${groupId}`);
                 services.noteWidgetEventForLedger(p.id, { action: "close", groupId });
                 if (services.handleTradeWidgetClose(p, groupId)) {
                     return;

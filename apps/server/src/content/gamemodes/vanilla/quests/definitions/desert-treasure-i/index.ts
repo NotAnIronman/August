@@ -28,7 +28,7 @@ export const desertTreasureIQuest: QuestDefinition = {
     buildJournal: buildDesertTreasureIJournal,
     register(registry: IScriptRegistry, services: ScriptServices): void {
         registerDesertTreasureIInteractions(desertTreasureIQuest, registry, services);
-        registerQuestDeathHandlers(services);
+        registerQuestDeathHandlers(registry, services);
     },
 };
 

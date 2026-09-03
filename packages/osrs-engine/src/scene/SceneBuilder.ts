@@ -96,6 +96,7 @@ export class SceneBuilder {
         readonly locTypeLoader: LocTypeLoader,
         readonly locModelLoader: LocModelLoader,
         readonly xteasMap: Map<number, number[]>,
+        readonly debugLogging: boolean = false,
     ) {
         this.newTerrainFormat =
             this.cacheInfo.game === "oldschool" && this.cacheInfo.revision >= 209;
@@ -128,15 +129,17 @@ export class SceneBuilder {
             matchType,
             matchRotation,
         });
-        console.log(
-            `[SceneBuilder] setLocOverride: key="${key}" -> {id: ${newId}, rot: ${
-                newRotation ?? "unchanged"
-            }, move: ${
-                typeof moveToX === "number" && typeof moveToY === "number"
-                    ? `${moveToX},${moveToY}`
-                    : "unchanged"
-            }, seq: ${seqId ?? "unchanged"}}`,
-        );
+        if (this.debugLogging) {
+            console.log(
+                `[SceneBuilder] setLocOverride: key="${key}" -> {id: ${newId}, rot: ${
+                    newRotation ?? "unchanged"
+                }, move: ${
+                    typeof moveToX === "number" && typeof moveToY === "number"
+                        ? `${moveToX},${moveToY}`
+                        : "unchanged"
+                }, seq: ${seqId ?? "unchanged"}}`,
+            );
+        }
     }
 
     clearLocOverrides(): void {
@@ -1745,11 +1748,13 @@ export class SceneBuilder {
             const mapY = regionId & 0xff;
             const terrain = this.mapFileLoader.getTerrainData(mapX, mapY, xteas);
             const loc = this.mapFileLoader.getLocData(mapX, mapY, xteas);
-            console.log(
-                `[SceneBuilder] loadInstanceRegion ${regionId} (m${mapX}_${mapY}): terrain=${
-                    terrain?.length ?? "null"
-                } loc=${loc?.length ?? "null"}`,
-            );
+            if (this.debugLogging) {
+                console.log(
+                    `[SceneBuilder] loadInstanceRegion ${regionId} (m${mapX}_${mapY}): terrain=${
+                        terrain?.length ?? "null"
+                    } loc=${loc?.length ?? "null"}`,
+                );
+            }
             archives.set(regionId, { terrain: terrain ?? undefined, loc: loc ?? undefined });
         }
 
@@ -2027,7 +2032,7 @@ export class SceneBuilder {
                 }
             }
         }
-        if (locsMatched > 0 || locsTotal > 100) {
+        if (this.debugLogging && (locsMatched > 0 || locsTotal > 100)) {
             console.log(
                 `[SceneBuilder] decodeInstanceLocs: plane=${targetPlane} chunk=(${chunkSceneX},${chunkSceneY}) src=(${sourceChunkX},${sourceChunkY}) srcPlane=${sourcePlane}: ${locsMatched}/${locsTotal} matched`,
             );

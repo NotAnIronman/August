@@ -1,6 +1,10 @@
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { PlayerState } from "@server/game/player";
+import {
+    registerPlayerLifecycleCleanup,
+    removeTrackedPlayerNpc,
+} from "@server/game/scripts/ScriptLifecycle";
 import type {
     IScriptRegistry,
     LocInteractionEvent,
@@ -258,6 +262,26 @@ export function registerWitchsHouseInteractions(
     registry: IScriptRegistry,
     services: ScriptServices,
 ): void {
+    const clearPlayer = (playerId: number): void => {
+        const experimentId = experimentByPlayer.get(playerId);
+        removeTrackedPlayerNpc(services, playerId, experimentId);
+        const mouseId = mouseByPlayer.get(playerId);
+        removeTrackedPlayerNpc(services, playerId, mouseId);
+        playersInGarden.delete(playerId);
+        experimentByPlayer.delete(playerId);
+        mouseByPlayer.delete(playerId);
+    };
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearPlayer,
+        reset: () => {
+            const playerIds = new Set([
+                ...playersInGarden.keys(),
+                ...experimentByPlayer.keys(),
+                ...mouseByPlayer.keys(),
+            ]);
+            for (const playerId of playerIds) clearPlayer(playerId);
+        },
+    });
     const boy = createBoyHandler(quest);
     registry.registerNpcScript({ npcId: NPC.boy, option: "talk-to", handler: boy });
     registry.registerNpcScript({ npcId: NPC.boy, option: undefined, handler: boy });
@@ -534,10 +558,5 @@ export function registerWitchsHouseInteractions(
     });
     registry.registerTickHandler(({ services }) => {
         for (const player of playersInGarden.values()) tryWitchCatch(player, services, quest);
-    });
-    services.system.eventBus?.on("player:logout", ({ playerId }) => {
-        playersInGarden.delete(playerId);
-        experimentByPlayer.delete(playerId);
-        mouseByPlayer.delete(playerId);
     });
 }

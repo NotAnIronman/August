@@ -1,7 +1,43 @@
 import assert from "node:assert/strict";
 
+import { AttackType } from "@server/game/combat/AttackType";
+import { EncounterRegistry } from "@server/game/encounters/EncounterRegistry";
 import type { IScriptRegistry } from "@server/game/scripts/types";
 import { register } from "@server/content/modules/boss-killcounts";
+
+const encounterRegistry = EncounterRegistry.shared;
+encounterRegistry.clear();
+for (const definition of [
+    {
+        id: "test-general-graardor",
+        npcTypeIds: [2215],
+        name: "General Graardor",
+        collectionLogStructId: 487,
+    },
+    {
+        id: "test-commander-zilyana",
+        npcTypeIds: [2205],
+        name: "Commander Zilyana",
+        collectionLogStructId: 483,
+    },
+] as const) {
+    encounterRegistry.register({
+        id: definition.id,
+        npcTypeIds: definition.npcTypeIds,
+        attacks: [
+            {
+                id: "test-attack",
+                type: AttackType.Melee,
+                rangeTiles: 1,
+                speedTicks: 4,
+            },
+        ],
+        killcount: {
+            name: definition.name,
+            collectionLogStructId: definition.collectionLogStructId,
+        },
+    });
+}
 
 let onNpcKilled: ((killer: any, npc: any, tick: number) => void) | undefined;
 const messages: string[] = [];
@@ -38,4 +74,5 @@ assert.equal(messages.length, 2, "bodyguards must not count as boss kills");
 onNpcKilled?.(player, { typeId: 2205 }, 3);
 assert.equal(stats.get(483)?.count1, 1);
 assert.equal(messages.at(-1), "Commander Zilyana killcount : 1");
+encounterRegistry.clear();
 console.log("boss killcount tests passed");

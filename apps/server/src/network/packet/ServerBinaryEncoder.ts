@@ -1628,7 +1628,7 @@ export class ServerBinaryEncoder {
 
     /**
      * Per-category "all items obtained" state, by tab index - see
-     * getCategoryCompletionByTab in server/src/game/collectionlog.ts. Used
+     * getCategoryCompletionByTab in apps/server/src/game/collectionlog.ts. Used
      * to color-code completed categories green in the sidebar list, since
      * the compiled cache script that draws that list doesn't do it itself.
      */

@@ -8,6 +8,7 @@ import {
     type ScriptServices,
     WidgetActionEvent,
 } from "@server/game/scripts/types";
+import { registerPlayerScopedCollections } from "@server/game/scripts/ScriptLifecycle";
 
 /**
  * Settings widget handlers - handles button clicks on the settings tab (widget 116)
@@ -51,6 +52,11 @@ export function registerSettingsWidgetHandlers(
     // The option list is rendered via shared dropdown list widgets, so the selection click alone
     // doesn't identify which setting row initiated it.
     const activeSideDropdownSettingByPlayerId = new Map<number, number>();
+    registerPlayerScopedCollections(
+        registry,
+        services,
+        activeSideDropdownSettingByPlayerId,
+    );
 
     // Handle "All Settings" button click in settings_side (widget 116)
     // Opens the settings modal (134) in the mainmodal container

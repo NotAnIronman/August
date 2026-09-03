@@ -1,7 +1,10 @@
 import { GroupMissingError } from "@august/osrs-engine/cache/js5/GroupMissingError";
 import { PresenceBitset } from "@august/osrs-engine/cache/js5/PresenceBitset";
 import { CacheFiles } from "@august/osrs-engine/cache/CacheFiles";
-import { MemoryStore } from "@august/osrs-engine/cache/store/MemoryStore";
+import {
+    MemoryStore,
+    parseCacheIndexFileId,
+} from "@august/osrs-engine/cache/store/MemoryStore";
 import { Sector } from "@august/osrs-engine/cache/store/Sector";
 import { SectorCluster } from "@august/osrs-engine/cache/store/SectorCluster";
 
@@ -26,6 +29,9 @@ function readIdxEntry(
     indexFile: ArrayBuffer,
     archiveId: number,
 ): { size: number; sector: number } | undefined {
+    if (!Number.isSafeInteger(archiveId) || archiveId < 0) {
+        return undefined;
+    }
     const offset = archiveId * SectorCluster.SIZE;
     if (offset < 0 || offset + SectorCluster.SIZE > indexFile.byteLength) {
         return undefined;
@@ -98,7 +104,8 @@ export class SparseMemoryStore extends MemoryStore {
                 name !== CacheFiles.META_FILE_NAME &&
                 name.startsWith(CacheFiles.INDEX_FILE_PREFIX)
             ) {
-                const indexId = parseInt(name.slice(CacheFiles.INDEX_FILE_PREFIX.length));
+                const indexId = parseCacheIndexFileId(name);
+                if (indexId === undefined) continue;
                 if (indicesSet.size === 0 || indicesSet.has(indexId)) {
                     indexFiles[indexId] = data;
                 }
@@ -162,7 +169,11 @@ export class SparseMemoryStore extends MemoryStore {
 
     /** Write fetched bytes into the sparse buffer and mark their sectors present. */
     applyRange(byteOffset: number, bytes: Uint8Array): void {
-        if (byteOffset % Sector.SIZE !== 0) {
+        if (
+            !Number.isSafeInteger(byteOffset) ||
+            byteOffset < 0 ||
+            byteOffset % Sector.SIZE !== 0
+        ) {
             console.warn(`[js5] Ignoring unaligned range at ${byteOffset}`);
             return;
         }

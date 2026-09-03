@@ -12,7 +12,7 @@ export type CollectionLogServerPayload =
       }
     | {
           /** Per-category "all items obtained" state, by tab index. See
-           *  getCategoryCompletionByTab in server/src/game/collectionlog.ts -
+           *  getCategoryCompletionByTab in apps/server/src/game/collectionlog.ts -
            *  the compiled cache script that draws the sidebar category list
            *  doesn't color-code completed categories itself, so the client
            *  applies this after the list is drawn (see the run_script hook

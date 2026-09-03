@@ -5,6 +5,14 @@ import path from "path";
 import { logger } from "@server/observability/logger";
 
 const DEFAULT_DATABASE_FILENAME = "game.sqlite";
+const IN_MEMORY_DATABASE_PATH = ":memory:";
+const CURRENT_SCHEMA_VERSION = 1;
+/**
+ * Durable player snapshots are intentionally bounded well above expected saves.
+ * A full 2,000-slot bank is typically hundreds of KiB, while this ceiling also
+ * leaves ample room for collection logs and gamemode-specific state.
+ */
+export const MAX_PLAYER_STATE_JSON_BYTES = 64 * 1024 * 1024;
 const LEGACY_ACCOUNTS_MIGRATION = "legacy-accounts-json-v1";
 const LEGACY_PLAYER_STATES_MIGRATION = "legacy-player-states-json-v1";
 
@@ -44,6 +52,38 @@ export interface SqliteDatabaseOptions {
     databasePath?: string;
 }
 
+function resolveDatabasePath(options: SqliteDatabaseOptions): string {
+    if (options.databasePath === IN_MEMORY_DATABASE_PATH) return IN_MEMORY_DATABASE_PATH;
+    return options.databasePath
+        ? path.resolve(options.databasePath)
+        : path.resolve(options.dataDir, DEFAULT_DATABASE_FILENAME);
+}
+
+function canonicalizeRegistryPath(filePath: string): string {
+    let canonicalPath = filePath;
+    try {
+        canonicalPath = fs.realpathSync.native(filePath);
+    } catch {
+        try {
+            canonicalPath = path.join(
+                fs.realpathSync.native(path.dirname(filePath)),
+                path.basename(filePath),
+            );
+        } catch {
+            // The resolved absolute path is still a stable fallback when no
+            // ancestor exists yet or the filesystem cannot resolve links.
+        }
+    }
+    return process.platform === "win32" ? canonicalPath.toLowerCase() : canonicalPath;
+}
+
+function getDatabaseRegistryKey(options: SqliteDatabaseOptions, databasePath: string): string {
+    if (databasePath === IN_MEMORY_DATABASE_PATH) {
+        return `${IN_MEMORY_DATABASE_PATH}:${canonicalizeRegistryPath(path.resolve(options.dataDir))}`;
+    }
+    return canonicalizeRegistryPath(databasePath);
+}
+
 /**
  * Shared SQLite connection for a gamemode's durable game data.
  *
@@ -54,14 +94,36 @@ export interface SqliteDatabaseOptions {
 export class SqliteDatabase {
     readonly databasePath: string;
     readonly connection: DatabaseSync;
+    private closed = false;
 
     constructor(options: SqliteDatabaseOptions) {
-        this.databasePath = options.databasePath
-            ? path.resolve(options.databasePath)
-            : path.resolve(options.dataDir, DEFAULT_DATABASE_FILENAME);
+        this.databasePath = resolveDatabasePath(options);
 
-        fs.mkdirSync(path.dirname(this.databasePath), { recursive: true });
+        if (this.databasePath !== IN_MEMORY_DATABASE_PATH) {
+            fs.mkdirSync(path.dirname(this.databasePath), { recursive: true });
+        }
         this.connection = new DatabaseSync(this.databasePath);
+        try {
+            this.initialize(options.dataDir);
+        } catch (err) {
+            try {
+                this.connection.close();
+            } catch {
+                // Preserve the initialization failure that made this instance unusable.
+            }
+            this.closed = true;
+            throw err;
+        }
+    }
+
+    private initialize(dataDir: string): void {
+        const schemaVersion = this.readSchemaVersion();
+        if (schemaVersion > CURRENT_SCHEMA_VERSION) {
+            throw new Error(
+                `SQLite database ${this.databasePath} uses newer schema version ${schemaVersion}; ` +
+                    `this server supports up to version ${CURRENT_SCHEMA_VERSION}`,
+            );
+        }
         this.connection.exec(`
             PRAGMA journal_mode = WAL;
             PRAGMA foreign_keys = ON;
@@ -130,6 +192,9 @@ export class SqliteDatabase {
                 PRIMARY KEY (owner_key, friend_key)
             );
 
+            CREATE INDEX IF NOT EXISTS idx_social_friends_friend_key
+                ON social_friends (friend_key, owner_key);
+
             CREATE TABLE IF NOT EXISTS social_ignores (
                 owner_key TEXT NOT NULL,
                 ignored_key TEXT NOT NULL,
@@ -185,7 +250,20 @@ export class SqliteDatabase {
                 SELECT RAISE(ABORT, 'invalid active trade escrow');
             END;
 
-            PRAGMA user_version = 1;
+            CREATE TRIGGER IF NOT EXISTS validate_player_state_size_insert
+            BEFORE INSERT ON player_states
+            WHEN length(CAST(NEW.state_json AS BLOB)) > ${MAX_PLAYER_STATE_JSON_BYTES}
+            BEGIN
+                SELECT RAISE(ABORT, 'player state exceeds 64 MiB limit');
+            END;
+
+            CREATE TRIGGER IF NOT EXISTS validate_player_state_size_update
+            BEFORE UPDATE OF state_json ON player_states
+            WHEN length(CAST(NEW.state_json AS BLOB)) > ${MAX_PLAYER_STATE_JSON_BYTES}
+            BEGIN
+                SELECT RAISE(ABORT, 'player state exceeds 64 MiB limit');
+            END;
+
         `);
         const accountColumns = this.connection.prepare("PRAGMA table_info(accounts)").all() as Array<{
             name: string;
@@ -195,7 +273,38 @@ export class SqliteDatabase {
                 "ALTER TABLE accounts ADD COLUMN permission_level TEXT NOT NULL DEFAULT 'player'",
             );
         }
-        this.migrateLegacyJsonFiles(options.dataDir);
+        if (schemaVersion < CURRENT_SCHEMA_VERSION) {
+            this.connection.exec(`PRAGMA user_version = ${CURRENT_SCHEMA_VERSION}`);
+        }
+        this.migrateLegacyJsonFiles(dataDir);
+    }
+
+    private readSchemaVersion(): number {
+        const row = this.connection.prepare("PRAGMA user_version").get() as
+            | { user_version?: unknown }
+            | undefined;
+        const schemaVersion = Number(row?.user_version);
+        if (!Number.isSafeInteger(schemaVersion) || schemaVersion < 0) {
+            throw new Error(`SQLite database ${this.databasePath} has an invalid schema version`);
+        }
+        return schemaVersion;
+    }
+
+    /** Checkpoint WAL contents and release the database file deterministically. */
+    close(): void {
+        if (this.closed) return;
+        let checkpointError: unknown;
+        try {
+            this.connection.exec("PRAGMA optimize; PRAGMA wal_checkpoint(TRUNCATE);");
+        } catch (err) {
+            checkpointError = err;
+        }
+        try {
+            this.connection.close();
+        } finally {
+            this.closed = true;
+        }
+        if (checkpointError) throw checkpointError;
     }
 
     /**
@@ -334,13 +443,37 @@ const databaseInstances = new Map<string, SqliteDatabase>();
 
 /** Return one shared connection for each database file in this server process. */
 export function getSqliteDatabase(options: SqliteDatabaseOptions): SqliteDatabase {
-    const databasePath = options.databasePath
-        ? path.resolve(options.databasePath)
-        : path.resolve(options.dataDir, DEFAULT_DATABASE_FILENAME);
-    let database = databaseInstances.get(databasePath);
+    const databasePath = resolveDatabasePath(options);
+    if (databasePath !== IN_MEMORY_DATABASE_PATH) {
+        fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+    }
+    const registryKey = getDatabaseRegistryKey(options, databasePath);
+    let database = databaseInstances.get(registryKey);
+    if (database && !database.connection.isOpen) {
+        databaseInstances.delete(registryKey);
+        database = undefined;
+    }
     if (!database) {
         database = new SqliteDatabase({ ...options, databasePath });
-        databaseInstances.set(databasePath, database);
+        databaseInstances.set(registryKey, database);
     }
     return database;
+}
+
+/** Close every process-shared SQLite database during orderly shutdown. */
+export function closeAllSqliteDatabases(): void {
+    const failures: unknown[] = [];
+    for (const [databasePath, database] of databaseInstances) {
+        try {
+            database.close();
+        } catch (err) {
+            failures.push(
+                new Error(`Failed to close SQLite database ${databasePath}`, { cause: err }),
+            );
+        }
+    }
+    databaseInstances.clear();
+    if (failures.length > 0) {
+        throw new AggregateError(failures, "One or more SQLite databases failed to close");
+    }
 }

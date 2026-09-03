@@ -21,7 +21,7 @@ export class QuatPool {
     }
 
     static release(q: quat): void {
-        if (QuatPool.quatIndex < QuatPool.quatLimit - 1) {
+        if (QuatPool.quatIndex < QuatPool.quatLimit) {
             QuatPool.quatPool[QuatPool.quatIndex++] = q;
         }
     }

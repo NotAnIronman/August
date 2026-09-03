@@ -1,6 +1,49 @@
 /// <reference lib="DOM" />
 import { CacheType } from "@august/osrs-engine/cache/CacheType";
+import {
+    MAX_CACHE_FILE_BYTES,
+    MAX_CACHE_INDEX_COUNT,
+    addByteLengthsWithinLimit,
+    assertByteLengthWithinLimit,
+} from "@august/osrs-engine/cache/CacheLimits";
 import { SectorCluster } from "@august/osrs-engine/cache/store/SectorCluster";
+import { parseContentRange } from "@august/osrs-engine/cache/js5/HttpRange";
+import { mapWithConcurrency } from "@august/osrs-engine/util/AsyncConcurrency";
+import { UnsupportedOperationError } from "@august/osrs-engine/util/UnsupportedOperationError";
+
+const MAX_LEGACY_MAP_CATALOG_BYTES = 4 * 1024 * 1024;
+export const MAX_LEGACY_MAP_NAMES = 32_768;
+export const MAX_CACHE_INDEX_FILE_BYTES = 64 * 1024 * 1024;
+const LEGACY_MAP_FETCH_CONCURRENCY = 16;
+const CACHE_INDEX_FETCH_CONCURRENCY = 8;
+const MAX_CACHE_PART_MANIFEST_BYTES = 16 * 1024;
+const MAX_CACHE_PARTS = MAX_CACHE_INDEX_COUNT * 16;
+const LEGACY_MAP_FILE_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,255}$/;
+
+/** Validate legacy map file names before they become request URLs and cache keys. */
+export function parseLegacyMapNames(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+        throw new TypeError("Legacy cache map catalog must be an array");
+    }
+    if (value.length > MAX_LEGACY_MAP_NAMES) {
+        throw new TypeError(
+            `Legacy cache map catalog cannot contain more than ${MAX_LEGACY_MAP_NAMES} entries`,
+        );
+    }
+    const names = new Set<string>();
+    for (const valueName of value) {
+        if (
+            typeof valueName !== "string" ||
+            valueName === "." ||
+            valueName === ".." ||
+            !LEGACY_MAP_FILE_NAME.test(valueName)
+        ) {
+            throw new TypeError("Legacy cache map catalog contains an invalid file name");
+        }
+        names.add(valueName);
+    }
+    return [...names];
+}
 
 // Minimal cache wrapper interface to tolerate environments without CacheStorage (e.g., some iOS contexts)
 export type CacheLike = {
@@ -29,6 +72,7 @@ type StoredResponseRecord = {
 
 let idbDatabasePromise: Promise<IDBDatabase> | undefined;
 let idbInitializationFailureLogged = false;
+const memoryCacheStores = new Map<string, Map<string, StoredResponseRecord>>();
 
 function resolveCacheKey(cacheName: string): string {
     return `${CACHE_STORAGE_PREFIX}${cacheName}`;
@@ -241,7 +285,11 @@ function idbGetEntriesByPrefix(
 }
 
 function createMemoryCache(cacheName: string): CacheLike {
-    const store = new Map<string, StoredResponseRecord>();
+    let store = memoryCacheStores.get(cacheName);
+    if (!store) {
+        store = new Map<string, StoredResponseRecord>();
+        memoryCacheStores.set(cacheName, store);
+    }
     return {
         async match(request: RequestInfo, options?: CacheQueryOptions) {
             const requestUrl = normalizeRequestUrl(request);
@@ -368,6 +416,12 @@ async function createIdbCache(cacheName: string): Promise<CacheLike> {
 }
 
 export async function pruneCacheStorage(keepNames: string[]): Promise<void> {
+    const keepMemoryNames = new Set(keepNames);
+    for (const cacheName of memoryCacheStores.keys()) {
+        if (!keepMemoryNames.has(cacheName)) {
+            memoryCacheStores.delete(cacheName);
+        }
+    }
     if (typeof (globalThis as any).caches === "undefined") {
         return;
     }
@@ -408,6 +462,10 @@ export class CacheFiles {
         progressListener?: ProgressListener,
     ): Promise<CacheFiles> {
         switch (cacheType) {
+            case "classic":
+                throw new UnsupportedOperationError(
+                    'CacheFiles.fetchFiles does not support the "classic" cache format',
+                );
             case "legacy":
                 return CacheFiles.fetchLegacy(baseUrl, name, shared, signal, progressListener);
             case "dat":
@@ -415,7 +473,6 @@ export class CacheFiles {
             case "dat2":
                 return CacheFiles.fetchDat2(baseUrl, name, [], shared, signal, progressListener);
         }
-        throw new Error("Not implemented");
     }
 
     static async fetchLegacy(
@@ -446,21 +503,39 @@ export class CacheFiles {
 
         let mapNames: string[] = [];
         try {
-            mapNames = await fetch(baseUrl + "maps.json").then((resp) => resp.json());
+            const mapsUrl = baseUrl + "maps.json";
+            const response = await fetch(mapsUrl, { signal });
+            if (!response.ok) {
+                throw new Error(`Failed downloading ${mapsUrl}, ${response.status}`);
+            }
+            const parts = await toBufferParts(
+                response,
+                0,
+                undefined,
+                MAX_LEGACY_MAP_CATALOG_BYTES,
+            );
+            const parsed = JSON.parse(new TextDecoder().decode(partsToBuffer(parts, false))) as unknown;
+            mapNames = parseLegacyMapNames(parsed);
         } catch (e) {
+            if (signal?.aborted) throw e;
             console.warn(
                 `CacheFiles.fetchLegacy: failed to load map names from ${baseUrl}maps.json`,
                 e,
             );
         }
 
-        for (const mapName of mapNames) {
-            filePromises.push(
+        const mapFilesPromise = mapWithConcurrency(
+            mapNames,
+            LEGACY_MAP_FETCH_CONCURRENCY,
+            (mapName) =>
                 fetchCachedFile(baseUrl, "maps/" + mapName, shared, false, cache, signal),
-            );
-        }
+        );
 
-        const cachedFiles = await Promise.all([modelsFilePromise, ...filePromises]);
+        const [baseFiles, mapFiles] = await Promise.all([
+            Promise.all([modelsFilePromise, ...filePromises]),
+            mapFilesPromise,
+        ]);
+        const cachedFiles = [...baseFiles, ...mapFiles];
 
         for (const file of cachedFiles) {
             files.set(file.name, file.data);
@@ -493,7 +568,16 @@ export class CacheFiles {
         for (let i = 0; i < CacheFiles.DAT_INDEX_COUNT; i++) {
             // Prefer using SharedArrayBuffer when available to share across workers
             indexFilePromises.push(
-                fetchCachedFile(baseUrl, CacheFiles.INDEX_FILE_PREFIX + i, shared, false, cache),
+                fetchCachedFile(
+                    baseUrl,
+                    CacheFiles.INDEX_FILE_PREFIX + i,
+                    shared,
+                    false,
+                    cache,
+                    signal,
+                    undefined,
+                    { maxBytes: MAX_CACHE_INDEX_FILE_BYTES },
+                ),
             );
         }
 
@@ -532,7 +616,39 @@ export class CacheFiles {
             };
         };
 
-        // Download main data file (this is the large one)
+        // Validate the tiny index table before starting the large dat2 transfer.
+        const metaFile = await fetchCachedFile(
+            baseUrl,
+            CacheFiles.META_FILE_NAME,
+            shared,
+            false,
+            cache,
+            signal,
+            undefined,
+            { maxBytes: MAX_CACHE_INDEX_COUNT * SectorCluster.SIZE },
+        );
+        const indexCount = metaFile.data.byteLength / SectorCluster.SIZE;
+        if (!Number.isInteger(indexCount) || indexCount > MAX_CACHE_INDEX_COUNT) {
+            throw new Error(
+                `Invalid cache index table: ${metaFile.data.byteLength} bytes describes ${indexCount} indices`,
+            );
+        }
+
+        if (indicesToLoad.length === 0) {
+            indicesToLoad = Array.from({ length: indexCount }, (_, i) => i);
+        } else {
+            const uniqueIndices = new Set<number>();
+            for (const indexId of indicesToLoad) {
+                if (!Number.isInteger(indexId) || indexId < 0 || indexId >= indexCount) {
+                    throw new RangeError(
+                        `Cache index ID ${String(indexId)} is outside the metadata range 0-${Math.max(indexCount - 1, 0)}`,
+                    );
+                }
+                uniqueIndices.add(indexId);
+            }
+            indicesToLoad = [...uniqueIndices];
+        }
+
         const dataFilePromise = fetchCachedFile(
             baseUrl,
             CacheFiles.DAT2_FILE_NAME,
@@ -548,19 +664,6 @@ export class CacheFiles {
                   }
                 : {},
         );
-
-        const metaFile = await fetchCachedFile(
-            baseUrl,
-            CacheFiles.META_FILE_NAME,
-            shared,
-            false,
-            cache,
-        );
-        const indexCount = metaFile.data.byteLength / SectorCluster.SIZE;
-
-        if (indicesToLoad.length === 0) {
-            indicesToLoad = Array.from({ length: indexCount }, (_, i) => i);
-        }
 
         if (sequential) {
             // Sequential loading: load indices one at a time with phase labels
@@ -588,6 +691,9 @@ export class CacheFiles {
                         shared,
                         false,
                         cache,
+                        signal,
+                        undefined,
+                        { maxBytes: MAX_CACHE_INDEX_FILE_BYTES },
                     );
                     if (indexFile) {
                         files.set(indexFile.name, indexFile.data);
@@ -597,19 +703,27 @@ export class CacheFiles {
                 }
             }
         } else {
-            // Parallel loading (original behavior)
-            const indexPromises = indicesToLoad.map((indexId) =>
-                fetchCachedFile(
-                    baseUrl,
-                    CacheFiles.INDEX_FILE_PREFIX + indexId,
-                    shared,
-                    false,
-                    cache,
-                ).catch(console.error),
+            const indexFilesPromise = mapWithConcurrency(
+                indicesToLoad,
+                CACHE_INDEX_FETCH_CONCURRENCY,
+                (indexId) =>
+                    fetchCachedFile(
+                        baseUrl,
+                        CacheFiles.INDEX_FILE_PREFIX + indexId,
+                        shared,
+                        false,
+                        cache,
+                        signal,
+                        undefined,
+                        { maxBytes: MAX_CACHE_INDEX_FILE_BYTES },
+                    ).catch(console.error),
             );
 
-            const dataAndIndices = await Promise.all([dataFilePromise, ...indexPromises]);
-            for (const file of dataAndIndices) {
+            const [dataFile, indexFiles] = await Promise.all([
+                dataFilePromise,
+                indexFilesPromise,
+            ]);
+            for (const file of [dataFile, ...indexFiles]) {
                 if (file) {
                     files.set(file.name, file.data);
                 }
@@ -633,6 +747,7 @@ export class CacheFiles {
         signal?: AbortSignal,
         progressListener?: ProgressListener,
     ): Promise<ArrayBuffer | null> {
+        if (!Number.isInteger(indexId) || indexId < 0 || indexId > 255) return null;
         const cache = await openCache(cacheName);
         try {
             const indexFile = await fetchCachedFile(
@@ -643,6 +758,12 @@ export class CacheFiles {
                 cache,
                 signal,
                 progressListener,
+                {
+                    maxBytes:
+                        indexId === 255
+                            ? MAX_CACHE_INDEX_COUNT * SectorCluster.SIZE
+                            : MAX_CACHE_INDEX_FILE_BYTES,
+                },
             );
             return indexFile?.data ?? null;
         } catch (e) {
@@ -686,11 +807,27 @@ async function toBufferParts(
     response: Response,
     offset: number,
     progressListener?: ProgressListener,
+    maxBytes: number = MAX_CACHE_FILE_BYTES,
 ): Promise<Uint8Array[]> {
-    if (!response.body) {
-        return [];
+    const resource = response.url || "cache response";
+    assertByteLengthWithinLimit(offset, resource, maxBytes);
+    const contentLengthHeader = response.headers.get("Content-Length");
+    let contentLength = offset;
+    if (contentLengthHeader !== null) {
+        const declaredLength = Number(contentLengthHeader);
+        if (!Number.isSafeInteger(declaredLength) || declaredLength < 0) {
+            throw new RangeError(`Invalid Content-Length for ${resource}`);
+        }
+        contentLength = addByteLengthsWithinLimit(offset, declaredLength, resource, maxBytes);
     }
-    const contentLength = offset + Number(response.headers.get("Content-Length") || 0);
+    if (!response.body) {
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        const total = addByteLengthsWithinLimit(offset, bytes.byteLength, resource, maxBytes);
+        if (progressListener) {
+            progressListener({ total, current: total, part: bytes });
+        }
+        return bytes.byteLength > 0 ? [bytes] : [];
+    }
 
     const reader = response.body.getReader();
     const parts: Uint8Array[] = [];
@@ -704,27 +841,49 @@ async function toBufferParts(
         });
     }
 
-    for (let res = await reader.read(); !res.done && res.value; res = await reader.read()) {
-        parts.push(res.value);
-        currentLength += res.value.byteLength;
-        if (progressListener) {
-            progressListener({
-                total: contentLength,
-                current: currentLength,
-                part: res.value,
-            });
+    try {
+        for (let res = await reader.read(); !res.done && res.value; res = await reader.read()) {
+            currentLength = addByteLengthsWithinLimit(
+                currentLength,
+                res.value.byteLength,
+                resource,
+                maxBytes,
+            );
+            parts.push(res.value);
+            if (progressListener) {
+                progressListener({
+                    total: contentLength,
+                    current: currentLength,
+                    part: res.value,
+                });
+            }
         }
+    } catch (error) {
+        try {
+            await reader.cancel();
+        } catch {}
+        throw error;
     }
     return parts;
 }
 
-function partsToBuffer(parts: Uint8Array[], shared: boolean): ArrayBuffer {
+function partsToBuffer(
+    parts: Uint8Array[],
+    shared: boolean,
+    maxBytes: number = MAX_CACHE_FILE_BYTES,
+): ArrayBuffer {
     let totalLength = 0;
     for (const part of parts) {
-        totalLength += part.byteLength;
+        totalLength = addByteLengthsWithinLimit(
+            totalLength,
+            part.byteLength,
+            "cache assembly",
+            maxBytes,
+        );
     }
 
-    const sab = shared ? new SharedArrayBuffer(totalLength) : new ArrayBuffer(totalLength);
+    const canShare = shared && typeof SharedArrayBuffer !== "undefined";
+    const sab = canShare ? new SharedArrayBuffer(totalLength) : new ArrayBuffer(totalLength);
     const u8 = new Uint8Array(sab);
     let offset = 0;
     for (const buffer of parts) {
@@ -732,6 +891,15 @@ function partsToBuffer(parts: Uint8Array[], shared: boolean): ArrayBuffer {
         offset += buffer.byteLength;
     }
     return sab as ArrayBuffer;
+}
+
+/** Read a cached/network response without allowing its body to exceed a known bound. */
+export async function readCacheResponseBytes(
+    response: Response,
+    maxBytes: number,
+): Promise<Uint8Array> {
+    const parts = await toBufferParts(response, 0, undefined, maxBytes);
+    return new Uint8Array(partsToBuffer(parts, false, maxBytes));
 }
 
 type CachedFile = {
@@ -744,6 +912,8 @@ type CacheWriteOptions = {
     skipFinalCacheWrite: boolean;
     /** Keep part entries after a successful download instead of deleting them. */
     keepPartCacheAfterSuccess: boolean;
+    /** Maximum accepted bytes for this specific cache artifact. */
+    maxBytes: number;
 };
 
 async function fetchCachedFile(
@@ -756,16 +926,21 @@ async function fetchCachedFile(
     progressListener?: ProgressListener,
     cacheWriteOptions: Partial<CacheWriteOptions> = {},
 ): Promise<CachedFile> {
-    const { skipFinalCacheWrite = false, keepPartCacheAfterSuccess = false } = cacheWriteOptions;
+    const {
+        skipFinalCacheWrite = false,
+        keepPartCacheAfterSuccess = false,
+        maxBytes = MAX_CACHE_FILE_BYTES,
+    } = cacheWriteOptions;
+    assertByteLengthWithinLimit(0, name, maxBytes);
 
     const path = baseUrl + name;
     const manifestUrl = path + "/part/manifest";
     const cachedResp = await cache.match(path);
     if (cachedResp) {
-        const parts = await toBufferParts(cachedResp, 0, progressListener);
+        const parts = await toBufferParts(cachedResp, 0, progressListener, maxBytes);
         return {
             name,
-            data: partsToBuffer(parts, shared),
+            data: partsToBuffer(parts, shared, maxBytes),
         };
     }
     const partUrls: RequestInfo[] = [];
@@ -776,13 +951,24 @@ async function fetchCachedFile(
         const manifestResp = await cache.match(manifestUrl);
         if (manifestResp) {
             try {
-                const manifest = (await manifestResp.json()) as {
+                const manifestBytes = partsToBuffer(
+                    await toBufferParts(
+                        manifestResp,
+                        0,
+                        undefined,
+                        MAX_CACHE_PART_MANIFEST_BYTES,
+                    ),
+                    false,
+                    MAX_CACHE_PART_MANIFEST_BYTES,
+                );
+                const manifest = JSON.parse(new TextDecoder().decode(manifestBytes)) as {
                     total?: number;
                 };
                 if (
                     typeof manifest.total === "number" &&
-                    Number.isFinite(manifest.total) &&
-                    manifest.total >= 0
+                    Number.isSafeInteger(manifest.total) &&
+                    manifest.total >= 0 &&
+                    manifest.total <= maxBytes
                 ) {
                     knownTotalBytes = manifest.total;
                 }
@@ -792,19 +978,22 @@ async function fetchCachedFile(
         const partResponses = cache.matchAll
             ? await cache.matchAll(path + "/part/", { ignoreSearch: true })
             : [];
+        let acceptedPartCount = 0;
         for (const partResp of partResponses) {
+            if (acceptedPartCount >= MAX_CACHE_PARTS) break;
             const partHeader = partResp.headers.get("Cache-Part");
             if (partHeader === null) {
                 continue;
             }
             const index = Number(partHeader);
-            if (!Number.isInteger(index) || index < 0) {
+            if (!Number.isInteger(index) || index < 0 || index >= MAX_CACHE_PARTS) {
                 continue;
             }
             const partUrl = path + "/part/?p=" + index;
             partUrls.push(partUrl);
             existingPartUrlsByIndex.set(index, partUrl);
-            partBuffers[index] = await toBufferParts(partResp, 0);
+            partBuffers[index] = await toBufferParts(partResp, 0, undefined, maxBytes);
+            acceptedPartCount++;
         }
     }
 
@@ -819,7 +1008,7 @@ async function fetchCachedFile(
         partCount++;
         for (const part of partBuffer) {
             parts.push(part);
-            offset += part.byteLength;
+            offset = addByteLengthsWithinLimit(offset, part.byteLength, path, maxBytes);
         }
     }
 
@@ -830,12 +1019,18 @@ async function fetchCachedFile(
                 signal,
             });
             if (headResp.ok) {
-                const lengthHeader = Number(headResp.headers.get("Content-Length") || "0");
-                if (Number.isFinite(lengthHeader) && lengthHeader >= 0) {
-                    knownTotalBytes = lengthHeader;
+                const rawLengthHeader = headResp.headers.get("Content-Length");
+                if (rawLengthHeader !== null) {
+                    knownTotalBytes = assertByteLengthWithinLimit(
+                        Number(rawLengthHeader),
+                        path,
+                        maxBytes,
+                    );
                 }
             }
-        } catch {}
+        } catch (error) {
+            if (error instanceof RangeError) throw error;
+        }
     }
 
     let completedByKnownSize = false;
@@ -868,6 +1063,26 @@ async function fetchCachedFile(
     if (resp && !completedByCachedParts && resp.status !== 200 && resp.status !== 206) {
         throw new Error("Failed downloading " + path + ", " + resp.status);
     }
+    if (resp?.status === 206) {
+        const range = parseContentRange(resp.headers.get("Content-Range"));
+        if (!range || range.start !== offset) {
+            try {
+                await resp.body?.cancel();
+            } catch {}
+            throw new Error(`Invalid resumed range response for ${path} at byte ${offset}`);
+        }
+        if (range.total !== undefined) {
+            assertByteLengthWithinLimit(range.total, path, maxBytes);
+        }
+        if (knownTotalBytes !== undefined && range.total !== undefined && range.total !== knownTotalBytes) {
+            try {
+                await resp.body?.cancel();
+            } catch {}
+            throw new Error(
+                `Cached size for ${path} is ${knownTotalBytes}, but server reports ${range.total}`,
+            );
+        }
+    }
     if (rangeIgnoredByServer) {
         // Server ignored the range request; restart assembly from byte 0.
         parts.length = 0;
@@ -889,7 +1104,7 @@ async function fetchCachedFile(
 
         const partUrl = path + "/part/?p=" + partCount;
         partUrls.push(partUrl);
-        const partResp = new Response(ReadableBufferStream(partsToBuffer(chunkParts, false)), {
+        const partResp = new Response(ReadableBufferStream(partsToBuffer(chunkParts, false, maxBytes)), {
             status: 200,
             headers: {
                 "Content-Type": "application/octet-stream",
@@ -897,7 +1112,9 @@ async function fetchCachedFile(
                 "Cache-Part": partCount.toString(),
             },
         });
-        Object.defineProperty(partResp, "url", { value: partUrl });
+        try {
+            Object.defineProperty(partResp, "url", { value: partUrl });
+        } catch {}
         const update = cache.put(partUrl, partResp);
         cacheUpdates.push(update);
         partCount++;
@@ -906,7 +1123,12 @@ async function fetchCachedFile(
     const partProgressListener = (progress: DownloadProgress) => {
         if (incremental && progress.part.byteLength > 0) {
             partCache.push(progress.part);
-            partCacheLength += progress.part.byteLength;
+            partCacheLength = addByteLengthsWithinLimit(
+                partCacheLength,
+                progress.part.byteLength,
+                path,
+                maxBytes,
+            );
 
             // cache every 1% of the total file size
             const partCacheThreshold = Math.max(progress.total * 0.01, 1000 * 1024);
@@ -928,7 +1150,7 @@ async function fetchCachedFile(
             });
         }
     } else {
-        const newParts = await toBufferParts(resp!, offset, partProgressListener);
+        const newParts = await toBufferParts(resp!, offset, partProgressListener, maxBytes);
         for (const part of newParts) {
             parts.push(part);
             downloadedBytes += part.byteLength;
@@ -938,7 +1160,7 @@ async function fetchCachedFile(
     // Persist trailing bytes that did not cross the threshold.
     flushPartCache();
 
-    const buffer = partsToBuffer(parts, shared);
+    const buffer = partsToBuffer(parts, shared, maxBytes);
     const reusedBytes = Math.max(buffer.byteLength - downloadedBytes, 0);
 
     if (!skipFinalCacheWrite) {
@@ -957,10 +1179,10 @@ async function fetchCachedFile(
     if (incremental) {
         await Promise.all(cacheUpdates);
         if (!keepPartCacheAfterSuccess) {
-            for (const url of partUrls) {
-                cache.delete(url);
-            }
-            cache.delete(manifestUrl);
+            await Promise.allSettled([
+                ...partUrls.map((url) => cache.delete(url)),
+                cache.delete(manifestUrl),
+            ]);
         } else {
             await cache.put(
                 manifestUrl,
@@ -975,11 +1197,11 @@ async function fetchCachedFile(
                 `[storage] ${name} resume stats: reused=${reusedBytes} downloaded=${downloadedBytes} total=${buffer.byteLength}`,
             );
             // Keep only contiguous part entries [0..partCount-1] and prune stale tails.
-            for (const [index, url] of existingPartUrlsByIndex) {
-                if (index >= partCount) {
-                    cache.delete(url);
-                }
-            }
+            await Promise.allSettled(
+                Array.from(existingPartUrlsByIndex, ([index, url]) =>
+                    index >= partCount ? cache.delete(url) : Promise.resolve(false),
+                ),
+            );
         }
     }
 

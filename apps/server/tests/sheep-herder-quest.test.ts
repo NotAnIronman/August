@@ -16,8 +16,11 @@ import {
 } from "@server/content/gamemodes/vanilla/quests/definitions/sheep-herder/constants";
 import { getQuestStage, VARP_QUEST_POINTS } from "@server/content/gamemodes/vanilla/quests/QuestService";
 import npcSpawns from "@august/data/generated/server/npc-spawns.json";
+import { GameEventBus } from "@server/game/events/GameEventBus";
 import { ScriptRegistry } from "@server/game/scripts/ScriptRegistry";
+import { ScriptRuntime } from "@server/game/scripts/ScriptRuntime";
 import type { ScriptServices } from "@server/game/scripts/types";
+import { ScriptScheduler } from "@server/game/systems/ScriptScheduler";
 
 assert.equal(sheepHerderQuest.varpId, VARP_SHEEP_HERDER);
 assert.equal(sheepHerderQuest.completionValue, STAGE_COMPLETE);
@@ -33,6 +36,7 @@ assert.ok(npcSpawns.some((spawn) => spawn.id === NPC.farmerBrumty));
 assert.ok(groundItems.some((spawn) => spawn.id === ITEM.cattleprod));
 
 const registry = new ScriptRegistry();
+const eventBus = new GameEventBus();
 const varps = new Map<number, number>([
     [VARP_SHEEP_HERDER, 0],
     [VARP_SHEEP_DISPOSAL, 0],
@@ -130,11 +134,23 @@ const services = {
     sound: { sendJingle: () => undefined },
     system: {
         getCurrentTick: () => 100,
+        eventBus,
         logger: { info: () => undefined, error: () => undefined },
     },
 } as unknown as ScriptServices;
 
-sheepHerderQuest.register(registry, services);
+const runtime = new ScriptRuntime({
+    registry,
+    scheduler: new ScriptScheduler(),
+    services,
+    logger: {
+        info: () => undefined,
+        warn: () => undefined,
+        error: () => undefined,
+        debug: () => undefined,
+    },
+});
+runtime.registerHandlers("sheep-herder", (scripts) => sheepHerderQuest.register(scripts, services));
 
 function talk(npcId: number): void {
     const handler = registry.findNpcInteractionDirect(npcId, "talk-to");
@@ -152,6 +168,21 @@ assert.equal(getQuestStage(player, sheepHerderQuest), STAGE_DISPOSING_SHEEP);
 assert.ok(slots.some((entry) => entry.itemId === ITEM.plagueJacket));
 assert.ok(slots.some((entry) => entry.itemId === ITEM.plagueTrousers));
 assert.equal(activeNpcs.size, 4);
+
+eventBus.emit("player:logout", { playerId: 83, username: "Sheep tester" });
+assert.equal(activeNpcs.size, 0, "logout must remove every player-owned quest sheep");
+const farmEnter = registry.findZoneHandler("sheep_herder_farm", "enter");
+assert.ok(farmEnter);
+farmEnter({
+    player,
+    services,
+    tick: 100,
+    zoneId: "sheep_herder_farm",
+    type: "enter",
+    previous: { x: 2575, y: 3336, level: 0 },
+    current: { x: 2576, y: 3336, level: 0 },
+} as never);
+assert.equal(activeNpcs.size, 4, "returning to the farm must recreate the quest sheep cleanly");
 
 equipped.set(EquipmentSlot.BODY, ITEM.plagueJacket);
 equipped.set(EquipmentSlot.LEGS, ITEM.plagueTrousers);
@@ -191,5 +222,21 @@ talk(NPC.councillorHalgrive[0]);
 assert.equal(getQuestStage(player, sheepHerderQuest), STAGE_COMPLETE);
 assert.equal(varps.get(VARP_QUEST_POINTS), 4);
 assert.equal(slots.find((entry) => entry.itemId === ITEM.coins)?.quantity, 3100);
+
+varps.set(VARP_SHEEP_HERDER, STAGE_DISPOSING_SHEEP);
+varps.set(VARP_SHEEP_DISPOSAL, 0);
+farmEnter({
+    player,
+    services,
+    tick: 101,
+    zoneId: "sheep_herder_farm",
+    type: "enter",
+    previous: { x: 2575, y: 3336, level: 0 },
+    current: { x: 2576, y: 3336, level: 0 },
+} as never);
+assert.equal(activeNpcs.size, 4);
+runtime.reset();
+assert.equal(activeNpcs.size, 0, "provider reset must remove tracked quest sheep");
+assert.equal(eventBus.listenerCount("player:logout"), 0);
 
 console.log("Sheep Herder quest tests passed");

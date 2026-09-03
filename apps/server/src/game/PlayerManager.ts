@@ -32,6 +32,11 @@ export interface OrphanedPlayer {
     saveKey: string;
 }
 
+export interface PlayerManagerOptions {
+    /** Enables expensive route diagnostics for every connected human player. */
+    readonly debugHumanPathfinding?: boolean;
+}
+
 /**
  * Maximum ticks an orphaned player stays in-game (100 ticks = 60 seconds).
  * After this, they are removed regardless of combat state.
@@ -41,6 +46,16 @@ const ORPHAN_MAX_TICKS = 100;
 // --- Player management / interaction delegation ---
 export class PlayerManager implements PlayerRepository {
     private players = new Map<WebSocket, PlayerState>();
+    /**
+     * Canonical index for active, orphaned, and headless players. Player-id
+     * lookups sit on combat and synchronization hot paths, so scanning each
+     * population for every lookup does not scale with player count.
+     */
+    private readonly playersById = new Map<number, PlayerState>();
+    /** Active transport index; orphaned players intentionally have no socket. */
+    private readonly socketsByPlayerId = new Map<number, WebSocket>();
+    /** Canonical-name index for active authenticated players. */
+    private readonly connectedPlayersByName = new Map<string, PlayerState>();
     private pathService: PathService;
     // Headless players (no websocket) for testing/simulation
     private bots: PlayerState[] = [];
@@ -71,6 +86,7 @@ export class PlayerManager implements PlayerRepository {
         locTypeLoader?: LocTypeLoader,
         doorManager?: DoorStateManager,
         scriptRuntime?: ScriptRuntime,
+        private readonly options: PlayerManagerOptions = {},
     ) {
         this.pathService = pathService;
         this.locTypeLoader = locTypeLoader;
@@ -185,6 +201,14 @@ export class PlayerManager implements PlayerRepository {
     }
 
     add(ws: WebSocket, spawnX: number, spawnY: number, level: number = 0): PlayerState | undefined {
+        const existing = this.players.get(ws);
+        if (existing) {
+            logger.warn(
+                `[player] Ignoring duplicate registration for connected player ${existing.id}`,
+            );
+            return existing;
+        }
+
         const id = this.allocatePlayerId();
         if (id === undefined) {
             logger.warn(
@@ -195,11 +219,16 @@ export class PlayerManager implements PlayerRepository {
         const p = new PlayerState(id, spawnX, spawnY, level, this.gamemode);
         this.attachMovementPathfinder(p);
         this.players.set(ws, p);
+        this.playersById.set(id, p);
+        this.socketsByPlayerId.set(id, ws);
         this.usedIds.add(id);
 
-        // Enable debug logging for this player
-        DEBUG_PLAYER_IDS.add(id);
-        logger.info(`[DEBUG] Player ID ${id} added to debug logging at (${spawnX},${spawnY})`);
+        if (this.options.debugHumanPathfinding) {
+            DEBUG_PLAYER_IDS.add(id);
+            logger.info(
+                `[pathfinding] Enabled route diagnostics for player ${id} at (${spawnX},${spawnY})`,
+            );
+        }
 
         return p;
     }
@@ -231,6 +260,7 @@ export class PlayerManager implements PlayerRepository {
             equip: botEquip,
         };
         this.bots.push(p);
+        this.playersById.set(id, p);
         this.usedIds.add(id);
         return p;
     }
@@ -238,17 +268,26 @@ export class PlayerManager implements PlayerRepository {
     remove(ws: WebSocket): void {
         const p = this.players.get(ws);
         if (p) {
+            const accountName = normalizePlayerAccountName(p.name);
+            if (accountName && this.connectedPlayersByName.get(accountName) === p) {
+                this.connectedPlayersByName.delete(accountName);
+            }
             p.visibleNpcIds.clear();
             p.clearInteraction();
 
             // Disable debug logging for this player
-            DEBUG_PLAYER_IDS.delete(p.id);
-            logger.info(`[DEBUG] Player ID ${p.id} removed from debug logging`);
+            if (DEBUG_PLAYER_IDS.delete(p.id)) {
+                logger.debug(`[pathfinding] Disabled route diagnostics for player ${p.id}`);
+            }
             const id = p.id;
             if (id >= 1 && id <= PlayerManager.MAX_SYNC_PLAYER_ID) {
                 this.freeIds.push(id);
                 this.usedIds.delete(id);
             }
+            if (this.playersById.get(id) === p) {
+                this.playersById.delete(id);
+            }
+            this.socketsByPlayerId.delete(id);
         }
         this.players.delete(ws);
         this.interactionSystem.removeSocket(ws);
@@ -264,18 +303,7 @@ export class PlayerManager implements PlayerRepository {
      * Also checks orphaned players since they're still in the game world.
      */
     getPlayerById(playerId: number): PlayerState | undefined {
-        const id = playerId;
-        for (const p of this.players.values()) {
-            if (p.id === id) return p;
-        }
-        for (const p of this.bots) {
-            if (p.id === id) return p;
-        }
-        // Check orphaned players - they're still attackable
-        for (const orphan of this.orphanedPlayers.values()) {
-            if (orphan.player.id === id) return orphan.player;
-        }
-        return undefined;
+        return this.playersById.get(playerId);
     }
 
     /**
@@ -305,6 +333,11 @@ export class PlayerManager implements PlayerRepository {
 
         // Remove from active players map but keep player state alive
         this.players.delete(ws);
+        this.socketsByPlayerId.delete(player.id);
+        const accountName = normalizePlayerAccountName(player.name);
+        if (accountName && this.connectedPlayersByName.get(accountName) === player) {
+            this.connectedPlayersByName.delete(accountName);
+        }
         this.interactionSystem.removeSocket(ws);
 
         logger.info(
@@ -324,8 +357,14 @@ export class PlayerManager implements PlayerRepository {
         const orphan = this.orphanedPlayers.get(saveKey);
         if (!orphan) return undefined;
 
+        const accountName = normalizePlayerAccountName(orphan.player.name);
+        const connected = accountName ? this.connectedPlayersByName.get(accountName) : undefined;
+        if (connected && connected !== orphan.player) return undefined;
+
         // Reconnect - move player back to active
         this.players.set(ws, orphan.player);
+        this.socketsByPlayerId.set(orphan.player.id, ws);
+        if (accountName) this.connectedPlayersByName.set(accountName, orphan.player);
         this.orphanedPlayers.delete(saveKey);
 
         logger.info(
@@ -349,21 +388,37 @@ export class PlayerManager implements PlayerRepository {
     hasConnectedPlayer(username: string): boolean {
         const normalized = normalizePlayerAccountName(username);
         if (!normalized) return false;
-        for (const player of this.players.values()) {
-            if (normalizePlayerAccountName(player.name) === normalized) {
-                return true;
-            }
-        }
-        return false;
+        return this.connectedPlayersByName.has(normalized);
     }
 
     getConnectedPlayerByName(username: string): PlayerState | undefined {
         const normalized = normalizePlayerAccountName(username);
         if (!normalized) return undefined;
-        for (const player of this.players.values()) {
-            if (normalizePlayerAccountName(player.name) === normalized) return player;
+        return this.connectedPlayersByName.get(normalized);
+    }
+
+    /**
+     * Assign and index the authenticated name for an active socket. Returns
+     * false if another active player already owns that normalized name.
+     */
+    setConnectedPlayerName(ws: WebSocket, name: string): boolean {
+        const player = this.players.get(ws);
+        const normalized = normalizePlayerAccountName(name);
+        if (!player || !normalized) return false;
+        const existing = this.connectedPlayersByName.get(normalized);
+        if (existing && existing !== player) return false;
+
+        const previous = normalizePlayerAccountName(player.name);
+        if (
+            previous &&
+            previous !== normalized &&
+            this.connectedPlayersByName.get(previous) === player
+        ) {
+            this.connectedPlayersByName.delete(previous);
         }
-        return undefined;
+        player.name = name;
+        this.connectedPlayersByName.set(normalized, player);
+        return true;
     }
 
     /**
@@ -417,6 +472,9 @@ export class PlayerManager implements PlayerRepository {
                 if (id >= 1 && id <= PlayerManager.MAX_SYNC_PLAYER_ID) {
                     this.freeIds.push(id);
                     this.usedIds.delete(id);
+                }
+                if (this.playersById.get(id) === orphan.player) {
+                    this.playersById.delete(id);
                 }
 
                 // Clean up player state
@@ -496,17 +554,7 @@ export class PlayerManager implements PlayerRepository {
     }
 
     getById(id: number): PlayerState | undefined {
-        let found: PlayerState | undefined;
-        this.forEach((_, p) => {
-            if (!found && p.id === id) found = p;
-        });
-        if (found) return found;
-        for (const b of this.bots) if (b.id === id) return b;
-        // Check orphaned players - they're still in the game world
-        for (const orphan of this.orphanedPlayers.values()) {
-            if (orphan.player.id === id) return orphan.player;
-        }
-        return undefined;
+        return this.getPlayerById(id);
     }
 
     // Compute and assign a path for player's next walk command
@@ -541,7 +589,8 @@ export class PlayerManager implements PlayerRepository {
             x: p.tileX + segmentDx,
             y: p.tileY + segmentDy,
         };
-        const t0 = Date.now();
+        const debugPathfinding = DEBUG_PLAYER_IDS.has(p.id);
+        const t0 = debugPathfinding ? Date.now() : 0;
         const res = this.pathService.findPathSteps(
             {
                 from: { x: p.tileX, y: p.tileY, plane: p.level },
@@ -551,7 +600,7 @@ export class PlayerManager implements PlayerRepository {
             },
             { maxSteps: 128 },
         );
-        const dt = Date.now() - t0;
+        const dt = debugPathfinding ? Date.now() - t0 : 0;
         if (!res.ok || !res.steps || res.steps.length === 0) {
             p.clearWalkDestination();
             return { ok: false, message: res.message || "no path" };
@@ -560,7 +609,7 @@ export class PlayerManager implements PlayerRepository {
         // Optional debug logging: also compute the legacy "waypoints" view (turn-point compressed)
         // for easier inspection.
         let debugWaypoints: { x: number; y: number }[] | undefined;
-        if (DEBUG_PLAYER_IDS.has(p.id)) {
+        if (debugPathfinding) {
             try {
                 const wp = this.pathService.findPath({
                     from: { x: p.tileX, y: p.tileY, plane: p.level },
@@ -573,7 +622,7 @@ export class PlayerManager implements PlayerRepository {
             }
         }
 
-        if (DEBUG_PLAYER_IDS.has(p.id)) {
+        if (debugPathfinding) {
             try {
                 const waypointStr = (debugWaypoints ?? [])
                     .map((wp) => `(${wp.x},${wp.y})`)
@@ -1104,8 +1153,7 @@ export class PlayerManager implements PlayerRepository {
     }
 
     getSocketByPlayerId(id: number): WebSocket | undefined {
-        for (const [ws, p] of this.players.entries()) if (p.id === id) return ws;
-        return undefined;
+        return this.socketsByPlayerId.get(id);
     }
 
     private routePlayerToNpc(player: PlayerState, npc: NpcState): boolean {

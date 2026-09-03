@@ -1,6 +1,6 @@
-const serviceWorkerBase =
-    typeof process !== "undefined" && process.env ? process.env.PUBLIC_URL : "";
-const SERVICE_WORKER_URL = `${serviceWorkerBase ?? ""}/service-worker.js`;
+import { getPublicAssetUrl } from "@client/core/config/publicAssets";
+
+const SERVICE_WORKER_URL = getPublicAssetUrl("service-worker.js");
 
 export function registerServiceWorker(): void {
     const isProd = typeof process !== "undefined" && process.env?.NODE_ENV === "production";

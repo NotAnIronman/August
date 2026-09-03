@@ -1,5 +1,6 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { PlayerState } from "@server/game/player";
+import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
 import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
 import { BURIABLE_BONES_XP, DEMONIC_ASHES_XP } from "@server/content/gamemodes/vanilla/skills/prayer/prayerData";
 import { formatBuryMessage, formatScatterMessage } from "@server/content/gamemodes/vanilla/skills/prayer/prayerMessages";
@@ -24,6 +25,21 @@ type PendingBury = {
 const pending: PendingBury[] = [];
 
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: (playerId) => {
+            lastBuryTick.delete(playerId);
+            lastScatterTick.delete(playerId);
+            for (let index = pending.length - 1; index >= 0; index -= 1) {
+                if (pending[index]?.player.id === playerId) pending.splice(index, 1);
+            }
+        },
+        reset: () => {
+            lastBuryTick.clear();
+            lastScatterTick.clear();
+            pending.length = 0;
+        },
+    });
+
     const ids = Array.from(BURIABLE_BONES_XP.keys());
     const ashesIds = Array.from(DEMONIC_ASHES_XP.keys());
 

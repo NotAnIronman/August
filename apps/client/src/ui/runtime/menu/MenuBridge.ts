@@ -1,4 +1,5 @@
 import { MenuTargetType, type OsrsMenuEntry } from "@august/osrs-engine/MenuEntry";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { MenuAction, inferMenuAction } from "@client/ui/runtime/menu/MenuAction";
 import type { MenuClickContext, SimpleMenuEntry } from "@client/ui/runtime/menu/MenuEngine";
 import { normalizeMenuEntries } from "@client/ui/runtime/menu/MenuEngine";
@@ -386,7 +387,7 @@ export function widgetEntriesToSimple(
         return (gx?: number, gy?: number, clickCtx?: MenuClickContext) => {
             const dispatched = dispatchWidgetAction(clickCtx);
             if (!dispatched) {
-                console.log(
+                clientDebugLog(
                     `[ui] widget action: ${option}` + (target ? ` -> ${target}` : ""),
                     chosenWidget,
                 );

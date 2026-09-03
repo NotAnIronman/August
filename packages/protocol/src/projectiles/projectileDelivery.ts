@@ -4,7 +4,7 @@ export function adjustProjectileLaunchForElapsedCycles(
     launch: ProjectileLaunch,
     elapsedCycles: number,
 ): ProjectileLaunch {
-    const elapsed = Math.max(0, Math.floor(elapsedCycles));
+    const elapsed = Number.isFinite(elapsedCycles) ? Math.max(0, Math.floor(elapsedCycles)) : 0;
     if (elapsed <= 0) {
         return launch;
     }
@@ -26,7 +26,7 @@ export function adjustProjectileLaunchesForElapsedCycles(
     launches: ProjectileLaunch[],
     elapsedCycles: number,
 ): ProjectileLaunch[] {
-    const elapsed = Math.max(0, Math.floor(elapsedCycles));
+    const elapsed = Number.isFinite(elapsedCycles) ? Math.max(0, Math.floor(elapsedCycles)) : 0;
     if (elapsed <= 0) {
         return launches;
     }

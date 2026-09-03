@@ -9,6 +9,7 @@ import { SeqTypeLoader } from "@august/osrs-engine/config/seqtype/SeqTypeLoader"
 import { VarManager } from "@august/osrs-engine/config/vartype/VarManager";
 import { NpcType } from "@august/osrs-engine/config/npctype/NpcType";
 import { NpcTypeLoader } from "@august/osrs-engine/config/npctype/NpcTypeLoader";
+import { BoundedLruCache } from "@august/osrs-engine/cache/BoundedLruCache";
 
 export class NpcModelLoader {
     modelCache: Map<number, Model>;
@@ -21,8 +22,9 @@ export class NpcModelLoader {
         readonly seqFrameLoader: SeqFrameLoader,
         readonly skeletalSeqLoader: SkeletalSeqLoader | undefined,
         readonly varManager: VarManager,
+        maxCachedModels: number = 1024,
     ) {
-        this.modelCache = new Map();
+        this.modelCache = new BoundedLruCache(maxCachedModels);
     }
 
     getModel(

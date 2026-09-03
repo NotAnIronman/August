@@ -1,23 +1,34 @@
 import { DEV_MODEL_VIEWER_PANEL_GROUP_ID } from "@august/protocol/ui/widgets/custom/journalPanel.cs2";
 import type { PlayerState } from "@server/game/player";
+import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
 import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
 import { openUiPanel, sendUiFooterButton } from "@server/content/gamemodes/vanilla/uikit/panelData";
 
-type Preview = { locId: number; tile: { x: number; y: number }; level: number; shape: number };
+type Preview = {
+    locId: number;
+    tile: { x: number; y: number };
+    level: number;
+    shape: number;
+    worldViewId: number;
+};
 const previews = new Map<number, Preview>();
 const PREVIEW_DISTANCE = 5;
 
 function clearPreview(player: PlayerState, services: ScriptServices): void {
-    const preview = previews.get(player.id);
+    clearPreviewByPlayerId(player.id, services);
+}
+
+function clearPreviewByPlayerId(playerId: number, services: ScriptServices): void {
+    const preview = previews.get(playerId);
     if (!preview) return;
     services.location.clearTemporaryLoc(
-        { worldViewId: player.worldViewId, ownerPlayerId: player.id },
+        { worldViewId: preview.worldViewId, ownerPlayerId: playerId },
         0,
         preview.tile,
         preview.level,
         preview.shape,
     );
-    previews.delete(player.id);
+    previews.delete(playerId);
 }
 
 function openPreviewPanel(player: PlayerState, services: ScriptServices, preview: Preview): void {
@@ -31,6 +42,15 @@ function openPreviewPanel(player: PlayerState, services: ScriptServices, preview
 }
 
 export function registerModelViewerCommands(registry: IScriptRegistry, services: ScriptServices): void {
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: (playerId) => clearPreviewByPlayerId(playerId, services),
+        reset: () => {
+            for (const playerId of [...previews.keys()]) {
+                clearPreviewByPlayerId(playerId, services);
+            }
+        },
+    });
+
     registry.registerCommand("modelviewer", ({ player, args }) => {
         const request = args[0]?.toLowerCase();
         if (!request || request === "help") {
@@ -51,6 +71,7 @@ export function registerModelViewerCommands(registry: IScriptRegistry, services:
             tile: { x: player.tileX + PREVIEW_DISTANCE, y: player.tileY },
             level: player.level,
             shape,
+            worldViewId: player.worldViewId,
         };
         services.location.replaceTemporaryLoc(
             { worldViewId: player.worldViewId, ownerPlayerId: player.id },

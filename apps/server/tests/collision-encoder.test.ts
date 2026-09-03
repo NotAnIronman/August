@@ -8,7 +8,7 @@
  *      OSRS cache (caches/osrs-*). Skipped automatically when the cache is
  *      not present on disk.
  *
- * Run with:  npx tsx tests/collision-encoder.test.ts
+ * Run with: pnpm exec tsx tests/collision-encoder.test.ts
  */
 import fs from "fs";
 import path from "path";
@@ -841,7 +841,7 @@ function findCacheRoot(): string | undefined {
 describe("integration — real OSRS cache (MapCollisionService.buildCollisionBuffer)", () => {
     const cacheRoot = findCacheRoot();
     if (!cacheRoot) {
-        it("skipped (no OSRS cache present — run `npm run ensure-cache`)", () => {
+        it("skipped (no OSRS cache present — run `pnpm run ensure-cache`)", () => {
             assert(true, "skipped");
         });
         return;
@@ -1030,7 +1030,7 @@ describe("integration — real OSRS cache (MapCollisionService.buildCollisionBuf
     // ------------------------------------------------------------------------
     // REGRESSION: world-edge buffer overflow in SceneBuilder.decodeTerrain.
     //
-    // During the first run of `npm run server:build-collision` against the
+    // During the first run of `pnpm run build-collision` against the
     // osrs-237_2026-03-25 cache, square (98, 199) failed with:
     //
     //   [MapCollisionService] failed to build scene for 98_199: Buffer overflow

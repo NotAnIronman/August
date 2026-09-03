@@ -4,12 +4,14 @@ import type { CustomItemDefinition, RegisteredCustomItem } from "@august/custom-
  * Central registry for custom items.
  * Singleton that stores all registered custom item definitions.
  */
-class CustomItemRegistryImpl {
+export class CustomItemRegistryStore {
     private readonly items = new Map<number, RegisteredCustomItem>();
 
     // ID range for custom items (outside cache range)
     private static readonly CUSTOM_ID_START = 50000;
-    private nextCustomId = CustomItemRegistryImpl.CUSTOM_ID_START;
+    private nextCustomId = CustomItemRegistryStore.CUSTOM_ID_START;
+    private registryRevision = 0;
+    private maxCustomId = 0;
 
     /**
      * Register a custom item definition.
@@ -17,6 +19,9 @@ class CustomItemRegistryImpl {
      * @param module Optional module name for debugging
      */
     register(definition: CustomItemDefinition, module?: string): void {
+        if (!Number.isSafeInteger(definition.id) || definition.id < 0) {
+            throw new RangeError(`Invalid custom item ID: ${definition.id}`);
+        }
         if (this.items.has(definition.id)) {
             console.warn(
                 `[CustomItemRegistry] Overwriting existing custom item ${definition.id} (${definition.objType.name})`,
@@ -30,12 +35,17 @@ class CustomItemRegistryImpl {
         };
 
         this.items.set(definition.id, registered);
+        this.maxCustomId = Math.max(this.maxCustomId, definition.id);
+        this.registryRevision++;
     }
 
     /**
      * Allocate the next available custom item ID.
      */
     allocateId(): number {
+        while (this.items.has(this.nextCustomId)) {
+            this.nextCustomId++;
+        }
         return this.nextCustomId++;
     }
 
@@ -75,14 +85,17 @@ class CustomItemRegistryImpl {
     }
 
     /**
+     * Monotonically increasing version used by registry-backed caches.
+     */
+    get revision(): number {
+        return this.registryRevision;
+    }
+
+    /**
      * Get the highest custom item ID in use.
      */
     getMaxCustomId(): number {
-        let max = 0;
-        for (const id of this.items.keys()) {
-            if (id > max) max = id;
-        }
-        return max;
+        return this.maxCustomId;
     }
 
     /**
@@ -90,11 +103,13 @@ class CustomItemRegistryImpl {
      */
     clear(): void {
         this.items.clear();
-        this.nextCustomId = CustomItemRegistryImpl.CUSTOM_ID_START;
+        this.nextCustomId = CustomItemRegistryStore.CUSTOM_ID_START;
+        this.maxCustomId = 0;
+        this.registryRevision++;
     }
 }
 
 /**
  * Global custom item registry singleton.
  */
-export const CustomItemRegistry = new CustomItemRegistryImpl();
+export const CustomItemRegistry = new CustomItemRegistryStore();

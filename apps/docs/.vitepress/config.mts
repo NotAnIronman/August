@@ -1,9 +1,21 @@
 import { defineConfig } from 'vitepress';
 
+const repositorySlug = process.env.GITHUB_REPOSITORY ?? 'NotAnIronman/August';
+const repositoryName = repositorySlug.split('/').at(-1) ?? 'August';
+const defaultBase = repositoryName.toLowerCase().endsWith('.github.io')
+    ? '/'
+    : `/${repositoryName}/`;
+const configuredBase = process.env.DOCS_BASE_PATH?.trim();
+const base = configuredBase
+    ? configuredBase === '/'
+        ? '/'
+        : `/${configuredBase.replace(/^\/+|\/+$/g, '')}/`
+    : defaultBase;
+
 export default defineConfig({
     title: 'August',
     description: 'August OSRS-parity client and server documentation',
-    base: '/August/',
+    base,
     head: [
         ['meta', { property: 'og:title', content: 'August' }],
         ['meta', { property: 'og:description', content: 'August OSRS-parity client and server documentation' }],
@@ -71,7 +83,7 @@ export default defineConfig({
             message: 'Fan project. Not affiliated with Jagex Ltd.',
         },
         editLink: {
-            pattern: 'https://github.com/NotAnIronman/August/edit/main/apps/docs/:path',
+            pattern: `https://github.com/${repositorySlug}/edit/main/apps/docs/:path`,
             text: 'Edit this page on GitHub',
         },
     },

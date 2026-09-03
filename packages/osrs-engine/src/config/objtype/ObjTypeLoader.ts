@@ -8,6 +8,7 @@ import {
     TypeLoader,
 } from "@august/osrs-engine/config/TypeLoader";
 import { ObjType } from "@august/osrs-engine/config/objtype/ObjType";
+import { isGroupMissingError } from "@august/osrs-engine/cache/js5/GroupMissingError";
 
 export type ObjTypeLoader = TypeLoader<ObjType>;
 
@@ -36,14 +37,24 @@ export class PostProcessedObjTypeLoader implements ObjTypeLoader {
             if ((obj.noteTemplate | 0) !== -1) {
                 obj.genCert(this.load(obj.noteTemplate | 0), this.load(obj.note | 0));
             }
-        } catch {}
+        } catch (error) {
+            if (isGroupMissingError(error)) {
+                delete anyObj.__postProcessed;
+                throw error;
+            }
+        }
 
         try {
             // Bought (notedId/unnotedId link variant)
             if ((obj.notedId | 0) !== -1) {
                 obj.genBought(this.load(obj.notedId | 0), this.load(obj.unnotedId | 0));
             }
-        } catch {}
+        } catch (error) {
+            if (isGroupMissingError(error)) {
+                delete anyObj.__postProcessed;
+                throw error;
+            }
+        }
 
         try {
             // Placeholder
@@ -53,7 +64,12 @@ export class PostProcessedObjTypeLoader implements ObjTypeLoader {
                     this.load(obj.placeholder | 0),
                 );
             }
-        } catch {}
+        } catch (error) {
+            if (isGroupMissingError(error)) {
+                delete anyObj.__postProcessed;
+                throw error;
+            }
+        }
 
         return obj;
     }

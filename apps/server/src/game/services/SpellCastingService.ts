@@ -204,7 +204,7 @@ export class SpellCastingService {
                 targetType: "item",
             });
 
-            logger.info(
+            logger.debug(
                 `[magic] Player ${player.id} cast ${spellData.name} on item ${targetItemId} for ${alchValue} coins`,
             );
             return;

@@ -224,7 +224,13 @@ function testManagerCombatBridgeAndCleanup(): void {
         size: 1,
         getMaxHitpoints: () => 100,
     } as NpcState;
-    const target = { id: 20, tileX: 10, tileY: 5, size: 1 } as PlayerState;
+    const target = {
+        id: 20,
+        tileX: 10,
+        tileY: 5,
+        size: 1,
+        combatAttributes: { get: () => undefined },
+    } as unknown as PlayerState;
 
     manager.setCurrentTick(30);
     const rangedTraits = manager.resolveAttackTraits(npc, target);

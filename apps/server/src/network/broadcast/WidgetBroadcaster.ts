@@ -1,5 +1,6 @@
 import type { TickFrame } from "@server/game/tick/TickPhaseOrchestrator";
 import type { WidgetAction } from "@server/widgets/WidgetManager";
+import { logger } from "@server/observability/logger";
 import { encodeMessage } from "@server/network/messages";
 import type { BroadcastContext, BroadcastDomain } from "@server/network/broadcast/BroadcastDomain";
 
@@ -53,7 +54,7 @@ export class WidgetBroadcaster implements BroadcastDomain {
                 // One bad widget event must not silently drop every other
                 // queued event this tick (e.g. the level-up popup's icon
                 // failing must never also take its text down with it).
-                console.error("[WidgetBroadcaster] failed to send close event:", evt.action, err);
+                logger.error("[WidgetBroadcaster] failed to send close event:", evt.action, err);
             }
         }
     }
@@ -74,7 +75,7 @@ export class WidgetBroadcaster implements BroadcastDomain {
                 );
                 this.services.syncPostWidgetOpenState(evt.playerId, evt.action);
             } catch (err) {
-                console.error("[WidgetBroadcaster] failed to send widget event:", evt.action, err);
+                logger.error("[WidgetBroadcaster] failed to send widget event:", evt.action, err);
             }
         }
     }

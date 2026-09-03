@@ -1,6 +1,7 @@
 import { Sector } from "@august/osrs-engine/cache/store/Sector";
 import { GroupSpan, SparseMemoryStore } from "@august/osrs-engine/cache/store/SparseMemoryStore";
 import { validatePartialContentResponse } from "@august/osrs-engine/cache/js5/HttpRange";
+import { readCacheResponseBytes } from "@august/osrs-engine/cache/CacheFiles";
 
 export type RangeFetchedListener = (byteOffset: number, bytes: Uint8Array) => void;
 
@@ -38,9 +39,14 @@ export class Js5RangeClient {
     private static readonly BATCH_DELAY_MS = 10;
 
     private readonly pending = new Map<string, PendingGroup>();
-    private readonly fetchedListeners: RangeFetchedListener[] = [];
+    private readonly fetchedListeners = new Set<RangeFetchedListener>();
+    private readonly activeControllers = new Set<AbortController>();
+    private readonly maxConcurrent: number;
+    private readonly storeMissListener: (span: GroupSpan) => void;
     private activeFetches = 0;
     private scheduled = false;
+    private scheduleTimer: ReturnType<typeof setTimeout> | undefined;
+    private closed = false;
 
     rangeUnsupported = false;
     onRangeUnsupported?: () => void;
@@ -48,16 +54,45 @@ export class Js5RangeClient {
     constructor(
         readonly dat2Url: string,
         readonly store: SparseMemoryStore,
-        private readonly maxConcurrent: number = 6,
+        maxConcurrent: number = 6,
         private readonly persistedRangeLoader?: PersistedRangeLoader,
     ) {
-        store.onMiss = (span) => {
+        this.maxConcurrent = Math.max(1, Math.floor(Number.isFinite(maxConcurrent) ? maxConcurrent : 6));
+        this.storeMissListener = (span) => {
             this.requestSpan(span, true);
         };
+        store.onMiss = this.storeMissListener;
     }
 
-    onFetched(listener: RangeFetchedListener): void {
-        this.fetchedListeners.push(listener);
+    onFetched(listener: RangeFetchedListener): () => void {
+        if (this.closed) return () => {};
+        this.fetchedListeners.add(listener);
+        return () => this.fetchedListeners.delete(listener);
+    }
+
+    /** Stop accepting work and release callbacks/timers owned by this client. */
+    close(reason: string = "js5 client closed"): void {
+        if (this.closed) return;
+        this.closed = true;
+        if (this.scheduleTimer !== undefined) {
+            clearTimeout(this.scheduleTimer);
+            this.scheduleTimer = undefined;
+        }
+        this.scheduled = false;
+        if (this.store.onMiss === this.storeMissListener) {
+            this.store.onMiss = undefined;
+        }
+        const error = new Error(reason);
+        for (const group of this.pending.values()) {
+            group.reject(error);
+        }
+        this.pending.clear();
+        for (const controller of this.activeControllers) {
+            controller.abort();
+        }
+        this.activeControllers.clear();
+        this.fetchedListeners.clear();
+        this.onRangeUnsupported = undefined;
     }
 
     /** Resolves once the group's data is available locally. */
@@ -90,11 +125,15 @@ export class Js5RangeClient {
     }
 
     private requestSpan(span: GroupSpan, urgent: boolean): Promise<void> {
-        if (this.rangeUnsupported) {
+        if (this.closed || this.rangeUnsupported) {
             // Nothing will ever service the queue; fail fast instead of
             // handing out a promise that never settles.
             const rejected = Promise.reject<void>(
-                new Error("js5 disabled: server does not support Range requests"),
+                new Error(
+                    this.closed
+                        ? "js5 client closed"
+                        : "js5 disabled: server does not support Range requests",
+                ),
             );
             rejected.catch(() => {});
             return rejected;
@@ -122,17 +161,19 @@ export class Js5RangeClient {
     }
 
     private schedule(): void {
-        if (this.scheduled || this.rangeUnsupported) {
+        if (this.scheduled || this.closed || this.rangeUnsupported) {
             return;
         }
         this.scheduled = true;
-        setTimeout(() => {
+        this.scheduleTimer = setTimeout(() => {
+            this.scheduleTimer = undefined;
             this.scheduled = false;
             this.tick();
         }, Js5RangeClient.BATCH_DELAY_MS);
     }
 
     private tick(): void {
+        if (this.closed) return;
         while (this.activeFetches < this.maxConcurrent) {
             const batch = this.takeNextBatch();
             if (!batch) {
@@ -204,6 +245,7 @@ export class Js5RangeClient {
                 end = Math.max(end, group.span.startByte + group.span.byteLength);
             }
             const persisted = await this.persistedRangeLoader?.(start, end);
+            if (this.closed) return;
             if (persisted) {
                 this.store.applyRange(persisted.byteOffset, persisted.bytes);
             } else {
@@ -211,15 +253,13 @@ export class Js5RangeClient {
                 this.store.applyRange(start, bytes);
                 this.notifyFetched(start, bytes);
             }
-            for (const group of batch) {
-                this.finishGroup(group);
-            }
+            await Promise.all(batch.map((group) => this.finishGroup(group)));
         } catch (e) {
             for (const group of batch) {
                 this.pending.delete(groupKey(group.span));
                 group.reject(e);
             }
-            if (!this.rangeUnsupported) {
+            if (!this.closed && !this.rangeUnsupported) {
                 console.warn("[js5] Range fetch failed:", e);
             }
         } finally {
@@ -233,22 +273,22 @@ export class Js5RangeClient {
         }
     }
 
-    private finishGroup(group: PendingGroup): void {
+    private finishGroup(group: PendingGroup): Promise<void> {
         const key = groupKey(group.span);
         if (!this.isChainContiguous(group.span)) {
             console.warn(
                 `[js5] Fragmented group ${key}, falling back to chain-following fetch`,
             );
-            this.fetchGroupByChain(group);
-            return;
+            return this.fetchGroupByChain(group);
         }
         if (!this.store.isGroupPresent(group.span.indexId, group.span.archiveId)) {
             this.pending.delete(key);
             group.reject(new Error(`js5 fetch did not cover group ${key}`));
-            return;
+            return Promise.resolve();
         }
         this.pending.delete(key);
         group.resolve();
+        return Promise.resolve();
     }
 
     /**
@@ -292,6 +332,9 @@ export class Js5RangeClient {
                 }
                 const take = Math.min(dataPerSector, span.dataSize - offset);
                 const bytes = await this.fetchRange(sector * Sector.SIZE, headerSize + take);
+                if (this.closed) {
+                    throw new Error("js5 client closed");
+                }
                 if (bytes.byteLength < headerSize + take) {
                     throw new Error(`Short sector read for group ${key}`);
                 }
@@ -316,36 +359,48 @@ export class Js5RangeClient {
 
     private async fetchRange(start: number, length: number): Promise<Uint8Array> {
         const end = Math.min(start + length, this.store.dataFile.byteLength);
-        const resp = await fetch(this.dat2Url, {
-            headers: { Range: `bytes=${start}-${end - 1}` },
-        });
-        if (resp.status === 200) {
-            // Server ignored the Range header; on-demand loading can't work.
-            try {
-                resp.body?.cancel();
-            } catch {}
-            throw this.disableRangeRequests("Server does not support Range requests");
-        }
-        if (resp.status !== 206) {
-            throw new Error(`Failed range fetch ${this.dat2Url} (${start}-${end}): ${resp.status}`);
-        }
+        const controller = new AbortController();
+        this.activeControllers.add(controller);
         try {
-            validatePartialContentResponse(resp, start, end, this.dat2Url);
-        } catch (error) {
+            const resp = await fetch(this.dat2Url, {
+                headers: { Range: `bytes=${start}-${end - 1}` },
+                signal: controller.signal,
+            });
+            if (resp.status === 200) {
+                // Server ignored the Range header; on-demand loading can't work.
+                try {
+                    resp.body?.cancel();
+                } catch {}
+                throw this.disableRangeRequests("Server does not support Range requests");
+            }
+            if (resp.status !== 206) {
+                throw new Error(
+                    `Failed range fetch ${this.dat2Url} (${start}-${end}): ${resp.status}`,
+                );
+            }
             try {
-                resp.body?.cancel();
-            } catch {}
-            const message = error instanceof Error ? error.message : String(error);
-            throw this.disableRangeRequests(message);
+                validatePartialContentResponse(resp, start, end, this.dat2Url);
+            } catch (error) {
+                try {
+                    resp.body?.cancel();
+                } catch {}
+                const message = error instanceof Error ? error.message : String(error);
+                throw this.disableRangeRequests(message);
+            }
+            // Content-Range validates where these bytes belong; the bounded
+            // reader also prevents a malformed endpoint from making the
+            // browser assemble an arbitrarily large body first.
+            const bytes = await readCacheResponseBytes(resp, end - start);
+            if (bytes.byteLength !== end - start) {
+                throw new Error(
+                    `Truncated range fetch ${this.dat2Url} (${start}-${end}): ` +
+                        `received ${bytes.byteLength} of ${end - start} bytes`,
+                );
+            }
+            return bytes;
+        } finally {
+            this.activeControllers.delete(controller);
         }
-        const bytes = new Uint8Array(await resp.arrayBuffer());
-        if (bytes.byteLength !== end - start) {
-            throw new Error(
-                `Truncated range fetch ${this.dat2Url} (${start}-${end}): ` +
-                    `received ${bytes.byteLength} of ${end - start} bytes`,
-            );
-        }
-        return bytes;
     }
 
     private disableRangeRequests(reason: string): Error {

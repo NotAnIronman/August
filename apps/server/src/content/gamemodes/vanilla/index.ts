@@ -409,7 +409,7 @@ export class VanillaGamemode extends BaseGamemode {
 
         // Level-up display (event-driven from SkillService)
         if (services.system.eventBus) {
-            registerLevelUpHandlers(services, services.system.eventBus);
+            registerLevelUpHandlers(registry, services, services.system.eventBus);
         }
     }
 

@@ -49,9 +49,9 @@ function openWithKey(
     services.inventory.snapshotInventory(player);
 
     services.location.emitLocChange(CHEST_CLOSED, CHEST_OPEN, tile, level);
-    setTimeout(() => {
+    services.scheduler.after(2, () => {
         services.location.emitLocChange(CHEST_OPEN, CHEST_CLOSED, tile, level);
-    }, 1200);
+    });
 }
 
 export function registerMuddyChestHandlers(registry: IScriptRegistry): void {

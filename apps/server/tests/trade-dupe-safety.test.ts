@@ -1,7 +1,7 @@
 /**
  * Adversarial regression coverage for player-to-player trade item safety.
  *
- * Run with: npx tsx tests/trade-dupe-safety.test.ts
+ * Run with: pnpm exec tsx tests/trade-dupe-safety.test.ts
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";

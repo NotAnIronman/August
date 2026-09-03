@@ -13,6 +13,7 @@ import { drawWorldSelectGridOnly } from "@client/features/login/renderer/world/w
 import { drawWorldSelectHoverOnly } from "@client/features/login/renderer/world/worldSelectHover";
 import { drawTitleMuteButton } from "@client/features/login/renderer/controls";
 import { drawLogoToCtx, drawSprite, drawCenteredText } from "@client/features/login/renderer/render/drawUtils";
+import { createCanvasSurface2D } from "@client/core/platform/browser/CanvasSurface";
 
 export function computeTitleStateHash(
     host: LoginRendererHost,
@@ -88,8 +89,9 @@ export function drawTitle(host: LoginRendererHost, state: LoginState, gameState:
                 host.titleCacheWidth !== width ||
                 host.titleCacheHeight !== height
             ) {
-                host.titleCache = new OffscreenCanvas(width, height);
-                host.titleCacheCtx = host.titleCache.getContext("2d");
+                const surface = createCanvasSurface2D(width, height);
+                host.titleCache = surface?.canvas ?? null;
+                host.titleCacheCtx = surface?.context ?? null;
             }
 
             if (host.titleCacheCtx) {

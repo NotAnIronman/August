@@ -877,6 +877,10 @@ export class TickPhaseService {
             this.svc.instancedAreaManager?.dispose(player);
             this.svc.npcManager?.removeNpcsOwnedByPlayer(player.id);
             this.svc.locationService.clearTemporaryLocsOwnedByPlayer(player.id);
+            this.svc.eventBus.emit("player:logout", {
+                playerId: player.id,
+                username: player.name ?? "unknown",
+            });
             this.svc.actionScheduler.unregisterPlayer(player.id);
         });
     }

@@ -2,14 +2,25 @@
  * Safe localStorage primitives. Never throw; return undefined/default on failure.
  */
 
+function getLocalStorage(): Storage | undefined {
+    if (typeof window === "undefined") return undefined;
+    try {
+        return window.localStorage;
+    } catch {
+        // Access itself can throw in sandboxed frames and privacy-restricted browsers.
+        return undefined;
+    }
+}
+
 export function canUseLocalStorage(): boolean {
-    return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+    return getLocalStorage() !== undefined;
 }
 
 export function readLocalStorageItem(key: string): string | undefined {
-    if (!canUseLocalStorage()) return undefined;
+    const storage = getLocalStorage();
+    if (!storage) return undefined;
     try {
-        const value = window.localStorage.getItem(key);
+        const value = storage.getItem(key);
         return value === null ? undefined : value;
     } catch {
         return undefined;
@@ -17,9 +28,10 @@ export function readLocalStorageItem(key: string): string | undefined {
 }
 
 export function writeLocalStorageItem(key: string, value: string): boolean {
-    if (!canUseLocalStorage()) return false;
+    const storage = getLocalStorage();
+    if (!storage) return false;
     try {
-        window.localStorage.setItem(key, value);
+        storage.setItem(key, value);
         return true;
     } catch {
         return false;
@@ -27,9 +39,10 @@ export function writeLocalStorageItem(key: string, value: string): boolean {
 }
 
 export function removeLocalStorageItem(key: string): void {
-    if (!canUseLocalStorage()) return;
+    const storage = getLocalStorage();
+    if (!storage) return;
     try {
-        window.localStorage.removeItem(key);
+        storage.removeItem(key);
     } catch {
         // ignore
     }
@@ -63,4 +76,22 @@ export function readLocalStorageBool(key: string, defaultValue: boolean): boolea
 
 export function writeLocalStorageBool(key: string, value: boolean): boolean {
     return writeLocalStorageItem(key, String(value));
+}
+
+export interface BrowserJsonPersistence<TLoad, TSave = TLoad> {
+    load(): TLoad | undefined;
+    save(value: TSave): void;
+}
+
+/** Shared JSON persistence adapter for browser-backed feature stores. */
+export function createBrowserJsonPersistence<TLoad, TSave = TLoad>(
+    storageKey: string,
+): BrowserJsonPersistence<TLoad, TSave> | undefined {
+    if (!canUseLocalStorage()) return undefined;
+    return {
+        load: () => readLocalStorageJson<TLoad>(storageKey),
+        save: (value) => {
+            writeLocalStorageJson(storageKey, value);
+        },
+    };
 }

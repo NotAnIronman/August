@@ -6,6 +6,7 @@ import { CacheSystem } from "@august/osrs-engine/cache/CacheSystem";
 import { IndexType } from "@august/osrs-engine/cache/IndexType";
 import { retryOnMissingGroup } from "@august/osrs-engine/cache/js5/retryOnMissingGroup";
 import { copyArrayBufferLike, copyArrayBufferView } from "@august/protocol/binary";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { decodeOggVorbisToAudioBuffer, isOggVorbis } from "@client/engine/audio/VorbisWasm";
 import {
     addAudioContextResumeListeners,
@@ -194,7 +195,7 @@ export class MusicSystem {
         const trackId = this.findTrackByName(MusicSystem.LOGIN_MUSIC_NAME);
 
         if (trackId >= 0) {
-            console.log(`[MusicSystem] Playing login music (trackId=${trackId})`);
+            clientDebugLog(`[MusicSystem] Playing login music (trackId=${trackId})`);
             this.playSong(trackId, 0, 0, 0, 0);
             return true;
         }
@@ -202,7 +203,7 @@ export class MusicSystem {
         // Fallback: Try iterating through archive name hashes
         const trackIdByHash = this.findTrackByNameHash(MusicSystem.LOGIN_MUSIC_HASH);
         if (trackIdByHash >= 0) {
-            console.log(`[MusicSystem] Playing login music by hash (trackId=${trackIdByHash})`);
+            clientDebugLog(`[MusicSystem] Playing login music by hash (trackId=${trackIdByHash})`);
             this.playSong(trackIdByHash, 0, 0, 0, 0);
             return true;
         }
@@ -420,13 +421,13 @@ export class MusicSystem {
         this.secondaryTrackId = trackId;
 
         try {
-            console.log(`[MusicSystem] Loading secondary track ${trackId}...`);
+            clientDebugLog(`[MusicSystem] Loading secondary track ${trackId}...`);
             const loaded = await this.secondarySynth.loadTrack(trackId);
             if (loaded) {
                 this.secondarySynth.setVolume(this.volume);
                 this.secondarySynth.setLooping(true);
                 this.secondarySynth.play();
-                console.log(`[MusicSystem] Playing secondary track ${trackId}`);
+                clientDebugLog(`[MusicSystem] Playing secondary track ${trackId}`);
                 return true;
             }
         } catch (e) {
@@ -508,7 +509,7 @@ export class MusicSystem {
             true,
         );
         this._playingJingle = true;
-        console.log(`[MusicSystem] Playing jingle ${jingleId}`);
+        clientDebugLog(`[MusicSystem] Playing jingle ${jingleId}`);
         return true;
     }
 
@@ -636,12 +637,12 @@ export class MusicSystem {
 
         // Try real-time synth first (best quality, handles OSRS MIDI with patches)
         try {
-            console.log(`[MusicSystem] Loading track ${trackId} via RealtimeMidiSynth...`);
+            clientDebugLog(`[MusicSystem] Loading track ${trackId} via RealtimeMidiSynth...`);
             const loaded = await this.realtimeSynth.loadTrack(trackId);
 
             // Check if another track was requested while we were loading
             if (mySequence !== this.loadSequence) {
-                console.log(
+                clientDebugLog(
                     `[MusicSystem] Track ${trackId} load cancelled (newer request pending)`,
                 );
                 return false;
@@ -651,7 +652,7 @@ export class MusicSystem {
                 this.realtimeSynth.setVolume(this.volume);
                 this.realtimeSynth.setLooping(true);
                 this.realtimeSynth.play();
-                console.log(`[MusicSystem] Playing track ${trackId} via RealtimeMidiSynth`);
+                clientDebugLog(`[MusicSystem] Playing track ${trackId} via RealtimeMidiSynth`);
                 return true;
             }
         } catch (e) {
@@ -688,7 +689,7 @@ export class MusicSystem {
         }
 
         try {
-            console.log(`[MusicSystem] Loading track ${trackId} via fallback methods...`);
+            clientDebugLog(`[MusicSystem] Loading track ${trackId} via fallback methods...`);
             const index = this.cache.getIndex(IndexType.DAT2.musicTracks);
             if (!index) {
                 console.error("[MusicSystem] Music index not available");
@@ -750,7 +751,7 @@ export class MusicSystem {
                 try {
                     audioBuf = await decodeOggVorbisToAudioBuffer(audioData, this.context);
                     if (mySequence !== this.loadSequence) return false;
-                    console.log(
+                    clientDebugLog(
                         `[MusicSystem] Decoded track ${trackId} via WASM Vorbis (${audioData.length} bytes)`,
                     );
                 } catch (e) {
@@ -789,7 +790,7 @@ export class MusicSystem {
                     try {
                         audioBuf = await this.context.decodeAudioData(buf.slice(0));
                         if (mySequence !== this.loadSequence) return false;
-                        console.log(
+                        clientDebugLog(
                             `[MusicSystem] Decoded track ${trackId} via browser decodeAudioData`,
                         );
                         break;
@@ -814,7 +815,7 @@ export class MusicSystem {
                         const wavArrayBuffer = copyArrayBufferLike(underlyingBuffer, 0, length);
                         audioBuf = await this.context.decodeAudioData(wavArrayBuffer);
                         if (mySequence !== this.loadSequence) return false;
-                        console.log(`[MusicSystem] Decoded track ${trackId} via legacy synth`);
+                        clientDebugLog(`[MusicSystem] Decoded track ${trackId} via legacy synth`);
                     }
                 } catch (e) {
                     if (mySequence !== this.loadSequence) return false;
@@ -848,7 +849,7 @@ export class MusicSystem {
                         }
                         this.htmlAudio = audio;
                         this.htmlAudioUrl = url;
-                        console.log(
+                        clientDebugLog(
                             `[MusicSystem] Playing track ${trackId} via HTMLAudioElement (${mime})`,
                         );
                         return true;
@@ -878,7 +879,7 @@ export class MusicSystem {
 
             this.currentSource = source;
             this.stopHtmlAudioFallback();
-            console.log(`[MusicSystem] Playing track ${trackId}`);
+            clientDebugLog(`[MusicSystem] Playing track ${trackId}`);
             return true;
         } catch (e) {
             console.error("[MusicSystem] Error playing track", e);
@@ -1042,7 +1043,7 @@ export class MusicSystem {
         const finished = task.run();
         if (finished) {
             if (task.error) {
-                console.log(`[MusicSystem] Error in midimanager.service: ${task.error}`);
+                clientDebugLog(`[MusicSystem] Error in midimanager.service: ${task.error}`);
                 this.stopOsrsMusicImmediate();
                 return;
             }
@@ -1069,7 +1070,7 @@ export class MusicSystem {
         }
 
         this._playingJingle = false;
-        console.log("[MusicSystem] Jingle ended");
+        clientDebugLog("[MusicSystem] Jingle ended");
 
         if (this.volume > 0 && this.osrsQueuedAreaTracks && this.osrsQueuedAreaFade) {
             this.queueOsrsSongs(

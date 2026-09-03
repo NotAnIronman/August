@@ -1,7 +1,7 @@
 /**
  * Regression coverage for NPC stat-draining special attacks.
  *
- * Run with: npx tsx tests/combat-stat-drains.test.ts
+ * Run with: pnpm exec tsx tests/combat-stat-drains.test.ts
  */
 import assert from "node:assert/strict";
 

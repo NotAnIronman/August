@@ -532,6 +532,8 @@ export interface SystemFacade {
         debug: (...args: unknown[]) => void;
     };
     getCurrentTick(): number;
+    /** The authoritative duration of one world tick for this server. */
+    getTickDurationMs?(): number;
     /** Permission-aware development bypass for content that must remain gated
      * for normal accounts while an unfinished system is being tested. */
     isDeveloper?(player: PlayerState): boolean;

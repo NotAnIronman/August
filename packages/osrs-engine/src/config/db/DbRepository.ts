@@ -2,6 +2,7 @@ import type { ArchiveFile } from "@august/osrs-engine/cache/ArchiveFile";
 import type { CacheSystem } from "@august/osrs-engine/cache/CacheSystem";
 import { ConfigType } from "@august/osrs-engine/cache/ConfigType";
 import { IndexType } from "@august/osrs-engine/cache/IndexType";
+import { isGroupMissingError } from "@august/osrs-engine/cache/js5/GroupMissingError";
 import type { DbRow } from "@august/osrs-engine/config/db/DbRow";
 import { loadDbRow } from "@august/osrs-engine/config/db/DbRowLoader";
 import type { DbTableDefinition } from "@august/osrs-engine/config/db/DbTableDefinition";
@@ -10,14 +11,16 @@ import { loadDbTable } from "@august/osrs-engine/config/db/DbTableLoader";
 export class DbRepository {
     private tables?: Map<number, DbTableDefinition>;
     private rowsByTable?: Map<number, DbRow[]>;
+    private rowsById?: Map<number, DbRow>;
 
     constructor(private readonly cacheSystem: CacheSystem) {}
 
     private ensureLoaded() {
-        if (this.tables && this.rowsByTable) return;
+        if (this.tables && this.rowsByTable && this.rowsById) return;
 
         const tables = new Map<number, DbTableDefinition>();
         const rowsByTable = new Map<number, DbRow[]>();
+        const rowsById = new Map<number, DbRow>();
 
         try {
             const configs = this.cacheSystem.getIndex(IndexType.DAT2.configs);
@@ -35,6 +38,7 @@ export class DbRepository {
                 for (const file of dbRowArchive.files as ArchiveFile[]) {
                     const buffer = file.getDataAsBuffer();
                     const row = loadDbRow(file.id, buffer);
+                    rowsById.set(row.id, row);
                     if (row.tableId >= 0) {
                         const list = rowsByTable.get(row.tableId) || [];
                         list.push(row);
@@ -43,11 +47,17 @@ export class DbRepository {
                 }
             }
         } catch (err) {
+            // Sparse JS5 data may become available after the requested range
+            // arrives. Do not publish and permanently cache a partial snapshot.
+            if (isGroupMissingError(err)) {
+                throw err;
+            }
             console.error("DbRepository: failed to load", err);
         }
 
         this.tables = tables;
         this.rowsByTable = rowsByTable;
+        this.rowsById = rowsById;
     }
 
     getTables(): Map<number, DbTableDefinition> {
@@ -81,11 +91,6 @@ export class DbRepository {
      */
     getRowById(rowId: number): DbRow | undefined {
         this.ensureLoaded();
-        if (!this.rowsByTable) return undefined;
-        for (const rows of this.rowsByTable.values()) {
-            const row = rows.find((r) => r.id === rowId);
-            if (row) return row;
-        }
-        return undefined;
+        return this.rowsById?.get(rowId);
     }
 }

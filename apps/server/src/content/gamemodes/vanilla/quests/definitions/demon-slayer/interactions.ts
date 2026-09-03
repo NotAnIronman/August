@@ -1,4 +1,9 @@
 import type { PlayerState } from "@server/game/player";
+import {
+    registerEventSubscription,
+    registerPlayerLifecycleCleanup,
+    removeTrackedPlayerNpc,
+} from "@server/game/scripts/ScriptLifecycle";
 import type {
     IScriptRegistry,
     NpcInteractionEvent,
@@ -51,7 +56,6 @@ const knownPlayers = new Map<number, PlayerState>();
 const arisByPlayer = new Map<number, QuestNpcState>();
 const delrithByPlayer = new Map<number, QuestNpcState>();
 const weakenedByPlayer = new Map<number, QuestNpcState>();
-const registeredEventBuses = new WeakSet<object>();
 
 function inside(
     player: PlayerState,
@@ -73,7 +77,7 @@ function removeTrackedNpc(
 ): void {
     const tracked = map.get(playerId);
     if (!tracked) return;
-    services.npc.removeNpc(tracked.npcId);
+    removeTrackedPlayerNpc(services, playerId, tracked.npcId);
     map.delete(playerId);
 }
 
@@ -140,30 +144,53 @@ function clearDemonEncounter(playerId: number, services: ScriptServices): void {
     removeTrackedNpc(playerId, weakenedByPlayer, services);
 }
 
-function registerQuestNpcLifecycle(quest: QuestDefinition, services: ScriptServices): void {
+function registerQuestNpcLifecycle(
+    quest: QuestDefinition,
+    registry: IScriptRegistry,
+    services: ScriptServices,
+): void {
     const eventBus = services.system.eventBus;
-    if (!eventBus || registeredEventBuses.has(eventBus)) return;
-    registeredEventBuses.add(eventBus);
-
-    eventBus.on("player:login", ({ player }) => {
-        knownPlayers.set(player.id, player);
-        if (inside(player, ARIS_ZONE)) ensureAris(player, services);
-        if (inside(player, DELRITH_ZONE)) ensureDelrith(player, services, quest);
-    });
-    eventBus.on("player:logout", ({ playerId }) => {
+    const clearPlayer = (playerId: number): void => {
         knownPlayers.delete(playerId);
         removeTrackedNpc(playerId, arisByPlayer, services);
         clearDemonEncounter(playerId, services);
+    };
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearPlayer,
+        reset: () => {
+            const playerIds = new Set([
+                ...knownPlayers.keys(),
+                ...arisByPlayer.keys(),
+                ...delrithByPlayer.keys(),
+                ...weakenedByPlayer.keys(),
+            ]);
+            for (const playerId of playerIds) clearPlayer(playerId);
+        },
     });
-    eventBus.on("equipment:equip", ({ player, itemId }) => {
-        knownPlayers.set(player.id, player);
-        if (itemId === SILVERLIGHT_ITEM_ID && inside(player, DELRITH_ZONE)) {
-            ensureDelrith(player, services, quest);
-        }
-    });
-    eventBus.on("equipment:unequip", ({ player, itemId }) => {
-        if (itemId === SILVERLIGHT_ITEM_ID) clearDemonEncounter(player.id, services);
-    });
+    if (!eventBus) return;
+    registerEventSubscription(
+        registry,
+        eventBus.on("player:login", ({ player }) => {
+            knownPlayers.set(player.id, player);
+            if (inside(player, ARIS_ZONE)) ensureAris(player, services);
+            if (inside(player, DELRITH_ZONE)) ensureDelrith(player, services, quest);
+        }),
+    );
+    registerEventSubscription(
+        registry,
+        eventBus.on("equipment:equip", ({ player, itemId }) => {
+            knownPlayers.set(player.id, player);
+            if (itemId === SILVERLIGHT_ITEM_ID && inside(player, DELRITH_ZONE)) {
+                ensureDelrith(player, services, quest);
+            }
+        }),
+    );
+    registerEventSubscription(
+        registry,
+        eventBus.on("equipment:unequip", ({ player, itemId }) => {
+            if (itemId === SILVERLIGHT_ITEM_ID) clearDemonEncounter(player.id, services);
+        }),
+    );
 }
 
 function registerDrain(quest: QuestDefinition, registry: IScriptRegistry): void {
@@ -363,5 +390,5 @@ export function registerDemonSlayerInteractions(
             if (player && inside(player, DELRITH_ZONE)) ensureDelrith(player, eventServices, quest);
         }
     });
-    registerQuestNpcLifecycle(quest, services);
+    registerQuestNpcLifecycle(quest, registry, services);
 }

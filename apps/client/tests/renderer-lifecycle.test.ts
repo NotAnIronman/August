@@ -30,6 +30,39 @@ async function main(): Promise<void> {
     renderer.start();
     assert.equal(scheduled, 1, "start must create only one render loop");
     renderer.stop();
+
+    let finishDelayedInit!: () => void;
+    class DelayedRenderer extends Renderer {
+        cleanUpCalls = 0;
+
+        init(): Promise<void> {
+            return new Promise((resolve) => {
+                finishDelayedInit = resolve;
+            });
+        }
+        cleanUp(): void {
+            this.cleanUpCalls++;
+        }
+        render() {}
+    }
+
+    const delayed = new DelayedRenderer();
+    const delayedInit = delayed.initOnce();
+    delayed.dispose();
+    const scheduledBeforeDisposedStart = scheduled;
+    delayed.start();
+    assert.equal(
+        scheduled,
+        scheduledBeforeDisposedStart,
+        "a disposed renderer must not restart its frame loop",
+    );
+    finishDelayedInit();
+    await delayedInit;
+    await Promise.resolve();
+    assert.ok(
+        delayed.cleanUpCalls >= 2,
+        "late async initialization must receive a post-settlement cleanup pass",
+    );
     console.log("Renderer lifecycle regression test passed");
 }
 

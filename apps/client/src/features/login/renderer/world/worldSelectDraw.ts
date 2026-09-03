@@ -5,6 +5,7 @@ import { drawGradientRect, drawCenteredText, drawText, drawSprite, measureText }
 import { getGridLayout, getSortedWorlds, findHoveredWorld, getWorldBackgroundType } from "@client/features/login/renderer/world/worldData";
 import { drawSortColumn } from "@client/features/login/renderer/world/worldSelectSort";
 import { drawMobileWorldSelectList } from "@client/features/login/renderer/world/worldSelectMobile";
+import { createCanvasSurface2D } from "@client/core/platform/browser/CanvasSurface";
 
 export function drawWorldSelect(host: LoginRendererHost, ctx: RenderContext, state: LoginState, width: number, height: number) {
 
@@ -57,8 +58,9 @@ export function drawWorldSelect(host: LoginRendererHost, ctx: RenderContext, sta
                 host.worldSelectCacheWidth !== width ||
                 host.worldSelectCacheHeight !== height
             ) {
-                host.worldSelectCache = new OffscreenCanvas(width, height);
-                host.worldSelectCacheCtx = host.worldSelectCache.getContext("2d");
+                const surface = createCanvasSurface2D(width, height);
+                host.worldSelectCache = surface?.canvas ?? null;
+                host.worldSelectCacheCtx = surface?.context ?? null;
             }
 
             if (host.worldSelectCacheCtx) {

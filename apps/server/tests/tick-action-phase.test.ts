@@ -1,7 +1,7 @@
 /**
  * Regression coverage for queued actions remaining independent of combat.
  *
- * Run with: npx tsx tests/tick-action-phase.test.ts
+ * Run with: pnpm exec tsx tests/tick-action-phase.test.ts
  */
 import assert from "node:assert/strict";
 

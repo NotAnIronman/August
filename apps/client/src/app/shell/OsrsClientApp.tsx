@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { registerSerializer } from "threads";
 import WebFont from "webfontloader";
 
@@ -71,11 +72,10 @@ function hasCacheStorage(): boolean {
     return typeof globalThis.caches !== "undefined";
 }
 
-// Initialize and capture a stable nonce for this module evaluation
+// Initialize the generation marker once for the first module evaluation.
 if (typeof window !== "undefined" && window.__rsWorkerPoolNonce === undefined) {
     window.__rsWorkerPoolNonce = 0;
 }
-readWorkerPoolNonce();
 
 // On hot-reload, dispose the existing OsrsClient and increment the nonce
 if (typeof module !== "undefined" && module.hot) {
@@ -192,7 +192,13 @@ function OsrsClientApp() {
         return 2;
     }, []);
 
-    const workerPool = useMemo(() => RenderDataWorkerPool.create(workerCount), [workerCount]);
+    const workerPoolNonce = readWorkerPoolNonce();
+    const workerPool = useMemo(() => {
+        // Reading the HMR nonce here makes each module generation own a fresh
+        // pool without changing the production worker constructor contract.
+        void workerPoolNonce;
+        return RenderDataWorkerPool.create(workerCount);
+    }, [workerCount, workerPoolNonce]);
 
     useEffect(() => {
         return () => {
@@ -367,12 +373,12 @@ function OsrsClientApp() {
 
             const unsubLogin = subscribeLoginResponse((response) => {
                 if (response.success) {
-                    console.log("[OsrsClientApp] Login successful, sending handshake");
+                    clientDebugLog("[OsrsClientApp] Login successful, sending handshake");
                     const username =
                         client.loginState?.username || response.displayName || "Player";
                     sendHandshake(username);
                 } else {
-                    console.log(
+                    console.warn(
                         "[OsrsClientApp] Login failed:",
                         response.errorCode,
                         response.error,
@@ -386,7 +392,10 @@ function OsrsClientApp() {
             });
 
             const unsubHandshake = subscribeHandshake((info) => {
-                console.log("[OsrsClientApp] Handshake received, player logged in:", info.name);
+                clientDebugLog(
+                    "[OsrsClientApp] Handshake received, player logged in:",
+                    info.name,
+                );
                 client.onLoginSuccess();
             });
             loginUnsubscribers.push(unsubLogin, unsubHandshake);

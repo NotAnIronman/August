@@ -16,24 +16,27 @@ pnpm run prepare:data
 pnpm run start
 ```
 
-`pnpm run start` launches both configured server worlds and the web client. Use
-`pnpm run start:vanilla` when you only want World 1 and the client.
+`pnpm run start` prepares shared runtime data once, then launches both configured
+server worlds and the web client. Use `pnpm run start:vanilla` when you only want
+World 1 and the client. The standalone `pnpm run server` and `pnpm run client`
+commands perform their own required preparation.
 
 ## Host a world for friends
 
 With the server running, open `http://localhost:43594/hosting` on the host
 computer. The private dashboard shows the exact LAN address, connected character
-names, and the public-host checklist. Set `PUBLIC_HOST` in `.env` to the public
-IP or DNS name you plan to share, then forward TCP port `43594` to this computer
-and allow that port through its firewall. The dashboard is intentionally not
-available to LAN or internet clients.
+names, and the public-host checklist. For TLS behind a same-host reverse proxy,
+prefer one authoritative endpoint such as `PUBLIC_WS_URL=wss://play.example.com`.
+For direct port forwarding, set `PUBLIC_HOST` to the public IP or DNS name you plan
+to share, forward TCP port `43594` to this computer, and allow that port through its
+firewall. The dashboard is intentionally not available to LAN or internet clients.
 
 To let friends load the browser client from your own server, build it once with
 `pnpm --filter @august/client build`, then start the game server normally. They
 can open `http://YOUR_PUBLIC_IP:43594` directly. The server hosts the compiled
-client and supplies its matching public game address automatically. This is an
-HTTP/`ws://` setup; publishing it behind HTTPS later requires a TLS reverse proxy
-and `wss://` support.
+client and supplies its matching public game address automatically. Use this
+HTTP/`ws://` path only for controlled temporary testing. A public deployment should
+terminate TLS at a reverse proxy and advertise its `wss://` endpoint.
 
 Before handing off a change, run:
 
@@ -41,9 +44,11 @@ Before handing off a change, run:
 pnpm run check
 ```
 
-The check command enforces repository layout, naming, and dependency direction; type-checks
-all packages, maintenance tools, both applications, and both test suites; runs the
-cache-independent tests; and builds the server, client, and documentation site.
+The check command enforces repository layout, naming, dependency direction, generated-data
+portability, and exact-case documentation links; type-checks all packages, maintenance
+tools, both applications, and both test suites; runs the cache-independent tests; and
+builds the server, client, and documentation site. The client build also rejects
+production source maps and enforces its reviewed compressed main-bundle budget.
 `pnpm run typecheck:all` remains an alias for the same complete type contract.
 
 ## Find the right place

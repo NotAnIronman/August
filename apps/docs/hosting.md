@@ -38,6 +38,31 @@ REACT_APP_SERVERS_JSON=[{"id":1,"name":"World 1","activity":"Vanilla","address":
 Restart or rebuild the browser app after changing **REACT_APP_** values because Create
 React App embeds them at build time.
 
+## Secure public hosting
+
+Player credentials travel over the game WebSocket. For internet hosting, terminate TLS
+with a reverse proxy on the same computer and advertise the secure endpoint:
+
+```dotenv
+PUBLIC_WS_URL=wss://play.example.com
+TRUST_PROXY=true
+```
+
+**PUBLIC_WS_URL** is authoritative for the address and security flag returned by
+**/servers.json**. The split **PUBLIC_HOST**, **PUBLIC_PORT**, and **PUBLIC_SECURE** settings
+remain available for direct hosting. **TRUST_PROXY** accepts forwarding headers only from
+a loopback peer; do not enable it for a proxy running on another machine. Without it, all
+players behind the proxy share one login-rate-limit address.
+
+The operational **/hosting** dashboard rejects forwarded requests even when the reverse
+proxy connects from loopback. Keep that route available only through
+`http://localhost:43594/hosting`.
+
+WebSocket payload size, compression, per-tick input queue size, outbound backpressure,
+password-hash concurrency, and pre-authentication message limits have safe defaults.
+Their advanced overrides are documented in the root **.env.example**; raise them only
+after measuring a real need.
+
 ## Sharing the browser client
 
 For temporary development hosting, expose the client on an appropriate interface and

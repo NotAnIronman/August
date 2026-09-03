@@ -1,4 +1,5 @@
 import type { PlayerState } from "@server/game/player";
+import { registerPlayerDialogSessions } from "@server/game/scripts/ScriptLifecycle";
 import {
     type IScriptRegistry,
     type NpcInteractionEvent,
@@ -71,7 +72,8 @@ function openNoRepairableItemsDialog(
 }
 
 export function registerBobHandlers(registry: IScriptRegistry, services: ScriptServices): void {
-    const activeConvos = new Set<number>();
+    const activeConvos = new Map<number, PlayerState>();
+    registerPlayerDialogSessions(registry, services, activeConvos);
 
     const releaseConversation = (playerId: number) => {
         activeConvos.delete(playerId);
@@ -184,7 +186,7 @@ export function registerBobHandlers(registry: IScriptRegistry, services: ScriptS
     const bobTalkHandler = (event: NpcInteractionEvent) => {
         const pid = event.player.id;
         if (activeConvos.has(pid)) return;
-        activeConvos.add(pid);
+        activeConvos.set(pid, event.player);
         openMainOptions(event);
     };
 

@@ -1,6 +1,7 @@
 import type { PlayerState } from "@server/game/player";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { CollisionFlag } from "@august/game-model/collision/CollisionFlag";
+import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
 import { NpcAttackDecision, NpcPreDeathDecision, type IScriptRegistry, type NpcAttackEvent, type ScriptServices } from "@server/game/scripts/types";
 import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
 import { applyStatDrains } from "@server/game/encounters/mechanics";
@@ -311,7 +312,19 @@ function dharokAttack(event: NpcAttackEvent): NpcAttackDecision {
     return NpcAttackDecision.Prevent;
 }
 
-export function registerBarrowsHandlers(registry: IScriptRegistry, _services: ScriptServices): void {
+export function registerBarrowsHandlers(registry: IScriptRegistry, services: ScriptServices): void {
+    const clearRun = (playerId: number): void => {
+        const run = runs.get(playerId);
+        if (run?.activeNpcId !== undefined) services.npc.removeNpc(run.activeNpcId);
+        runs.delete(playerId);
+    };
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearRun,
+        reset: () => {
+            for (const playerId of [...runs.keys()]) clearRun(playerId);
+        },
+    });
+
     for (const brother of BROTHERS) {
         registry.registerLocInteraction(brother.tombId, ({ player, services }) => searchTomb(player, services, brother), "search");
         registry.registerNpcPreDeath(brother.npcId, (event) => {

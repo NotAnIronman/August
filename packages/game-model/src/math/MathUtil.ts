@@ -27,8 +27,11 @@ export const slerp = (start: number, end: number, progress: number, range: numbe
     return start + movement;
 };
 
-export function isPowerOfTwo(n: number) {
-    return n === (-n & n);
+export function isPowerOfTwo(n: number): boolean {
+    if (!Number.isSafeInteger(n) || n <= 0) return false;
+    if (n <= 0x7fffffff) return (n & (n - 1)) === 0;
+    const value = BigInt(n);
+    return (value & (value - 1n)) === 0n;
 }
 
 export function nextPow2(i: number): number {
@@ -45,8 +48,8 @@ export function toSigned16bit(n: number) {
 }
 
 export function nextIntJagex(random: JavaRandom, bound: number): number {
-    if (bound <= 0) {
-        throw new Error("bound must be positive");
+    if (!Number.isInteger(bound) || bound <= 0 || bound > 0x7fffffff) {
+        throw new RangeError("bound must be a positive 32-bit integer");
     }
     if (isPowerOfTwo(bound)) {
         return Number((BigInt(bound) * (BigInt(random.nextInt()) & 0xffffffffn)) >> 32n);

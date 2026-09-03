@@ -5,6 +5,20 @@ import { CacheIndex } from "@august/osrs-engine/cache/CacheIndex";
 import { CacheStore } from "@august/osrs-engine/cache/store/CacheStore";
 import { Sector } from "@august/osrs-engine/cache/store/Sector";
 import { SectorCluster } from "@august/osrs-engine/cache/store/SectorCluster";
+import { MAX_CACHE_INDEX_COUNT } from "@august/osrs-engine/cache/CacheLimits";
+
+const CANONICAL_DECIMAL_ID = /^(?:0|[1-9]\d*)$/;
+
+/** Parse a canonical cache index filename without permitting sparse-array abuse. */
+export function parseCacheIndexFileId(name: string): number | undefined {
+    if (!name.startsWith(CacheFiles.INDEX_FILE_PREFIX)) return undefined;
+    const suffix = name.slice(CacheFiles.INDEX_FILE_PREFIX.length);
+    if (!CANONICAL_DECIMAL_ID.test(suffix)) return undefined;
+    const id = Number(suffix);
+    return Number.isSafeInteger(id) && id >= 0 && id < MAX_CACHE_INDEX_COUNT
+        ? id
+        : undefined;
+}
 
 export class MemoryStore implements CacheStore<ApiType.SYNC> {
     static fromFiles(cacheFiles: CacheFiles, indicesToLoad: number[] = []): MemoryStore {
@@ -17,7 +31,8 @@ export class MemoryStore implements CacheStore<ApiType.SYNC> {
                 name !== CacheFiles.META_FILE_NAME &&
                 name.startsWith(CacheFiles.INDEX_FILE_PREFIX)
             ) {
-                const indexId = parseInt(name.slice(CacheFiles.INDEX_FILE_PREFIX.length));
+                const indexId = parseCacheIndexFileId(name);
+                if (indexId === undefined) continue;
                 if (indicesSet.size === 0 || indicesSet.has(indexId)) {
                     indexFiles[indexId] = data;
                 }
@@ -41,6 +56,9 @@ export class MemoryStore implements CacheStore<ApiType.SYNC> {
 
     /** Add an index file dynamically (for incremental loading) */
     addIndexFile(indexId: number, data: ArrayBuffer): void {
+        if (!Number.isInteger(indexId) || indexId < 0 || indexId >= MAX_CACHE_INDEX_COUNT) {
+            throw new RangeError(`Cache index ID out of range: ${indexId}`);
+        }
         this.indexFiles[indexId] = data;
     }
 
@@ -59,8 +77,11 @@ export class MemoryStore implements CacheStore<ApiType.SYNC> {
     }
 
     read(indexId: number, archiveId: number): Int8Array {
-        if (indexId < 0) {
-            throw new Error("Index id cannot be lower than 0");
+        if (!Number.isSafeInteger(indexId) || indexId < 0) {
+            throw new Error("Index id must be a non-negative integer");
+        }
+        if (!Number.isSafeInteger(archiveId) || archiveId < 0) {
+            throw new Error("Archive id must be a non-negative integer");
         }
         const indexFile = this.getIndexFile(indexId);
         if (!indexFile) {
@@ -109,30 +130,27 @@ export class MemoryStore implements CacheStore<ApiType.SYNC> {
             } else {
                 Sector.decode(sector, sectorBuffer, actualDataSize);
             }
+            if (sector.indexId !== sectorIndexId) {
+                throw new Error(
+                    `Sector index id mismatch. expected: ${sectorIndexId} got: ${sector.indexId}`,
+                );
+            }
+            if (sector.archiveId !== archiveId) {
+                throw new Error(
+                    `Sector archive id mismatch. expected: ${archiveId} got: ${sector.archiveId}`,
+                );
+            }
+            if (sector.chunk !== chunk) {
+                throw new Error(`Sector chunk mismatch. expected: ${chunk} got: ${sector.chunk}`);
+            }
+
+            data.set(sector.data.subarray(0, actualDataSize), sectorCluster.size - remaining);
             if (remaining > dataSize) {
-                data.set(sector.data, sectorCluster.size - remaining);
-
-                if (sector.indexId !== sectorIndexId) {
-                    throw new Error(
-                        `Sector index id mismatch. expected: ${sectorIndexId} got: ${sector.indexId}`,
-                    );
-                }
-
-                if (sector.archiveId !== archiveId) {
-                    throw new Error(
-                        `Sector archive id mismatch. expected: ${archiveId} got: ${sector.archiveId}`,
-                    );
-                }
-
-                if (sector.chunk !== chunk) {
-                    throw new Error("Sector chunk mismatch");
-                }
-
                 chunk++;
-
+                if (sector.nextSector <= 0) {
+                    throw new Error(`Sector chain ended before archive ${archiveId} was complete`);
+                }
                 sectorPtr = sector.nextSector * Sector.SIZE;
-            } else {
-                data.set(sector.data.subarray(0, remaining), sectorCluster.size - remaining);
             }
             remaining -= dataSize;
         }

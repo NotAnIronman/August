@@ -111,11 +111,12 @@ assert.deepEqual(characterCreatorBeforeBasIsReady, {
     offsetY: CHARACTER_CREATOR_PLAYER_MODEL_OFFSET_Y,
 });
 
-// The character creator's zoom cap should be meaningfully (~15%) tighter
-// than equipment stats' now that they're tuned independently.
+// The character creator's zoom cap should be meaningfully tighter than
+// equipment stats' now that they're tuned independently. In the widget model
+// projection, the lower value presents the smaller portrait used here.
 assert.ok(
-    CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM > EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM,
-    "character creator zoom cap should be higher (smaller model) than equipment stats",
+    CHARACTER_CREATOR_PLAYER_MODEL_MAX_ZOOM < EQUIPMENT_STATS_PLAYER_MODEL_MAX_ZOOM,
+    "character creator zoom cap should be lower than equipment stats",
 );
 
 // A group unrelated to either portrait interface should still fall through

@@ -192,7 +192,7 @@ export class MovementService {
             rotation: number;
         }>,
     ): void {
-        logger.info(`[teleportToInstance] Player ${player.id} -> (${x}, ${y}, ${level})`);
+        logger.debug(`[teleportToInstance] Player ${player.id} -> (${x}, ${y}, ${level})`);
         const ws = this.services.players?.getSocketByPlayerId(player.id);
         if (!ws) {
             logger.warn(`[teleportToInstance] No websocket for player ${player.id}`);

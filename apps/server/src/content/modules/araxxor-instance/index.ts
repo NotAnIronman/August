@@ -444,7 +444,13 @@ function finishCorpse(corpse: NpcState, services: ScriptServices): void {
             aggressionToleranceTicks: 2_147_483_647, wanderRadius: 5,
             combatLeashRadius: 35, retreatInteractionRange: 40, respawns: false,
         });
-        if (boss) configureAraxxorBoss(boss, services, true);
+        if (boss) {
+            configureAraxxorBoss(boss, services, true);
+            // A respawn is a complete new encounter life: it receives the
+            // same six live eggs and freshly seeded hatch/special state as the
+            // original room spawn.
+            spawnEggRing(boss, owner, services);
+        }
     }, { kind: "npc", id: corpse.id });
 }
 
@@ -489,6 +495,10 @@ function becomeCorpse(event: Parameters<IScriptRegistry["registerNpcPreDeath"]>[
     // compatible encounter runtime and its target, which is correct for a
     // combat phase transformation but wrong for a lootable dead body.
     const instance = event.services.instances.get(event.killer.id);
+    // Eggs belong to a single Araxxor life. Remove every surviving anchor
+    // before the corpse is created so the next life begins with one clean ring.
+    for (const eggId of fight.eggIds.values()) event.services.npc.removeNpc(eggId);
+    fight.eggIds.clear();
     const corpse = event.services.npc.spawnNpc({
         id: DEAD_ARAXXOR_ID, x: event.npc.tileX, y: event.npc.tileY, level: event.npc.level,
         size: 7, worldViewId: event.npc.worldViewId,

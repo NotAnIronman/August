@@ -1,6 +1,10 @@
 import type { BitmapFont } from "@august/osrs-engine/font/BitmapFont";
 import type { IndexedSprite } from "@august/osrs-engine/sprite/IndexedSprite";
 import type { LoginScreenAnimation } from "@client/features/login/LoginScreenAnimation";
+import type {
+    CanvasSurface,
+    CanvasSurfaceContext,
+} from "@client/core/platform/browser/CanvasSurface";
 import type { LoginLayoutConfig, ServerListEntry, World, WorldGridLayout } from "@client/features/login/renderer/types";
 
 export type RenderContext = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
@@ -33,7 +37,7 @@ export interface LoginRendererHost {
     mobileKeyboardFocusField: number;
     loginBoxX: number;
     loginBoxCenter: number;
-    titleBackgroundImage: ImageBitmap | undefined;
+    titleBackgroundImage: ImageBitmap | HTMLImageElement | undefined;
     logoSprite: IndexedSprite | undefined;
     logoImage: HTMLImageElement | undefined;
     logoImageLoaded: boolean;
@@ -73,19 +77,20 @@ export interface LoginRendererHost {
     cachedSortOption: number;
     cachedSortDirection: number;
     loginScreenRunesAnimation: LoginScreenAnimation | undefined;
+    lifecycleAbortController: AbortController;
     canvas: HTMLCanvasElement | undefined;
     ctx: CanvasRenderingContext2D | undefined;
-    spriteCache: WeakMap<IndexedSprite, OffscreenCanvas>;
+    spriteCache: WeakMap<IndexedSprite, CanvasSurface>;
     textMeasureCache: WeakMap<BitmapFont, Map<string, number>>;
-    worldSelectCache: OffscreenCanvas | null;
-    worldSelectCacheCtx: OffscreenCanvasRenderingContext2D | null;
+    worldSelectCache: CanvasSurface | null;
+    worldSelectCacheCtx: CanvasSurfaceContext | null;
     worldSelectCachePage: number;
     worldSelectCacheSortOption: number;
     worldSelectCacheSortDirection: number;
     worldSelectCacheWidth: number;
     worldSelectCacheHeight: number;
-    titleCache: OffscreenCanvas | null;
-    titleCacheCtx: OffscreenCanvasRenderingContext2D | null;
+    titleCache: CanvasSurface | null;
+    titleCacheCtx: CanvasSurfaceContext | null;
     titleCacheStateHash: string;
     titleCacheWidth: number;
     titleCacheHeight: number;

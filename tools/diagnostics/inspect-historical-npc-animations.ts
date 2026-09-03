@@ -11,12 +11,15 @@
  *   node --experimental-strip-types scripts/inspect-historical-npc-animations.ts
  *   node --experimental-strip-types scripts/inspect-historical-npc-animations.ts --window scurrius
  */
+import AdmZip from "adm-zip";
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { closeSync, openSync, promises as fs, readSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { gunzipSync } from "node:zlib";
+
+import { downloadToFile } from "@tools/lib/download-to-file";
 
 const OPENRS2 = "https://archive.openrs2.org/caches/runescape";
 const CONFIG_INDEX = 2;
@@ -308,11 +311,12 @@ function fingerprintArchiveFile(filePath: string, fileIds: number[]): Map<number
 async function loadSnapshot(root: string, spec: SnapshotSpec): Promise<Snapshot> {
     const zipPath = path.join(root, `${spec.id}.zip`);
     const extracted = path.join(root, String(spec.id));
-    const response = await fetch(`${OPENRS2}/${spec.id}/disk.zip`);
-    if (!response.ok) throw new Error(`OpenRS2 cache ${spec.id}: ${response.status} ${response.statusText}`);
-    await fs.writeFile(zipPath, Buffer.from(await response.arrayBuffer()));
+    await downloadToFile({
+        url: `${OPENRS2}/${spec.id}/disk.zip`,
+        destinationPath: zipPath,
+    });
     await fs.mkdir(extracted, { recursive: true });
-    execFileSync("tar", ["-xf", zipPath, "-C", extracted], { stdio: "ignore" });
+    new AdmZip(zipPath).extractAllTo(extracted, true);
 
     const find = async (name: string): Promise<Buffer> => {
         const nested = path.join(extracted, "cache", name);
@@ -349,11 +353,12 @@ async function loadSequenceFingerprints(root: string, spec: SnapshotSpec): Promi
     const extracted = path.join(root, String(spec.id));
     const sequencePath = path.join(root, `${spec.id}-sequences.bin`);
     try {
-        const response = await fetch(`${OPENRS2}/${spec.id}/disk.zip`);
-        if (!response.ok) throw new Error(`OpenRS2 cache ${spec.id}: ${response.status} ${response.statusText}`);
-        await fs.writeFile(zipPath, Buffer.from(await response.arrayBuffer()));
+        await downloadToFile({
+            url: `${OPENRS2}/${spec.id}/disk.zip`,
+            destinationPath: zipPath,
+        });
         await fs.mkdir(extracted, { recursive: true });
-        execFileSync("tar", ["-xf", zipPath, "-C", extracted], { stdio: "ignore" });
+        new AdmZip(zipPath).extractAllTo(extracted, true);
         const find = async (name: string): Promise<Buffer> => {
             const nested = path.join(extracted, "cache", name);
             const flat = path.join(extracted, name);

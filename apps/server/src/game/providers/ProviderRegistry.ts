@@ -41,16 +41,10 @@ export function getProviderRegistry(): ProviderRegistryState {
 }
 
 export function resetProviderRegistry(): void {
-    _registry.weaponData = undefined;
-    _registry.fallbackSpecialAttack = undefined;
-    _registry.combatStyleSequence = undefined;
-    _registry.equipmentBonus = undefined;
-    _registry.spellXp = undefined;
-    _registry.specialAttackVisual = undefined;
-    _registry.instantUtilitySpecial = undefined;
-    _registry.skillConfiguration = undefined;
-    _registry.spellData = undefined;
-    _registry.runeData = undefined;
-    _registry.projectileParams = undefined;
-    _registry.ammoData = undefined;
+    // Keep the stable registry object (consumers may retain its reference), but
+    // remove every owned provider. Iterating the live keys makes reset complete
+    // by construction when a new optional provider is added to the interface.
+    for (const key of Object.keys(_registry) as Array<keyof ProviderRegistryState>) {
+        delete _registry[key];
+    }
 }

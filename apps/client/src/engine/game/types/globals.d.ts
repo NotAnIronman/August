@@ -6,6 +6,7 @@ export {};
 declare global {
     interface Window {
         webkitAudioContext?: typeof AudioContext;
+        __AUGUST_CLIENT_DEBUG__?: boolean;
         __RESIZE_DEBUG__?: boolean;
         __rsWorkerPoolNonce?: number;
         osrsClient?: OsrsClient;

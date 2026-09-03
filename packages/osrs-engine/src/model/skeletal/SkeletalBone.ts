@@ -2,6 +2,7 @@ import { ReadonlyMat4, mat4, vec3 } from "gl-matrix";
 
 import { ByteBuffer } from "@august/osrs-engine/io/ByteBuffer";
 import { MatrixPool } from "@august/osrs-engine/model/skeletal/MatrixPool";
+import { UnsupportedOperationError } from "@august/osrs-engine/util/UnsupportedOperationError";
 
 export class SkeletalBone {
     parentId: number;
@@ -24,7 +25,9 @@ export class SkeletalBone {
 
     static readMat4(buffer: ByteBuffer, compact: boolean): mat4 {
         if (compact) {
-            throw new Error("Not implemented");
+            throw new UnsupportedOperationError(
+                "Compact skeletal matrices are not supported by SkeletalBone.readMat4",
+            );
         } else {
             const m = new Float32Array(16);
             for (let i = 0; i < 16; i++) {

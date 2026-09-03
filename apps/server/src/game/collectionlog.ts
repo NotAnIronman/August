@@ -29,7 +29,6 @@ import { getRuneDay } from "@server/game/time/RuneDay";
 // ============================================================================
 
 import { DATA_ROOT } from "../paths";
-import path from "path";
 
 // ============================================================================
 // Interface and Inventory IDs

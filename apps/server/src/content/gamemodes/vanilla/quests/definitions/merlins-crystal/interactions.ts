@@ -1,5 +1,9 @@
 import type { PlayerState } from "@server/game/player";
 import {
+    registerPlayerLifecycleCleanup,
+    removeTrackedPlayerNpc,
+} from "@server/game/scripts/ScriptLifecycle";
+import {
     NpcPreDeathDecision,
     type IScriptRegistry,
     type NpcInteractionEvent,
@@ -593,6 +597,17 @@ export function registerMerlinsCrystalInteractions(
     registry: IScriptRegistry,
     services: ScriptServices,
 ): void {
+    const clearBeggar = (playerId: number): void => {
+        const npcId = beggarByPlayer.get(playerId);
+        removeTrackedPlayerNpc(services, playerId, npcId);
+        beggarByPlayer.delete(playerId);
+    };
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearBeggar,
+        reset: () => {
+            for (const playerId of [...beggarByPlayer.keys()]) clearBeggar(playerId);
+        },
+    });
     registry.registerNpcScript({ npcId: NPC.kingArthur, option: "talk-to", handler: createArthurHandler(quest) });
     registry.registerNpcScript({ npcId: NPC.sirGawain, option: "talk-to", handler: createGawainHandler(quest) });
     registry.registerNpcScript({ npcId: NPC.sirLancelot, option: "talk-to", handler: createLancelotHandler(quest) });
@@ -617,7 +632,4 @@ export function registerMerlinsCrystalInteractions(
     registerRitual(quest, registry);
     registerTravelAndCrystal(quest, registry);
 
-    services.system.eventBus?.on("player:logout", ({ playerId }) => {
-        beggarByPlayer.delete(playerId);
-    });
 }

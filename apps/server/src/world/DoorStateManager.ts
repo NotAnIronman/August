@@ -115,6 +115,14 @@ export class DoorStateManager {
         ) => DoorLocLookupResult | undefined,
     ) {}
 
+    /** Flush learned mappings and release development file watchers. */
+    dispose(): void {
+        this.runtimeTileMappings?.dispose();
+        this.doorDefLoader?.dispose();
+        this.openDoors.clear();
+        this.stateByTile.clear();
+    }
+
     /**
      * Toggle a door and return the result including collision updates.
      * Uses explicit door definitions and runtime tile mappings only.

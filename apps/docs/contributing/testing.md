@@ -11,9 +11,11 @@ The required command for a normal pull request is:
 pnpm run check
 ```
 
-It enforces layout, naming, and dependency rules; type-checks runtime and test surfaces;
-runs the cache-independent suites; and builds every application. Record the command and
-result in the pull request.
+It enforces layout, naming, dependency, generated-data, and exact-case documentation-link
+rules; type-checks runtime and test surfaces; runs the cache-independent suites; and
+builds every application. The production client build also rejects source maps and
+enforces its reviewed compressed main-bundle budget. Record the command and result in the
+pull request.
 
 Run additional validation when the change requires it:
 

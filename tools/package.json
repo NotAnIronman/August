@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "benchmark:autosave": "tsx testing/autosave-stress.ts",
+    "test": "node testing/run-typescript-tests.mjs testing --only=download-to-file.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
@@ -11,11 +13,12 @@
     "@august/osrs-engine": "workspace:*",
     "@august/protocol": "workspace:*",
     "@august/server": "workspace:*",
-    "adm-zip": "^0.5.17"
+    "adm-zip": "^0.6.0"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.8",
     "@types/node": "^25.9.2",
+    "tsx": "^4.22.4",
     "typescript": "6.0.3"
   }
 }

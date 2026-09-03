@@ -6,6 +6,8 @@
  * (`process.env.REACT_APP_FOO`). Dynamic `process.env[key]` is left undefined.
  */
 
+import { getPublicAssetUrl } from "@client/core/config/publicAssets";
+
 function read(value: string | undefined): string | undefined {
     // Strip BOM + whitespace; Windows/PowerShell env writes often include U+FEFF.
     const trimmed = value?.replace(/^\uFEFF/, "").trim();
@@ -64,7 +66,7 @@ export function getDefaultServerSecure(): boolean {
 
 /**
  * Optional full server list baked in at build time (JSON array).
- * When set, this takes precedence over fetching `/servers.json`.
+ * When set, this takes precedence over fetching the public `servers.json`.
  */
 export function getConfiguredServers(): ConfiguredServer[] | undefined {
     const raw = read(process.env.REACT_APP_SERVERS_JSON);
@@ -94,8 +96,6 @@ export function getConfiguredServers(): ConfiguredServer[] | undefined {
 export function getServerListUrl(): string {
     return (
         read(process.env.REACT_APP_SERVER_LIST_URL) ??
-        (typeof window !== "undefined"
-            ? `${window.location.origin}/servers.json`
-            : "/servers.json")
+        getPublicAssetUrl("servers.json")
     );
 }

@@ -920,7 +920,7 @@ void main(){
         gl.bindTexture(gl.TEXTURE_2D, null);
         const tex = gl.createTexture();
         if (!tex) {
-            console.log("[GLRenderer] createTexture() returned null for key:", key);
+            console.warn("[GLRenderer] createTexture() returned null for key:", key);
             return { tex: null as any, w: texWidth, h: texHeight };
         }
         gl.bindTexture(gl.TEXTURE_2D, tex);

@@ -1,5 +1,3 @@
-import { Schema } from "leva/dist/declarations/src/types";
-
 import { Renderer } from "@client/engine/rendering/core/Renderer";
 import { SceneBuilder } from "@august/osrs-engine/scene/SceneBuilder";
 import { isMobileMode } from "@client/core/platform/device/DeviceUtil";
@@ -142,10 +140,6 @@ export abstract class GameRenderer<T extends MapSquare = MapSquare> extends Rend
      */
     initOverlays(): void {
         // Base implementation does nothing - subclasses override
-    }
-
-    getControls(): Schema {
-        return {};
     }
 
     queueLoadMap(mapX: number, mapY: number, streamGeneration?: number): void {}

@@ -1172,4 +1172,8 @@ export class PlayerState extends Actor {
     }
 }
 
-export { PlayerManager, type OrphanedPlayer } from "@server/game/PlayerManager";
+export {
+    PlayerManager,
+    type OrphanedPlayer,
+    type PlayerManagerOptions,
+} from "@server/game/PlayerManager";

@@ -1,7 +1,7 @@
 /**
  * Regression coverage for the authenticated-login-to-handshake reservation.
  *
- * Run with: npx tsx tests/login-reservation.test.ts
+ * Run with: pnpm exec tsx tests/login-reservation.test.ts
  */
 import assert from "node:assert/strict";
 import type { WebSocket } from "ws";

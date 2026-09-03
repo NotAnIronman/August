@@ -9,15 +9,12 @@ import { faceAngleRs } from "@august/osrs-engine/geometry";
 import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
 import { invulnerabilityWindow, type MechanicHandle } from "@server/game/encounters/mechanics";
 import { NpcAttackDecision, NpcPreDeathDecision, type NpcAttackEvent, type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
+import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
+import { secondsToTicks } from "@server/game/scripts/timing";
 import type { NpcState } from "@server/game/npc";
 import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
 
 const CHEST = 51346, CRATE = 51371, SAPLING = 51365, STOVE = 51362;
-// Matches the seconds->ticks conversion pattern used elsewhere in this
-// codebase (e.g. pohPools.ts, consumables), respecting a configurable
-// TICK_MS env var instead of assuming the default 0.6s tick.
-const TICK_MS = Math.max(1, Number(process.env.TICK_MS) || 600);
-const ticksFromSeconds = (seconds: number): number => Math.max(1, Math.round((seconds * 1000) / TICK_MS));
 // 51368 is the cache's actionable "Fishing spot". Keep 51367 too because it
 // was the original map reference and some placements use that variant.
 const FISHING_SPOTS = [51367, 51368] as const;
@@ -36,7 +33,13 @@ const MOONS: Record<Moon, { id: number; entry: { x: number; y: number; level: nu
     eclipse: { id: 13012, entry: { x: 1484, y: 9632, level: 0 }, outside: { x: 1466, y: 9632, level: 0 }, grave: { x: 1465, y: 9632, level: 0 }, boss: { x: 1488, y: 9632, level: 0 }, sourceBaseX: 1440, sourceBaseY: 9608, destinationChunkX: 1, destinationChunkY: 3, next: "blue" },
     blue: { id: 13013, entry: { x: 1440, y: 9676, level: 0 }, outside: { x: 1440, y: 9658, level: 0 }, grave: { x: 1440, y: 9657, level: 0 }, boss: { x: 1440, y: 9680, level: 0 }, sourceBaseX: 1408, sourceBaseY: 9640, destinationChunkX: 2, destinationChunkY: 2, next: "blood" },
 };
-type Run = { killed: Set<Moon>; active?: Moon; npcId?: number; instanceId: string };
+type Run = {
+    owner: PlayerState;
+    killed: Set<Moon>;
+    active?: Moon;
+    npcId?: number;
+    instanceId: string;
+};
 const runs = new Map<number, Run>();
 
 const MOON_IDLE_SEQUENCES: Record<Moon, number> = { blood: 10999, eclipse: 11016, blue: 10999 };
@@ -630,7 +633,7 @@ function createRun(player: PlayerState, services: ScriptServices, first: Moon, a
     const room = services.instances.create(player, { definitionId: "moons-of-peril", access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party", templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
     if (!room) { services.messaging.sendGameMessage(player, "The Moon chamber is unavailable right now."); return; }
     resetBlueBrazierBaseline(player, services);
-    runs.set(player.id, { killed: new Set(), instanceId: room.id }); services.instances.markStarted(room.id); spawnMoon(player, services, first);
+    runs.set(player.id, { owner: player, killed: new Set(), instanceId: room.id }); services.instances.markStarted(room.id); spawnMoon(player, services, first);
 }
 
 /** Rebuild a fresh room when an early chest choice sends a player back in. */
@@ -765,7 +768,32 @@ function drinkMoonlightPotion(player: PlayerState, services: ScriptServices, ite
     services.messaging.sendGameMessage(player, `You drink some of your Moonlight potion. ${doses - 1 || "No"} dose${doses === 2 ? "" : "s"} remaining.`);
 }
 
-export function register(registry: IScriptRegistry, _services: ScriptServices): void {
+export function register(registry: IScriptRegistry, services: ScriptServices): void {
+    const clearRun = (playerId: number): void => {
+        const run = runs.get(playerId);
+        if (run?.npcId !== undefined) {
+            const boss = services.combat.getNpc(run.npcId);
+            if (boss) {
+                stopMoonSpecial(boss, services);
+                const glyph = glyphStates.get(boss);
+                if (glyph?.markerId !== undefined) services.npc.removeNpc(glyph.markerId);
+            }
+            services.npc.removeNpc(run.npcId);
+        }
+        for (const [childId, boss] of specialChildOwners) {
+            if (boss.ownerPlayerId === playerId) specialChildOwners.delete(childId);
+        }
+        if (run) services.instances.dispose(run.owner, run.active ? MOONS[run.active].outside : CHEST_TILE);
+        runs.delete(playerId);
+    };
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearRun,
+        reset: () => {
+            for (const playerId of [...runs.keys()]) clearRun(playerId);
+            specialChildOwners.clear();
+        },
+    });
+
     registerEncounters();
     STATUES.forEach((id, index) => {
         const handler = ({ player, services }: { player: PlayerState; services: ScriptServices }) => createRun(player, services, (["blood", "blue", "eclipse"] as Moon[])[index]!);
@@ -866,7 +894,7 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
                 // waiting the full resume window - only combat (damage
                 // resuming, walk-through closing) actually needs the delay.
                 respawnGlyphMarkerNow(boss, player, services);
-                services.scheduler.after(ticksFromSeconds(10), () => {
+                services.scheduler.after(secondsToTicks(services, 10), () => {
                     if (special.active) restartGlyphCycle(boss, player, services);
                 }, { kind: "npc", id: boss.id });
             }

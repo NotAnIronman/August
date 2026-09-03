@@ -6,7 +6,7 @@ Chat transport code parses the `::name args` envelope once and calls
 1. Built-in server commands resolve from `BuiltinCommandCatalog`.
 2. Content commands resolve from metadata-bearing `ScriptRegistry` entries.
 3. The resolved metadata is permission-checked before any handler runs.
-4. `::help` combines both catalogs and filters hidden/inaccessible entries.
+4. `::commands` combines both catalogs and filters hidden/inaccessible entries.
 
 Every content registration must declare `permission` and `owner`. `owner`
 names the domain responsible for behavior and tests; it is not a source-file

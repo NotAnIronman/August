@@ -17,14 +17,31 @@ export function Canvas({ renderer }: CanvasProps): JSX.Element {
         let active = true;
         host.appendChild(renderer.canvas);
         renderer.attachResizeObserver();
-        requestAnimationFrame(() => renderer.forceResize());
-
-        renderer.initOnce().then(() => {
-            if (active) renderer.start();
+        const resizeFrame = requestAnimationFrame(() => {
+            if (active) renderer.forceResize();
         });
+
+        void renderer.initOnce().then(
+            () => {
+                if (active) {
+                    renderer.start();
+                } else {
+                    // stop() may have run before asynchronous initialization created
+                    // its final resources. A second pass makes that teardown complete.
+                    renderer.stop();
+                }
+            },
+            (error) => {
+                renderer.stop();
+                if (active) {
+                    console.error("[Canvas] Renderer initialization failed", error);
+                }
+            },
+        );
 
         return () => {
             active = false;
+            cancelAnimationFrame(resizeFrame);
             renderer.stop();
             if (renderer.canvas.parentNode === host) host.removeChild(renderer.canvas);
         };

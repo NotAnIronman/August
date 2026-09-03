@@ -1,7 +1,7 @@
 /**
  * Regression coverage for footprint-aware under-target combat movement.
  *
- * Run with: npx tsx tests/combat-large-npc-overlap.test.ts
+ * Run with: pnpm exec tsx tests/combat-large-npc-overlap.test.ts
  */
 import assert from "node:assert/strict";
 
@@ -77,15 +77,19 @@ const engine = new CombatTickEngine({
 const overlapTick = engine.processTick(100);
 assert.equal(overlapTick.statuses.get("moving"), 2);
 assert.equal(player.hasPath(), true, "the attacking player should route out of the NPC footprint");
-assert.equal(dragon.hasPath(), true, "a large NPC must also path out from under its target");
+assert.equal(
+    dragon.hasPath(),
+    false,
+    "the large NPC must hold position while the embedded player takes the sole escape route",
+);
 assert.equal(playerPathCalls, 1, "large-footprint overlap must preserve the player's escape route");
-assert.equal(npcPathCalls, 1, "overlap must not suppress the NPC's combat route");
+assert.equal(npcPathCalls, 0, "overlap must not create two uncoordinated escape routes");
 
 player.teleport(3199, 3200, 0);
 const adjacentTick = engine.processTick(101);
 assert.equal(adjacentTick.statuses.get("ready"), 2);
 assert.equal(adjacentTick.preparedAttacks.length, 2);
 assert.equal(playerPathCalls, 1);
-assert.equal(npcPathCalls, 1);
+assert.equal(npcPathCalls, 0);
 
 console.log("large NPC overlap combat regression test passed");

@@ -53,12 +53,12 @@ assert.equal(
 );
 
 const collidingRegistry = new ScriptRegistry();
-collidingRegistry.registerCommand("help", playerHandler, {
+collidingRegistry.registerCommand("commands", playerHandler, {
     permission: "developer",
     owner: "content:test:collision",
 });
 assert.equal(
-    resolveCommand("help", collidingRegistry.findCommandRegistration("help"))?.source,
+    resolveCommand("commands", collidingRegistry.findCommandRegistration("commands"))?.source,
     "builtin",
     "built-in commands must win dispatch collisions deterministically",
 );
@@ -66,7 +66,7 @@ assert.equal(
 const playerVisible = listAvailableCommands("player", registry.listCommands()).map(
     (command) => command.name,
 );
-assert(playerVisible.includes("help"));
+assert(playerVisible.includes("commands"));
 assert(playerVisible.includes("contenthelp"));
 assert(!playerVisible.includes("mixedcase"));
 
@@ -76,7 +76,7 @@ const developerVisible = listAvailableCommands("developer", registry.listCommand
 assert(developerVisible.includes("contenthelp"));
 assert(!developerVisible.includes("mixedcase"), "hidden commands must stay out of discovery");
 
-assert.equal(findBuiltinCommand("HELP")?.permission, "player");
+assert.equal(findBuiltinCommand("COMMANDS")?.permission, "player");
 assert.equal(findBuiltinCommand("tele")?.permission, "developer");
 assert(listBuiltinCommands().every((command) => command.owner.length > 0));
 

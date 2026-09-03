@@ -1,4 +1,5 @@
 import { MapFileIndex, getMapSquareId } from "@august/osrs-engine/map/MapFileIndex";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { Scene } from "@august/osrs-engine/scene/Scene";
 import { Camera } from "@client/engine/rendering/camera/Camera";
 import { ClientState } from "@client/engine/game/ClientState";
@@ -144,7 +145,7 @@ export class MapManager<T extends MapSquare> {
                 this.invalidMapIds.add(getMapSquareId(x, y));
             }
         }
-        console.log("Invalid map count", this.invalidMapIds.size);
+        clientDebugLog("Invalid map count", this.invalidMapIds.size);
     }
 
     isMapVisible(camera: Camera, mapX: number, mapY: number): boolean {
@@ -199,7 +200,7 @@ export class MapManager<T extends MapSquare> {
             try {
                 this.onMapRemoved?.(map.mapX | 0, map.mapY | 0);
             } catch (error) {
-                console.log("[MapManager] onMapRemoved callback failed", {
+                console.warn("[MapManager] onMapRemoved callback failed", {
                     mapX: map.mapX | 0,
                     mapY: map.mapY | 0,
                     error,
@@ -316,7 +317,7 @@ export class MapManager<T extends MapSquare> {
                     prev.delete();
                 }
             } catch (error) {
-                console.log("[MapManager] Failed to delete replaced map", {
+                console.warn("[MapManager] Failed to delete replaced map", {
                     mapX: mapX | 0,
                     mapY: mapY | 0,
                     error,
@@ -326,7 +327,7 @@ export class MapManager<T extends MapSquare> {
         try {
             this.onMapAdded?.(mapX | 0, mapY | 0);
         } catch (error) {
-            console.log("[MapManager] onMapAdded callback failed", {
+            console.warn("[MapManager] onMapAdded callback failed", {
                 mapX: mapX | 0,
                 mapY: mapY | 0,
                 error,
@@ -344,7 +345,7 @@ export class MapManager<T extends MapSquare> {
             try {
                 this.onMapRemoved?.(map.mapX | 0, map.mapY | 0);
             } catch (error) {
-                console.log("[MapManager] onMapRemoved callback failed", {
+                console.warn("[MapManager] onMapRemoved callback failed", {
                     mapX: map.mapX | 0,
                     mapY: map.mapY | 0,
                     error,
@@ -394,7 +395,7 @@ export class MapManager<T extends MapSquare> {
             try {
                 map.delete();
             } catch (error) {
-                console.log("[MapManager] Failed to delete pruned map", {
+                console.warn("[MapManager] Failed to delete pruned map", {
                     mapX: map.mapX | 0,
                     mapY: map.mapY | 0,
                     error,
@@ -405,7 +406,7 @@ export class MapManager<T extends MapSquare> {
             try {
                 this.onMapRemoved?.(map.mapX | 0, map.mapY | 0);
             } catch (error) {
-                console.log("[MapManager] onMapRemoved callback failed", {
+                console.warn("[MapManager] onMapRemoved callback failed", {
                     mapX: map.mapX | 0,
                     mapY: map.mapY | 0,
                     error,
@@ -589,7 +590,7 @@ export class MapManager<T extends MapSquare> {
                     this.currentMapRadius | 0,
                 );
             } catch (error) {
-                console.log("[MapManager] onCurrentMapChanged callback failed", {
+                console.warn("[MapManager] onCurrentMapChanged callback failed", {
                     mapX: this.currentMapX | 0,
                     mapY: this.currentMapY | 0,
                     mapRadius: this.currentMapRadius | 0,

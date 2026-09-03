@@ -1,6 +1,7 @@
 import fs from "fs";
 
 import { getItemDefinition } from "@server/data/items";
+import { logger } from "@server/observability/logger";
 import type {
     ImportedMonsterDefinition,
     NpcDropEntryDefinition,
@@ -325,11 +326,11 @@ export function loadMonstersCompleteDefinitions(): ImportedMonsterDefinition[] {
     const sourcePath = wikiEntries.length > 0 ? `${wikiSourcePath} + ${legacySourcePath}` : legacySourcePath;
     if (cachedEntries.length === 0) {
         sourceStatus = { path: sourcePath, entryCount: 0, error: errors.join("; ") || "no drop tables found" };
-        console.warn(`[drops] Full NPC drop source unavailable: ${sourceStatus.error}`);
+        logger.warn(`[drops] Full NPC drop source unavailable: ${sourceStatus.error}`);
     } else {
         sourceStatus = { path: sourcePath, entryCount: cachedEntries.length };
-        if (errors.length > 0) console.warn(`[drops] ${errors.join("; ")}`);
-        console.info(
+        if (errors.length > 0) logger.warn(`[drops] ${errors.join("; ")}`);
+        logger.info(
             `[drops] Loaded ${wikiEntries.length} current Wiki and ${legacyEntries.length} legacy NPC drop tables.`,
         );
     }

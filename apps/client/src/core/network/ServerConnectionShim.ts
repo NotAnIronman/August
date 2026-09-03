@@ -1,6 +1,8 @@
 // Shim for ServerConnection that can be safely imported in toolkit/browser contexts
 // Provides no-op implementations when ServerConnection is not available
 
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
+
 export type SkillEntryMessage = {
     id: number;
     xp: number;
@@ -75,51 +77,56 @@ export type RunEnergyState = {
 };
 
 const noOpSendWidgetOpen = (groupId: number, opts?: any) => {
-    console.log("[ServerConnectionShim] sendWidgetOpen (no-op)", groupId, opts);
+    clientDebugLog("[ServerConnectionShim] sendWidgetOpen (no-op)", groupId, opts);
 };
 
 const noOpSendWidgetClose = (groupId: number) => {
-    console.log("[ServerConnectionShim] sendWidgetClose (no-op)", groupId);
+    clientDebugLog("[ServerConnectionShim] sendWidgetClose (no-op)", groupId);
 };
 
 const noOpSendWidgetAction = (payload: any) => {
-    console.log("[ServerConnectionShim] sendWidgetAction (no-op)", payload);
+    clientDebugLog("[ServerConnectionShim] sendWidgetAction (no-op)", payload);
 };
 
 const noOpSendBankDepositInventory = (tab?: number) => {
-    console.log("[ServerConnectionShim] sendBankDepositInventory (no-op)", { tab });
+    clientDebugLog("[ServerConnectionShim] sendBankDepositInventory (no-op)", { tab });
 };
 
 const noOpSendBankDepositEquipment = (tab?: number) => {
-    console.log("[ServerConnectionShim] sendBankDepositEquipment (no-op)", { tab });
+    clientDebugLog("[ServerConnectionShim] sendBankDepositEquipment (no-op)", { tab });
 };
 
 const noOpSendBankDepositItem = (slot?: number, itemId?: number, qty?: number, tab?: number) => {
-    console.log("[ServerConnectionShim] sendBankDepositItem (no-op)", { slot, itemId, qty, tab });
+    clientDebugLog("[ServerConnectionShim] sendBankDepositItem (no-op)", {
+        slot,
+        itemId,
+        qty,
+        tab,
+    });
 };
 
 const noOpSubscribeSkills = (callback: (event: SkillsUpdateEvent) => void) => {
-    console.log("[ServerConnectionShim] subscribeSkills (no-op)");
+    clientDebugLog("[ServerConnectionShim] subscribeSkills (no-op)");
     return () => {}; // Return no-op unsubscribe
 };
 
 const noOpSubscribeRunEnergy = (callback: (state: RunEnergyState) => void) => {
-    console.log("[ServerConnectionShim] subscribeRunEnergy (no-op)");
+    clientDebugLog("[ServerConnectionShim] subscribeRunEnergy (no-op)");
     return () => {};
 };
 
 const noOpSubscribeBank = (callback: any) => {
-    console.log("[ServerConnectionShim] subscribeBank (no-op)");
+    clientDebugLog("[ServerConnectionShim] subscribeBank (no-op)");
     return () => {};
 };
 
 const noOpSubscribeShop = (callback: (state: ShopWindowState) => void) => {
-    console.log("[ServerConnectionShim] subscribeShop (no-op)");
+    clientDebugLog("[ServerConnectionShim] subscribeShop (no-op)");
     return () => {};
 };
 
 const noOpSubscribeTrade = (callback: (state: TradeWindowState) => void) => {
-    console.log("[ServerConnectionShim] subscribeTrade (no-op)");
+    clientDebugLog("[ServerConnectionShim] subscribeTrade (no-op)");
     return () => {};
 };
 
@@ -140,27 +147,27 @@ const noOpGetLatestTradeState = (): TradeWindowState => ({
 });
 
 const noOpSendTradeOffer = () => {
-    console.log("[ServerConnectionShim] sendTradeOffer (no-op)");
+    clientDebugLog("[ServerConnectionShim] sendTradeOffer (no-op)");
 };
 
 const noOpSendTradeRemove = () => {
-    console.log("[ServerConnectionShim] sendTradeRemove (no-op)");
+    clientDebugLog("[ServerConnectionShim] sendTradeRemove (no-op)");
 };
 
 const noOpSendTradeAccept = () => {
-    console.log("[ServerConnectionShim] sendTradeAccept (no-op)");
+    clientDebugLog("[ServerConnectionShim] sendTradeAccept (no-op)");
 };
 
 const noOpSendTradeDecline = () => {
-    console.log("[ServerConnectionShim] sendTradeDecline (no-op)");
+    clientDebugLog("[ServerConnectionShim] sendTradeDecline (no-op)");
 };
 
 const noOpSendTradeConfirmAccept = () => {
-    console.log("[ServerConnectionShim] sendTradeConfirmAccept (no-op)");
+    clientDebugLog("[ServerConnectionShim] sendTradeConfirmAccept (no-op)");
 };
 
 const noOpSendTradeConfirmDecline = () => {
-    console.log("[ServerConnectionShim] sendTradeConfirmDecline (no-op)");
+    clientDebugLog("[ServerConnectionShim] sendTradeConfirmDecline (no-op)");
 };
 
 // Export no-op implementations for toolkit contexts

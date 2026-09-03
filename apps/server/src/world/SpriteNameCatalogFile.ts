@@ -1,6 +1,6 @@
 import fs from "fs";
-import path from "path";
 
+import { writeJsonFileAtomicallySync } from "@server/io/AtomicFile";
 import { clientCatalogPath } from "@server/paths";
 
 /**
@@ -69,8 +69,7 @@ export function resolveSpriteRefByName(
 }
 
 function writeSpriteNameCatalog(filePath: string, catalog: SpriteNameCatalog): void {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, `${JSON.stringify(catalog, null, 4)}\n`, "utf8");
+    writeJsonFileAtomicallySync(filePath, catalog, 4);
 }
 
 export type SetSpriteNameResult =

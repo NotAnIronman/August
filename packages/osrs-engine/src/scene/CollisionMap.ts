@@ -49,10 +49,22 @@ export class CollisionMap {
     }
 
     isWithinBounds(x: number, y: number): boolean {
-        return x >= 0 && x < this.sizeX && y >= 0 && y < this.sizeY;
+        return (
+            Number.isInteger(x) &&
+            Number.isInteger(y) &&
+            x >= 0 &&
+            x < this.sizeX &&
+            y >= 0 &&
+            y < this.sizeY
+        );
     }
 
     getFlag(x: number, y: number): number {
+        if (!this.isWithinBounds(x, y)) {
+            // The edge of a loaded scene is solid. Treating an out-of-range
+            // typed-array read as zero made routes escape the collision map.
+            return 0xffffff;
+        }
         return this.flags[x + y * this.sizeX];
     }
 
@@ -61,14 +73,17 @@ export class CollisionMap {
     }
 
     setFlag(x: number, y: number, flag: number): void {
+        if (!this.isWithinBounds(x, y)) return;
         this.flags[x + y * this.sizeX] = flag;
     }
 
     flag(x: number, y: number, flag: number): void {
+        if (!this.isWithinBounds(x, y)) return;
         this.flags[x + y * this.sizeX] |= flag;
     }
 
     unflag(x: number, y: number, flag: number): void {
+        if (!this.isWithinBounds(x, y)) return;
         this.flags[x + y * this.sizeX] &= ~flag;
     }
 

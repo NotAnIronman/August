@@ -1,12 +1,7 @@
 import { SKILL_IDS, SkillId } from "@august/osrs-engine/skill/skills";
 import { RUN_ENERGY_MAX } from "@server/game/actor";
 import { type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
-import { readPositiveEnvInteger } from "@server/config/environment";
-
-const DEFAULT_TICK_MS = readPositiveEnvInteger("TICK_MS") ?? 600;
-
-const secondsToTicks = (seconds: number): number =>
-    Math.max(1, Math.round((seconds * 1000) / Math.max(1, DEFAULT_TICK_MS)));
+import { secondsToTicks } from "@server/game/scripts/timing";
 
 type PoolDefinition = {
     locId: number;
@@ -101,7 +96,7 @@ export function registerPohPoolHandlers(registry: IScriptRegistry, services: Scr
                 if (pool.cureDisease) player.skillSystem.cureDisease();
                 if (pool.cureVenom) player.skillSystem.cureVenom();
                 if (pool.stamina) {
-                    const durationTicks = secondsToTicks(pool.stamina.durationSeconds);
+                    const durationTicks = secondsToTicks(services, pool.stamina.durationSeconds);
                     player.energy.applyStaminaEffect(tick, durationTicks, pool.stamina.multiplier);
                 }
                 services.messaging.sendGameMessage(player, pool.message);

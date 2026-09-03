@@ -2,7 +2,9 @@ import fs from "fs";
 
 import { DEV_DIG_PANEL_GROUP_ID } from "@august/protocol/ui/widgets/custom/journalPanel.cs2";
 import { ComponentIds, type UiTextRow } from "@august/protocol/uikit/contracts";
+import { writeJsonFileAtomicallySync } from "@server/io/AtomicFile";
 import { serverCatalogPath } from "@server/paths";
+import { registerPlayerScopedCollections } from "@server/game/scripts/ScriptLifecycle";
 import type { CommandHandler, IScriptRegistry, ItemOnItemEvent, ScriptServices } from "@server/game/scripts/types";
 import type { PlayerState } from "@server/game/player";
 import { registerUiPanelActions } from "@server/content/gamemodes/vanilla/uikit/actions";
@@ -107,7 +109,7 @@ function readCatalog(): DigCatalog {
     } catch { return { version: 1, rules: [] }; }
 }
 function saveCatalog(catalog: DigCatalog): void {
-    fs.writeFileSync(CATALOG_PATH, `${JSON.stringify(catalog, null, 2)}\n`, "utf8");
+    writeJsonFileAtomicallySync(CATALOG_PATH, catalog);
 }
 function integer(value: string | undefined, minimum = 0): number | undefined {
     if (!value || !/^-?\d+$/.test(value)) return undefined;
@@ -239,6 +241,8 @@ function submitEditorInput(player: PlayerState, services: ScriptServices, text: 
  * handlers without turning object transports into a catch-all system.
  */
 export function registerDigHandlers(registry: IScriptRegistry, services: ScriptServices): void {
+    registerPlayerScopedCollections(registry, services, editorStates);
+
     const dig = ({ player, services: svc }: ItemOnItemEvent): void => {
         const tile = { x: player.tileX, y: player.tileY, level: player.level };
         const rule = findRule(readCatalog(), tile);

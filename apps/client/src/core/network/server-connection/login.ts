@@ -1,4 +1,5 @@
 import { WS_SUPPRESS_RECONNECT_KEY, LOGIN_CONNECT_RETRY_DELAY_MS } from "@client/core/network/server-connection/constants";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { clearLoginConnectRetryTimer } from "@client/core/network/server-connection/connection/loginHelpers";
 import { initServerConnection } from "@client/core/network/server-connection/connection/init";
 import { send } from "@client/core/network/server-connection/connection/send";
@@ -95,7 +96,7 @@ export function sendLogin(username: string, password: string, revision: number =
 
     if (!state.socket || state.socket.readyState !== WebSocket.OPEN) {
         // Socket not open - need to reconnect first
-        console.log("[ws] Socket not open, reconnecting before login...");
+        clientDebugLog("[ws] Socket not open, reconnecting before login...");
         clearLoginConnectRetryTimer();
         connectForLogin(state.lastUrl, false);
 
@@ -104,7 +105,7 @@ export function sendLogin(username: string, password: string, revision: number =
             if (attemptId !== state.loginConnectAttemptId) return;
             if (state.socket && state.socket.readyState === WebSocket.OPEN) return;
 
-            console.log(
+            clientDebugLog(
                 `[ws] Login connect not established after ${LOGIN_CONNECT_RETRY_DELAY_MS}ms, retrying direct websocket connect...`,
             );
             connectForLogin(state.lastUrl, true);

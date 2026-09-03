@@ -1,7 +1,7 @@
 /**
  * Regression coverage for absolute food, potion, and attack deadlines.
  *
- * Run with: npx tsx tests/combat-consumable-manager.test.ts
+ * Run with: pnpm exec tsx tests/combat-consumable-manager.test.ts
  */
 import assert from "node:assert/strict";
 

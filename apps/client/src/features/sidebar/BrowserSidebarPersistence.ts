@@ -1,17 +1,18 @@
 import type { SidebarPersistedState, SidebarPersistence } from "@client/features/sidebar/types";
+import { createBrowserJsonPersistence } from "@client/core/storage/localStorage";
 
 export function createBrowserSidebarPersistence(
     storageKey: string,
 ): SidebarPersistence | undefined {
-    if (typeof window === "undefined") return undefined;
-    if (typeof window.localStorage === "undefined") return undefined;
-
+    const storage = createBrowserJsonPersistence<Partial<SidebarPersistedState>, SidebarPersistedState>(
+        storageKey,
+    );
+    if (!storage) return undefined;
     return {
         load: (): SidebarPersistedState | undefined => {
+            const parsed = storage.load();
+            if (!parsed) return undefined;
             try {
-                const raw = window.localStorage.getItem(storageKey);
-                if (!raw) return undefined;
-                const parsed = JSON.parse(raw) as Partial<SidebarPersistedState>;
                 return {
                     open: parsed.open === true,
                     selectedId: typeof parsed.selectedId === "string" ? parsed.selectedId : null,
@@ -20,10 +21,6 @@ export function createBrowserSidebarPersistence(
                 return undefined;
             }
         },
-        save: (state: SidebarPersistedState): void => {
-            try {
-                window.localStorage.setItem(storageKey, JSON.stringify(state));
-            } catch {}
-        },
+        save: (state: SidebarPersistedState): void => storage.save(state),
     };
 }

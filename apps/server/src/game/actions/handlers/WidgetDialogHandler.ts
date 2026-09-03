@@ -663,7 +663,7 @@ export class WidgetDialogHandler {
 
         const active = this.activeChatboxDialogs.get(playerId);
         if (!active || active.groupId !== DIALOG_GROUP_OPTIONS || !active.onSelect) {
-            logger.info(`[dialog] no active options dialog for player=${playerId}`);
+            logger.debug(`[dialog] no active options dialog for player=${playerId}`);
             return;
         }
         const dialogId = active.dialogId;
@@ -680,7 +680,7 @@ export class WidgetDialogHandler {
         // Convert to 0-based for handler callbacks.
         const optionIndex = Math.max(0, Math.min(optionCount - 1, childIndex - 1));
         try {
-            logger.info(
+            logger.debug(
                 `[dialog] option selected player=${playerId} choice=${optionIndex} (childIndex=${childIndex})`,
             );
             active.onSelect(optionIndex);
@@ -725,7 +725,7 @@ export class WidgetDialogHandler {
             const productIndex = componentId - SKILLMULTI_FIRST_ITEM_COMPONENT;
             const productCount = Math.max(0, active.skillMultiProductCount ?? 0);
             if (productIndex < 0 || productIndex >= productCount) {
-                logger.info(
+                logger.debug(
                     `[dialog] invalid skillmulti selection player=${playerId} component=${componentId}`,
                 );
                 return true;
@@ -751,13 +751,13 @@ export class WidgetDialogHandler {
             return true;
         }
         if (!active.onContinue) {
-            logger.info(
+            logger.debug(
                 `[dialog] continue with no handler player=${player.id} dialogId=${active.dialogId}`,
             );
             return true;
         }
 
-        logger.info(
+        logger.debug(
             `[dialog] continue handler firing player=${player.id} dialogId=${active.dialogId} widget=${widgetId} child=${childIndex}`,
         );
         this.activeChatboxDialogs.delete(playerId);
@@ -813,13 +813,13 @@ export class WidgetDialogHandler {
             });
             const opLabel = normalized.opId !== undefined ? normalized.opId.toString() : "na";
             if (!dispatched) {
-                logger.info(
+                logger.debug(
                     `[widget_action] no handler player=${player.id} widget=${
                         normalized.widgetId
                     } op=${opLabel} option=${normalized.option ?? ""}`,
                 );
             } else {
-                logger.info(
+                logger.debug(
                     `[widget_action] dispatched player=${player.id} widget=${
                         normalized.widgetId
                     } op=${opLabel} option=${normalized.option ?? ""} slot=${

@@ -1,7 +1,5 @@
 import Denque from "denque";
 import { mat4, vec2, vec3, vec4 } from "gl-matrix";
-import { button, folder } from "leva";
-import { Schema } from "leva/dist/declarations/src/types";
 import {
     DrawCall,
     Framebuffer,
@@ -808,7 +806,7 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
             try {
                 previousOnMapRemoved(mapX | 0, mapY | 0);
             } catch (error) {
-                console.log("[WebGLOsrsRenderer] onMapRemoved callback failed", {
+                console.warn("[WebGLOsrsRenderer] onMapRemoved callback failed", {
                     mapX: mapX | 0,
                     mapY: mapY | 0,
                     error,
@@ -1446,10 +1444,6 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
 
     getProjectileManager(): ProjectileManager | undefined {
         return render.getProjectileManager(this);
-    }
-
-    getControls(): Schema {
-        return render.getControls(this);
     }
 
     public getMapIdForWorldTile(x: number, y: number): number {

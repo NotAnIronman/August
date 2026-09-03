@@ -1,7 +1,7 @@
 /**
  * Regression coverage for account registration, verification, and legacy claims.
  *
- * Run with: npx tsx tests/authentication.test.ts
+ * Run with: pnpm exec tsx tests/authentication.test.ts
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -9,12 +9,27 @@ import os from "node:os";
 import path from "node:path";
 
 import type { GamemodeDefinition } from "@server/game/gamemodes/GamemodeDefinition";
-import { getSqliteDatabase } from "@server/game/state/SqliteDatabase";
+import {
+    closeAllSqliteDatabases,
+    getSqliteDatabase,
+} from "@server/game/state/SqliteDatabase";
 import { AccountStore } from "@server/network/AccountStore";
 import { AuthenticationService } from "@server/network/AuthenticationService";
 import { LoginState } from "@client/features/login/LoginState";
 
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "xrsps-auth-test-"));
+let cleanedUp = false;
+const cleanup = (): void => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    try {
+        closeAllSqliteDatabases();
+    } finally {
+        fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+};
+process.once("exit", cleanup);
+
 const accountStore = new AccountStore({ dataDir });
 const playerLookup = {
     hasConnectedPlayer: () => false,
@@ -83,3 +98,5 @@ loginState.password = "x".repeat(21);
 assert.match(loginState.getCredentialValidationMessage() ?? "", /no more than 20 characters/);
 
 console.log("authentication regression test passed");
+cleanup();
+process.removeListener("exit", cleanup);

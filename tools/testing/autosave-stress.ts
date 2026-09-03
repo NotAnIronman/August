@@ -4,6 +4,11 @@ import { performance } from "perf_hooks";
 
 import { MAX_XP, SKILL_IDS, getXpForLevel } from "@august/osrs-engine/skill/skills";
 import { DEFAULT_EQUIP_SLOT_COUNT } from "@server/game/equipment";
+import { registerSkillConfiguration } from "@server/game/combat/SkillConfigurationProvider";
+import {
+    type SpellDataProvider,
+    registerSpellDataProvider,
+} from "@server/game/spells/SpellDataProvider";
 import type { GamemodeDefinition } from "@server/game/gamemodes/GamemodeDefinition";
 import { serverVarPath } from "@tools/lib/repository-paths";
 import {
@@ -38,6 +43,36 @@ const STUB_GAMEMODE = {
     registerHandlers: () => {},
     initialize: () => {},
 } as unknown as GamemodeDefinition;
+
+// PlayerState owns a PlayerSkillSystem whose constructor computes combat level
+// through the runtime provider. The stress harness is intentionally standalone,
+// so install a deterministic configuration instead of depending on gamemode boot.
+registerSkillConfiguration({
+    computeCombatLevel: () => 3,
+    skillRestoreIntervalTicks: 100,
+    skillBoostDecayIntervalTicks: 100,
+    hitpointRegenIntervalTicks: 100,
+    hitpointOverhealDecayIntervalTicks: 100,
+    preserveDecayMultiplier: 1.5,
+});
+registerSpellDataProvider({
+    getSpellData: () => undefined,
+    getSpellDataByWidget: () => undefined,
+    getAllSpellData: () => [],
+    registerSpellData: () => undefined,
+    hasSpellData: () => false,
+    initSpellWidgetMapping: () => undefined,
+    isSpellWidgetMappingInitialized: () => true,
+    getSpellIdFromAutocastIndex: () => undefined,
+    getAutocastIndexFromSpellId: () => undefined,
+    isSpellAutocastable: () => false,
+    buildVisibleAutocastIndices: () => [],
+    canWeaponAutocastSpell: () => ({ compatible: false, reason: "no_weapon" }),
+    getAutocastCompatibilityMessage: () => "",
+    getPoweredStaffSpellData: () => undefined,
+    hasPoweredStaffSpellData: () => false,
+    calculatePoweredStaffBaseDamage: () => 0,
+} satisfies SpellDataProvider);
 
 const DEFAULT_OPTIONS = {
     players: 64,

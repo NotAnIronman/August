@@ -42,6 +42,12 @@ export interface AuthenticationOptions {
     accountStore: AccountStore;
     allowAccountRegistration?: boolean;
     allowLegacyAccountClaim?: boolean;
+    /** Protocol-safe world capacity. Defaults to the 2047-player sync limit. */
+    maxPlayers?: number;
+    /** Bounds unique source addresses retained by the login limiter. */
+    maxTrackedLoginSources?: number;
+    /** Injectable clock for deterministic tests. */
+    now?: () => number;
 }
 
 export type CredentialAuthenticationResult =
@@ -56,18 +62,41 @@ export class AuthenticationService {
     private loginAttempts = new Map<string, { count: number; resetTime: number }>();
     private readonly MAX_LOGIN_ATTEMPTS = 5;
     private readonly LOGIN_ATTEMPT_WINDOW_MS = 60000;
+    private readonly maxTrackedLoginSources: number;
+    private readonly maxPlayers: number;
+    private readonly now: () => number;
+    private rateLimitChecks = 0;
 
     constructor(
         private readonly playerLookup: PlayerLookup,
         private readonly gamemode: GamemodeDefinition,
         private readonly options: AuthenticationOptions,
-    ) {}
+    ) {
+        this.maxPlayers = Math.max(1, Math.min(2047, Math.trunc(options.maxPlayers ?? 2047)));
+        this.maxTrackedLoginSources = Math.max(
+            128,
+            Math.min(100_000, Math.trunc(options.maxTrackedLoginSources ?? 10_000)),
+        );
+        this.now = options.now ?? Date.now;
+    }
 
     checkLoginRateLimit(ip: string): boolean {
-        const now = Date.now();
+        const now = this.now();
+        this.rateLimitChecks++;
+        if (
+            this.loginAttempts.size >= this.maxTrackedLoginSources ||
+            this.rateLimitChecks % 256 === 0
+        ) {
+            this.pruneExpiredLoginAttempts(now);
+        }
         const entry = this.loginAttempts.get(ip);
 
         if (!entry || now >= entry.resetTime) {
+            // At capacity, reject an unseen source rather than allowing an
+            // address spray to grow process memory without bound.
+            if (!entry && this.loginAttempts.size >= this.maxTrackedLoginSources) {
+                return true;
+            }
             this.loginAttempts.set(ip, {
                 count: 1,
                 resetTime: now + this.LOGIN_ATTEMPT_WINDOW_MS,
@@ -89,7 +118,13 @@ export class AuthenticationService {
     }
 
     isWorldFull(): boolean {
-        return this.playerLookup.getTotalPlayerCount() >= 2047;
+        return this.playerLookup.getTotalPlayerCount() >= this.maxPlayers;
+    }
+
+    private pruneExpiredLoginAttempts(now: number): void {
+        for (const [ip, attempt] of this.loginAttempts) {
+            if (now >= attempt.resetTime) this.loginAttempts.delete(ip);
+        }
     }
 
     normalizePlayerNameForAuth(name: string | undefined): string {
@@ -111,6 +146,31 @@ export class AuthenticationService {
             this.options.allowAccountRegistration !== false &&
             (!hasLegacyPlayerState || this.options.allowLegacyAccountClaim === true);
         const authentication = this.options.accountStore.authenticate(
+            username,
+            password,
+            allowRegistration,
+        );
+        return authentication.ok
+            ? authentication
+            : { ok: false, reason: "invalid_credentials" };
+    }
+
+    /** Non-blocking equivalent used by live WebSocket login handling. */
+    async authenticateCredentialsAsync(
+        username: string | undefined,
+        password: string | undefined,
+        hasLegacyPlayerState: boolean,
+    ): Promise<CredentialAuthenticationResult> {
+        const accountName = normalizeAccountName(username);
+        if (!accountName) return { ok: false, reason: "invalid_credentials" };
+        if (typeof password === "string" && password.length < MIN_PASSWORD_LENGTH) {
+            return { ok: false, reason: "password_too_short" };
+        }
+
+        const allowRegistration =
+            this.options.allowAccountRegistration !== false &&
+            (!hasLegacyPlayerState || this.options.allowLegacyAccountClaim === true);
+        const authentication = await this.options.accountStore.authenticateAsync(
             username,
             password,
             allowRegistration,

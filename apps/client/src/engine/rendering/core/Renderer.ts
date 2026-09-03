@@ -1,4 +1,7 @@
-import { getCanvasCssSize } from "@client/core/platform/device/DeviceUtil";
+import {
+    getCanvasCssSize,
+    invalidateCanvasCssSize,
+} from "@client/core/platform/device/DeviceUtil";
 import { RenderStats } from "@client/engine/rendering/core/RenderStats";
 
 function isResizeDebug(): boolean {
@@ -48,8 +51,13 @@ export abstract class Renderer {
     private _resizeObs?: ResizeObserver;
     private _timeoutId?: ReturnType<typeof setTimeout>;
     private _initPromise?: Promise<void>;
+    private _disposed: boolean = false;
     private _useTimeout: boolean = false;
     private _framePacingDebtMs: number = 0;
+    private _framesUntilResizePoll: number = 0;
+    private _lastDevicePixelRatio: number = 0;
+
+    private static readonly RESIZE_FALLBACK_POLL_FRAMES = 60;
 
     constructor() {
         this.canvas = document.createElement("canvas");
@@ -61,13 +69,28 @@ export abstract class Renderer {
     abstract init(): Promise<void>;
 
     initOnce(): Promise<void> {
-        return (this._initPromise ??= this.init());
+        if (!this._initPromise) {
+            const initPromise = this.init();
+            this._initPromise = initPromise;
+            // A renderer can be disposed while asynchronous shader/texture setup is
+            // still running. Clean up once more after that setup settles so resources
+            // created after the initial dispose() call cannot survive unmount/HMR.
+            void initPromise.then(
+                () => {
+                    if (this._disposed) this.stop();
+                },
+                () => {
+                    if (this._disposed) this.stop();
+                },
+            );
+        }
+        return this._initPromise;
     }
 
     abstract cleanUp(): void;
 
     start() {
-        if (this.running) return;
+        if (this.running || this._disposed) return;
         this.running = true;
         this._framePacingDebtMs = 0;
         this._updateVisibilityMode();
@@ -95,6 +118,13 @@ export abstract class Renderer {
             this._resizeObs?.disconnect();
             this._resizeObs = undefined;
         } catch {}
+    }
+
+    /** Permanently stop this renderer and release resources, including late async init work. */
+    dispose(): void {
+        if (this._disposed) return;
+        this._disposed = true;
+        this.stop();
     }
 
     private _onVisibilityChange = () => {
@@ -153,6 +183,36 @@ export abstract class Renderer {
         }
     }
 
+    private _readDevicePixelRatio(): number {
+        try {
+            const value = window.devicePixelRatio;
+            return Number.isFinite(value) && value > 0 ? value : 1;
+        } catch {
+            return 1;
+        }
+    }
+
+    private _resizeForFrame(): boolean {
+        const devicePixelRatio = this._readDevicePixelRatio();
+        const deviceScaleChanged = devicePixelRatio !== this._lastDevicePixelRatio;
+        this._lastDevicePixelRatio = devicePixelRatio;
+
+        // ResizeObserver handles ordinary layout changes immediately. Poll at a
+        // low cadence as a safety net for DPR, browser zoom, and older WebViews.
+        if (
+            this._resizeObs &&
+            !deviceScaleChanged &&
+            this._framesUntilResizePoll > 0
+        ) {
+            this._framesUntilResizePoll--;
+            return false;
+        }
+
+        this._framesUntilResizePoll = Renderer.RESIZE_FALLBACK_POLL_FRAMES;
+        invalidateCanvasCssSize(this.canvas);
+        return resizeCanvas(this);
+    }
+
     onResize(width: number, height: number) {}
 
     /**
@@ -165,7 +225,10 @@ export abstract class Renderer {
 
     // Public hook for hosts/observers to force size check immediately (no RAF delay)
     forceResize = () => {
+        invalidateCanvasCssSize(this.canvas);
         const resized = resizeCanvas(this);
+        this._framesUntilResizePoll = Renderer.RESIZE_FALLBACK_POLL_FRAMES;
+        this._lastDevicePixelRatio = this._readDevicePixelRatio();
         if (isResizeDebug()) {
             // eslint-disable-next-line no-console
             console.log(
@@ -196,7 +259,7 @@ export abstract class Renderer {
             const usingTimeoutScheduler = this._useTimeout;
             this._recordSchedulerCallback(time, usingTimeoutScheduler, fpsLimit);
 
-            const resized = resizeCanvas(this);
+            const resized = this._resizeForFrame();
             if (resized) {
                 if (isResizeDebug()) {
                     // eslint-disable-next-line no-console
@@ -255,6 +318,7 @@ export abstract class Renderer {
         if (!this.running) return;
         const time = performance.now();
         this._framePacingDebtMs = 0;
+        invalidateCanvasCssSize(this.canvas);
         const resized = resizeCanvas(this);
         if (resized) {
             this.onResize(this.canvas.width, this.canvas.height);

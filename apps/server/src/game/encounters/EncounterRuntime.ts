@@ -255,6 +255,13 @@ export class EncounterRuntime {
             return undefined;
         }
         if (!handle.isActive) return handle;
+        // A mechanic launched through this policy boundary is encounter-owned
+        // even when its factory is a small content-specific implementation
+        // rather than one of the shared factories. Shared factories already
+        // call ownMechanic themselves; Set membership makes that registration
+        // safely idempotent. Without this ownership, resetHealth()/dispose()
+        // could leave a content mechanic running after its boss reset.
+        this.ownMechanic(handle);
         let handles = this.mechanicsByBinding.get(key);
         if (!handles) {
             handles = new Set();

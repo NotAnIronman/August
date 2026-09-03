@@ -26,6 +26,7 @@ import { detectCacheType } from "@august/osrs-engine/cache/CacheType";
 import { Dat2CacheLoaderFactory } from "@august/osrs-engine/cache/loader/Dat2CacheLoaderFactory";
 import { DatCacheLoaderFactory } from "@august/osrs-engine/cache/loader/DatCacheLoaderFactory";
 import { LegacyCacheLoaderFactory } from "@august/osrs-engine/cache/loader/LegacyCacheLoaderFactory";
+import { UnsupportedOperationError } from "@august/osrs-engine/util/UnsupportedOperationError";
 
 export interface CacheLoaderFactory {
     getUnderlayTypeLoader(): FloorTypeLoader;
@@ -77,6 +78,10 @@ export function getCacheLoaderFactory(
 ): CacheLoaderFactory {
     const cacheType = detectCacheType(cacheInfo);
     switch (cacheType) {
+        case "classic":
+            throw new UnsupportedOperationError(
+                'getCacheLoaderFactory does not support the "classic" cache format',
+            );
         case "legacy":
             return new LegacyCacheLoaderFactory(cacheInfo, cacheSystem);
         case "dat":
@@ -84,5 +89,4 @@ export function getCacheLoaderFactory(
         case "dat2":
             return new Dat2CacheLoaderFactory(cacheInfo, cacheType, cacheSystem, options);
     }
-    throw new Error("Not implemented");
 }

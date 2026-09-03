@@ -1,4 +1,5 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { randomBytes, scrypt, scryptSync, timingSafeEqual } from "crypto";
+import type { StatementSync } from "node:sqlite";
 
 import {
     ACCOUNT_NAME_PATTERN,
@@ -37,6 +38,14 @@ export interface AccountStoreOptions {
     databasePath?: string;
 }
 
+type AccountStatements = {
+    selectExists: StatementSync;
+    selectPermission: StatementSync;
+    updatePermission: StatementSync;
+    insert: StatementSync;
+    selectCredentials: StatementSync;
+};
+
 /**
  * Normalizes the name used for account credentials and player persistence.
  * Account names remain compatible with the 12-character RuneScape display-name limit.
@@ -64,9 +73,40 @@ function isValidPassword(password: string | undefined): password is string {
  */
 export class AccountStore {
     private readonly database: SqliteDatabase;
+    private readonly statements: AccountStatements;
 
     constructor(options: AccountStoreOptions) {
         this.database = getSqliteDatabase(options);
+        const connection = this.database.connection;
+        this.statements = {
+            selectExists: connection.prepare("SELECT 1 FROM accounts WHERE username = ?"),
+            selectPermission: connection.prepare(
+                "SELECT permission_level AS permissionLevel FROM accounts WHERE username = ?",
+            ),
+            updatePermission: connection.prepare(
+                "UPDATE accounts SET permission_level = ? WHERE username = ?",
+            ),
+            insert: connection.prepare(
+                `INSERT INTO accounts (
+                    username,
+                    password_algorithm,
+                    password_salt,
+                    password_hash,
+                    created_at,
+                    password_changed_at
+                ) VALUES (?, ?, ?, ?, ?, ?)`,
+            ),
+            selectCredentials: connection.prepare(
+                `SELECT
+                    password_algorithm AS passwordAlgorithm,
+                    password_salt AS passwordSalt,
+                    password_hash AS passwordHash,
+                    created_at AS createdAt,
+                    password_changed_at AS passwordChangedAt
+                 FROM accounts
+                 WHERE username = ?`,
+            ),
+        };
     }
 
     authenticate(
@@ -99,48 +139,66 @@ export class AccountStore {
             createdAt: now,
             passwordChangedAt: now,
         };
-        try {
-            this.database.connection
-                .prepare(
-                    `INSERT INTO accounts (
-                        username,
-                        password_algorithm,
-                        password_salt,
-                        password_hash,
-                        created_at,
-                        password_changed_at
-                    ) VALUES (?, ?, ?, ?, ?, ?)`,
-                )
-                .run(
-                    accountName,
-                    account.passwordAlgorithm,
-                    account.passwordSalt,
-                    account.passwordHash,
-                    account.createdAt,
-                    account.passwordChangedAt,
-                );
-        } catch {
+        return this.insertAccount(accountName, account)
+            ? { ok: true, created: true, accountName }
+            : { ok: false };
+    }
+
+    /**
+     * Non-blocking credential verification for the live login path. Scrypt is
+     * deliberately delegated to libuv's worker pool so an expensive password
+     * attempt cannot pause the game tick on Node's main event loop.
+     *
+     * The synchronous authenticate() method remains available for maintenance
+     * scripts and backward compatibility; network code should use this method.
+     */
+    async authenticateAsync(
+        username: string | undefined,
+        password: string | undefined,
+        allowRegistration: boolean,
+    ): Promise<AccountAuthenticationResult> {
+        const accountName = normalizeAccountName(username);
+        if (!accountName || !isValidPassword(password)) {
             return { ok: false };
         }
-        return { ok: true, created: true, accountName };
+
+        const existing = this.getAccount(accountName);
+        if (existing) {
+            return (await this.verifyPasswordAsync(existing, password))
+                ? { ok: true, created: false, accountName }
+                : { ok: false };
+        }
+
+        if (!allowRegistration) {
+            return { ok: false };
+        }
+
+        const now = new Date().toISOString();
+        const salt = randomBytes(16);
+        const account: StoredAccount = {
+            passwordAlgorithm: "scrypt",
+            passwordSalt: salt.toString("base64"),
+            passwordHash: await this.derivePasswordHashAsync(password, salt),
+            createdAt: now,
+            passwordChangedAt: now,
+        };
+        return this.insertAccount(accountName, account)
+            ? { ok: true, created: true, accountName }
+            : { ok: false };
     }
 
     hasAccount(username: string | undefined): boolean {
         const accountName = normalizeAccountName(username);
         if (!accountName) return false;
-        return (
-            this.database.connection
-                .prepare("SELECT 1 FROM accounts WHERE username = ?")
-                .get(accountName) !== undefined
-        );
+        return this.statements.selectExists.get(accountName) !== undefined;
     }
 
     getPermissionLevel(username: string | undefined): PlayerPermission {
         const accountName = normalizeAccountName(username);
         if (!accountName) return "player";
-        const row = this.database.connection
-            .prepare("SELECT permission_level AS permissionLevel FROM accounts WHERE username = ?")
-            .get(accountName) as { permissionLevel?: unknown } | undefined;
+        const row = this.statements.selectPermission.get(accountName) as
+            | { permissionLevel?: unknown }
+            | undefined;
         return normalizePlayerPermission(row?.permissionLevel);
     }
 
@@ -153,14 +211,27 @@ export class AccountStore {
     setPermissionLevel(username: string | undefined, level: PlayerPermission): boolean {
         const accountName = normalizeAccountName(username);
         if (!accountName) return false;
-        const result = this.database.connection
-            .prepare("UPDATE accounts SET permission_level = ? WHERE username = ?")
-            .run(normalizePlayerPermission(level), accountName);
+        const result = this.statements.updatePermission.run(
+            normalizePlayerPermission(level),
+            accountName,
+        );
         return result.changes > 0;
     }
 
     private derivePasswordHash(password: string, salt: Buffer): string {
         return scryptSync(password, salt, PASSWORD_KEY_LENGTH, SCRYPT_OPTIONS).toString("base64");
+    }
+
+    private derivePasswordHashAsync(password: string, salt: Buffer): Promise<string> {
+        return new Promise((resolve, reject) => {
+            scrypt(password, salt, PASSWORD_KEY_LENGTH, SCRYPT_OPTIONS, (error, derivedKey) => {
+                if (error) {
+                    reject(error);
+                    return;
+                }
+                resolve(Buffer.from(derivedKey).toString("base64"));
+            });
+        });
     }
 
     private verifyPassword(account: StoredAccount, password: string): boolean {
@@ -171,6 +242,35 @@ export class AccountStore {
             if (salt.length !== 16 || expected.length !== PASSWORD_KEY_LENGTH) return false;
             const actual = Buffer.from(this.derivePasswordHash(password, salt), "base64");
             return timingSafeEqual(expected, actual);
+        } catch {
+            return false;
+        }
+    }
+
+    private async verifyPasswordAsync(account: StoredAccount, password: string): Promise<boolean> {
+        try {
+            if (account.passwordAlgorithm !== "scrypt") return false;
+            const salt = Buffer.from(account.passwordSalt, "base64");
+            const expected = Buffer.from(account.passwordHash, "base64");
+            if (salt.length !== 16 || expected.length !== PASSWORD_KEY_LENGTH) return false;
+            const actual = Buffer.from(await this.derivePasswordHashAsync(password, salt), "base64");
+            return timingSafeEqual(expected, actual);
+        } catch {
+            return false;
+        }
+    }
+
+    private insertAccount(accountName: string, account: StoredAccount): boolean {
+        try {
+            this.statements.insert.run(
+                accountName,
+                account.passwordAlgorithm,
+                account.passwordSalt,
+                account.passwordHash,
+                account.createdAt,
+                account.passwordChangedAt,
+            );
+            return true;
         } catch {
             return false;
         }
@@ -189,18 +289,7 @@ export class AccountStore {
     }
 
     private getAccount(accountName: string): StoredAccount | undefined {
-        const row = this.database.connection
-            .prepare(
-                `SELECT
-                    password_algorithm AS passwordAlgorithm,
-                    password_salt AS passwordSalt,
-                    password_hash AS passwordHash,
-                    created_at AS createdAt,
-                    password_changed_at AS passwordChangedAt
-                 FROM accounts
-                 WHERE username = ?`,
-            )
-            .get(accountName);
+        const row = this.statements.selectCredentials.get(accountName);
         return this.isStoredAccount(row) ? row : undefined;
     }
 }

@@ -87,7 +87,7 @@ function makeWidget(
  * controller and a single generic tab/row population helper work for
  * ANY panel, instead of each panel needing its own copy of that logic.
  */
-/** Documented in server/src/widgets/viewport/index.ts as the mainmodal
+/** Documented in apps/server/src/widgets/viewport/index.ts as the mainmodal
  *  container's mobile size; every UIKit dev panel (720x570, 640x440,
  *  560x360) has overflowed its real container on desktop too, so this is
  *  applied everywhere as a working ceiling until the console diagnostic in

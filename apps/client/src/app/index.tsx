@@ -1,6 +1,4 @@
-import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
 
 import OsrsClientApp from "@client/app/shell/OsrsClientApp";
 import "@client/app/index.css";
@@ -26,8 +24,8 @@ try {
     }
 } catch {}
 
-// UI scale diagnostic kit — available via __uiDiag in browser console
-// Auto-dumps diagnostics on login. Also callable manually anytime.
+// UI scale diagnostic kit — available via __uiDiag in the browser console.
+// Add ?debugUi to auto-dump after login; otherwise it remains dormant.
 installUiDiagnostic();
 
 // NOTE: Server connection is initialized in OsrsClientApp after widget manager is ready
@@ -35,9 +33,7 @@ installUiDiagnostic();
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(
     // <React.StrictMode>
-    <BrowserRouter>
-        <OsrsClientApp />
-    </BrowserRouter>,
+    <OsrsClientApp />,
     // </React.StrictMode>,
 );
 

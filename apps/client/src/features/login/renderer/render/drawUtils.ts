@@ -2,6 +2,7 @@ import type { BitmapFont } from "@august/osrs-engine/font/BitmapFont";
 import type { IndexedSprite } from "@august/osrs-engine/sprite/IndexedSprite";
 import type { LoginRendererHost, RenderContext } from "@client/features/login/renderer/host";
 import { withContentTransform } from "@client/features/login/renderer/layout/geometry";
+import { createCanvasSurface2D } from "@client/core/platform/browser/CanvasSurface";
 
 export function drawGradientRect(host: LoginRendererHost, ctx: RenderContext, x: number, y: number, width: number, height: number, startColor: number, endColor: number) {
 
@@ -75,20 +76,9 @@ export function drawSprite(host: LoginRendererHost, ctx: RenderContext, sprite: 
             return;
         }
 
-        // Check for OffscreenCanvas support
-        if (typeof OffscreenCanvas === "undefined") {
-            console.warn(
-                "[LoginRenderer] OffscreenCanvas not supported, sprite rendering may be degraded",
-            );
-            return;
-        }
-
-        // Create a dedicated OffscreenCanvas for this sprite (cached synchronously)
-        const spriteCanvas = new OffscreenCanvas(w, h);
-        const spriteCtx = spriteCanvas.getContext("2d");
-        if (!spriteCtx) {
-            return;
-        }
+        const surface = createCanvasSurface2D(w, h);
+        if (!surface) return;
+        const { canvas: spriteCanvas, context: spriteCtx } = surface;
 
         // Render sprite to its dedicated canvas
         const imageData = spriteCtx.createImageData(w, h);

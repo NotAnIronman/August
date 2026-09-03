@@ -3,16 +3,18 @@ import {
     type NpcInteractionEvent,
     type ScriptServices,
 } from "@server/game/scripts/types";
+import { registerPlayerDialogSessions } from "@server/game/scripts/ScriptLifecycle";
 
 export function registerRomeoHandlers(registry: IScriptRegistry, services: ScriptServices): void {
-    const activeConvos = new Set<number>();
+    const activeConvos = new Map<number, NpcInteractionEvent["player"]>();
+    registerPlayerDialogSessions(registry, services, activeConvos);
 
     const playRomeoConversation = (event: NpcInteractionEvent) => {
         const pid = event.player.id;
         const npcId = event.npc.typeId;
 
         if (activeConvos.has(pid)) return;
-        activeConvos.add(pid);
+        activeConvos.set(pid, event.player);
 
         const onClose = () => {
             activeConvos.delete(pid);

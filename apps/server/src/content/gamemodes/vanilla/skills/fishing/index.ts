@@ -1,6 +1,7 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { ActionEffect, ActionExecutionResult } from "@server/game/actions/types";
 import type { PlayerState } from "@server/game/player";
+import { logger } from "@server/observability/logger";
 import {
     type IScriptRegistry,
     type NpcInteractionEvent,
@@ -349,7 +350,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     }
 
     if (!services.getFishingSpot) {
-        console.log("[script:fishing] fishing spot lookup unavailable");
+        logger.warn("[script:fishing] fishing spot lookup unavailable; module disabled");
         return;
     }
     for (const action of FISHING_ACTIONS) {

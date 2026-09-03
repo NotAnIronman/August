@@ -38,27 +38,28 @@ export class DirectionFlag {
 
 // Lookup table: MovementDirection -> delta
 const DIR_TO_DELTA: ReadonlyArray<{ dx: number; dy: number }> = [
-    { dx: -1, dy: -1 }, // SouthWest (south = -Y)
-    { dx: 0, dy: -1 }, // South
-    { dx: 1, dy: -1 }, // SouthEast
-    { dx: -1, dy: 0 }, // West
-    { dx: 1, dy: 0 }, // East
-    { dx: -1, dy: 1 }, // NorthWest (north = +Y)
-    { dx: 0, dy: 1 }, // North
-    { dx: 1, dy: 1 }, // NorthEast
+    Object.freeze({ dx: -1, dy: -1 }), // SouthWest (south = -Y)
+    Object.freeze({ dx: 0, dy: -1 }), // South
+    Object.freeze({ dx: 1, dy: -1 }), // SouthEast
+    Object.freeze({ dx: -1, dy: 0 }), // West
+    Object.freeze({ dx: 1, dy: 0 }), // East
+    Object.freeze({ dx: -1, dy: 1 }), // NorthWest (north = +Y)
+    Object.freeze({ dx: 0, dy: 1 }), // North
+    Object.freeze({ dx: 1, dy: 1 }), // NorthEast
 ];
 
-// Lookup table: delta string -> MovementDirection
-const DELTA_TO_DIR = new Map<string, MovementDirection>([
-    ["-1,-1", MovementDirection.SouthWest],
-    ["0,-1", MovementDirection.South],
-    ["1,-1", MovementDirection.SouthEast],
-    ["-1,0", MovementDirection.West],
-    ["1,0", MovementDirection.East],
-    ["-1,1", MovementDirection.NorthWest],
-    ["0,1", MovementDirection.North],
-    ["1,1", MovementDirection.NorthEast],
-]);
+// Dense 3x3 lookup avoids allocating a string for every movement step.
+const DELTA_TO_DIR: ReadonlyArray<MovementDirection | undefined> = [
+    MovementDirection.SouthWest,
+    MovementDirection.South,
+    MovementDirection.SouthEast,
+    MovementDirection.West,
+    undefined,
+    MovementDirection.East,
+    MovementDirection.NorthWest,
+    MovementDirection.North,
+    MovementDirection.NorthEast,
+];
 
 // Lookup table: MovementDirection -> DirectionFlag
 const DIR_TO_FLAG: ReadonlyArray<number> = [
@@ -95,8 +96,11 @@ export function directionToDelta(direction: MovementDirection): { dx: number; dy
  * Converts a tile delta (-1..1) pair to an OSRS movement direction, or undefined if zero.
  */
 export function deltaToDirection(dx: number, dy: number): MovementDirection | undefined {
-    const key = `${dx | 0},${dy | 0}`;
-    return DELTA_TO_DIR.get(key);
+    if (!Number.isInteger(dx) || !Number.isInteger(dy)) return undefined;
+    const x = dx;
+    const y = dy;
+    if (x < -1 || x > 1 || y < -1 || y > 1) return undefined;
+    return DELTA_TO_DIR[(y + 1) * 3 + x + 1];
 }
 
 /**
@@ -187,24 +191,13 @@ export function isFlagDiagonal(flag: number): boolean {
 
 // Lookup table: combined run delta string -> 4-bit run direction code
 // Used for player sync when encoding running movement (2 tiles per tick)
-const RUN_DELTA_TO_CODE = new Map<string, number>([
-    ["-2,-2", 0],
-    ["-1,-2", 1],
-    ["0,-2", 2],
-    ["1,-2", 3],
-    ["2,-2", 4],
-    ["-2,-1", 5],
-    ["2,-1", 6],
-    ["-2,0", 7],
-    ["2,0", 8],
-    ["-2,1", 9],
-    ["2,1", 10],
-    ["-2,2", 11],
-    ["-1,2", 12],
-    ["0,2", 13],
-    ["1,2", 14],
-    ["2,2", 15],
-]);
+const RUN_DELTA_TO_CODE: ReadonlyArray<number> = [
+    0, 1, 2, 3, 4,
+    5, -1, -1, -1, 6,
+    7, -1, -1, -1, 8,
+    9, -1, -1, -1, 10,
+    11, 12, 13, 14, 15,
+];
 
 // Lookup table: 4-bit run direction code -> { delta, directions }
 // Used for player sync when decoding running movement
@@ -237,7 +230,11 @@ const RUN_CODE_DATA: ReadonlyArray<{
  * Returns -1 if the delta doesn't represent a valid run direction.
  */
 export function deltaToRunDirection(dx: number, dy: number): number {
-    return RUN_DELTA_TO_CODE.get(`${dx | 0},${dy | 0}`) ?? -1;
+    if (!Number.isInteger(dx) || !Number.isInteger(dy)) return -1;
+    const x = dx;
+    const y = dy;
+    if (x < -2 || x > 2 || y < -2 || y > 2) return -1;
+    return RUN_DELTA_TO_CODE[(y + 2) * 5 + x + 2] ?? -1;
 }
 
 /**
@@ -245,7 +242,8 @@ export function deltaToRunDirection(dx: number, dy: number): number {
  * Returns undefined if the code is out of range.
  */
 export function runDirectionToDelta(code: number): { dx: number; dy: number } | undefined {
-    const data = RUN_CODE_DATA[code & 0xf];
+    if (!Number.isInteger(code) || code < 0 || code >= RUN_CODE_DATA.length) return undefined;
+    const data = RUN_CODE_DATA[code];
     return data ? { dx: data.dx, dy: data.dy } : undefined;
 }
 
@@ -256,6 +254,7 @@ export function runDirectionToDelta(code: number): { dx: number; dy: number } | 
 export function runDirectionToWalkDirections(
     code: number,
 ): [MovementDirection, MovementDirection] | undefined {
-    const data = RUN_CODE_DATA[code & 0xf];
+    if (!Number.isInteger(code) || code < 0 || code >= RUN_CODE_DATA.length) return undefined;
+    const data = RUN_CODE_DATA[code];
     return data ? [data.dir1, data.dir2] : undefined;
 }

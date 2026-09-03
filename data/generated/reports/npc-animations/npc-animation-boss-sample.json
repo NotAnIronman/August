@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-08-26T22:25:16.888Z",
-  "augustDefinitions": "C:\\Users\\tyler.reck\\OneDrive - Kiewit Corporation\\Desktop\\Personal Files\\August\\server\\data\\npc-combat-defs.json",
+  "augustDefinitions": "data/generated/server/npc-combat-defs.json",
   "referenceDefinitions": "https://github.com/tobywisener/elvarg-typescript/raw/74feb43bf85000b090f9cce88267e7f1fbe4c9c0/data/definitions/npc-combat-defs-239.json",
   "cache": {
     "enabled": false

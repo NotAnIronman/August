@@ -3,6 +3,7 @@ import { Model } from "@august/osrs-engine/model/Model";
 import { ModelLoader } from "@august/osrs-engine/model/ModelLoader";
 import { TextureLoader } from "@august/osrs-engine/texture/TextureLoader";
 import { ObjTypeLoader } from "@august/osrs-engine/config/objtype/ObjTypeLoader";
+import { BoundedLruCache } from "@august/osrs-engine/cache/BoundedLruCache";
 
 export class ObjModelLoader {
     modelCache: Map<number, Model>;
@@ -11,11 +12,12 @@ export class ObjModelLoader {
         readonly objTypeLoader: ObjTypeLoader,
         readonly modelLoader: ModelLoader,
         readonly textureLoader: TextureLoader,
+        maxCachedModels: number = 2048,
     ) {
         this.objTypeLoader = objTypeLoader;
         this.modelLoader = modelLoader;
         this.textureLoader = textureLoader;
-        this.modelCache = new Map();
+        this.modelCache = new BoundedLruCache(maxCachedModels);
     }
 
     getModel(id: number, count: number): Model | undefined {

@@ -1,9 +1,10 @@
-import { ClientState } from "@client/engine/game/ClientState";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { state } from "@client/core/network/server-connection/state";
+import { ClientState } from "@client/engine/game/ClientState";
 
 export function handleAuthTickMessage(msg: any): boolean {
     if (msg.type === "welcome") {
-        console.log(
+        clientDebugLog(
             `[ws] welcome tickMs=${msg.payload.tickMs} serverTime=${msg.payload.serverTime}`,
         );
         state.lastWelcome = msg.payload;
@@ -17,7 +18,7 @@ export function handleAuthTickMessage(msg: any): boolean {
         return true;
     }
     if (msg.type === "login_response") {
-        console.log(`[ws] login_response success=${msg.payload.success}`);
+        clientDebugLog(`[ws] login_response success=${msg.payload.success}`);
         for (const cb of state.loginResponseListeners) {
             try {
                 cb(msg.payload);
@@ -28,7 +29,7 @@ export function handleAuthTickMessage(msg: any): boolean {
         return true;
     }
     if (msg.type === "logout_response") {
-        console.log(`[ws] logout_response success=${msg.payload.success}`);
+        clientDebugLog(`[ws] logout_response success=${msg.payload.success}`);
         for (const cb of state.logoutResponseListeners) {
             try {
                 cb(msg.payload);

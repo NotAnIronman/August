@@ -5,6 +5,7 @@ import {
 } from "@august/game-model/state/vars";
 import { OwnedItemLocation } from "@server/game/items/playerItemOwnership";
 import type { PlayerState } from "@server/game/player";
+import { registerPlayerDialogSessions } from "@server/game/scripts/ScriptLifecycle";
 import {
     type IScriptRegistry,
     type NpcInteractionEvent,
@@ -191,13 +192,14 @@ export function registerLeagueTutorHandlers(
     registry: IScriptRegistry,
     services: ScriptServices,
 ): void {
-    const activeConvos = new Set<number>();
+    const activeConvos = new Map<number, PlayerState>();
+    registerPlayerDialogSessions(registry, services, activeConvos);
 
     const openTutorConversation = (event: NpcInteractionEvent) => {
         const player = event.player;
         const pid = player.id;
         if (activeConvos.has(pid)) return;
-        activeConvos.add(pid);
+        activeConvos.set(pid, player);
 
         const tutorialStep = player.varps.getVarbitValue?.(VARBIT_LEAGUE_TUTORIAL_COMPLETED) ?? 0;
         const completeStep = getTutorialCompleteStep(player);

@@ -1,4 +1,5 @@
 import { mat4, vec2 } from "gl-matrix";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import PicoGL, {
     DrawCall,
     App as PicoApp,
@@ -56,7 +57,7 @@ type DeleteableResource = {
 };
 
 function logMapSquareFailure(mapX: number, mapY: number, label: string, error: unknown): void {
-    console.log("[WebGLMapSquare] Resource operation failed", {
+    console.warn("[WebGLMapSquare] Resource operation failed", {
         mapX,
         mapY,
         label,
@@ -347,7 +348,7 @@ export class WebGLMapSquare {
         const usedRenderX = mapData.renderPosX ?? mapX;
         const usedRenderY = mapData.renderPosY ?? mapY;
         if (mapData.renderPosX != null) {
-            console.log(
+            clientDebugLog(
                 `[WebGLMapSquare] Using renderPos: (${usedRenderX}, ${usedRenderY}) instead of mapXY (${mapX}, ${mapY})`,
             );
         }

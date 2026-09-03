@@ -1,4 +1,5 @@
 import { PlayerSyncContext } from "@client/engine/game/sync/PlayerSyncContext";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { PlayerUpdateDecoder } from "@client/engine/game/sync/PlayerUpdateDecoder";
 import { setPacketSocket } from "@client/core/network/packet/index";
 import { DEFAULT_URL, WS_GLOBAL_KEY, WS_SUPPRESS_RECONNECT_KEY, getEnv } from "@client/core/network/server-connection/constants";
@@ -69,7 +70,7 @@ export function initServerConnection(url: string = DEFAULT_URL): void {
 
             // If reconnecting with stored credentials, automatically re-login
             if (wasReconnecting && state.sessionUsername && state.sessionPassword) {
-                console.log("[ws] Reconnected - attempting session resumption...");
+                clientDebugLog("[ws] Reconnected - attempting session resumption...");
                 send({
                     type: "login",
                     payload: {
@@ -91,7 +92,7 @@ export function initServerConnection(url: string = DEFAULT_URL): void {
                 send({ type: "handshake", payload: { clientType, name: "Player" } });
             }
             // eslint-disable-next-line no-console
-            console.log(`[ws] connected to ${url}`);
+            clientDebugLog(`[ws] connected to ${url}`);
             // Track as global singleton so subsequent refreshes can close it before re-init
             try {
                 const g: any = (typeof window !== "undefined" ? window : globalThis) as any;

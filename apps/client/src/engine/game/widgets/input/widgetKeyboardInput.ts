@@ -1,4 +1,5 @@
 import { chatHistory } from "@client/engine/cs2/ChatHistory";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import type { ScriptEvent } from "@client/engine/cs2/Cs2Vm";
 import { collectWidgetsWithKeyHandlers } from "@client/ui/widgets/menu/WidgetInteractionResolver";
 import type { WidgetInputControllerDeps, WidgetInputFrame } from "@client/engine/game/widgets/input/widgetInputTypes";
@@ -53,7 +54,7 @@ export function processWidgetKeyboardInput(
                     // Clear any pending widget action since user cancelled
                     if (deps.getPendingInputDialogAction() || deps.getPendingTradeQuantityAction()) {
                         chatHistory.addMessage("game", "Input cancelled.");
-                        console.log("[InputDialog] Cancelled, clearing pending action");
+                        clientDebugLog("[InputDialog] Cancelled, clearing pending action");
                         deps.setPendingInputDialogAction(null);
                         deps.setPendingTradeQuantityAction(null);
                     }
@@ -64,7 +65,7 @@ export function processWidgetKeyboardInput(
                         deps.getCs2Vm().onInputDialogComplete
                     ) {
                         const value = parseInt(deps.getCs2Vm().inputDialogString, 10) || 0;
-                        console.log(`[InputDialog] Submitting value: ${value}`);
+                        clientDebugLog(`[InputDialog] Submitting value: ${value}`);
                         deps.getCs2Vm().onInputDialogComplete?.("count", value);
                     } else if (deps.getPendingInputDialogAction() || deps.getPendingTradeQuantityAction()) {
                         // No input but pending action - cancel

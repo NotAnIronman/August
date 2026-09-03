@@ -24,7 +24,9 @@ export function registerSpellHandlers(
 
     router.register("spell_cast_player", (ctx) => {
         try {
-            logger.info("[combat] Received spell_cast_player:", JSON.stringify(ctx.payload));
+            // Avoid eager JSON serialization and info-level I/O on every cast.
+            // The structured payload is formatted only when debug logging is enabled.
+            logger.debug("[combat] received spell_cast_player", ctx.payload);
             if (ctx.player) {
                 services.handleSpellCast(
                     ctx.ws,

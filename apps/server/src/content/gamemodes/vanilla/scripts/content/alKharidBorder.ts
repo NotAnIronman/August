@@ -6,6 +6,7 @@ import {
     type NpcInteractionEvent,
     type ScriptServices,
 } from "@server/game/scripts/types";
+import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
 
 const GATE_LEVEL = 0;
 const GATE_SOUND_ID = 71;
@@ -435,6 +436,40 @@ export function registerAlKharidBorderHandlers(
         });
     };
 
+    const clearPendingApproach = (playerId: number): void => {
+        const approach = pendingApproaches.get(playerId);
+        pendingApproaches.delete(playerId);
+        approach?.player.releaseMovementHold();
+    };
+
+    const clearPendingCrossing = (playerId: number, tick?: number): void => {
+        const crossing = pendingCrossings.get(playerId);
+        pendingCrossings.delete(playerId);
+        if (!crossing) return;
+
+        crossing.player.releaseMovementHold();
+        // The crossing owns a globally-visible open gate. Closing it during a
+        // disconnect or provider reset prevents an interrupted traversal from
+        // leaving the shared gate open permanently after its tick handler is gone.
+        closeGate(crossing, tick ?? getCurrentTick?.() ?? crossing.closeTick);
+    };
+
+    const clearPlayerGateState = (playerId: number): void => {
+        clearPendingApproach(playerId);
+        clearPendingCrossing(playerId);
+    };
+
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearPlayerGateState,
+        reset: () => {
+            const playerIds = new Set([
+                ...pendingApproaches.keys(),
+                ...pendingCrossings.keys(),
+            ]);
+            for (const playerId of playerIds) clearPlayerGateState(playerId);
+        },
+    });
+
     const showNoMoneyDialog = (event: LocInteractionEvent): void => {
         const dialogBase = `al_kharid_gate_${event.player.id}`;
         openPlayerDialog(event, `${dialogBase}_no_money_player`, [
@@ -854,9 +889,7 @@ export function registerAlKharidBorderHandlers(
                 continue;
             }
 
-            pendingCrossings.delete(playerId);
-            crossing.player.releaseMovementHold();
-            closeGate(crossing, tick);
+            clearPendingCrossing(playerId, tick);
         }
     });
 

@@ -52,6 +52,10 @@ import {
     getDefaultWsUrl,
 } from "@client/core/config/clientEnv";
 import {
+    clientDebugLog,
+    clientDebugLogLazy,
+} from "@client/core/diagnostics/clientDiagnostics";
+import {
     type BankServerUpdate,
     getClientCycle,
     getCurrentTick,
@@ -794,7 +798,7 @@ export class OsrsClient {
     /** Collection log inventory (ID 620) - stores obtained items for CS2 inv_total queries */
     collectionInventory: Inventory = new Inventory(2048);
     /** Per-category "all items obtained" state, by tab index (see
-     *  getCategoryCompletionByTab in server/src/game/collectionlog.ts).
+     *  getCategoryCompletionByTab in apps/server/src/game/collectionlog.ts).
      *  Used to color-code completed categories green in the sidebar list
      *  after script 2731/7797 draws it - see the run_script hook below. */
     private _collectionLogCategoryCompletion: Record<number, boolean[]> | null = null;
@@ -850,7 +854,7 @@ export class OsrsClient {
             return;
         }
         this.roofsHidden = roofsHidden;
-        console.log(`[OsrsClient] Roofs hidden: ${roofsHidden}`);
+        clientDebugLog(`[OsrsClient] Roofs hidden: ${roofsHidden}`);
 
         if (this.renderer) {
             this.renderer.invalidateRoofState();
@@ -875,7 +879,11 @@ export class OsrsClient {
     private unsubscribeSkills?: () => void;
     private unsubscribeRunEnergy?: () => void;
     private unsubscribeNotifications?: () => void;
+    private unsubscribeLogoutResponse?: () => void;
     private readonly serverSubscriptions: Array<() => void> = [];
+    private readonly lifecycleSubscriptions: Array<() => void> = [];
+    private disposed = false;
+    private phasedLoadingGeneration = 0;
 
     private trackServerSubscription(unsubscribe: () => void): void {
         this.serverSubscriptions.push(unsubscribe);
@@ -1003,7 +1011,7 @@ export class OsrsClient {
                 }
             };
         } catch (error) {
-            console.log("[OsrsClient] Failed to bind map manager callbacks", { error });
+            console.warn("[OsrsClient] Failed to bind map manager callbacks", { error });
         }
         // Expose renderer globally for diagnostics
         try {
@@ -1045,18 +1053,20 @@ export class OsrsClient {
             createBrowserTileMarkersPluginPersistence("osrs.plugin.tile_markers.v1"),
         );
         this.syncSidebarPlugins(true);
-        this.groundItemsPlugin.subscribe(() => {
-            this.syncSidebarPlugins();
-        });
-        this.interactHighlightPlugin.subscribe(() => {
-            this.syncSidebarPlugins();
-        });
-        this.notesPlugin.subscribe(() => {
-            this.syncSidebarPlugins();
-        });
-        this.tileMarkersPlugin.subscribe(() => {
-            this.syncSidebarPlugins();
-        });
+        this.lifecycleSubscriptions.push(
+            this.groundItemsPlugin.subscribe(() => {
+                this.syncSidebarPlugins();
+            }),
+            this.interactHighlightPlugin.subscribe(() => {
+                this.syncSidebarPlugins();
+            }),
+            this.notesPlugin.subscribe(() => {
+                this.syncSidebarPlugins();
+            }),
+            this.tileMarkersPlugin.subscribe(() => {
+                this.syncSidebarPlugins();
+            }),
+        );
         // If cache is provided, initialize immediately
         // Otherwise, OsrsClient stays in DOWNLOADING state until initCache() is called
         if (cache) {
@@ -1620,7 +1630,7 @@ export class OsrsClient {
                 }
             },
             openMobileTab: (interfaceId: number) => {
-                console.log(`[Cs2Vm] CLIENT_SET_SIDE_PANEL interfaceId=${interfaceId}`);
+                clientDebugLog(`[Cs2Vm] CLIENT_SET_SIDE_PANEL interfaceId=${interfaceId}`);
                 // Map interface ID to mobile tab index (0-13)
                 // Based on standard OSRS mobile layout order
                 const map: Record<number, number> = {
@@ -1775,7 +1785,7 @@ export class OsrsClient {
                 return self.clientOptions.get(optionId) ?? 0;
             },
             setClientOption: (optionId: number, value: number) => {
-                console.log(`[clientoption_set] optionId=${optionId}, value=${value}`);
+                clientDebugLog(`[clientoption_set] optionId=${optionId}, value=${value}`);
                 self.clientOptions.set(optionId, value);
             },
             configureTileHighlight: (
@@ -1933,7 +1943,7 @@ export class OsrsClient {
                             .replace(/<br\s*\/?>/gi, "\n")
                             .replace(/\r/g, "");
                         const preview = b.length > 200 ? `${b.slice(0, 200)}…` : b;
-                        console.log(
+                        clientDebugLog(
                             `[Notification] display title=\"${t}\" color=0x${(color >>> 0).toString(
                                 16,
                             )} body=\"${preview}\"`,
@@ -1980,7 +1990,7 @@ export class OsrsClient {
         this.cs2Vm.onVarcChange = null;
         // Wire up input dialog completion callback - sends dialog result to server
         this.cs2Vm.onInputDialogComplete = (type, value) => {
-            console.log(`[InputDialog] Complete: type=${type}, value=${value}`);
+            clientDebugLog(`[InputDialog] Complete: type=${type}, value=${value}`);
             if (type === "count") {
                 const raw = typeof value === "number" ? value : parseInt(String(value), 10) || 0;
                 const amount = Number.isFinite(raw)
@@ -2003,7 +2013,7 @@ export class OsrsClient {
                 if (this.pendingInputDialogAction) {
                     const { payload, option } = this.pendingInputDialogAction;
                     this.pendingInputDialogAction = null;
-                    console.log(
+                    clientDebugLog(
                         `[InputDialog] Sending deferred ${option} action with quantity ${amount}`,
                     );
                     try {
@@ -2015,11 +2025,11 @@ export class OsrsClient {
             } else if (type === "name") {
                 const text = String(value ?? "");
                 sendResumeNameDialog(text);
-                console.log(`[InputDialog] Name dialog submitted: "${text}"`);
+                clientDebugLog(`[InputDialog] Name dialog submitted: "${text}"`);
             } else if (type === "string") {
                 const text = String(value ?? "");
                 sendResumeStringDialog(text);
-                console.log(`[InputDialog] String dialog submitted: "${text}"`);
+                clientDebugLog(`[InputDialog] String dialog submitted: "${text}"`);
             }
         };
 
@@ -2111,7 +2121,7 @@ export class OsrsClient {
             },
             onHitsplat: (payload) => {
                 try {
-                    console.log(
+                    clientDebugLog(
                         `[hitsplat] ${payload.targetType} ${payload.targetId} damage=${
                             payload.damage
                         } serverTick=${payload.tick} clientTick=${getCurrentTick()}`,
@@ -2181,10 +2191,10 @@ export class OsrsClient {
         this.widgetSessionManager = new WidgetSessionManager();
         this.unsubscribeWidgetEvents = subscribeWidgetEvents((payload) => {
             if (payload.action !== "set_text" && (payload as any).uid !== 10616865) {
-                console.log("[OsrsClient] widget event", payload);
+                clientDebugLog("[OsrsClient] widget event", payload);
             }
             if (payload?.action === "close") {
-                console.log("[OsrsClient] Server closing widget", payload.groupId);
+                clientDebugLog("[OsrsClient] Server closing widget", payload.groupId);
                 if ((payload.groupId | 0) === 12) {
                     const cfg: any = (globalThis as any).__cs2Trace;
                     if (cfg && cfg.enabled === true) {
@@ -2202,14 +2212,14 @@ export class OsrsClient {
                 if (!hadEntry && !acknowledged) {
                     // Server-initiated open with no existing session entry
                     // Create a session entry to handle server-opened widgets (like bank)
-                    console.log(
+                    clientDebugLog(
                         "[OsrsClient] creating session for server-initiated widget open",
                         payload.groupId,
                     );
                     this.widgetSessionManager.open(payload.groupId, {
                         modal: payload.modal ?? false,
                         close: (reason) => {
-                            console.log(
+                            clientDebugLog(
                                 "[OsrsClient] closing server-initiated widget",
                                 payload.groupId,
                                 reason,
@@ -2222,7 +2232,7 @@ export class OsrsClient {
                     });
                 }
             } else if (payload?.action === "set_root") {
-                console.log("[OsrsClient] Server setting root interface", payload.groupId);
+                clientDebugLog("[OsrsClient] Server setting root interface", payload.groupId);
                 if (this.widgetManager) {
                     // Set varc 170 (display mode) based on the root interface
                     // Enum 185 maps: 0->1137 (161 widgets), 1->1101, 2->1067, 3->1175, 4->1293
@@ -2239,13 +2249,15 @@ export class OsrsClient {
                             displayMode = 3; // Mobile
                         }
                         this.varManager.setVarcInt(170, displayMode);
-                        console.log(`[OsrsClient] Set varc 170 (display mode) = ${displayMode}`);
+                        clientDebugLog(`[OsrsClient] Set varc 170 (display mode) = ${displayMode}`);
                         // Initialize varc 171 (selected tab index) to 3 (inventory) if not already set
                         // This matches toplevel_init behavior: if (%varcint171 <= 0) { %varcint171 = 3; }
                         const currentTab = this.varManager.getVarcInt(171);
                         if (currentTab === undefined || currentTab <= 0) {
                             this.varManager.setVarcInt(171, 3);
-                            console.log(`[OsrsClient] Set varc 171 (selected tab) = 3 (inventory)`);
+                            clientDebugLog(
+                                `[OsrsClient] Set varc 171 (selected tab) = 3 (inventory)`,
+                            );
                         }
                         if (payload.groupId !== 601) {
                             // The custom desktop sidebar lives outside the canvas, so disable the
@@ -2271,7 +2283,7 @@ export class OsrsClient {
                     // notification is actually displayed (onNotificationDisplay).
                 }
             } else if (payload?.action === "open_sub") {
-                console.log(
+                clientDebugLog(
                     `[OsrsClient] Server opening sub-interface: group ${
                         payload.groupId
                     } into widget ${payload.targetUid} (0x${(payload.targetUid | 0).toString(16)})`,
@@ -2282,13 +2294,13 @@ export class OsrsClient {
                     try {
                         if (payload.varps) {
                             for (const [id, value] of Object.entries(payload.varps)) {
-                                console.log(`[OsrsClient] Setting varp ${id} = ${value}`);
+                                clientDebugLog(`[OsrsClient] Setting varp ${id} = ${value}`);
                                 this.varManager.setVarp(Number(id), Number(value));
                             }
                         }
                         if (payload.varbits) {
                             for (const [id, value] of Object.entries(payload.varbits)) {
-                                console.log(`[OsrsClient] Setting varbit ${id} = ${value}`);
+                                clientDebugLog(`[OsrsClient] Setting varbit ${id} = ${value}`);
                                 this.varManager.setVarbit(Number(id), Number(value));
                             }
                         }
@@ -2374,14 +2386,14 @@ export class OsrsClient {
                 }
             } else if (payload?.action === "close_sub") {
                 const targetUid = Number(payload.targetUid) | 0;
-                console.log(
+                clientDebugLog(
                     `[OsrsClient] Server closing sub-interface at widget ${targetUid} (ESC or close button)`,
                 );
 
                 const closingParent = this.widgetManager?.getSubInterface(targetUid);
                 const closingGroupId = closingParent?.group ?? -1;
 
-                console.log(`[OsrsClient] Closing group ID: ${closingGroupId}`);
+                clientDebugLog(`[OsrsClient] Closing group ID: ${closingGroupId}`);
 
                 if (this.widgetManager) {
                     this.widgetManager.closeSubInterface(targetUid);
@@ -2662,14 +2674,14 @@ export class OsrsClient {
                         );
                         this.widgetManager.meslayerContinueWidget = null;
                     }
-                    console.log(`[OsrsClient] run_script: scriptId=${scriptId}, args=`, args);
+                    clientDebugLog(`[OsrsClient] run_script: scriptId=${scriptId}, args=`, args);
                     // Apply varps/varbits BEFORE running the script so it can read them
                     if (this.varManager) {
                         this._serverVarpSync = true;
                         try {
                             if (payload.varps) {
                                 for (const [id, value] of Object.entries(payload.varps)) {
-                                    console.log(
+                                    clientDebugLog(
                                         `[OsrsClient] run_script: Setting varp ${id} = ${value}`,
                                     );
                                     this.varManager.setVarp(Number(id), Number(value));
@@ -2677,7 +2689,7 @@ export class OsrsClient {
                             }
                             if (payload.varbits) {
                                 for (const [id, value] of Object.entries(payload.varbits)) {
-                                    console.log(
+                                    clientDebugLog(
                                         `[OsrsClient] run_script: Setting varbit ${id} = ${value}`,
                                     );
                                     this.varManager.setVarbit(Number(id), Number(value));
@@ -2879,11 +2891,11 @@ export class OsrsClient {
                 // Server-initiated varbit sync without running a script
                 // Used when server needs to update varbits but client handles UI via onVartransmit
                 if (this.varManager && (payload as any).varbits) {
-                    console.log("[OsrsClient] set_varbits: Syncing varbits from server");
+                    clientDebugLog("[OsrsClient] set_varbits: Syncing varbits from server");
                     this._serverVarpSync = true;
                     try {
                         for (const [id, value] of Object.entries((payload as any).varbits)) {
-                            console.log(
+                            clientDebugLog(
                                 `[OsrsClient] set_varbits: Setting varbit ${id} = ${value}`,
                             );
                             this.varManager.setVarbit(Number(id), Number(value));
@@ -3091,7 +3103,7 @@ export class OsrsClient {
                         .replace(/<br\s*\/?>/gi, "\n")
                         .replace(/\r/g, "");
                     const preview = msg.length > 200 ? `${msg.slice(0, 200)}…` : msg;
-                    console.log(
+                    clientDebugLog(
                         `[Notification] recv kind=${event.kind}${
                             title ? ` title=\"${title}\"` : ""
                         } message=\"${preview}\"`,
@@ -3446,7 +3458,7 @@ export class OsrsClient {
             this.trackServerSubscription(
                 subscribeRebuildRegion((payload) => {
                     try {
-                        console.log(
+                        clientDebugLog(
                             `[OsrsClient] REBUILD_REGION received: regionX=${payload.regionX} regionY=${payload.regionY} regions=${payload.mapRegions.length}`,
                         );
                         this.resetNpcsForRegionRebuild();
@@ -3474,7 +3486,7 @@ export class OsrsClient {
             this.trackServerSubscription(
                 subscribeRebuildNormal((payload) => {
                     try {
-                        console.log(
+                        clientDebugLog(
                             `[OsrsClient] REBUILD_NORMAL received: regionX=${payload.regionX} regionY=${payload.regionY} regions=${payload.mapRegions.length}`,
                         );
                         this.resetNpcsForRegionRebuild();
@@ -3494,7 +3506,7 @@ export class OsrsClient {
             this.trackServerSubscription(
                 subscribeRebuildWorldEntity((payload) => {
                     try {
-                        console.log(
+                        clientDebugLog(
                             `[OsrsClient] REBUILD_WORLDENTITY received: entity=${payload.entityIndex} config=${payload.configId} size=${payload.sizeX}x${payload.sizeZ} regionX=${payload.regionX} regionY=${payload.regionY} regions=${payload.mapRegions.length}`,
                         );
                         // World entity scene anchor: entityCoord + sizeChunks * 4 (tile precision).
@@ -3897,7 +3909,7 @@ export class OsrsClient {
                 : (widget?.uid ?? -1);
         this.cs2Vm.eventContext.componentIndex = widget?.childIndex ?? -1;
         try {
-            console.log(`[${phase}_script] Running script ${scriptId} on widget ${widgetUid}`);
+            clientDebugLog(`[${phase}_script] Running script ${scriptId} on widget ${widgetUid}`);
             this.cs2Vm.run(script, this.substituteWidgetScriptMagicArgs(intArgs, widget), strArgs);
         } finally {
             this.cs2Vm.activeWidget = prevActiveWidget;
@@ -4564,14 +4576,14 @@ export class OsrsClient {
             playerServerId?: number;
         } = {},
     ): void {
-        console.log("[castSpellFromMenu] Entry:", {
+        clientDebugLog("[castSpellFromMenu] Entry:", {
             targetType: entry.targetType,
             isSpellSelected: ClientState.isSpellSelected,
             selectedSpellWidget: ClientState.selectedSpellWidget,
             context,
         });
         if (!ClientState.isSpellSelected || ClientState.selectedSpellWidget <= 0) {
-            console.log("[castSpellFromMenu] Early return - spell not selected");
+            clientDebugLog("[castSpellFromMenu] Early return - spell not selected");
             return;
         }
         this.normalizeSelectedSpellState();
@@ -4609,7 +4621,7 @@ export class OsrsClient {
             }
             case MenuTargetType.PLAYER: {
                 const targetServerId = context.playerServerId;
-                console.log(
+                clientDebugLog(
                     "[spell] Player target - playerServerId:",
                     targetServerId,
                     "context:",
@@ -4621,11 +4633,11 @@ export class OsrsClient {
                             createSelectedSpellOnPlayerPacket(targetServerId, selection, ctrlHeld),
                         );
                     } else {
-                        console.log("[spell] Server not connected, not sending");
+                        clientDebugLog("[spell] Server not connected, not sending");
                     }
                     dispatched = true;
                 } else {
-                    console.log("[spell] playerServerId is not a number, not sending");
+                    clientDebugLog("[spell] playerServerId is not a number, not sending");
                 }
                 break;
             }
@@ -4711,7 +4723,9 @@ export class OsrsClient {
             } catch {}
         }
         if (!dispatched) {
-            console.log("[castSpellFromMenu] Spell cast target resolution failed; no packet sent");
+            clientDebugLog(
+                "[castSpellFromMenu] Spell cast target resolution failed; no packet sent",
+            );
         }
 
         // any completed menu action while a spell is selected clears spell targeting,
@@ -5294,7 +5308,7 @@ export class OsrsClient {
      * Matches OSRS HealthBar.getLoginError() messages.
      */
     handleLoginError(errorCode: number): void {
-        console.log(`[OsrsClient] handleLoginError(${errorCode})`);
+        clientDebugLog(`[OsrsClient] handleLoginError(${errorCode})`);
         switch (errorCode) {
             case LoginErrorCode.INVALID_CREDENTIALS:
                 this.loginState.loginIndex = LoginIndex.INVALID_CREDENTIALS;
@@ -5544,7 +5558,7 @@ export class OsrsClient {
     ): "new_user" | "existing_user" | "login" | "cancel" | "connect" | undefined {
         switch (action.type) {
             case "new_user":
-                console.log("[Login] New user clicked - would open registration");
+                clientDebugLog("[Login] New user clicked - would open registration");
                 this.loginState.virtualKeyboardVisible = false;
                 return "new_user";
 
@@ -5849,14 +5863,23 @@ export class OsrsClient {
      * Sends logout request to server and waits for consent before completing.
      */
     performLogout(): void {
-        console.log("[OsrsClient] Requesting logout from server...");
+        clientDebugLog("[OsrsClient] Requesting logout from server...");
+
+        // Only one logout request may own the one-shot response listener. If a
+        // previous request never received a response, do not leave its closure
+        // subscribed across a retry or client teardown.
+        this.unsubscribeLogoutResponse?.();
+        this.unsubscribeLogoutResponse = undefined;
 
         // Subscribe to logout response (one-shot)
         const unsubscribe = subscribeLogoutResponse((response) => {
             unsubscribe();
+            if (this.unsubscribeLogoutResponse === unsubscribe) {
+                this.unsubscribeLogoutResponse = undefined;
+            }
 
             if (response.success) {
-                console.log("[OsrsClient] Server approved logout, completing...");
+                clientDebugLog("[OsrsClient] Server approved logout, completing...");
 
                 // Suppress reconnection after intentional logout
                 suppressReconnection();
@@ -5874,16 +5897,17 @@ export class OsrsClient {
                 // Transition to login screen
                 this.updateGameState(GameState.LOGIN_SCREEN);
 
-                console.log("[OsrsClient] Logout complete - returned to login screen");
+                clientDebugLog("[OsrsClient] Logout complete - returned to login screen");
             } else {
                 // Server denied logout (e.g., in combat)
                 const reason = response.reason || "You can't log out right now.";
-                console.log(`[OsrsClient] Logout denied: ${reason}`);
+                clientDebugLog(`[OsrsClient] Logout denied: ${reason}`);
 
                 // Show denial message to player via game message (type 0)
                 chatHistory.addMessage("game", reason);
             }
         });
+        this.unsubscribeLogoutResponse = unsubscribe;
 
         // Send logout request to server
         sendLogout();
@@ -6089,6 +6113,7 @@ export class OsrsClient {
     }
 
     initCache(cache: LoadedCache): void {
+        if (this.disposed) return;
         // Transition from DOWNLOADING to LOADING state
         if (this.gameState === GameState.DOWNLOADING) {
             this.updateGameState(GameState.LOADING);
@@ -6150,56 +6175,62 @@ export class OsrsClient {
         // Authentic phased loading with incremental index loading
         // Each phase loads required idx files then processes them
         // The transition to LOGIN_SCREEN happens when runPhasedLoading completes.
-        this.runPhasedLoading(cache);
+        const generation = ++this.phasedLoadingGeneration;
+        void this.runPhasedLoading(cache, generation);
     }
 
     /**
      * Authentic phased loading - progress updates based on actual operations completing.
      * Each phase: set progress, force render, wait for next frame.
      */
-    private async runPhasedLoading(cache: LoadedCache): Promise<void> {
+    private async runPhasedLoading(cache: LoadedCache, generation: number): Promise<void> {
+        const isActive = () => !this.disposed && this.phasedLoadingGeneration === generation;
         const showPhase = async (percent: number, text: string) => {
+            if (!isActive()) return false;
             this.loginState.loadingPercent = percent;
             this.loginState.loadingText = text;
             try {
                 this.renderer?.forceImmediateRender();
             } catch {}
             await new Promise<void>((r) => setTimeout(r, 1));
+            return isActive();
         };
 
         try {
             // Phase 1: Loading title background (network fetch)
-            await showPhase(5, "Loading title...");
+            if (!(await showPhase(5, "Loading title..."))) return;
             try {
                 await this.loginRenderer.loadTitleBackground();
             } catch (e) {
                 console.warn("[OsrsClient] Title background load failed:", e);
             }
+            if (!isActive()) return;
 
             // Phase 2: Loading logo (network fetch)
-            await showPhase(15, "Loading logo...");
+            if (!(await showPhase(15, "Loading logo..."))) return;
             try {
                 await this.loginRenderer.loadLogoImage();
             } catch {
                 // Fallback to cache sprite if PNG fails
             }
+            if (!isActive()) return;
 
             // Phase 3: Loading sprites (cache parse)
-            await showPhase(25, "Loading sprites...");
+            if (!(await showPhase(25, "Loading sprites..."))) return;
             const spritesLoaded = this.loginRenderer.loadTitleSprites(this.cacheSystem);
             if (!spritesLoaded) {
                 console.warn("[OsrsClient] Title sprites failed to load");
             }
 
             // Phase 4: Loading fonts (cache parse)
-            await showPhase(35, "Loading fonts...");
+            if (!(await showPhase(35, "Loading fonts..."))) return;
             const fontsLoaded = this.loginRenderer.loadFonts(this.cacheSystem);
             if (!fontsLoaded) {
                 console.warn("[OsrsClient] Fonts failed to load");
             }
 
             // Phase 5: Loading config (creating type loaders)
-            await showPhase(45, "Loading config...");
+            if (!(await showPhase(45, "Loading config..."))) return;
             // Initialize Huffman and loaders (indices already loaded)
             initPlayerSyncHuffman(this.cacheSystem);
             this.loaderFactory = getCacheLoaderFactory(cache.info, this.cacheSystem);
@@ -6229,7 +6260,7 @@ export class OsrsClient {
                 }
             } catch (error) {
                 this.mapElementTypeLoader = undefined;
-                console.log("[OsrsClient] Failed to load map element types", { error });
+                console.warn("[OsrsClient] Failed to load map element types", { error });
             }
             this.objModelLoader = new ObjModelLoader(
                 this.objTypeLoader,
@@ -6263,7 +6294,7 @@ export class OsrsClient {
             this.idkTypeLoader = this.loaderFactory.getIdkTypeLoader();
 
             // Phase 6: Loading sounds (audio systems)
-            await showPhase(55, "Loading sounds...");
+            if (!(await showPhase(55, "Loading sounds..."))) return;
             this.soundEffectLoader = new SoundEffectLoader(cache.info, this.cacheSystem);
             this.soundEffectSystem = this.soundEffectLoader.available()
                 ? new SoundEffectSystem(this.soundEffectLoader)
@@ -6286,7 +6317,7 @@ export class OsrsClient {
             }
 
             // Phase 7: Loading variables
-            await showPhase(65, "Loading variables...");
+            if (!(await showPhase(65, "Loading variables..."))) return;
             this.inventory.clear();
             this.inventorySeededFromServer = false;
             this.npcInstances.applyNameOverrides();
@@ -6370,7 +6401,7 @@ export class OsrsClient {
             };
 
             // Phase 8: Loading maps
-            await showPhase(75, "Loading maps...");
+            if (!(await showPhase(75, "Loading maps..."))) return;
             const mapFileLoader = this.loaderFactory.getMapFileLoader();
             this.mapFileIndex = mapFileLoader.mapFileIndex;
             this.isNewTextureAnim = cache.info.game === "runescape" && cache.info.revision >= 681;
@@ -6378,7 +6409,7 @@ export class OsrsClient {
             this.worldMap.initArchiveRenderer();
 
             // Phase 9: Preparing interface
-            await showPhase(90, "Preparing interface...");
+            if (!(await showPhase(90, "Preparing interface..."))) return;
             this.widgetManager = new WidgetManager(this.cacheSystem);
             try {
                 const { GraphicsDefaults } = require("@august/osrs-engine/config/defaults/GraphicsDefaults");
@@ -6399,7 +6430,7 @@ export class OsrsClient {
             this.initCacheDependent();
 
             // Phase 10: Loading overlays (hitsplat/health bar sprites and fonts)
-            await showPhase(95, "Loading overlays...");
+            if (!(await showPhase(95, "Loading overlays..."))) return;
             this.renderer.initOverlays();
 
             // Complete - transition to login screen
@@ -6410,6 +6441,7 @@ export class OsrsClient {
             // Auto-login if credentials provided via URL params
             this.tryAutoLogin();
         } catch (err) {
+            if (!isActive()) return;
             console.error("[OsrsClient] Phased loading failed:", err);
             this.loginState.loadingPercent = 100;
             this.loginState.loadingText = "";
@@ -6456,9 +6488,7 @@ export class OsrsClient {
         if (!update) return;
         this.inventorySeededFromServer = true;
 
-        try {
-            console.log("[inventory] server update", update);
-        } catch {}
+        clientDebugLog("[inventory] server update", update);
 
         if (update.kind === "snapshot") {
             const slots = Array.isArray(update.slots)
@@ -6533,9 +6563,10 @@ export class OsrsClient {
             }
         }
 
-        try {
-            console.log("[inventory] snapshot post-update", this.inventory.getSlots());
-        } catch {}
+        clientDebugLogLazy(() => [
+            "[inventory] snapshot post-update",
+            this.inventory.getSlots(),
+        ]);
 
         // Mark inv cycle with specific inventory ID - handlers fire during processWidgetTransmits()
         // Inventory ID 93 is the player inventory in OSRS
@@ -6552,9 +6583,7 @@ export class OsrsClient {
     private handleBankServerUpdate(update: BankServerUpdate): void {
         if (!update) return;
 
-        try {
-            console.log("[bank] server update", update.kind);
-        } catch {}
+        clientDebugLog("[bank] server update", update.kind);
 
         if (update.kind === "snapshot") {
             const slots = Array.isArray(update.slots)
@@ -6624,7 +6653,11 @@ export class OsrsClient {
         if (update.kind !== "snapshot") return;
 
         try {
-            console.log("[collection_log] server update", update.slots?.length ?? 0, "items");
+            clientDebugLog(
+                "[collection_log] server update",
+                update.slots?.length ?? 0,
+                "items",
+            );
         } catch {}
 
         // Clear existing items and populate with snapshot
@@ -6655,7 +6688,7 @@ export class OsrsClient {
         }
 
         try {
-            console.log("[shop] server update", state.stock?.length ?? 0, "items");
+            clientDebugLog("[shop] server update", state.stock?.length ?? 0, "items");
         } catch {}
 
         // Clear existing items and populate with shop stock
@@ -6862,7 +6895,7 @@ export class OsrsClient {
     ): void {
         // Handle loc change (e.g., door open/close)
         try {
-            console.log(
+            clientDebugLog(
                 `[OsrsClient] Loc change: ${oldId} -> ${newId} at (${tile.x}, ${tile.y}, ${level})`,
             );
             // Notify renderer to update the loc
@@ -6895,7 +6928,7 @@ export class OsrsClient {
         rotation: number,
     ): void {
         try {
-            console.log(
+            clientDebugLog(
                 `[OsrsClient] Loc add: ${locId} at (${tile.x}, ${tile.y}, ${level}) shape=${shape} rot=${rotation}`,
             );
             if (this.renderer && typeof (this.renderer as any).onLocAddChange === "function") {
@@ -6908,7 +6941,7 @@ export class OsrsClient {
 
     onLocDel(tile: { x: number; y: number }, level: number, shape: number, rotation: number): void {
         try {
-            console.log(
+            clientDebugLog(
                 `[OsrsClient] Loc del at (${tile.x}, ${tile.y}, ${level}) shape=${shape} rot=${rotation}`,
             );
             if (this.renderer && typeof (this.renderer as any).onLocDel === "function") {
@@ -6947,7 +6980,7 @@ export class OsrsClient {
                 this.renderer.fpsLimit = this.targetFps;
             }
         } catch (error) {
-            console.log("[OsrsClient] Failed to apply FPS limit", { error });
+            console.warn("[OsrsClient] Failed to apply FPS limit", { error });
         }
         this.applyMobileMapCacheBudget();
         // Apply movement speed preference (halve movement speed as requested)
@@ -6956,7 +6989,7 @@ export class OsrsClient {
             this.playerEcs.setWalkSpeedMultiplier?.(1.0);
             this.playerEcs.setRunSpeedMultiplier?.(0.85);
         } catch (error) {
-            console.log("[OsrsClient] Failed to apply movement speed multipliers", { error });
+            console.warn("[OsrsClient] Failed to apply movement speed multipliers", { error });
         }
     }
 
@@ -6972,7 +7005,7 @@ export class OsrsClient {
                 this.renderer.fpsLimit = next;
             }
         } catch (error) {
-            console.log("[OsrsClient] Failed to set FPS limit", { error, next });
+            console.warn("[OsrsClient] Failed to set FPS limit", { error, next });
         }
     }
 
@@ -6990,7 +7023,7 @@ export class OsrsClient {
         try {
             this.renderer.mapManager.setMaxResidentMaps(mapBudget);
         } catch (error) {
-            console.log("[OsrsClient] Failed to apply map cache budget", { error, mapBudget });
+            console.warn("[OsrsClient] Failed to apply map cache budget", { error, mapBudget });
         }
     }
 
@@ -7503,14 +7536,12 @@ export class OsrsClient {
         const predictedSource = this.inventory.getSlot(src);
         const predictedDestination = this.inventory.getSlot(dst);
 
-        try {
-            console.log("[inventory] move slot", {
-                from: src,
-                to: dst,
-                predictedSourceItem: predictedSource?.itemId ?? -1,
-                predictedDestinationItem: predictedDestination?.itemId ?? -1,
-            });
-        } catch {}
+        clientDebugLog("[inventory] move slot", {
+            from: src,
+            to: dst,
+            predictedSourceItem: predictedSource?.itemId ?? -1,
+            predictedDestinationItem: predictedDestination?.itemId ?? -1,
+        });
 
         // Publish the already-mutated model into the actual WebGL widget state before
         // onDragComplete or clearDragWidgetVisualState can render another frame.
@@ -7569,9 +7600,7 @@ export class OsrsClient {
             if (selected !== null) {
                 this.inventory.setSelectedSlot(null);
             }
-            try {
-                console.log("[inventory] tap empty slot", slotIndex);
-            } catch {}
+            clientDebugLog("[inventory] tap empty slot", slotIndex);
             return;
         }
         const primaryAction = this.getPrimaryInventoryAction(entry.itemId);
@@ -7584,9 +7613,7 @@ export class OsrsClient {
                 // Touch/mobile inventory selection must enter the same global
                 // targeting state as a desktop context-menu "Use" action.
                 ClientState.selectItemForUse((149 << 16) | 0, slot, entry.itemId | 0);
-                try {
-                    console.log("[inventory] select slot", { slot, item: entry });
-                } catch {}
+                clientDebugLog("[inventory] select slot", { slot, item: entry });
             } else {
                 this.useInventoryItem(slot, entry);
             }
@@ -7601,9 +7628,7 @@ export class OsrsClient {
         const data = entry ?? this.inventory.getSlot(slot);
         if (!data || data.itemId <= 0) return;
 
-        try {
-            console.log("[inventory] use item", { slot, item: data, actionHint });
-        } catch {}
+        clientDebugLog("[inventory] use item", { slot, item: data, actionHint });
 
         const quantity = data.quantity > 0 ? data.quantity : 1;
         sendInventoryUse(slot, data.itemId, quantity, actionHint);
@@ -7852,7 +7877,7 @@ export class OsrsClient {
     }
 
     private despawnWorldEntity(entityIndex: number): void {
-        console.log(`[OsrsClient] Despawning world entity ${entityIndex}`);
+        clientDebugLog(`[OsrsClient] Despawning world entity ${entityIndex}`);
         if (this.renderer && "clearWorldEntity" in this.renderer) {
             (this.renderer as any).clearWorldEntity(entityIndex);
         }
@@ -7883,7 +7908,7 @@ export class OsrsClient {
      */
     resetWorld(fullReset: boolean = false): void {
         this.mobileChatKeyboard?.hide();
-        console.log(`[OsrsClient] Resetting world state (fullReset=${fullReset})...`);
+        clientDebugLog(`[OsrsClient] Resetting world state (fullReset=${fullReset})...`);
 
         // Clear all players
         try {
@@ -8023,7 +8048,7 @@ export class OsrsClient {
             }
         }
 
-        console.log("[OsrsClient] World state reset complete");
+        clientDebugLog("[OsrsClient] World state reset complete");
     }
 
     /**
@@ -8031,11 +8056,23 @@ export class OsrsClient {
      * Call this on HMR/fast refresh to prevent audio leaks.
      */
     dispose(): void {
-        console.log("[OsrsClient] Disposing...");
+        if (this.disposed) return;
+        this.disposed = true;
+        this.phasedLoadingGeneration++;
+        clientDebugLog("[OsrsClient] Disposing...");
+        // Stop render/input loops immediately and abort login-owned network/image
+        // work before any asynchronous startup continuation can allocate more state.
+        try {
+            this.renderer?.dispose();
+        } catch {}
+        try {
+            this.loginRenderer.dispose();
+        } catch {}
         this.scriptRetryGeneration++;
         this.pendingScriptRetries.clear();
         const subscriptions = [
             ...this.serverSubscriptions.splice(0),
+            ...this.lifecycleSubscriptions.splice(0),
             this.unsubscribeWidgetEvents,
             this.unsubscribeNpcInfo,
             this.unsubscribeCombat,
@@ -8052,6 +8089,7 @@ export class OsrsClient {
             this.unsubscribeSkills,
             this.unsubscribeRunEnergy,
             this.unsubscribeNotifications,
+            this.unsubscribeLogoutResponse,
         ];
         for (const unsubscribe of subscriptions) {
             try {
@@ -8090,9 +8128,33 @@ export class OsrsClient {
             this.soundEffectSystem = undefined;
         }
 
+        this.mobileChatKeyboard?.dispose();
+
+        // Module-level bridges must not keep this full client graph reachable
+        // after unmount/HMR.
+        try {
+            setSpellSelectionClearHandler(null);
+            setSpellSelectionResolver(null);
+            setNpcExamineIdResolver(null);
+        } catch {}
+        try {
+            setClientCycleProvider(undefined);
+            registerAnimDebugProvider(null);
+        } catch {}
+        try {
+            const globalState = globalThis as typeof globalThis & {
+                osrsRenderer?: GameRenderer;
+                osrsClient?: OsrsClient;
+            };
+            if (globalState.osrsClient === this) globalState.osrsClient = undefined;
+            if (globalState.osrsRenderer?.osrsClient === this) {
+                globalState.osrsRenderer = undefined;
+            }
+        } catch {}
+
         this.clearMinimapImageUrls();
         this.clearWorldMapImages();
 
-        console.log("[OsrsClient] Disposed");
+        clientDebugLog("[OsrsClient] Disposed");
     }
 }

@@ -11,6 +11,17 @@ export type RawMessageHandler = (raw: RawData) => void;
  * beyond the cap are dropped until the queue drains.
  */
 const MAX_QUEUED_MESSAGES_PER_TICK = 30;
+export const DEFAULT_MAX_QUEUED_INPUT_BYTES_PER_TICK = 2 * 1024 * 1024;
+const DROP_WARNING_INTERVAL_MS = 5_000;
+
+type DroppedMessageState = { dropped: number; droppedBytes: number; lastWarningAt: number };
+
+function rawDataByteLength(raw: RawData): number {
+    if (Array.isArray(raw)) {
+        return raw.reduce((total, chunk) => total + chunk.byteLength, 0);
+    }
+    return raw.byteLength;
+}
 
 /**
  * Per-connection FIFO of raw client messages, drained at a fixed point at the
@@ -21,9 +32,20 @@ const MAX_QUEUED_MESSAGES_PER_TICK = 30;
 export class ClientInputService {
     private readonly handlers = new Map<WebSocket, RawMessageHandler>();
     private readonly queues = new Map<WebSocket, RawData[]>();
+    private readonly queuedBytes = new Map<WebSocket, number>();
+    private readonly droppedMessages = new WeakMap<WebSocket, DroppedMessageState>();
     private draining = false;
 
-    constructor(private readonly svc: ServerServices) {}
+    constructor(
+        private readonly svc: ServerServices,
+        private readonly now: () => number = Date.now,
+        private readonly maxQueuedBytesPerTick: number =
+            DEFAULT_MAX_QUEUED_INPUT_BYTES_PER_TICK,
+    ) {
+        this.maxQueuedBytesPerTick = Number.isFinite(maxQueuedBytesPerTick)
+            ? Math.max(1, Math.trunc(maxQueuedBytesPerTick))
+            : DEFAULT_MAX_QUEUED_INPUT_BYTES_PER_TICK;
+    }
 
     registerConnection(ws: WebSocket, handler: RawMessageHandler): void {
         this.handlers.set(ws, handler);
@@ -49,15 +71,35 @@ export class ClientInputService {
             queue = [];
             this.queues.set(ws, queue);
         }
-        if (queue.length >= MAX_QUEUED_MESSAGES_PER_TICK) {
-            logger.warn(
-                `[client_input] dropping message; queue full (${queue.length}) for player ${
-                    this.svc.players?.get(ws)?.id ?? "?"
-                }`,
-            );
+        const messageBytes = rawDataByteLength(raw);
+        const currentBytes = this.queuedBytes.get(ws) ?? 0;
+        if (
+            queue.length >= MAX_QUEUED_MESSAGES_PER_TICK ||
+            messageBytes > this.maxQueuedBytesPerTick - currentBytes
+        ) {
+            const now = this.now();
+            const state = this.droppedMessages.get(ws) ?? {
+                dropped: 0,
+                droppedBytes: 0,
+                lastWarningAt: Number.NEGATIVE_INFINITY,
+            };
+            state.dropped++;
+            state.droppedBytes += messageBytes;
+            if (now - state.lastWarningAt >= DROP_WARNING_INTERVAL_MS) {
+                logger.warn(
+                    `[client_input] queue limit reached (${queue.length} messages, ${currentBytes} bytes) for player ${
+                        this.svc.players?.get(ws)?.id ?? "?"
+                    }; dropped ${state.dropped} message(s) / ${state.droppedBytes} byte(s)`,
+                );
+                state.dropped = 0;
+                state.droppedBytes = 0;
+                state.lastWarningAt = now;
+            }
+            this.droppedMessages.set(ws, state);
             return;
         }
         queue.push(raw);
+        this.queuedBytes.set(ws, currentBytes + messageBytes);
     }
 
     drain(): void {
@@ -66,6 +108,7 @@ export class ClientInputService {
         try {
             const entries = Array.from(this.queues.entries());
             this.queues.clear();
+            this.queuedBytes.clear();
             // World-entry (pre-login) queues first in arrival order, then
             // players in id order, matching the engine cycle of login
             // registration followed by per-player message handling.
@@ -100,5 +143,7 @@ export class ClientInputService {
     removeConnection(ws: WebSocket): void {
         this.handlers.delete(ws);
         this.queues.delete(ws);
+        this.queuedBytes.delete(ws);
+        this.droppedMessages.delete(ws);
     }
 }

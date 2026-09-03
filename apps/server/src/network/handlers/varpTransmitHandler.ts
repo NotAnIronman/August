@@ -237,7 +237,7 @@ function handleInstantUtilitySpecial(
     services.queueCombatState(p);
     sendVarpCorrection(services, ws, VARP_SPECIAL_ATTACK, 0);
 
-    logger.info(
+    logger.debug(
         `[combat] instant utility special activated: player=${p.id} weapon=${weaponId} kind=${special.kind} seq=${special.seqId}`,
     );
 }
@@ -265,7 +265,7 @@ function handleAttackStyleVarp(
     p.varps.setVarpValue(VARP_ATTACK_STYLE, normalized);
     sendVarpCorrection(services, ws, VARP_ATTACK_STYLE, normalized);
     services.queueCombatState(p);
-    logger.info(`[combat] attack style change: player=${p.id} slot=${normalized}`);
+    logger.debug(`[combat] attack style change: player=${p.id} slot=${normalized}`);
 }
 
 function handleAutoRetaliateVarp(

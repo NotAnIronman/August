@@ -321,10 +321,6 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     const wcLocMap = buildWoodcuttingLocMap(locTypeLoader);
     services.getWoodcuttingTree = (locId) => getWoodcuttingTreeFromMap(locId, wcLocMap);
 
-    if (!services.getWoodcuttingTree) {
-        console.log("[script:woodcutting] tree lookup unavailable; module disabled");
-        return;
-    }
     const startWoodcutting = (event: {
         locId: number;
         player: PlayerState;

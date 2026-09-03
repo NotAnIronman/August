@@ -1,4 +1,9 @@
 import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
+import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
+import {
+    clearPlayerConversationState,
+    resetConversationRuntimeState,
+} from "@server/content/gamemodes/vanilla/quests/dialogue";
 import { registerQuestDefinition } from "@server/content/gamemodes/vanilla/quests/QuestRegistry";
 import {
     VARP_QUEST_POINTS,
@@ -133,6 +138,10 @@ const QUEST_DEFINITIONS: QuestDefinition[] = [
  * (e.g. Doric's anvils wrapping the generic smith action).
  */
 export function registerQuestHandlers(registry: IScriptRegistry, services: ScriptServices): void {
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearPlayerConversationState,
+        reset: resetConversationRuntimeState,
+    });
     registerQuestCompletedWidgetHandlers(registry, services);
     for (const quest of QUEST_DEFINITIONS) {
         registerQuestDefinition(quest);

@@ -117,7 +117,7 @@ export class QueueTask<TContext = unknown> {
             this.requestReturnValue = null;
             return true;
         } catch (e) {
-            logger.info("[QueueTask] Error in task:", e);
+            logger.warn("[QueueTask] Error in task:", e);
             this._completed = true;
             return false;
         }
@@ -153,7 +153,7 @@ export class QueueTask<TContext = unknown> {
             this.requestReturnValue = null;
             return true;
         } catch (e) {
-            logger.info("[QueueTask] Error in task:", e);
+            logger.warn("[QueueTask] Error in task:", e);
             this._completed = true;
             return false;
         }
@@ -184,14 +184,14 @@ export class QueueTask<TContext = unknown> {
         try {
             this.generator?.return?.();
         } catch (e) {
-            logger.info("[QueueTask] Error closing generator:", e);
+            logger.warn("[QueueTask] Error closing generator:", e);
         }
         this.generator = null;
         if (this.terminateAction) {
             try {
                 this.terminateAction(this);
             } catch (e) {
-                logger.info("[QueueTask] Error in terminate action:", e);
+                logger.warn("[QueueTask] Error in terminate action:", e);
             }
         }
     }

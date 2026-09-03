@@ -353,7 +353,7 @@ export class InventoryMessageService {
                 nowTick,
             );
             if (!res.ok) {
-                logger.info(
+                logger.debug(
                     `[action] equip request rejected player=${p.id} reason=${
                         res.reason ?? "unknown"
                     }`,
@@ -379,7 +379,7 @@ export class InventoryMessageService {
                 nowTick,
             );
             if (!res.ok) {
-                logger.info(
+                logger.debug(
                     `[action] consume request rejected player=${p.id} reason=${
                         res.reason ?? "unknown"
                     }`,

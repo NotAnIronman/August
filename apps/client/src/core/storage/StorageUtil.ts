@@ -6,7 +6,11 @@ export type StorageBudget = {
 
 function getNavigatorStorage(): StorageManager | undefined {
     if (typeof navigator === "undefined") return undefined;
-    return navigator.storage;
+    try {
+        return navigator.storage;
+    } catch {
+        return undefined;
+    }
 }
 
 export async function getStorageBudget(): Promise<StorageBudget | undefined> {

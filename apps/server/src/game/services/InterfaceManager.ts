@@ -158,10 +158,9 @@ export class InterfaceManager {
     // --- Client Script Queuing ---
 
     queueClientScript(playerId: number, scriptId: number, ...args: (number | string)[]): void {
-        logger.info?.(
-            `[clientScript] queue player=${playerId} script=${scriptId} args=${JSON.stringify(
-                args,
-            )}`,
+        logger.debug(
+            `[clientScript] queue player=${playerId} script=${scriptId}`,
+            args,
         );
         this.svc.broadcastScheduler.queueClientScript(playerId, scriptId, args);
     }

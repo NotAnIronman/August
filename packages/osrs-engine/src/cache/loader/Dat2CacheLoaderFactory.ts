@@ -86,6 +86,7 @@ import { CacheType } from "@august/osrs-engine/cache/CacheType";
 import { ConfigType } from "@august/osrs-engine/cache/ConfigType";
 import { IndexType } from "@august/osrs-engine/cache/IndexType";
 import { CacheLoaderFactory, CacheLoaderFactoryOptions } from "@august/osrs-engine/cache/loader/CacheLoaderFactory";
+import { isGroupMissingError } from "@august/osrs-engine/cache/js5/GroupMissingError";
 
 export class Dat2CacheLoaderFactory implements CacheLoaderFactory {
     constructor(
@@ -196,6 +197,9 @@ export class Dat2CacheLoaderFactory implements CacheLoaderFactory {
                 const basArchive = configIndex.getArchive(ConfigType.RS2.bas);
                 return new ArchiveBasTypeLoader(this.cacheInfo, basArchive);
             } catch (e) {
+                if (isGroupMissingError(e)) {
+                    throw e;
+                }
                 console.error("Failed to load bastype archive", e);
             }
         }
@@ -222,6 +226,9 @@ export class Dat2CacheLoaderFactory implements CacheLoaderFactory {
                 return new ArchiveEnumTypeLoader(this.cacheInfo, enumsArchive);
             }
         } catch (e) {
+            if (isGroupMissingError(e)) {
+                throw e;
+            }
             console.error("Failed to load enum archive", e);
         }
         return undefined;
@@ -239,6 +246,9 @@ export class Dat2CacheLoaderFactory implements CacheLoaderFactory {
                 return new ArchiveStructTypeLoader(this.cacheInfo, structsArchive);
             }
         } catch (e) {
+            if (isGroupMissingError(e)) {
+                throw e;
+            }
             console.error("Failed to load struct archive", e);
         }
         return undefined;
@@ -298,7 +308,10 @@ export class Dat2CacheLoaderFactory implements CacheLoaderFactory {
             const configIndex = this.cacheSystem.getIndex(IndexType.DAT2.configs);
             const archive = configIndex.getArchive(ConfigType.OSRS.worldEntity);
             return new ArchiveWorldEntityTypeLoader(this.cacheInfo, archive);
-        } catch {
+        } catch (e) {
+            if (isGroupMissingError(e)) {
+                throw e;
+            }
             return undefined;
         }
     }

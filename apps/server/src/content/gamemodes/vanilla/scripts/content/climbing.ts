@@ -1,5 +1,6 @@
 import fs from "fs";
 import { serverGeneratedDataPath } from "@server/paths";
+import { logger } from "@server/observability/logger";
 
 import { CollisionFlag } from "@august/game-model/collision/CollisionFlag";
 import {
@@ -136,7 +137,7 @@ class IntermapLinkIndex {
             }
         }
 
-        console.log(
+        logger.info(
             `[climbing] Resolved intermap link destinations: ${adjusted}/${this.allEntries.length} adjusted to adjacent walkable tiles`,
         );
     }
@@ -219,13 +220,13 @@ function loadIntermapLinks(): IntermapLinkIndex {
         const data: IntermapLinksFile = JSON.parse(raw);
         return new IntermapLinkIndex(new Map(Object.entries(data.links)));
     } catch (e) {
-        console.log(`[climbing] Failed to load intermap-links.json: ${e}`);
+        logger.warn(`[climbing] Failed to load intermap-links.json: ${e}`);
         return new IntermapLinkIndex(new Map());
     }
 }
 
 const intermapLinks = loadIntermapLinks();
-console.log(`[climbing] Loaded ${intermapLinks.size} intermap links from CS2 script 1705`);
+logger.debug(`[climbing] Loaded ${intermapLinks.size} intermap links from CS2 script 1705`);
 
 // ---------------------------------------------------------------------------
 // Stair floor-count table (data/generated/server/stair-floors.json)
@@ -256,13 +257,13 @@ function loadStairFloors(): Map<number, StairFloorEntry> {
         }
         return map;
     } catch (e) {
-        console.log(`[climbing] Failed to load stair-floors.json: ${e}`);
+        logger.warn(`[climbing] Failed to load stair-floors.json: ${e}`);
         return new Map();
     }
 }
 
 const stairFloors = loadStairFloors();
-console.log(`[climbing] Loaded ${stairFloors.size} stair floor entries`);
+logger.debug(`[climbing] Loaded ${stairFloors.size} stair floor entries`);
 
 // ---------------------------------------------------------------------------
 // Helpers

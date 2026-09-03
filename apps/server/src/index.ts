@@ -9,6 +9,8 @@ import { WSServer } from "@server/network/wsServer";
 import { serverGeneratedDataPath, serverVarPath } from "@server/paths";
 import { PathService } from "@server/pathfinding/PathService";
 import { logger } from "@server/observability/logger";
+import { flushRuntimeProbes } from "@server/debug/runtimeProbeLog";
+import { closeAllSqliteDatabases } from "@server/game/state/SqliteDatabase";
 import { setViewportEnumService } from "@server/widgets/viewport";
 import { ViewportEnumService } from "@server/widgets/viewport/ViewportEnumService";
 import { initCacheEnv } from "@server/world/CacheEnv";
@@ -111,13 +113,38 @@ async function main() {
             logger.warn("Final player save failed", err);
         }
         gamemode.dispose?.();
+        try {
+            await server.close();
+        } catch (err) {
+            logger.warn("Failed to close the network listener cleanly", err);
+        }
+        try {
+            await flushRuntimeProbes();
+        } catch (err) {
+            logger.warn("Failed to flush runtime diagnostics", err);
+        }
+        try {
+            closeAllSqliteDatabases();
+        } catch (err) {
+            logger.warn("Failed to close one or more SQLite databases", err);
+        }
         process.exit(0);
     };
     process.on("SIGINT", shutdown("SIGINT"));
     process.on("SIGTERM", shutdown("SIGTERM"));
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
     logger.error(err);
+    try {
+        await flushRuntimeProbes();
+    } catch {
+        // Preserve the original startup error.
+    }
+    try {
+        closeAllSqliteDatabases();
+    } catch {
+        // Preserve the original startup error.
+    }
     process.exit(1);
 });

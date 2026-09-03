@@ -1,4 +1,5 @@
 import type { Cs2Vm, ScriptEvent } from "@client/engine/cs2/Cs2Vm";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import type { ObjTypeLoader } from "@august/osrs-engine/config/objtype/ObjTypeLoader";
 import type { WidgetManager } from "@client/ui/widgets/WidgetManager";
 import { ClientState } from "@client/engine/game/ClientState";
@@ -73,7 +74,7 @@ export class SpellSelectionController {
     }
 
     setSelectedSpell(spell: SelectedSpellInfo | null, sourceWidget?: any): void {
-        console.log(
+        clientDebugLog(
             `[setSelectedSpell] Called with spell=${spell?.spellName}, sourceWidget=${sourceWidget?.uid}`,
         );
 
@@ -107,7 +108,7 @@ export class SpellSelectionController {
             ClientState.clearSpellSelection();
         }
 
-        console.log(
+        clientDebugLog(
             `[setSelectedSpell] After set: isSpellSelected=${ClientState.isSpellSelected}, sourceWidget=${ClientState.selectedSpellSourceWidget?.uid}`,
         );
         if (ClientState.selectedSpellSourceWidget) {
@@ -119,7 +120,7 @@ export class SpellSelectionController {
                 );
             } catch {}
         } else {
-            console.log(`[setSelectedSpell] No sourceWidget to fire onTargetEnter`);
+            clientDebugLog(`[setSelectedSpell] No sourceWidget to fire onTargetEnter`);
         }
     }
 
@@ -183,7 +184,7 @@ export class SpellSelectionController {
     private fireOnTargetEnter(widget: any): void {
         if (!widget) return;
 
-        console.log(
+        clientDebugLog(
             `[onTargetEnter] Widget uid=${widget.uid}, hasEventHandlers=${!!widget.eventHandlers
                 ?.onTargetEnter}, hasOnTargetEnter=${
                 Array.isArray(widget.onTargetEnter) && widget.onTargetEnter.length > 0
@@ -192,13 +193,13 @@ export class SpellSelectionController {
 
         const cs2Vm = this.deps.getCs2Vm();
         if (widget.eventHandlers?.onTargetEnter) {
-            console.log(`[onTargetEnter] Invoking eventHandlers.onTargetEnter`);
+            clientDebugLog(`[onTargetEnter] Invoking eventHandlers.onTargetEnter`);
             cs2Vm?.invokeEventHandler(widget, "onTargetEnter");
         } else if (Array.isArray(widget.onTargetEnter) && widget.onTargetEnter.length > 0) {
-            console.log(`[onTargetEnter] Executing script listener`, widget.onTargetEnter);
+            clientDebugLog(`[onTargetEnter] Executing script listener`, widget.onTargetEnter);
             this.deps.executeScriptListener(widget, widget.onTargetEnter);
         } else {
-            console.log(`[onTargetEnter] No handler found for widget`);
+            clientDebugLog(`[onTargetEnter] No handler found for widget`);
         }
     }
 

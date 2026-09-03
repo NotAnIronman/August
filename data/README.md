@@ -26,6 +26,10 @@ and disposable reports cannot be confused with mutable server state.
   name is part of the persistence key.
 - Keep downloads and partial output in temporary paths, validate them, then replace a
   committed/runtime snapshot atomically.
+- Run `pnpm check:generated` before committing generated JSON. It rejects invalid JSON
+  and machine-specific absolute paths embedded by local generators. It does not yet
+  prove provenance, deterministic regeneration, schema validity, or consumer semantics;
+  those requirements still need human review under the contract above.
 
 The tracked item, NPC, location, spawn, shop, sound, and drop snapshots are
 intentional. See `tools/README.md` for their generators and maintenance commands.

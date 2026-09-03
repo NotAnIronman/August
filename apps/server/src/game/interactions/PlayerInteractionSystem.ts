@@ -575,17 +575,14 @@ export class PlayerInteractionSystem {
         const preservePendingLoc =
             !!pendingLoc &&
             this.locHandler.shouldPreservePendingLocInteraction(pendingLoc, destination, me);
-        logger.info(
-            "[manualMove]",
-            JSON.stringify({
-                player: me?.id,
-                interaction: interaction?.kind,
-                pendingLoc: this.pendingLocInteractions.has(ws),
-                preservePendingLoc,
-                destination,
-                pos: me ? { x: me.tileX, y: me.tileY, level: me.level } : undefined,
-            }),
-        );
+        logger.debug("[manualMove]", {
+            player: me?.id,
+            interaction: interaction?.kind,
+            pendingLoc: this.pendingLocInteractions.has(ws),
+            preservePendingLoc,
+            destination,
+            pos: me ? { x: me.tileX, y: me.tileY, level: me.level } : undefined,
+        });
         if (interaction) {
             this.interactions.delete(ws);
         }

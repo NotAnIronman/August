@@ -1,5 +1,9 @@
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import type { PlayerState } from "@server/game/player";
+import {
+    registerPlayerLifecycleCleanup,
+    removeTrackedPlayerNpc,
+} from "@server/game/scripts/ScriptLifecycle";
 import type {
     IScriptRegistry,
     NpcInteractionEvent,
@@ -108,7 +112,7 @@ function removeTrackedSheep(
 ): void {
     const tracked = sheepByPlayer.get(playerId);
     const npcId = tracked?.get(npcTypeId);
-    if (npcId !== undefined) services.npc.removeNpc(npcId);
+    removeTrackedPlayerNpc(services, playerId, npcId);
     tracked?.delete(npcTypeId);
     if (tracked?.size === 0) sheepByPlayer.delete(playerId);
 }
@@ -146,7 +150,9 @@ function ensureSheep(player: PlayerState, services: ScriptServices, quest: Quest
 }
 
 function removeAllSheep(playerId: number, services: ScriptServices): void {
-    for (const npcId of sheepByPlayer.get(playerId)?.values() ?? []) services.npc.removeNpc(npcId);
+    for (const npcId of sheepByPlayer.get(playerId)?.values() ?? []) {
+        removeTrackedPlayerNpc(services, playerId, npcId);
+    }
     sheepByPlayer.delete(playerId);
 }
 
@@ -352,6 +358,12 @@ export function registerSheepHerderInteractions(
     registry: IScriptRegistry,
     services: ScriptServices,
 ): void {
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: (playerId) => removeAllSheep(playerId, services),
+        reset: () => {
+            for (const playerId of [...sheepByPlayer.keys()]) removeAllSheep(playerId, services);
+        },
+    });
     const halgrive = createHalgriveHandler(quest);
     for (const npcId of NPC.councillorHalgrive) {
         registry.registerNpcScript({ npcId, option: "talk-to", handler: halgrive });
@@ -390,8 +402,5 @@ export function registerSheepHerderInteractions(
     registry.registerZone(SHEEP_FARM_ZONE, {
         enter: ({ player, services: eventServices }) => ensureSheep(player, eventServices, quest),
         step: ({ player, services: eventServices }) => ensureSheep(player, eventServices, quest),
-    });
-    services.system.eventBus?.on("player:logout", ({ playerId }) => {
-        sheepByPlayer.delete(playerId);
     });
 }

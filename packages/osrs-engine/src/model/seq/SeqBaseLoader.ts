@@ -1,6 +1,7 @@
 import { CacheIndex } from "@august/osrs-engine/cache/CacheIndex";
 import { CacheInfo } from "@august/osrs-engine/cache/CacheInfo";
 import { Dat2SeqBase, SeqBase } from "@august/osrs-engine/model/seq/SeqBase";
+import { BoundedLruCache } from "@august/osrs-engine/cache/BoundedLruCache";
 
 export interface SeqBaseLoader {
     load(id: number): SeqBase | undefined;
@@ -14,7 +15,10 @@ export class IndexSeqBaseLoader implements SeqBaseLoader {
     constructor(
         readonly cacheInfo: CacheInfo,
         readonly index: CacheIndex,
-    ) {}
+        maxCachedBases: number = 1024,
+    ) {
+        this.bases = new BoundedLruCache(maxCachedBases);
+    }
 
     load(id: number): SeqBase | undefined {
         const cached = this.bases.get(id);

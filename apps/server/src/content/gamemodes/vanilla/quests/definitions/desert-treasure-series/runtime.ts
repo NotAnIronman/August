@@ -1,5 +1,10 @@
 import type { PlayerState } from "@server/game/player";
-import type { ScriptServices } from "@server/game/scripts/types";
+import {
+    registerEventSubscription,
+    registerPlayerLifecycleCleanup,
+    removeTrackedPlayerNpc,
+} from "@server/game/scripts/ScriptLifecycle";
+import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
 import { getQuestDefinitionByKey } from "@server/content/gamemodes/vanilla/quests/QuestRegistry";
 import { getQuestStage, setQuestStage } from "@server/content/gamemodes/vanilla/quests/QuestService";
 import type { QuestDefinition } from "@server/content/gamemodes/vanilla/quests/types";
@@ -36,7 +41,11 @@ export function spawnBoss(
         gameMessage(player, services, `${config.name} is already waiting for you.`);
         return false;
     }
-    const npc = services.npc.spawnNpc({ ...config, wanderRadius: 2 });
+    const npc = services.npc.spawnNpc({
+        ...config,
+        wanderRadius: 2,
+        ownerPlayerId: player.id,
+    });
     if (!npc) {
         gameMessage(player, services, `${config.name} could not be summoned right now.`);
         return false;
@@ -189,29 +198,50 @@ function handleTrackedBossDeath(
     return true;
 }
 
-export function registerQuestDeathHandlers(services: ScriptServices): void {
+export function registerQuestDeathHandlers(
+    registry: IScriptRegistry,
+    services: ScriptServices,
+): void {
     const eventBus = services.system.eventBus;
+    const clearPlayer = (playerId: number): void => {
+        knownPlayers.delete(playerId);
+        for (const [npcId, tracked] of trackedBosses) {
+            if (tracked.player.id !== playerId) continue;
+            removeTrackedPlayerNpc(services, playerId, npcId);
+            trackedBosses.delete(npcId);
+            activeBosses.delete(bossKey(playerId, tracked.kind));
+        }
+    };
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearPlayer,
+        reset: () => {
+            const playerIds = new Set(knownPlayers.keys());
+            for (const tracked of trackedBosses.values()) playerIds.add(tracked.player.id);
+            for (const playerId of playerIds) clearPlayer(playerId);
+            trackedBosses.clear();
+            activeBosses.clear();
+            knownPlayers.clear();
+        },
+    });
+
     if (!eventBus) {
         services.system.logger.warn(
             "[quests:desert-treasure-i] Event bus unavailable; boss progression disabled",
         );
         return;
     }
-    eventBus.on("player:login", ({ player }) => trackPlayer(player));
-    eventBus.on("player:logout", ({ playerId }) => {
-        knownPlayers.delete(playerId);
-        for (const [npcId, tracked] of trackedBosses) {
-            if (tracked.player.id !== playerId) continue;
-            services.npc.removeNpc(npcId);
-            trackedBosses.delete(npcId);
-            activeBosses.delete(bossKey(playerId, tracked.kind));
-        }
-    });
-    eventBus.on("npc:death", ({ npc, npcTypeId, killerPlayerId }) => {
-        if (handleTrackedBossDeath(services, npc.id, killerPlayerId)) return;
-        if (killerPlayerId === undefined) return;
-        const player = knownPlayers.get(killerPlayerId);
-        if (!player) return;
-        handleStaticQuestNpcDeath(services, npcTypeId, player);
-    });
+    registerEventSubscription(
+        registry,
+        eventBus.on("player:login", ({ player }) => trackPlayer(player)),
+    );
+    registerEventSubscription(
+        registry,
+        eventBus.on("npc:death", ({ npc, npcTypeId, killerPlayerId }) => {
+            if (handleTrackedBossDeath(services, npc.id, killerPlayerId)) return;
+            if (killerPlayerId === undefined) return;
+            const player = knownPlayers.get(killerPlayerId);
+            if (!player) return;
+            handleStaticQuestNpcDeath(services, npcTypeId, player);
+        }),
+    );
 }

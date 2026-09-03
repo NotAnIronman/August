@@ -157,7 +157,7 @@ export class EquipmentService {
                 this.services.variableService.queueVarbit(player.id, varbitId, value),
             queueCombatState: (player: PlayerState) => this.queueCombatState(player),
         });
-        logger.info(`[autocast] Reset autocast for player=${p.id} due to weapon change`);
+        logger.debug(`[autocast] Reset autocast for player=${p.id} due to weapon change`);
     }
 
     /**
@@ -218,7 +218,7 @@ export class EquipmentService {
                 hidden: false,
             });
         }
-        logger.info(
+        logger.debug(
             `[autocast] Refreshed combat tab after weapon change for player=${p.id} ` +
                 `weapon=${weaponId} spellbook=${p.getSpellbookType()} ` +
                 `spellbookCompatible=${spellbookCompatible}`,
@@ -364,7 +364,7 @@ export class EquipmentService {
             text: `You operate the ${capeName}.`,
             targetPlayerIds: [player.id],
         });
-        logger.info(
+        logger.debug(
             `[equipment] player=${player.id} operated skillcape item=${capeItemId} seq=${
                 seqId ?? -1
             } spot=${spotId ?? -1}`,

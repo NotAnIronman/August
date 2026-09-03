@@ -72,7 +72,7 @@ export class LegacyMapFileLoader extends MapFileLoader {
         try {
             return this.decompress(data);
         } catch (e) {
-            console.error("Failed decompressing loc data", mapX, mapY, data.length, data, e);
+            console.error("Failed decompressing loc data", mapX, mapY, data.length, e);
             return undefined;
         }
     }

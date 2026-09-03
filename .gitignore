@@ -12,7 +12,7 @@
 **/.vitepress/cache/
 *.tsbuildinfo
 
-#Cache files
+# Cache files
 /[sS]erver/[cC]ache/
 /[sS]erver/[cC]aches/
 
@@ -24,6 +24,17 @@
 
 # Runtime state (target layout)
 /apps/server/var/
+
+# Legacy runtime-state and transfer locations. Existing tracked files must be
+# removed from the Git index separately; these rules protect future copies.
+/server/
+/sqlite-transfer/
+/game.sqlite*/
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.db
 
 # Local database exports used for account/testing data
 /game.sqlite
@@ -64,6 +75,10 @@ Desktop.ini
 
 # Local handoff and scratch artifacts
 /.dev-notes/
+/*.patch
+/*.txt
+/*.html
+/*.zip
 *.discord.md
 /FEATURE_PROMPT.txt
 /Errors.txt

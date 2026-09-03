@@ -1,6 +1,10 @@
 const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
 const touchPoints = typeof navigator !== "undefined" ? navigator.maxTouchPoints : 0;
 const docElement = typeof document !== "undefined" ? document.documentElement : undefined;
+const canvasCssSizeCache = new WeakMap<
+    HTMLCanvasElement,
+    { width: number; height: number }
+>();
 
 export const checkIphone = () => {
     return /iPhone/i.test(userAgent);
@@ -263,7 +267,14 @@ export const isWebGL2Supported = (() => {
     }
 })();
 
+export function invalidateCanvasCssSize(canvas: HTMLCanvasElement): void {
+    canvasCssSizeCache.delete(canvas);
+}
+
 export function getCanvasCssSize(canvas: HTMLCanvasElement): { width: number; height: number } {
+    const cached = canvasCssSizeCache.get(canvas);
+    if (cached) return cached;
+
     const clientWidth = canvas.clientWidth || canvas.offsetWidth;
     const clientHeight = canvas.clientHeight || canvas.offsetHeight;
 
@@ -295,10 +306,12 @@ export function getCanvasCssSize(canvas: HTMLCanvasElement): { width: number; he
           ? rectHeight
           : clientHeight;
 
-    return {
+    const measured = {
         width: width > 0 ? width : 0,
         height: height > 0 ? height : 0,
     };
+    canvasCssSizeCache.set(canvas, measured);
+    return measured;
 }
 
 /**

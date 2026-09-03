@@ -781,7 +781,61 @@ export class Rasterizer3D {
         hslIndex += startX * grad;
 
         if (Rasterizer3D.rasterGouraudLowRes) {
-            throw new Error("Not implemented");
+            let loops = (endX - startX) >> 2;
+            grad <<= 2;
+
+            if (Rasterizer3D.rasterAlpha === 0) {
+                while (loops-- > 0) {
+                    const color = HSL_RGB_MAP[hslIndex >> 8];
+                    hslIndex += grad;
+                    pixels[offset++] = color;
+                    pixels[offset++] = color;
+                    pixels[offset++] = color;
+                    pixels[offset++] = color;
+                }
+
+                loops = (endX - startX) & 3;
+                if (loops > 0) {
+                    const color = HSL_RGB_MAP[hslIndex >> 8];
+                    while (loops-- > 0) {
+                        pixels[offset++] = color;
+                    }
+                }
+            } else {
+                const srcAlpha = Rasterizer3D.rasterAlpha;
+                const dstAlpha = 256 - srcAlpha;
+
+                while (loops-- > 0) {
+                    let color = HSL_RGB_MAP[hslIndex >> 8];
+                    hslIndex += grad;
+                    color =
+                        (((dstAlpha * (color & 0xff00)) >> 8) & 0xff00) +
+                        (((dstAlpha * (color & 0xff00ff)) >> 8) & 0xff00ff);
+                    let groupPixels = 4;
+                    while (groupPixels-- > 0) {
+                        const src = pixels[offset];
+                        pixels[offset++] =
+                            ((((src & 0xff00ff) * srcAlpha) >> 8) & 0xff00ff) +
+                            (((srcAlpha * (src & 0xff00)) >> 8) & 0xff00) +
+                            color;
+                    }
+                }
+
+                loops = (endX - startX) & 3;
+                if (loops > 0) {
+                    let color = HSL_RGB_MAP[hslIndex >> 8];
+                    color =
+                        (((dstAlpha * (color & 0xff00)) >> 8) & 0xff00) +
+                        (((dstAlpha * (color & 0xff00ff)) >> 8) & 0xff00ff);
+                    while (loops-- > 0) {
+                        const src = pixels[offset];
+                        pixels[offset++] =
+                            ((((src & 0xff00ff) * srcAlpha) >> 8) & 0xff00ff) +
+                            (((srcAlpha * (src & 0xff00)) >> 8) & 0xff00) +
+                            color;
+                    }
+                }
+            }
         } else {
             let loops = endX - startX;
             if (Rasterizer3D.rasterAlpha === 0) {

@@ -79,7 +79,10 @@ export class GameEventBus {
                 if (!arr) return;
                 const idx = arr.indexOf(entry);
                 if (idx >= 0) arr.splice(idx, 1);
-                if (arr.length === 0) this.listeners.delete(event);
+                if (arr.length === 0) {
+                    this.listeners.delete(event);
+                    this.sorted.delete(event);
+                }
             },
         };
     }

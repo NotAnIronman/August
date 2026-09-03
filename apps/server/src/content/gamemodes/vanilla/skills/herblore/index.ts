@@ -5,6 +5,7 @@ import type {
     ItemOnItemEvent,
     ScriptServices,
 } from "@server/game/scripts/types";
+import { logger } from "@server/observability/logger";
 
 // ---------------------------------------------------------------------------
 // Herblore Skill
@@ -213,7 +214,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                 }
                 for (let i = 0; i < required; i++) {
                     if (!consumeItem(player, crystalSlot)) {
-                        console.log(
+                        logger.warn(
                             `[herblore] failed to consume amylase crystal slot=${crystalSlot}`,
                         );
                         return;

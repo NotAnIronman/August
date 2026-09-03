@@ -1,4 +1,5 @@
 import { sendWidgetAction } from "@client/core/network/ServerConnection";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { OsrsClientPacketId, createPacket, queuePacket } from "@client/core/network/packet/index";
 import type { ScriptEvent } from "@client/engine/cs2/Cs2Vm";
 import { shouldTransmitAction } from "@client/ui/widgets/WidgetFlags";
@@ -140,7 +141,7 @@ export function processWidgetClickInput(
                             (w.name || w.opBase || w.spriteId >= 0)
                         ) {
                             // No-target spell (e.g., teleport) - send directly to server
-                            console.log(
+                            clientDebugLog(
                                 `[OsrsClient] No-target spell clicked: widget=${w.uid}, name="${
                                     w.name || w.opBase
                                 }", group=${clickGroupId}, child=${clickChildId}`,
@@ -174,7 +175,7 @@ export function processWidgetClickInput(
                                 ClientState.isSpellSelected &&
                                 ClientState.selectedSpellWidget === spellSelection.widgetId
                             ) {
-                                console.log(
+                                clientDebugLog(
                                     `[OsrsClient] Spell widget re-clicked while active, clearing selection: widget=${spellSelection.widgetId}`,
                                 );
                                 deps.getSpellSelection().clearSelectedSpell();
@@ -196,7 +197,7 @@ export function processWidgetClickInput(
                             ClientState.selectedSpellTargetMask = targetMask;
 
                             const clickGroupId = (spellSelection.widgetId >> 16) & 0xffff;
-                            console.log(
+                            clientDebugLog(
                                 `[OsrsClient] Spell targeting mode entered: widget=${
                                     spellSelection.widgetId
                                 }, verb="${targetVerb}", name="${

@@ -1,4 +1,5 @@
 import { sendWidgetAction } from "@client/core/network/ServerConnection";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import type { WidgetActionClientPayload } from "@client/core/network/ServerConnection";
 import type { Cs2Vm, ScriptEvent } from "@client/engine/cs2/Cs2Vm";
 import { createScriptEvent } from "@client/engine/cs2/Cs2Vm";
@@ -125,7 +126,7 @@ export class WidgetActionRouter {
             const uid = typeof w.uid === "number" ? w.uid | 0 : undefined;
             const logGroupId = uid !== undefined ? (uid >>> 16) & 0xffff : (groupId as number);
             const logChildId = uid !== undefined ? uid & 0xffff : (childId as number);
-            console.log("[widget-click]", {
+            clientDebugLog("[widget-click]", {
                 uid,
                 groupId: logGroupId,
                 childId: logChildId,
@@ -257,16 +258,16 @@ export class WidgetActionRouter {
                     args: [2251],
                     widget: event.widget,
                 });
-                console.log(`[handleWidgetAction] Invoking chatbox_open_input for ${optionLower}`);
+                clientDebugLog(`[handleWidgetAction] Invoking chatbox_open_input for ${optionLower}`);
                 const result = cs2Vm?.runScriptEvent(scriptEvent);
-                console.log(`[handleWidgetAction] Script execution result: ${result}`);
+                clientDebugLog(`[handleWidgetAction] Script execution result: ${result}`);
 
                 if (cs2Vm) {
                     cs2Vm.inputDialogType = 0;
                     cs2Vm.inputDialogString = "";
                 }
                 this.deps.getVarManager()?.setVarcString(335, "");
-                console.log(
+                clientDebugLog(
                     `[handleWidgetAction] inputDialogType set to: ${cs2Vm?.inputDialogType}`,
                 );
             }
@@ -297,7 +298,7 @@ export class WidgetActionRouter {
                         const wChildIndex = (widget as any).childIndex ?? -1;
                         const wGroupId = (wId >> 16) & 0xffff;
                         const wChildId = wId & 0xffff;
-                        console.log(
+                        clientDebugLog(
                             `[OsrsClient] Widget action ${event.option} (op${opId}) not transmitted - transmit flag not set. ` +
                                 `Widget: uid=${widget.uid}, id=${wId} (group=${wGroupId}, child=${wChildId}), childIndex=${wChildIndex}, flags=${flags}`,
                         );
