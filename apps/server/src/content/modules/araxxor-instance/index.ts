@@ -50,6 +50,7 @@ const NID_VARIANT_ID = 29837;
 const ELITE_CLUE_ID = 19835;
 const TICK_MS = Math.max(1, Number(process.env.TICK_MS) || 600);
 const VENOM_TIME_LIMIT_TICKS = Math.floor((75 * 1000) / TICK_MS);
+const EGG_HATCH_DELAY_TICKS = 8;
 const ANIM = Object.freeze({
     idle: 11473, walk: 11474, run: 11475, ranged: 11476, acidDrip: 11477,
     acidSpray: 11478, magic: 11479, melee: 11480, death: 11481, spawn: 11482,
@@ -129,12 +130,12 @@ function registerEncounters(): void {
             movement: { wanderRadius: 5, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
             immunities: { poison: true, venom: true },
             attacks: [
-                { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 6, maxHit: 38, animationId: ANIM.melee, effects: { poisonDamage: 8 } },
-                { id: "magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 6, maxHit: 21, animationId: ANIM.magic, effects: { poisonDamage: 8 } },
-                { id: "ranged", type: AttackType.Ranged, rangeTiles: 10, preferredDistance: 1, speedTicks: 6, maxHit: 34, animationId: ANIM.ranged, effects: { poisonDamage: 8 } },
-                { id: "enraged-melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 4, maxHit: 38, animationId: ANIM.enragedMelee, effects: { poisonDamage: 8 } },
-                { id: "enraged-magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 21, animationId: ANIM.slowRanged, effects: { poisonDamage: 8 } },
-                { id: "enraged-ranged", type: AttackType.Ranged, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 34, animationId: ANIM.ranged, effects: { poisonDamage: 8 } },
+                { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 6, maxHit: 38, animationId: ANIM.melee, effects: { venomDamage: 6 } },
+                { id: "magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 6, maxHit: 21, animationId: ANIM.magic, effects: { venomDamage: 6, prayerDrainFraction: 0.09 } },
+                { id: "ranged", type: AttackType.Ranged, rangeTiles: 10, preferredDistance: 1, speedTicks: 6, maxHit: 34, animationId: ANIM.ranged, effects: { venomDamage: 6, defenceDrainFraction: 0.09 } },
+                { id: "enraged-melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 4, maxHit: 38, animationId: ANIM.enragedMelee, effects: { venomDamage: 6 } },
+                { id: "enraged-magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 21, animationId: ANIM.slowRanged, effects: { venomDamage: 6, prayerDrainFraction: 0.09 } },
+                { id: "enraged-ranged", type: AttackType.Ranged, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 34, animationId: ANIM.ranged, effects: { venomDamage: 6, defenceDrainFraction: 0.09 } },
             ],
             phases: [
                 { id: "normal", startsAtHealthPercent: 100, attackIds: ["melee", "magic", "ranged"] },
@@ -151,7 +152,7 @@ function registerEncounters(): void {
         registerEncounter({
             id: minion.name, npcTypeIds: [minion.id], maxHealth: 58,
             movement: { wanderRadius: 2, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
-            attacks: [{ id: "attack", type: AttackType.Melee, rangeTiles: minion.id === ACIDIC_ARAXYTE_ID ? 8 : 1, preferredDistance: 1, speedTicks: minion.id === MIRRORBACK_ID ? 6 : 4, maxHit: minion.maxHit, animationId: minion.id === ACIDIC_ARAXYTE_ID ? ANIM.acidicAttack : minion.id === MIRRORBACK_ID ? ANIM.mirrorbackAttack : ANIM.araxyteAttack, effects: minion.id === ACIDIC_ARAXYTE_ID ? { poisonDamage: 6 } : undefined }],
+            attacks: [{ id: "attack", type: minion.id === ACIDIC_ARAXYTE_ID ? AttackType.Ranged : AttackType.Melee, rangeTiles: minion.id === ACIDIC_ARAXYTE_ID ? 8 : 1, preferredDistance: minion.id === ACIDIC_ARAXYTE_ID ? 6 : 1, speedTicks: minion.id === MIRRORBACK_ID ? 6 : 4, maxHit: minion.maxHit, animationId: minion.id === ACIDIC_ARAXYTE_ID ? ANIM.acidicAttack : minion.id === MIRRORBACK_ID ? ANIM.mirrorbackAttack : ANIM.araxyteAttack, effects: minion.id === ACIDIC_ARAXYTE_ID ? { venomDamage: 6 } : undefined }],
         });
     }
     for (const eggId of [MIRRORBACK_EGG_ID, RUPTURA_EGG_ID, ACIDIC_ARAXYTE_EGG_ID]) {
@@ -259,13 +260,13 @@ function spawnSpecialAdds(npc: NpcState, target: PlayerState, services: ScriptSe
         worldViewId: npc.worldViewId,
         ownerPlayerId: instance?.access === "solo" ? target.id : undefined,
         idleSeqId: ANIM.eggIdle, wanderRadius: 0, isAggressive: false, isImmovable: true,
-        respawns: false, lifetimeTicks: 8,
+        respawns: false, lifetimeTicks: EGG_HATCH_DELAY_TICKS + 5,
     });
     if (!egg) return;
     runtime.ownNpc(egg.id);
     egg.suppressDefenceAnimation = true;
     services.npc.queueNpcSeq(egg, ANIM.eggSpawn);
-    services.scheduler.after(3, () => {
+    services.scheduler.after(EGG_HATCH_DELAY_TICKS, () => {
         const liveEgg = services.combat.getNpc(egg.id);
         // Destroyed eggs are skipped. The next normal six-attack interval
         // advances to the following egg in the fixed colour pattern.
