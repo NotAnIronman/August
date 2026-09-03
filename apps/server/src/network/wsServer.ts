@@ -139,6 +139,11 @@ import { AccountStore } from "@server/network/AccountStore";
 import { AuthenticationService } from "@server/network/AuthenticationService";
 import { BroadcastService } from "@server/network/BroadcastService";
 import { LoginHandshakeService } from "@server/network/LoginHandshakeService";
+import {
+    getHostingSnapshot,
+    isLocalHostingRequest,
+    renderHostingPortal,
+} from "@server/network/HostingPortal";
 import { MessageRouter, type MessageRouterServices } from "@server/network/MessageRouter";
 import { buildTeleportNpcUpdateDelta, upsertNpcUpdateDelta } from "@server/network/NpcExternalSync";
 import { NpcSyncSession } from "@server/network/NpcSyncSession";
@@ -668,7 +673,19 @@ export class WSServer {
                 httpServer.on(
                     "request",
                     (req: import("http").IncomingMessage, res: import("http").ServerResponse) => {
-                        if (req.url === "/status") {
+                        const portalOptions = {
+                            serverName: opts.serverName ?? config.serverName,
+                            gamePort: opts.port,
+                            maxPlayers: opts.maxPlayers ?? config.maxPlayers,
+                            players: () => this.players,
+                        };
+                        if (req.url === "/hosting" && isLocalHostingRequest(req.socket.remoteAddress)) {
+                            res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+                            res.end(renderHostingPortal(portalOptions));
+                        } else if (req.url === "/hosting.json" && isLocalHostingRequest(req.socket.remoteAddress)) {
+                            res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+                            res.end(JSON.stringify(getHostingSnapshot(portalOptions)));
+                        } else if (req.url === "/status") {
                             const count = this.players?.getRealPlayerCount() ?? 0;
                             res.writeHead(200, {
                                 "Content-Type": "application/json",

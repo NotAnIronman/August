@@ -19,6 +19,15 @@ pnpm run start
 `pnpm run start` launches both configured server worlds and the web client. Use
 `pnpm run start:vanilla` when you only want World 1 and the client.
 
+## Host a world for friends
+
+With the server running, open `http://localhost:43594/hosting` on the host
+computer. The private dashboard shows the exact LAN address, connected character
+names, and the public-host checklist. Set `PUBLIC_HOST` in `.env` to the public
+IP or DNS name you plan to share, then forward TCP port `43594` to this computer
+and allow that port through its firewall. The dashboard is intentionally not
+available to LAN or internet clients.
+
 Before handing off a change, run:
 
 ```bash
