@@ -918,6 +918,15 @@ export interface CombatFacade {
         damage: number,
         tick?: number,
     ): { amount: number; style: number; hpCurrent: number; hpMax: number };
+    /** Scripted player-attributed damage against an NPC, including the normal
+     * pre-death and loot/death pipeline. */
+    applyPlayerDamageToNpc(
+        player: PlayerState,
+        npc: NpcState,
+        style: number,
+        damage: number,
+        tick?: number,
+    ): { amount: number; style: number; hpCurrent: number; hpMax: number } | undefined;
     /**
      * Apply a hitsplat to an NPC using the engine's full hit-effect handling
      * (damage, block, poison, heal, etc. - see HitEffects.ts). Content

@@ -43,6 +43,7 @@ import type { InventoryActionHandler } from "@server/game/actions/handlers/Inven
 import type { WidgetDialogHandler } from "@server/game/actions/handlers/WidgetDialogHandler";
 import { applyAutocastState, clearAutocastState } from "@server/game/combat/AutocastState";
 import { hasNpcLineOfSightToPlayer } from "@server/game/combat/CombatAction";
+import { AttackType } from "@server/game/combat/AttackType";
 import type { CombatEffectApplicator } from "@server/game/combat/CombatEffectApplicator";
 import type { CombatEffectService } from "@server/game/services/CombatEffectService";
 import type { DamageTracker } from "@server/game/combat/DamageTracker";
@@ -986,6 +987,15 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                 });
                 return result;
             },
+            applyPlayerDamageToNpc: (player, npc, style, damage, tick) =>
+                deps.combatEffectService?.applyPlayerDamageToNpc(
+                    player,
+                    npc,
+                    damage,
+                    style,
+                    tick ?? deps.getCurrentTick(),
+                    AttackType.Melee,
+                ),
             applyNpcHitsplat: (npc, style, damage, tick, maxHit) => {
                 const currentTick = tick ?? deps.getCurrentTick();
                 const result = deps.combatEffectApplicator.applyNpcHitsplat(

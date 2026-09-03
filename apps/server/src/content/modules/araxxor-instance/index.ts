@@ -51,6 +51,16 @@ const ELITE_CLUE_ID = 19835;
 const TICK_MS = Math.max(1, Number(process.env.TICK_MS) || 600);
 const VENOM_TIME_LIMIT_TICKS = Math.floor((75 * 1000) / TICK_MS);
 const EGG_HATCH_DELAY_TICKS = 8;
+// The six confirmed Araxxor egg anchors. The remaining three anchors can be
+// appended without touching hatch timing or colour order once mapped in-game.
+const EGG_TILES = Object.freeze([
+    { x: 3639, y: 9804, level: 0 },
+    { x: 3635, y: 9801, level: 0 },
+    { x: 3630, y: 9803, level: 0 },
+    { x: 3630, y: 9828, level: 0 },
+    { x: 3635, y: 9825, level: 0 },
+    { x: 3640, y: 9827, level: 0 },
+]);
 const ANIM = Object.freeze({
     idle: 11473, walk: 11474, run: 11475, ranged: 11476, acidDrip: 11477,
     acidSpray: 11478, magic: 11479, melee: 11480, death: 11481, spawn: 11482,
@@ -244,16 +254,13 @@ function acidPatches(npc: NpcState, target: PlayerState, services: ScriptService
     }));
 }
 
-function spawnSpecialAdds(npc: NpcState, target: PlayerState, services: ScriptServices, kind: AraxyteKind): void {
+function spawnSpecialAdds(npc: NpcState, target: PlayerState, services: ScriptServices, kind: AraxyteKind, eggIndex: number): void {
     const runtime = services.encounters.ensure(npc);
     if (!runtime) return;
 
     const addId = kind === "mirrorback" ? MIRRORBACK_ID : kind === "ruptura" ? RUPTURA_ID : ACIDIC_ARAXYTE_ID;
     const eggId = addId === MIRRORBACK_ID ? MIRRORBACK_EGG_ID : addId === RUPTURA_ID ? RUPTURA_EGG_ID : ACIDIC_ARAXYTE_EGG_ID;
-    const tile = {
-        x: Math.max(ROOM.minX + 1, Math.min(ROOM.maxX - 1, npc.tileX + runtime.rng.nextInt(9) - 4)),
-        y: Math.max(ROOM.minY + 1, Math.min(ROOM.maxY - 1, npc.tileY + runtime.rng.nextInt(9) - 4)),
-    };
+    const tile = EGG_TILES[eggIndex % EGG_TILES.length]!;
     const instance = services.instances.get(target.id);
     const egg = services.npc.spawnNpc({
         id: eggId, x: tile.x, y: tile.y, level: npc.level, size: 1,
@@ -312,7 +319,7 @@ function araxxorAttack(event: NpcAttackEvent): NpcAttackDecision | void {
             const kind = state.eggPattern[state.eggIndex % state.eggPattern.length]!;
             state.eggIndex += 1;
             state.nextEggAt += 6;
-            spawnSpecialAdds(npc, target, services, kind);
+            spawnSpecialAdds(npc, target, services, kind, state.eggIndex - 1);
         }
         // In the final quarter Araxxor's normal clock is four ticks, and its
         // melee becomes a three-tile cleave that leaves acid behind.
@@ -339,8 +346,31 @@ function rupturaAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     const { npc, target, services, tick } = event;
     const distance = Math.max(Math.abs(npc.tileX - target.tileX), Math.abs(npc.tileY - target.tileY));
     if (distance > 1) return;
-    const damage = distance <= 1 ? 80 : Math.max(7, 80 - distance * 18);
-    services.combat.applyNpcDamageToPlayer(npc, target, HITMARK_DAMAGE, damage, tick);
+    const healthFraction = npc.getHitpoints() / Math.max(1, npc.getMaxHitpoints());
+    const explosionDamage = (range: number): number => {
+        const fullHealth = range <= 0 ? 80 : range === 1 ? 64 : Math.max(33, 80 - range * 16);
+        return Math.max(1, Math.floor(fullHealth * healthFraction));
+    };
+    services.npc.queueNpcSeq(npc, ANIM.rupturaExplode);
+    services.combat.applyNpcDamageToPlayer(npc, target, HITMARK_DAMAGE, explosionDamage(distance), tick);
+
+    // Ruptura's blast is intentionally useful: it damages Araxxor and any
+    // nearby live araxyte/egg using the player as the credited source, so
+    // normal death handling and hitsplats remain intact.
+    const blastTargets = [
+        services.npc.findNearbyNpc(target, ARAXXOR_ID, 30),
+        services.npc.findNearbyNpc(target, MIRRORBACK_ID, 30),
+        services.npc.findNearbyNpc(target, ACIDIC_ARAXYTE_ID, 30),
+        services.npc.findNearbyNpc(target, MIRRORBACK_EGG_ID, 30),
+        services.npc.findNearbyNpc(target, ACIDIC_ARAXYTE_EGG_ID, 30),
+        services.npc.findNearbyNpc(target, RUPTURA_EGG_ID, 30),
+    ];
+    for (const victim of blastTargets) {
+        if (!victim || victim.id === npc.id || victim.worldViewId !== npc.worldViewId) continue;
+        const victimDistance = Math.max(Math.abs(npc.tileX - victim.tileX), Math.abs(npc.tileY - victim.tileY));
+        if (victimDistance > 7) continue;
+        services.combat.applyPlayerDamageToNpc(target, victim, HITMARK_DAMAGE, explosionDamage(victimDistance), tick);
+    }
     services.npc.removeNpc(npc.id);
     return NpcAttackDecision.Prevent;
 }
