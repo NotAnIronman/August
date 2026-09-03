@@ -328,6 +328,7 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
     // in its map square.
     public pendingDoorLocUpdates: Set<number> = new Set();
     public pendingLocReloadMaps: Map<number, { mapX: number; mapY: number }> = new Map();
+    private readonly transportPrefetches = new Set<string>();
     public pendingLocReloadFlushTimer?: ReturnType<typeof setTimeout>;
     public nextLocReloadBatchId: number = 1;
     public pendingLocReloadBatches: Map<number, LocReloadBatchState> = new Map();
@@ -1470,6 +1471,19 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
         locReloadBatchId?: number,
     ): Promise<void> {
         return render.queueLoadMap(this, mapX, mapY, streamGeneration, locReloadBatchId);
+    }
+
+    /** Warm destination map/cache data without replacing the current scene. */
+    public prefetchTransportDestination(tileX: number, tileY: number): void {
+        const mapXs = new Set([Math.floor((tileX - 52) / 64), Math.floor((tileX + 51) / 64)]);
+        const mapYs = new Set([Math.floor((tileY - 52) / 64), Math.floor((tileY + 51) / 64)]);
+        for (const mapX of mapXs) for (const mapY of mapYs) {
+            if (mapX < 0 || mapY < 0) continue;
+            const key = `${mapX},${mapY}`;
+            if (this.transportPrefetches.has(key)) continue;
+            this.transportPrefetches.add(key);
+            void this.queueLoadMap(mapX, mapY).finally(() => this.transportPrefetches.delete(key));
+        }
     }
 
     async loadInstanceScene(

@@ -220,6 +220,16 @@ export function handleInboundSync(msg: any): boolean {
                     console.warn("[debug] dig area preview listener failed", err);
                 }
             }
+        } else if (payload?.kind === "transport_prefetch") {
+            try {
+                const client: any = (typeof window !== "undefined" ? window : globalThis) as any;
+                client.__osrsClient?.renderer?.prefetchTransportDestination?.(
+                    Number(payload.x) | 0,
+                    Number(payload.y) | 0,
+                );
+            } catch (err) {
+                console.warn("[transport-prefetch] failed", err);
+            }
         }
         return true;
     }

@@ -155,19 +155,32 @@ function hasRequirements(event: LocInteractionEvent, transition: ObjectTransitio
     return undefined;
 }
 
+const pendingTransitions = new Set<number>();
+
 function executeTransition(event: LocInteractionEvent, transition: ObjectTransition): void {
+    if (pendingTransitions.has(event.player.id)) return;
     const failure = hasRequirements(event, transition);
     if (failure) {
         event.services.messaging.sendGameMessage(event.player, failure);
         return;
     }
-    event.services.movement.teleportPlayer(event.player, transition.to.x, transition.to.y, transition.to.level);
+    pendingTransitions.add(event.player.id);
+    event.services.dialog.queueDebugMessage(event.player.id, {
+        kind: "transport_prefetch",
+        x: transition.to.x,
+        y: transition.to.y,
+        level: transition.to.level,
+    });
     if (transition.animationId !== undefined) {
-        // Teleport queues the stop sequence. Clear it first so this animation is visible.
+        // Keep the player at the source tile while destination data streams.
         event.player.clearPendingSeqs();
         event.services.animation.playPlayerSeq(event.player, transition.animationId);
     }
-    if (transition.message) event.services.messaging.sendGameMessage(event.player, transition.message);
+    event.services.scheduler.after(2, () => {
+        pendingTransitions.delete(event.player.id);
+        event.services.movement.teleportPlayer(event.player, transition.to.x, transition.to.y, transition.to.level);
+        if (transition.message) event.services.messaging.sendGameMessage(event.player, transition.message);
+    }, { kind: "player", id: event.player.id });
 }
 
 /**
