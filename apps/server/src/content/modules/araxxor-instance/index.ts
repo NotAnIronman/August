@@ -159,7 +159,10 @@ function registerEncounters(): void {
         if (!EncounterRegistry.shared.get(name)) registerEncounter({
             id: name, npcTypeIds: [eggId], maxHealth: 65,
             movement: { wanderRadius: 0, aggressionRadius: 0, combatLeashRadius: 0 },
-            attacks: [],
+            // The registry requires an attack definition. Eggs are spawned
+            // non-aggressive, so this zero-damage fallback is never selected
+            // in normal play; it only gives their 65 HP an encounter runtime.
+            attacks: [{ id: "inert", type: AttackType.Melee, rangeTiles: 1, speedTicks: 99, maxHit: 0 }],
         });
     }
 }
