@@ -81,6 +81,7 @@ interface AraxxorState {
     readonly eggPattern: readonly AraxyteKind[];
     nextEggAt: number;
     eggIndex: number;
+    readonly eggIds: Map<number, number>;
     enraged: boolean;
 }
 const states = new WeakMap<NpcState, AraxxorState>();
@@ -102,7 +103,7 @@ function stateFor(npc: NpcState, services: ScriptServices): AraxxorState {
                 ? ["mirrorback", "ruptura", "acidic"] as const
                 : ["ruptura", "acidic", "mirrorback"] as const;
         const special = eggPattern[0] === "acidic" ? "acid-ball" : eggPattern[0] === "mirrorback" ? "acid-splatter" : "acid-drip";
-        state = { startedAt: services.system.getCurrentTick(), normalAttacks: 0, standardAttacks: 0, special, eggPattern, nextEggAt: 3, eggIndex: 0, enraged: false };
+        state = { startedAt: services.system.getCurrentTick(), normalAttacks: 0, standardAttacks: 0, special, eggPattern, nextEggAt: 3, eggIndex: 0, eggIds: new Map(), enraged: false };
         states.set(npc, state);
     }
     return state;
@@ -194,7 +195,7 @@ function createRoom(player: PlayerState, services: ScriptServices, access: "solo
     });
     if (!room) { services.messaging.sendGameMessage(player, "Araxxor's lair is unavailable right now."); return; }
     const boss = services.npc.findNearbyNpc(player, ARAXXOR_ID, 40);
-    if (boss) configureAraxxorBoss(boss, services, true);
+    if (boss) { configureAraxxorBoss(boss, services, true); spawnEggRing(boss, player, services); }
     services.instances.markStarted(room.id);
 }
 
@@ -254,10 +255,10 @@ function acidPatches(npc: NpcState, target: PlayerState, services: ScriptService
     }));
 }
 
-function spawnSpecialAdds(npc: NpcState, target: PlayerState, services: ScriptServices, kind: AraxyteKind, eggIndex: number): void {
+function spawnEgg(npc: NpcState, target: PlayerState, services: ScriptServices, state: AraxxorState, eggIndex: number): void {
     const runtime = services.encounters.ensure(npc);
     if (!runtime) return;
-
+    const kind = state.eggPattern[eggIndex % state.eggPattern.length]!;
     const addId = kind === "mirrorback" ? MIRRORBACK_ID : kind === "ruptura" ? RUPTURA_ID : ACIDIC_ARAXYTE_ID;
     const eggId = addId === MIRRORBACK_ID ? MIRRORBACK_EGG_ID : addId === RUPTURA_ID ? RUPTURA_EGG_ID : ACIDIC_ARAXYTE_EGG_ID;
     const tile = EGG_TILES[eggIndex % EGG_TILES.length]!;
@@ -267,25 +268,35 @@ function spawnSpecialAdds(npc: NpcState, target: PlayerState, services: ScriptSe
         worldViewId: npc.worldViewId,
         ownerPlayerId: instance?.access === "solo" ? target.id : undefined,
         idleSeqId: ANIM.eggIdle, wanderRadius: 0, isAggressive: false, isImmovable: true,
-        respawns: false, lifetimeTicks: EGG_HATCH_DELAY_TICKS + 5,
+        respawns: false,
     });
     if (!egg) return;
+    state.eggIds.set(eggIndex % EGG_TILES.length, egg.id);
     runtime.ownNpc(egg.id);
     egg.suppressDefenceAnimation = true;
     services.npc.queueNpcSeq(egg, ANIM.eggSpawn);
-    services.scheduler.after(EGG_HATCH_DELAY_TICKS, () => {
-        const liveEgg = services.combat.getNpc(egg.id);
-        // Destroyed eggs are skipped. The next normal six-attack interval
-        // advances to the following egg in the fixed colour pattern.
-        if (!liveEgg) return;
-        if (services.combat.getNpc(npc.id) !== npc || npc.getHitpoints() <= 0 || !inLair(target, services) || target.worldViewId !== npc.worldViewId) return;
-        services.npc.queueNpcSeq(egg, ANIM.eggHatch);
-        services.scheduler.after(1, () => {
-            services.npc.removeNpc(egg.id);
-            const eggDamage = Math.max(0, egg.getMaxHitpoints() - egg.getHitpoints());
-            // An egg reduced below the araxyte's full health does not hatch;
-            // otherwise its damage carries into the araxyte it produces.
-            if (eggDamage >= 58) return;
+}
+
+function spawnEggRing(npc: NpcState, target: PlayerState, services: ScriptServices): void {
+    const state = stateFor(npc, services);
+    for (let index = 0; index < EGG_TILES.length; index += 1) spawnEgg(npc, target, services, state, index);
+}
+
+function hatchEgg(npc: NpcState, target: PlayerState, services: ScriptServices, state: AraxxorState, eggIndex: number): void {
+    const slot = eggIndex % EGG_TILES.length;
+    const egg = state.eggIds.get(slot) === undefined ? undefined : services.combat.getNpc(state.eggIds.get(slot)!);
+    state.eggIds.delete(slot);
+    if (!egg) { spawnEgg(npc, target, services, state, slot); return; }
+    const kind = state.eggPattern[eggIndex % state.eggPattern.length]!;
+    const addId = kind === "mirrorback" ? MIRRORBACK_ID : kind === "ruptura" ? RUPTURA_ID : ACIDIC_ARAXYTE_ID;
+    const tile = EGG_TILES[slot]!;
+    const instance = services.instances.get(target.id);
+    const runtime = services.encounters.ensure(npc);
+    services.npc.queueNpcSeq(egg, ANIM.eggHatch);
+    services.scheduler.after(1, () => {
+        const eggDamage = Math.max(0, egg.getMaxHitpoints() - egg.getHitpoints());
+        services.npc.removeNpc(egg.id);
+        if (eggDamage < 58 && services.combat.getNpc(npc.id) === npc && inLair(target, services)) {
             const add = services.npc.spawnNpc({
                 id: addId, x: tile.x, y: tile.y, level: npc.level, size: 1,
                 worldViewId: npc.worldViewId,
@@ -298,9 +309,12 @@ function spawnSpecialAdds(npc: NpcState, target: PlayerState, services: ScriptSe
             if (!add) return;
             add.suppressDrops = true;
             if (eggDamage > 0) add.applyDamage(eggDamage);
-            runtime.ownNpc(add.id);
+            runtime?.ownNpc(add.id);
             services.npc.engageCombat(add, target);
-        }, { kind: "npc", id: npc.id });
+        }
+        // Each hatching slot is immediately replenished, keeping a visible
+        // six-egg ring throughout the encounter and ready for its next turn.
+        if (services.combat.getNpc(npc.id) === npc && inLair(target, services)) spawnEgg(npc, target, services, state, slot);
     }, { kind: "npc", id: npc.id });
 }
 
@@ -316,10 +330,9 @@ function araxxorAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     if (state.normalAttacks <= 6) {
         state.standardAttacks += 1;
         if (state.standardAttacks >= state.nextEggAt) {
-            const kind = state.eggPattern[state.eggIndex % state.eggPattern.length]!;
             state.eggIndex += 1;
             state.nextEggAt += 6;
-            spawnSpecialAdds(npc, target, services, kind, state.eggIndex - 1);
+            hatchEgg(npc, target, services, state, state.eggIndex - 1);
         }
         // In the final quarter Araxxor's normal clock is four ticks, and its
         // melee becomes a three-tile cleave that leaves acid behind.
