@@ -1,4 +1,6 @@
 import { getItemDefinition } from "@server/data/items";
+import { awardPetReward } from "@server/game/followers/awardPetReward";
+import { getFollowerDefinitionByItemId } from "@server/game/followers/followerDefinitions";
 import type { ServerServices } from "@server/game/ServerServices";
 
 /**
@@ -26,6 +28,8 @@ export type GroundItemStack = {
     worldViewId: number;
     createdTick: number;
     ownerId?: number;
+    /** Internal visibility state for owned items with no expiry. */
+    privateForever?: boolean;
     privateUntilTick?: number;
     expiresTick?: number;
     staticSpawnKey?: string;
@@ -103,11 +107,12 @@ export class GroundItemManager {
         ownerId: number | undefined,
         privateUntilTick: number | undefined,
         currentTick: number,
+        privateForever = false,
     ): boolean {
         return (
             ownerId !== undefined &&
-            privateUntilTick !== undefined &&
-            privateUntilTick > currentTick
+            (privateForever ||
+                (privateUntilTick !== undefined && privateUntilTick > currentTick))
         );
     }
 
@@ -191,6 +196,13 @@ export class GroundItemManager {
         if (!(itemId > 0) || !(quantity > 0)) return undefined;
         const def = getItemDefinition(itemId);
         if (!def) return undefined;
+        if (opts?.isMonsterDrop && opts.ownerId !== undefined && getFollowerDefinitionByItemId(itemId)) {
+            const owner = this.svc.players?.getById(opts.ownerId);
+            const services = this.svc.scriptRuntime?.getServices();
+            if (owner && services) {
+                if (awardPetReward(owner, itemId, quantity, services)) return undefined;
+            }
+        }
         const key = this.tileKey(tile.x, tile.y, tile.level, worldViewId);
         const list = this.stacksByTile.get(key) ?? [];
         const isStackable = def.stackable;
@@ -216,6 +228,14 @@ export class GroundItemManager {
             duration = GROUND_ITEM_UNTRADEABLE_TOTAL_TICKS;
         }
 
+        // A default untradeable with no expiry must remain owner-only forever.
+        // Explicit privacy and wilderness visibility policies still override it.
+        const privateForever =
+            opts?.privateTicks === undefined &&
+            !(opts?.isWilderness && !opts?.isConsumable) &&
+            !def.tradeable &&
+            duration === 0;
+
         // Determine private duration
         let privateTicks: number;
         if (opts?.privateTicks !== undefined) {
@@ -223,6 +243,11 @@ export class GroundItemManager {
         } else if (opts?.isWilderness && !opts?.isConsumable) {
             // Wilderness non-consumables are immediately visible
             privateTicks = 0;
+        } else if (!def.tradeable) {
+            // Untradeables keep their owner-only visibility for their entire
+            // normal lifetime. Explicit privateTicks overrides above remain
+            // available for intentional custom behavior.
+            privateTicks = duration > 0 ? duration : 0;
         } else {
             privateTicks = Math.max(0, this.opts?.defaultPrivateTicks ?? GROUND_ITEM_PRIVATE_TICKS);
         }
@@ -231,7 +256,12 @@ export class GroundItemManager {
         const privateUntilTick = privateTicks > 0 ? currentTick + privateTicks : undefined;
         const expiresTick = duration > 0 ? currentTick + duration : undefined;
         const staticSpawnKey = opts?.staticSpawnKey;
-        const newIsPrivate = this.isPrivateForOthers(ownerId, privateUntilTick, currentTick);
+        const newIsPrivate = this.isPrivateForOthers(
+            ownerId,
+            privateUntilTick,
+            currentTick,
+            privateForever,
+        );
         const stack = isStackable
             ? list.find(
                   (entry) =>
@@ -242,6 +272,7 @@ export class GroundItemManager {
                               entry.ownerId,
                               entry.privateUntilTick,
                               currentTick,
+                              entry.privateForever === true,
                           );
                           if (existingIsPrivate !== newIsPrivate) return false;
                           if (!newIsPrivate) return true;
@@ -265,13 +296,24 @@ export class GroundItemManager {
         base.quantity += quantity;
         base.staticSpawnKey = staticSpawnKey;
         base.ownerId = newIsPrivate ? ownerId : undefined;
-        base.privateUntilTick = newIsPrivate
-            ? Math.max(base.privateUntilTick ?? 0, privateUntilTick ?? 0)
-            : undefined;
-        base.expiresTick =
-            expiresTick !== undefined
-                ? Math.max(base.expiresTick ?? 0, expiresTick)
-                : base.expiresTick;
+        const mergedPrivateForever =
+            newIsPrivate && (base.privateForever === true || privateForever);
+        base.privateForever = mergedPrivateForever ? true : undefined;
+        base.privateUntilTick =
+            newIsPrivate && !mergedPrivateForever
+                ? Math.max(base.privateUntilTick ?? 0, privateUntilTick ?? 0)
+                : undefined;
+        if (!stack) {
+            base.expiresTick = expiresTick;
+        } else {
+            // Once physical quantities share one authoritative stack, a
+            // permanent quantity cannot be expired independently. Preserve
+            // the non-expiring lifetime regardless of merge order.
+            base.expiresTick =
+                base.expiresTick === undefined || expiresTick === undefined
+                    ? undefined
+                    : Math.max(base.expiresTick, expiresTick);
+        }
         if (!stack) {
             list.push(base);
             this.stacksByTile.set(key, list);
@@ -305,8 +347,9 @@ export class GroundItemManager {
             return undefined;
         }
         if (
-            stack.privateUntilTick &&
-            stack.privateUntilTick > currentTick &&
+            (stack.privateForever === true ||
+                (stack.privateUntilTick !== undefined &&
+                    stack.privateUntilTick > currentTick)) &&
             stack.ownerId !== undefined &&
             stack.ownerId !== (requesterPlayerId ?? stack.ownerId)
         ) {
@@ -423,6 +466,18 @@ export class GroundItemManager {
                         }
                     }
                     touched = true;
+                    continue;
+                }
+                if (
+                    stack.privateForever !== true &&
+                    stack.privateUntilTick !== undefined &&
+                    stack.privateUntilTick <= currentTick
+                ) {
+                    // Preserve ownership history while making the stack public.
+                    // Clearing the deadline makes this a one-time transition,
+                    // so its serial is not bumped again on later ticks.
+                    stack.privateUntilTick = undefined;
+                    touched = true;
                 }
             }
             if (stacks.length === 0) {
@@ -469,8 +524,9 @@ export class GroundItemManager {
                 if (!list) continue;
                 for (const stack of list) {
                     if (
-                        stack.privateUntilTick &&
-                        stack.privateUntilTick > currentTick &&
+                        (stack.privateForever === true ||
+                            (stack.privateUntilTick !== undefined &&
+                                stack.privateUntilTick > currentTick)) &&
                         stack.ownerId !== undefined &&
                         stack.ownerId !== (observerPlayerId ?? stack.ownerId)
                     ) {

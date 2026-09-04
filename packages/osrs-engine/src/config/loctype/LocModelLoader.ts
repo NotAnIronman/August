@@ -9,6 +9,13 @@ import { SeqTypeLoader } from "@august/osrs-engine/config/seqtype/SeqTypeLoader"
 import { LocModelType } from "@august/osrs-engine/config/loctype/LocModelType";
 import { LocType } from "@august/osrs-engine/config/loctype/LocType";
 import { LocTypeLoader } from "@august/osrs-engine/config/loctype/LocTypeLoader";
+import { BoundedLruCache } from "@august/osrs-engine/cache/BoundedLruCache";
+
+export type LocModelCacheLimits = {
+    modelData?: number;
+    entities?: number;
+    animatedModels?: number;
+};
 
 export type ContourGroundInfo = {
     type: number;
@@ -21,8 +28,6 @@ export type ContourGroundInfo = {
 };
 
 export class LocModelLoader {
-    static mergeLocModelsCache: ModelData[] = new Array(4);
-
     modelDataCache: Map<number, ModelData>;
     entityCache: Map<number, Model | ModelData>;
     modelCache: Map<number, Model>;
@@ -34,10 +39,11 @@ export class LocModelLoader {
         readonly seqTypeLoader: SeqTypeLoader,
         readonly seqFrameLoader: SeqFrameLoader,
         readonly skeletalSeqLoader: SkeletalSeqLoader | undefined,
+        cacheLimits: LocModelCacheLimits = {},
     ) {
-        this.modelDataCache = new Map();
-        this.entityCache = new Map();
-        this.modelCache = new Map();
+        this.modelDataCache = new BoundedLruCache(cacheLimits.modelData ?? 4096);
+        this.entityCache = new BoundedLruCache(cacheLimits.entities ?? 2048);
+        this.modelCache = new BoundedLruCache(cacheLimits.animatedModels ?? 2048);
     }
 
     getModelData(id: number, mirrored: boolean): ModelData | undefined {
@@ -74,6 +80,7 @@ export class LocModelLoader {
             // const isMirrored = locType.isRotated;
 
             const modelCount = locType.models[0].length;
+            const models = modelCount > 1 ? new Array<ModelData>(modelCount) : undefined;
 
             for (let i = 0; i < modelCount; i++) {
                 const modelId = locType.models[0][i];
@@ -83,13 +90,13 @@ export class LocModelLoader {
                     return undefined;
                 }
 
-                if (modelCount > 1) {
-                    LocModelLoader.mergeLocModelsCache[i] = model;
+                if (models) {
+                    models[i] = model;
                 }
             }
 
-            if (modelCount > 1) {
-                model = ModelData.merge(LocModelLoader.mergeLocModelsCache, modelCount);
+            if (models) {
+                model = ModelData.merge(models, modelCount);
             }
         } else {
             let index = -1;
@@ -109,6 +116,7 @@ export class LocModelLoader {
 
             const modelIds = locType.models[index];
             const modelCount = modelIds.length;
+            const models = modelCount > 1 ? new Array<ModelData>(modelCount) : undefined;
             for (let i = 0; i < modelCount; i++) {
                 const modelId = modelIds[i];
 
@@ -117,13 +125,13 @@ export class LocModelLoader {
                     return undefined;
                 }
 
-                if (modelCount > 1) {
-                    LocModelLoader.mergeLocModelsCache[i] = model;
+                if (models) {
+                    models[i] = model;
                 }
             }
 
-            if (modelCount > 1) {
-                model = ModelData.merge(LocModelLoader.mergeLocModelsCache, modelCount);
+            if (models) {
+                model = ModelData.merge(models, modelCount);
             }
         }
 

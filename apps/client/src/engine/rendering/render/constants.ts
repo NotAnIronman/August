@@ -1,6 +1,7 @@
 import { clamp } from "@august/game-model/math/MathUtil";
-import { formatActorNameWithLevel } from "@client/ui/runtime/menu/MenuBridge";
+import { getPublicAssetUrl } from "@client/core/config/publicAssets";
 import type { SdMapData } from "@client/engine/rendering/loader/SdMapData";
+import { formatActorNameWithLevel } from "@client/ui/runtime/menu/MenuBridge";
 
 const MAX_TEXTURES = 1024;
 const TEXTURE_SIZE = 128;
@@ -9,11 +10,11 @@ const WATER_FLAG_HAS_FOAM = 1;
 const WATER_FLAG_NORMAL_MAP_2 = 2;
 const WATER_TEXTURE_SIZE = 128;
 const WATER_TEXTURE_ASSETS = [
-    "/images/water/water-normal-map-1.png",
-    "/images/water/water-normal-map-2.png",
-    "/images/water/water-flow-map.png",
-    "/images/water/water-foam.jpg",
-    "/images/water/caustics-map.jpg",
+    getPublicAssetUrl("images/water/water-normal-map-1.png"),
+    getPublicAssetUrl("images/water/water-normal-map-2.png"),
+    getPublicAssetUrl("images/water/water-flow-map.png"),
+    getPublicAssetUrl("images/water/water-foam.jpg"),
+    getPublicAssetUrl("images/water/caustics-map.jpg"),
 ] as const;
 
 export interface WaterMaterialParams {
@@ -329,26 +330,8 @@ export function formatPlayerCombatLabel(
 }
 
 export {
-    MAX_TEXTURES,
-    TEXTURE_SIZE,
-    MATERIAL_TEXTURE_ROWS,
-    WATER_FLAG_HAS_FOAM,
-    WATER_FLAG_NORMAL_MAP_2,
-    WATER_TEXTURE_SIZE,
-    WATER_TEXTURE_ASSETS,
-    MAX_HIT_ENTRIES,
-    DEFAULT_NPC_HEALTH,
-    MAX_ESTIMATED_HEALTH,
-    OVERHEAD_CHAT_COLOR_TABLE,
-    DEFAULT_OVERHEAD_CHAT_COLOR_ID,
-    DEFAULT_OVERHEAD_CHAT_COLOR,
-    MAX_CLIENT_TICKS_PER_FRAME,
-    MAX_CLIENT_TICK_DEBT,
-    DEFAULT_WATER_MATERIAL,
-    SWAMP_WATER_MATERIAL,
-    ICE_WATER_MATERIAL,
-    VANILLA_WATER_SURFACE_COLORS,
-    optimizeAssumingFlatsHaveSameFirstAndLastData,
+    DEFAULT_NPC_HEALTH,DEFAULT_OVERHEAD_CHAT_COLOR,DEFAULT_OVERHEAD_CHAT_COLOR_ID,DEFAULT_WATER_MATERIAL,ICE_WATER_MATERIAL,MATERIAL_TEXTURE_ROWS,MAX_CLIENT_TICK_DEBT,MAX_CLIENT_TICKS_PER_FRAME,MAX_ESTIMATED_HEALTH,MAX_HIT_ENTRIES,MAX_TEXTURES,optimizeAssumingFlatsHaveSameFirstAndLastData,OVERHEAD_CHAT_COLOR_TABLE,SWAMP_WATER_MATERIAL,TEXTURE_SIZE,VANILLA_WATER_SURFACE_COLORS,WATER_FLAG_HAS_FOAM,
+    WATER_FLAG_NORMAL_MAP_2,WATER_TEXTURE_ASSETS,WATER_TEXTURE_SIZE
 };
 
 export const RENDER_CONSTANTS = {

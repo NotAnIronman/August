@@ -1,253 +1,108 @@
-import { BossScript, registerBossScript } from "@server/game/combat/BossScriptFramework";
+import { attack, defineBoss, phase } from "@server/game/encounters/BossDefinition";
+import { registerOwnedEncounter } from "@server/game/encounters/EncounterRegistry";
+import type { IScriptRegistry } from "@server/game/scripts/types";
 
-export {
-    BossScript,
-    BossPhase,
-    BossSpecialAttack,
-    BossMechanic,
-    registerBossScript,
-    getBossScript,
-    createBossScript,
-} from "@server/game/combat/BossScriptFramework";
+/**
+ * Registers the non-instanced vanilla bosses that predate content modules.
+ *
+ * General Graardor intentionally does not appear here: the Bandos provider is
+ * his sole authoritative definition. Empty legacy callbacks (Mole burrowing,
+ * Zulrah clouds/adds and form animation comments) are not presented as live
+ * mechanics; they can be added as real encounter callbacks when implemented.
+ */
+export function registerBossCombatEncounters(registry: IScriptRegistry): void {
+    registerOwnedEncounter(registry, defineBoss({
+        id: "giant-mole",
+        npcTypeIds: [5779],
+        attacks: [
+            attack.melee({
+                id: "claw",
+                speedTicks: 4,
+                maxHit: 21,
+                animationId: 3312,
+                effects: { minimumHit: 1 },
+            }),
+            attack.melee({
+                id: "stomp",
+                speedTicks: 6,
+                maxHit: 30,
+                animationId: 3313,
+                effects: { minimumHit: 5 },
+            }),
+        ],
+    }));
 
-// ============================================
-// Boss Implementations
-// ============================================
+    registerOwnedEncounter(registry, defineBoss({
+        id: "dagannoth-rex",
+        npcTypeIds: [2265],
+        attacks: [attack.melee({
+            id: "melee",
+            speedTicks: 4,
+            maxHit: 26,
+            animationId: 2853,
+            effects: { minimumHit: 1 },
+        })],
+    }));
 
-class GiantMoleScript extends BossScript {
-    protected initialize(): void {
-        this.addPhase({
-            name: "Normal",
-            attackPatterns: ["claw", "stomp"],
-            mechanics: ["dig_escape"],
-        });
+    registerOwnedEncounter(registry, defineBoss({
+        id: "dagannoth-prime",
+        npcTypeIds: [2266],
+        attacks: [attack.magic({
+            id: "magic",
+            speedTicks: 4,
+            maxHit: 50,
+            animationId: 2854,
+            projectileId: 162,
+            effects: { minimumHit: 1 },
+        })],
+    }));
 
-        this.addSpecialAttack({
-            name: "claw",
-            cooldown: 4,
-            animation: 3312,
-            minDamage: 1,
-            maxDamage: 21,
-            style: "melee",
-        });
+    registerOwnedEncounter(registry, defineBoss({
+        id: "dagannoth-supreme",
+        npcTypeIds: [2267],
+        attacks: [attack.ranged({
+            id: "ranged",
+            speedTicks: 4,
+            maxHit: 30,
+            animationId: 2855,
+            projectileId: 294,
+            effects: { minimumHit: 1 },
+        })],
+    }));
 
-        this.addSpecialAttack({
-            name: "stomp",
-            cooldown: 6,
-            animation: 3313,
-            minDamage: 5,
-            maxDamage: 30,
-            style: "melee",
-            aoeRadius: 1,
-        });
-
-        this.addMechanic({
-            name: "dig_escape",
-            interval: 10,
-            shouldActivate: (boss) => {
-                const npc = boss.getNpc();
-                const hpPercent = npc.getHitpoints() / npc.getMaxHitpoints();
-                return hpPercent < 0.5 && Math.random() < 0.15;
-            },
-            tick: (boss) => {
-                // Teleport to random location in lair
-            },
-        });
-    }
+    registerOwnedEncounter(registry, defineBoss({
+        id: "zulrah",
+        npcTypeIds: [2042, 2043, 2044],
+        attacks: [
+            attack.ranged({
+                id: "ranged",
+                speedTicks: 4,
+                maxHit: 41,
+                animationId: 5069,
+                projectileId: 1044,
+                effects: { minimumHit: 1 },
+            }),
+            attack.magic({
+                id: "magic",
+                speedTicks: 4,
+                maxHit: 41,
+                animationId: 5069,
+                projectileId: 1046,
+                effects: { minimumHit: 1 },
+            }),
+            attack.melee({
+                id: "melee",
+                speedTicks: 3,
+                maxHit: 32,
+                animationId: 5806,
+                effects: { minimumHit: 1 },
+            }),
+        ],
+        phases: [
+            phase.atHealth("green", 100, ["ranged"]),
+            phase.atHealth("blue", 75, ["magic"]),
+            phase.atHealth("red", 50, ["melee"]),
+            phase.atHealth("green-final", 25, ["ranged"]),
+        ],
+    }));
 }
-
-class DagannothRexScript extends BossScript {
-    protected initialize(): void {
-        this.addPhase({
-            name: "Normal",
-            attackPatterns: ["melee_attack"],
-        });
-
-        this.addSpecialAttack({
-            name: "melee_attack",
-            cooldown: 4,
-            animation: 2853,
-            minDamage: 1,
-            maxDamage: 26,
-            style: "melee",
-        });
-    }
-
-    protected getAttackSpeed(): number {
-        return 4;
-    }
-}
-
-class DagannothPrimeScript extends BossScript {
-    protected initialize(): void {
-        this.addPhase({
-            name: "Normal",
-            attackPatterns: ["magic_attack"],
-        });
-
-        this.addSpecialAttack({
-            name: "magic_attack",
-            cooldown: 4,
-            animation: 2854,
-            projectile: 162,
-            minDamage: 1,
-            maxDamage: 50,
-            style: "magic",
-        });
-    }
-}
-
-class DagannothSupremeScript extends BossScript {
-    protected initialize(): void {
-        this.addPhase({
-            name: "Normal",
-            attackPatterns: ["ranged_attack"],
-        });
-
-        this.addSpecialAttack({
-            name: "ranged_attack",
-            cooldown: 4,
-            animation: 2855,
-            projectile: 294,
-            minDamage: 1,
-            maxDamage: 30,
-            style: "ranged",
-        });
-    }
-}
-
-class GeneralGraardorScript extends BossScript {
-    protected initialize(): void {
-        this.addPhase({
-            name: "Normal",
-            attackPatterns: ["melee_attack", "ranged_attack"],
-        });
-
-        this.addSpecialAttack({
-            name: "melee_attack",
-            cooldown: 6,
-            animation: 7018,
-            minDamage: 1,
-            maxDamage: 60,
-            style: "melee",
-        });
-
-        this.addSpecialAttack({
-            name: "ranged_attack",
-            cooldown: 6,
-            animation: 7021,
-            minDamage: 1,
-            maxDamage: 35,
-            style: "ranged",
-            aoeRadius: 15,
-            condition: (boss) => {
-                return Math.random() < 0.33;
-            },
-        });
-    }
-
-    protected getAttackSpeed(): number {
-        return 6;
-    }
-}
-
-class ZulrahScript extends BossScript {
-    protected initialize(): void {
-        this.addPhase({
-            name: "Green",
-            attackPatterns: ["ranged_attack", "venom_cloud"],
-            hpThresholdPercent: 100,
-        });
-
-        this.addPhase({
-            name: "Blue",
-            attackPatterns: ["magic_attack", "venom_cloud"],
-            hpThresholdPercent: 75,
-            onEnter: (boss) => {
-                // boss.getNpc().setTransformation(2043);
-            },
-        });
-
-        this.addPhase({
-            name: "Red",
-            attackPatterns: ["melee_attack"],
-            hpThresholdPercent: 50,
-            onEnter: (boss) => {
-                // boss.getNpc().setTransformation(2044);
-            },
-        });
-
-        this.addPhase({
-            name: "Green Final",
-            attackPatterns: ["ranged_attack", "venom_cloud", "snakeling"],
-            hpThresholdPercent: 25,
-            onEnter: (boss) => {
-                // boss.getNpc().setTransformation(2042);
-            },
-        });
-
-        this.addSpecialAttack({
-            name: "ranged_attack",
-            cooldown: 4,
-            animation: 5069,
-            projectile: 1044,
-            minDamage: 1,
-            maxDamage: 41,
-            style: "ranged",
-        });
-
-        this.addSpecialAttack({
-            name: "magic_attack",
-            cooldown: 4,
-            animation: 5069,
-            projectile: 1046,
-            minDamage: 1,
-            maxDamage: 41,
-            style: "magic",
-        });
-
-        this.addSpecialAttack({
-            name: "melee_attack",
-            cooldown: 3,
-            animation: 5806,
-            minDamage: 1,
-            maxDamage: 32,
-            style: "melee",
-        });
-
-        this.addSpecialAttack({
-            name: "venom_cloud",
-            cooldown: 12,
-            animation: 5069,
-            minDamage: 0,
-            maxDamage: 0,
-            style: "typeless",
-            execute: (boss, target) => {
-                // Spawn venom cloud at target location
-            },
-        });
-
-        this.addSpecialAttack({
-            name: "snakeling",
-            cooldown: 20,
-            animation: 5069,
-            minDamage: 0,
-            maxDamage: 0,
-            style: "typeless",
-            execute: (boss, target) => {
-                // Spawn snakeling NPCs
-            },
-        });
-    }
-
-    protected getAttackSpeed(): number {
-        return 4;
-    }
-}
-
-registerBossScript(5779, GiantMoleScript); // Giant Mole
-registerBossScript(2265, DagannothRexScript); // Dagannoth Rex
-registerBossScript(2266, DagannothPrimeScript); // Dagannoth Prime
-registerBossScript(2267, DagannothSupremeScript); // Dagannoth Supreme
-registerBossScript(2215, GeneralGraardorScript); // General Graardor
-registerBossScript(2042, ZulrahScript); // Zulrah

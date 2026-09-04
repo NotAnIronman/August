@@ -7,12 +7,14 @@ import {
 import type { ServerServices } from "@server/game/ServerServices";
 import {
     InstanceBossHealthBarLifecycle,
+    deriveBossHealthBarMarkers,
     type BossHealthBarSnapshot,
     type InstanceBossHealthBarLifecyclePort,
 } from "@server/game/encounters/BossHealthBar";
+import type { BossHealthBarMarker } from "@august/protocol/ui/bossHealthBar";
 import { EncounterRegistry } from "@server/game/encounters/EncounterRegistry";
 import type { EncounterDefinition } from "@server/game/encounters/EncounterTypes";
-import type { NpcSpawnConfig } from "@server/game/npc";
+import type { NpcSpawnConfig, NpcState } from "@server/game/npc";
 import type { PlayerState } from "@server/game/player";
 import type { InstanceGraveLocation } from "@server/game/state/PlayerInstanceGraveState";
 import type { TemporaryLocChange } from "@server/game/services/LocationService";
@@ -101,6 +103,7 @@ interface InstanceRuntime {
         readonly definition: EncounterDefinition;
         readonly displayNpcTypeId: number;
         readonly name: string;
+        readonly markers: readonly BossHealthBarMarker[];
         lastMaximum: number;
     };
     started: boolean;
@@ -285,6 +288,55 @@ export class InstancedAreaManager {
         return Object.freeze(players);
     }
 
+    /**
+     * Attaches an NPC spawned after instance creation to that instance's
+     * visibility, cleanup, and boss-HUD lifecycle.
+     */
+    attachNpc(instanceId: string, npc: NpcState): boolean {
+        const runtime = this.instancesById.get(instanceId);
+        const liveNpc = this.services.npcManager?.getById(npc.id);
+        if (!runtime || liveNpc !== npc || npc.worldViewId !== runtime.worldViewId) return false;
+
+        runtime.npcRuntimeIds.add(npc.id);
+        for (const player of this.getMemberPlayers(instanceId)) {
+            player.instanceNpcIds.add(npc.id);
+        }
+
+        const bossHealthBarChanged = this.captureBossHealthBar(
+            runtime,
+            npc.typeId,
+            () => npc.getMaxHitpoints(),
+        );
+        if (bossHealthBarChanged) {
+            for (const player of this.getMemberPlayers(instanceId)) {
+                this.enterBossHealthBar(player, runtime);
+            }
+        }
+        return true;
+    }
+
+    /** Reattaches an NPC whose stable runtime id has returned from a queued respawn. */
+    attachNpcByWorldView(npc: NpcState): boolean {
+        const runtime = [...this.instancesById.values()].find(
+            (candidate) => candidate.worldViewId === npc.worldViewId,
+        );
+        return runtime ? this.attachNpc(runtime.id, npc) : false;
+    }
+
+    /** Releases a physically removed NPC before its runtime id can be recycled. */
+    detachNpc(npcRuntimeId: number): boolean {
+        const normalizedId = Math.trunc(npcRuntimeId);
+        let detached = false;
+        for (const runtime of this.instancesById.values()) {
+            if (!runtime.npcRuntimeIds.delete(normalizedId)) continue;
+            detached = true;
+            for (const player of this.getMemberPlayers(runtime.id)) {
+                player.instanceNpcIds.delete(normalizedId);
+            }
+        }
+        return detached;
+    }
+
     listJoinable(definitionId?: string): readonly QuestInstanceHandle[] {
         const matches: QuestInstanceHandle[] = [];
         for (const runtime of this.instancesById.values()) {
@@ -375,7 +427,7 @@ export class InstancedAreaManager {
         return this.dispose(player, destination);
     }
 
-    /** Refreshes health and repairs a displaced native HUD mount for every member. */
+    /** Sends a changed authoritative boss-HUD snapshot to every member. */
     syncBossHealthBars(): void {
         this.bossHealthBars.sync();
     }
@@ -389,20 +441,30 @@ export class InstancedAreaManager {
         runtime: InstanceRuntime,
         npcTypeId: number,
         getMaximum: () => number,
-    ): void {
-        if (runtime.bossHealthBar) return;
+    ): boolean {
         const definition = EncounterRegistry.shared.findByNpcTypeId(npcTypeId);
         const metadata = definition?.bossHealthBar;
-        if (!definition || !metadata) return;
+        if (!definition || !metadata) return false;
+        const maximum = Math.max(1, Math.trunc(getMaximum() || definition.maxHealth || 1));
+        const current = runtime.bossHealthBar;
+        if (current?.definition === definition) return false;
+        if (current) {
+            const currentBossIsLive = [...runtime.npcRuntimeIds].some((npcId) => {
+                const npc = this.services.npcManager?.getById(npcId);
+                return npc !== undefined &&
+                    npc.getHitpoints() > 0 &&
+                    current.definition.npcTypeIds.includes(npc.typeId);
+            });
+            if (currentBossIsLive) return false;
+        }
         runtime.bossHealthBar = {
             definition,
             displayNpcTypeId: metadata.npcTypeId ?? definition.npcTypeIds[0] ?? npcTypeId,
             name: metadata.name,
-            lastMaximum: Math.max(
-                1,
-                Math.trunc(getMaximum() || definition.maxHealth || 1),
-            ),
+            markers: deriveBossHealthBarMarkers(definition),
+            lastMaximum: maximum,
         };
+        return true;
     }
 
     private enterBossHealthBar(player: PlayerState, runtime: InstanceRuntime): void {
@@ -415,13 +477,14 @@ export class InstancedAreaManager {
     ): BossHealthBarSnapshot | undefined {
         const healthBar = runtime.bossHealthBar;
         if (!healthBar) return undefined;
-        const boss = [...runtime.npcRuntimeIds]
+        const matchingBosses = [...runtime.npcRuntimeIds]
             .map((npcId) => this.services.npcManager?.getById(npcId))
-            .find(
-                (npc) =>
+            .filter(
+                (npc): npc is NpcState =>
                     npc !== undefined &&
                     healthBar.definition.npcTypeIds.includes(npc.typeId),
             );
+        const boss = matchingBosses.find((npc) => npc.getHitpoints() > 0) ?? matchingBosses[0];
         if (boss) {
             healthBar.lastMaximum = Math.max(1, boss.getMaxHitpoints());
         }
@@ -430,6 +493,7 @@ export class InstancedAreaManager {
             name: healthBar.name,
             current: Math.max(0, boss?.getHitpoints() ?? 0),
             maximum: healthBar.lastMaximum,
+            markers: healthBar.markers,
         };
     }
 

@@ -1,4 +1,5 @@
 import { WebSocket } from "ws";
+import { deliverPendingPetRewards } from "@server/game/followers/awardPetReward";
 
 import {
     VARBIT_IN_LMS,
@@ -189,6 +190,10 @@ export class TickPhaseService {
                 const activeNpcIds = new Set<number>();
                 if (players) {
                     players.forEach((_client, player) => {
+                        if (player.followers.getPendingRewards().length && frame.tick % 5 === 0) {
+                            const services = this.svc.scriptRuntime?.getServices();
+                            if (services) deliverPendingPetRewards(player, services);
+                        }
                         npcManager.collectNearbyIds(
                             player.tileX,
                             player.tileY,
@@ -877,6 +882,10 @@ export class TickPhaseService {
             this.svc.instancedAreaManager?.dispose(player);
             this.svc.npcManager?.removeNpcsOwnedByPlayer(player.id);
             this.svc.locationService.clearTemporaryLocsOwnedByPlayer(player.id);
+            this.svc.eventBus.emit("player:logout", {
+                playerId: player.id,
+                username: player.name ?? "unknown",
+            });
             this.svc.actionScheduler.unregisterPlayer(player.id);
         });
     }

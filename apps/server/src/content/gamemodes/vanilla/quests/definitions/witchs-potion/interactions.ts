@@ -1,4 +1,8 @@
 import type { PlayerState } from "@server/game/player";
+import {
+    registerEventSubscription,
+    registerPlayerScopedCollections,
+} from "@server/game/scripts/ScriptLifecycle";
 import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
 import { completeQuest, getQuestStage } from "@server/content/gamemodes/vanilla/quests/QuestService";
 import { sayPlayer, startConversation, type DialogueContext } from "@server/content/gamemodes/vanilla/quests/dialogue";
@@ -15,28 +19,36 @@ import {
 } from "@server/content/gamemodes/vanilla/quests/definitions/witchs-potion/constants";
 
 const knownPlayers = new Map<number, PlayerState>();
-const registeredEventBuses = new WeakSet<object>();
 
-function registerRatTailDrops(quest: QuestDefinition, services: ScriptServices): void {
+function registerRatTailDrops(
+    quest: QuestDefinition,
+    registry: IScriptRegistry,
+    services: ScriptServices,
+): void {
     const eventBus = services.system.eventBus;
-    if (!eventBus || registeredEventBuses.has(eventBus)) return;
-    registeredEventBuses.add(eventBus);
-    eventBus.on("player:login", ({ player }) => knownPlayers.set(player.id, player));
-    eventBus.on("player:logout", ({ playerId }) => knownPlayers.delete(playerId));
-    eventBus.on("npc:death", ({ npcTypeId, killerPlayerId, tile }) => {
-        if (killerPlayerId === undefined || !RAT_NPC_IDS.some((ratId) => ratId === npcTypeId)) return;
-        const player = knownPlayers.get(killerPlayerId);
-        if (!player) return;
-        const stage = getQuestStage(player, quest);
-        if (stage < STAGE_STARTED || stage >= STAGE_COMPLETE) return;
-        if (services.inventory.findOwnedItemLocation(player, RATS_TAIL_ITEM_ID)) return;
-        services.groundItems.spawn(RATS_TAIL_ITEM_ID, 1, tile, {
-            ownerId: killerPlayerId,
-            privateTicks: 100,
-            durationTicks: 200,
-            isMonsterDrop: true,
-        });
-    });
+    if (!eventBus) return;
+    registerPlayerScopedCollections(registry, services, knownPlayers);
+    registerEventSubscription(
+        registry,
+        eventBus.on("player:login", ({ player }) => knownPlayers.set(player.id, player)),
+    );
+    registerEventSubscription(
+        registry,
+        eventBus.on("npc:death", ({ npcTypeId, killerPlayerId, tile }) => {
+            if (killerPlayerId === undefined || !RAT_NPC_IDS.some((ratId) => ratId === npcTypeId)) return;
+            const player = knownPlayers.get(killerPlayerId);
+            if (!player) return;
+            const stage = getQuestStage(player, quest);
+            if (stage < STAGE_STARTED || stage >= STAGE_COMPLETE) return;
+            if (services.inventory.findOwnedItemLocation(player, RATS_TAIL_ITEM_ID)) return;
+            services.groundItems.spawn(RATS_TAIL_ITEM_ID, 1, tile, {
+                ownerId: killerPlayerId,
+                privateTicks: 100,
+                durationTicks: 200,
+                isMonsterDrop: true,
+            });
+        }),
+    );
 }
 
 export function registerWitchsPotionInteractions(
@@ -73,5 +85,5 @@ export function registerWitchsPotionInteractions(
         },
     });
 
-    registerRatTailDrops(quest, services);
+    registerRatTailDrops(quest, registry, services);
 }

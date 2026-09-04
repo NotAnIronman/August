@@ -23,6 +23,9 @@ function recordBossKill(player: PlayerState, npc: NpcState, services: ScriptServ
     }
 }
 
-export function register(_registry: IScriptRegistry, services: ScriptServices): void {
-    services.combat.registerOnNpcKilled?.((killer, npc) => recordBossKill(killer, npc, services));
+export function register(registry: IScriptRegistry, services: ScriptServices): void {
+    const unregister = services.combat.registerOnNpcKilled?.((killer, npc) =>
+        recordBossKill(killer, npc, services),
+    );
+    if (unregister) registry.registerCleanup(unregister);
 }

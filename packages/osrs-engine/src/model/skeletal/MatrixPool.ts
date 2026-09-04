@@ -23,7 +23,7 @@ export class MatrixPool {
     }
 
     static release(m: mat4): void {
-        if (MatrixPool.matrixIndex < MatrixPool.matrixLimit - 1) {
+        if (MatrixPool.matrixIndex < MatrixPool.matrixLimit) {
             MatrixPool.matrixPool[MatrixPool.matrixIndex++] = m;
         }
     }

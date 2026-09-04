@@ -5,6 +5,8 @@ import {
 } from "@server/game/model/timer/Timers";
 import type { PlayerState } from "@server/game/player";
 import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
+import { secondsToTicks } from "@server/game/scripts/timing";
+import { logger } from "@server/observability/logger";
 import { type ConsumableProfile, scheduleConsumableAction } from "@server/content/gamemodes/vanilla/skills/consumables/consumableActions";
 
 // ============================================================================
@@ -18,18 +20,6 @@ const EAT_SEQ = 829;
 const DRINK_SEQ = 829;
 const EAT_SOUND = 2393;
 const DRINK_SOUND = 2401;
-const DEFAULT_TICK_MS = (() => {
-    const raw = process.env.TICK_MS;
-    if (!raw) return 600;
-    const n = parseInt(raw, 10);
-    return Number.isFinite(n) && n > 0 ? n : 600;
-})();
-
-const secondsToTicks = (seconds?: number): number => {
-    if (!seconds || !Number.isFinite(seconds)) return 0;
-    return Math.max(1, Math.round((seconds * 1000) / Math.max(1, DEFAULT_TICK_MS)));
-};
-
 const formatDoseMessage = (dosesAfter: number): string => {
     if (dosesAfter <= 0) return "You have finished your potion.";
     return `You have ${dosesAfter} dose${dosesAfter === 1 ? "" : "s"} of potion left.`;
@@ -126,10 +116,6 @@ const readEnvPositiveInt = (key: string): number | undefined => {
     return Number.isFinite(n) && n > 0 ? n : undefined;
 };
 const configuredStaminaDurationTicks = readEnvPositiveInt("STAMINA_DURATION_TICKS");
-const STAMINA_MIX_DURATION_TICKS =
-    configuredStaminaDurationTicks !== undefined
-        ? configuredStaminaDurationTicks
-        : Math.max(1, Math.round((STAMINA_BASE_SECONDS * 1000) / Math.max(1, DEFAULT_TICK_MS)));
 const STAMINA_MIX_MULTIPLIER = 0.3;
 
 type SkillBoostEffect = {
@@ -362,7 +348,9 @@ const STAMINA_MIX_DEFS: RunEnergyConsumableDef[] = [
         healAmount: 6,
         consumeMessage: "You drink some of your stamina mix.",
         staminaMultiplier: STAMINA_MIX_MULTIPLIER,
-        staminaDurationTicks: STAMINA_MIX_DURATION_TICKS,
+        staminaDurationTicks: configuredStaminaDurationTicks,
+        staminaDurationSeconds:
+            configuredStaminaDurationTicks === undefined ? STAMINA_BASE_SECONDS : undefined,
     },
     {
         itemId: 12635,
@@ -373,7 +361,9 @@ const STAMINA_MIX_DEFS: RunEnergyConsumableDef[] = [
         healAmount: 6,
         consumeMessage: "You drink some of your stamina mix.",
         staminaMultiplier: STAMINA_MIX_MULTIPLIER,
-        staminaDurationTicks: STAMINA_MIX_DURATION_TICKS,
+        staminaDurationTicks: configuredStaminaDurationTicks,
+        staminaDurationSeconds:
+            configuredStaminaDurationTicks === undefined ? STAMINA_BASE_SECONDS : undefined,
     },
 ];
 
@@ -402,10 +392,6 @@ const STAMINA_RUN_ENERGY_BOOST = 20;
 const STAMINA_EFFECT_MULTIPLIER = 0.3;
 const STAMINA_EFFECT_SECONDS = 120;
 const configuredStaminaEffectDurationTicks = readEnvPositiveInt("STAMINA_DURATION_TICKS");
-const STAMINA_DURATION_TICKS =
-    configuredStaminaEffectDurationTicks !== undefined
-        ? configuredStaminaEffectDurationTicks
-        : Math.max(1, Math.round((STAMINA_EFFECT_SECONDS * 1000) / Math.max(1, DEFAULT_TICK_MS)));
 
 type StaminaPotionDef = { itemId: number; nextItemId: number; dosesAfter: number };
 
@@ -852,7 +838,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                     },
                 });
                 if (!ok) {
-                    console.log(`[script:food] consume rejected item=${def.itemId}`);
+                    logger.debug(`[script:food] consume rejected item=${def.itemId}`);
                 }
             },
             option,
@@ -924,7 +910,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                         if (def.staminaMultiplier !== undefined) {
                             const durationTicks =
                                 def.staminaDurationTicks ??
-                                secondsToTicks(def.staminaDurationSeconds);
+                                secondsToTicks(services, def.staminaDurationSeconds);
                             if (durationTicks > 0) {
                                 player.energy.applyStaminaEffect(
                                     actionTick,
@@ -949,7 +935,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                     },
                 });
                 if (!ok) {
-                    console.log(`[script:energy] consume rejected item=${def.itemId}`);
+                    logger.debug(`[script:energy] consume rejected item=${def.itemId}`);
                 }
             },
             option,
@@ -975,7 +961,8 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                         player.energy.adjustRunEnergyPercent(STAMINA_RUN_ENERGY_BOOST);
                         player.energy.applyStaminaEffect(
                             actionTick,
-                            STAMINA_DURATION_TICKS,
+                            configuredStaminaEffectDurationTicks ??
+                                secondsToTicks(services, STAMINA_EFFECT_SECONDS),
                             STAMINA_EFFECT_MULTIPLIER,
                         );
                         services.animation.playPlayerSeq(player, DRINK_SEQ);
@@ -996,7 +983,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                     },
                 });
                 if (!ok) {
-                    console.log(`[script:stamina] consume rejected item=${def.itemId}`);
+                    logger.debug(`[script:stamina] consume rejected item=${def.itemId}`);
                 }
             },
             "drink",
@@ -1021,7 +1008,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                         setInventorySlot(player, slot, def.nextItemId, 1);
                         player.timers.set(
                             def.superAntifire ? SUPER_ANTIFIRE_TIMER : ANTIFIRE_TIMER,
-                            secondsToTicks(def.durationSeconds),
+                            secondsToTicks(services, def.durationSeconds),
                         );
                         services.animation.playPlayerSeq(player, DRINK_SEQ);
                         services.sound.playAreaSound({
@@ -1041,7 +1028,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                     },
                 });
                 if (!ok) {
-                    console.log(`[script:antifire] consume rejected item=${def.itemId}`);
+                    logger.debug(`[script:antifire] consume rejected item=${def.itemId}`);
                 }
             },
             "drink",
@@ -1095,7 +1082,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                     },
                 });
                 if (!ok) {
-                    console.log(`[script:prayer-restores] consume rejected item=${def.itemId}`);
+                    logger.debug(`[script:prayer-restores] consume rejected item=${def.itemId}`);
                 }
             },
             option,
@@ -1139,7 +1126,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                     },
                 });
                 if (!ok) {
-                    console.log(`[script:combat-potions] consume rejected item=${def.itemId}`);
+                    logger.debug(`[script:combat-potions] consume rejected item=${def.itemId}`);
                 }
             },
             "drink",

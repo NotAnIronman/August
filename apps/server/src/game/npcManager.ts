@@ -14,7 +14,6 @@ import { PathService } from "@server/pathfinding/PathService";
 import { CollisionFlag } from "@server/pathfinding/engine/flag/CollisionFlag";
 import { logger } from "@server/observability/logger";
 import { MapCollisionService } from "@server/world/MapCollisionService";
-import { BossScript, createBossScript } from "@server/game/combat/BossScriptFramework";
 import { damageTracker } from "@server/game/combat/DamageTracker";
 import { interceptFrozenCombatMovement } from "@server/game/combat/engine/CombatMovementInterceptor";
 import { StatusHitsplat } from "@server/game/combat/HitEffects";
@@ -248,8 +247,6 @@ export class NpcManager {
         number,
         { killerPlayerId: number; deathTick: number }
     >();
-    // Boss scripts for NPCs with complex combat behaviors
-    private readonly bossScripts = new Map<number, BossScript>();
     private readonly lifetimeExpiryTicks = new Map<number, number>();
     private currentTick = 0;
 
@@ -462,11 +459,6 @@ export class NpcManager {
             kind: "spawn",
         });
 
-        // Initialize boss script if this NPC has one registered
-        const bossScript = createBossScript(npc);
-        if (bossScript) {
-            this.bossScripts.set(id, bossScript);
-        }
         return npc;
     }
 
@@ -629,11 +621,6 @@ export class NpcManager {
         npc.clearPath();
         npc.clearInteraction();
 
-        const bossScript = this.bossScripts.get(normalizedId);
-        if (bossScript) {
-            bossScript.onDeath();
-            this.bossScripts.delete(normalizedId);
-        }
         return true;
     }
 
@@ -707,13 +694,6 @@ export class NpcManager {
         this.removeFromIndices(npc);
         npc.clearPath();
         npc.clearInteraction();
-
-        // Clean up boss script and call death handler
-        const bossScript = this.bossScripts.get(normalizedId);
-        if (bossScript) {
-            bossScript.onDeath();
-            this.bossScripts.delete(normalizedId);
-        }
 
         this.pendingRespawns.set(normalizedId, {
             npc,
@@ -1085,11 +1065,6 @@ export class NpcManager {
                     ? false
                     : this.movementProcessor.processEntity(npc, currentTick);
 
-                // Tick boss script if present
-                const bossScript = this.bossScripts.get(npc.id);
-                if (bossScript && !spawnAnimationLocked) {
-                    bossScript.tick(currentTick);
-                }
                 const stepPos = npc.drainStepPositions();
                 const didMove = npc.didMove();
                 const didTurn = npc.didTurn();
@@ -1821,11 +1796,6 @@ export class NpcManager {
                 kind: "respawn",
             });
 
-            // Re-initialize boss script if applicable
-            const bossScript = createBossScript(npc);
-            if (bossScript) {
-                this.bossScripts.set(npc.id, bossScript);
-            }
         }
     }
 }

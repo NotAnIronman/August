@@ -253,6 +253,22 @@ const LOG_SEEDS: LogSeed[] = [
             },
         ],
     },
+    {
+        // Redwood logs only make arrow shafts.  They intentionally do not
+        // expose bow choices in the knife menu.
+        logItemId: 19669,
+        seeds: [
+            {
+                suffix: "arrow_shafts",
+                productItemId: 52,
+                productName: "arrow shafts",
+                outputQuantity: 105,
+                level: 90,
+                xp: 35,
+                kind: "arrow_shafts",
+            },
+        ],
+    },
 ];
 
 const LOG_RECIPE_MAP = new Map<number, FletchingProductDefinition[]>();
@@ -644,6 +660,8 @@ registerCombineRecipe({
 export const FLETCHING_LOG_IDS = Array.from(LOG_RECIPE_MAP.keys());
 export const FLETCHING_STRING_IDS = Array.from(STRING_RECIPE_MAP.keys());
 export const FLETCHING_COMBINE_RECIPES = COMBINE_RECIPES;
+/** Complete declarative recipe catalog used by the shared production runtime. */
+export const FLETCHING_RECIPES = Array.from(RECIPE_LOOKUP.values());
 
 export function getFletchingProductsForLog(
     logItemId: number,

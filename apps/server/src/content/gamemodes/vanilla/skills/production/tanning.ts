@@ -1,5 +1,5 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
-import type { ActionEffect, ActionExecutionResult } from "@server/game/actions/types";
+import type { ActionExecutionResult } from "@server/game/actions/types";
 import type { PlayerState } from "@server/game/player";
 import type {
     IScriptRegistry,
@@ -8,95 +8,73 @@ import type {
     ScriptServices,
 } from "@server/game/scripts/types";
 import {
+    type ProductionRecipePolicy,
+    defineProductionSkill,
+} from "@server/game/skilling/ProductionSkill";
+import {
     MAX_BATCH,
     MAX_DIALOG_OPTIONS,
     SKILL_DIALOG_META,
     type SkillDialogChoice,
-    buildMessageEffect,
-    buildSkillFailure,
     clampBatchCount,
     countItem,
-    enqueueSkillAction,
     getInventory,
     hasItem,
 } from "@server/content/gamemodes/vanilla/skills/production/productionActions";
-import { TANNING_RECIPES, type TanningRecipe, getTanningRecipeById } from "@server/content/gamemodes/vanilla/skills/production/tanningData";
+import {
+    TANNING_RECIPES,
+    type TanningRecipe,
+} from "@server/content/gamemodes/vanilla/skills/production/tanningData";
 
-interface SkillTanActionData {
-    recipeId: string;
-    count: number;
-}
+const TANNING_RECIPES_CORE: ProductionRecipePolicy<TanningRecipe>[] = TANNING_RECIPES.map(
+    (recipe) => ({
+        id: recipe.id,
+        source: recipe,
+        level: recipe.level ?? 1,
+        levelSource: "base" as const,
+        inputs: [{ itemId: recipe.inputItemId, quantity: 1 }],
+        outputs: [{ itemId: recipe.outputItemId, quantity: 1 }],
+        xp: recipe.xp,
+        animationId: recipe.animation ?? 1249,
+        ticks: recipe.delayTicks ?? 2,
+        outputPlacement: "first-consumed-slot",
+    }),
+);
+
+const TANNING = defineProductionSkill({
+    name: "tan",
+    skillId: SkillId.Crafting,
+    requestGroups: ["skill.surface"],
+    recipes: TANNING_RECIPES_CORE,
+    messages: {
+        unknownRecipe: "You can't tan that.",
+        missingLevel: (recipe) => `You need Crafting level ${recipe.level} to tan that.`,
+        missingInputs: () => "You need hides to tan.",
+        missingTools: () => "You need hides to tan.",
+        inventoryFull: () => "You need more inventory space to tan that.",
+        success: (recipe) => `You tan the hide into ${recipe.source.name}.`,
+        interrupted: "You stop tanning because you're already busy.",
+    },
+    resolveOutcome: () => ({ emitCraftEvents: false }),
+});
 
 const computeTanningBatchCount = (
     entries: ScriptInventoryEntry[],
     recipe: TanningRecipe,
-): number => {
-    const total = countItem(entries, recipe.inputItemId);
-    return clampBatchCount(total);
-};
+): number => clampBatchCount(countItem(entries, recipe.inputItemId));
 
-export function executeTanAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
-    const { player, tick, services } = ctx;
-    const data = ctx.data as SkillTanActionData;
-    const recipe = getTanningRecipeById(data.recipeId);
-    if (!recipe) {
-        return buildSkillFailure(player, "You can't tan that.", "unknown_recipe");
-    }
-
-    const skill = services.skills.getSkill(player, SkillId.Crafting);
-    if (recipe.level && (skill?.baseLevel ?? 1) < recipe.level) {
-        return buildSkillFailure(
-            player,
-            `You need Crafting level ${recipe.level} to tan that.`,
-            "tan_level",
-        );
-    }
-
-    const slot = services.inventory.findInventorySlotWithItem(player, recipe.inputItemId);
-    if (slot === undefined || !services.inventory.consumeItem(player, slot)) {
-        return buildSkillFailure(player, "You need hides to tan.", "missing_item");
-    }
-
-    const targetCount = Math.max(1, data.count);
-    services.inventory.setInventorySlot(player, slot, recipe.outputItemId, 1);
-    services.animation.playPlayerSeq(player, recipe.animation ?? 1249);
-    services.skills.addSkillXp(player, SkillId.Crafting, recipe.xp);
-
-    const effects: ActionEffect[] = [
-        { type: "inventorySnapshot", playerId: player.id },
-        buildMessageEffect(player, `You tan the hide into ${recipe.name}.`),
-    ];
-
-    const remaining = Math.max(0, targetCount - 1);
-    if (remaining > 0) {
-        const reschedule = services.combat.scheduleAction(
-            player.id,
-            {
-                kind: "skill.tan",
-                data: { recipeId: recipe.id, count: remaining },
-                delayTicks: recipe.delayTicks ?? 2,
-                cooldownTicks: recipe.delayTicks ?? 2,
-                groups: ["skill.tan"],
-            },
-            tick,
-        );
-        if (!reschedule?.ok) {
-            effects.push(
-                buildMessageEffect(player, "You stop tanning because you're already busy."),
-            );
-        }
-    }
-
-    return {
-        ok: true,
-        cooldownTicks: recipe.delayTicks !== undefined ? Math.max(1, recipe.delayTicks) : 2,
-        groups: ["skill.tan"],
-        effects,
-    };
+function policyFor(recipe: TanningRecipe): ProductionRecipePolicy<TanningRecipe> | undefined {
+    return TANNING.getRecipe(recipe.id);
 }
 
-export function registerTanningInteractions(registry: IScriptRegistry, services: ScriptServices) {
-    const requestAction = services.combat.requestAction;
+export function executeTanAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
+    return TANNING.execute(ctx);
+}
+
+export function registerTanningInteractions(
+    registry: IScriptRegistry,
+    services: ScriptServices,
+) {
     const openDialogOptions = services.dialog.openDialogOptions;
     const closeDialog = services.dialog.closeDialog;
 
@@ -115,29 +93,25 @@ export function registerTanningInteractions(registry: IScriptRegistry, services:
             return;
         }
         const inventoryNow = getInventory(services, player);
-        const batch = computeTanningBatchCount(inventoryNow, recipe);
+        const policy = policyFor(recipe);
+        const batch = policy
+            ? TANNING.maxBatch(services, player, policy, MAX_BATCH)
+            : computeTanningBatchCount(inventoryNow, recipe);
         if (batch <= 0) {
             services.messaging.sendGameMessage(player, "You need hides to tan.");
             return;
         }
         const desired = Math.max(1, Math.min(batch, opts?.desiredCount ?? batch));
-        enqueueSkillAction(
-            requestAction,
-            "tan",
-            player,
-            recipe.id,
-            desired,
-            recipe.delayTicks ?? 2,
-            tick,
-            services.messaging.sendGameMessage,
-        );
+        if (!policy || !TANNING.request(services, player, policy, desired, tick)) {
+            services.messaging.sendGameMessage(player, "You can't tan right now.");
+        }
     };
 
     registry.registerLocAction("tan", (event) => {
         const level = services.skills.getSkill(event.player, SkillId.Crafting)?.baseLevel ?? 1;
         const inventory = getInventory(services, event.player);
-        const tanningCandidates = TANNING_RECIPES.filter((r) =>
-            hasItem(inventory, r.inputItemId),
+        const tanningCandidates = TANNING_RECIPES.filter((recipe) =>
+            hasItem(inventory, recipe.inputItemId),
         ).map<SkillDialogChoice<TanningRecipe>>((recipe) => {
             const totalHides = countItem(inventory, recipe.inputItemId);
             const levelMet = !recipe.level || level >= recipe.level;
@@ -154,9 +128,9 @@ export function registerTanningInteractions(registry: IScriptRegistry, services:
             services.messaging.sendGameMessage(event.player, "You need hides to tan.");
             return;
         }
-        const craftableChoices = tanningCandidates.filter((c) => c.craftable);
+        const craftableChoices = tanningCandidates.filter((choice) => choice.craftable);
         const orderedChoices = craftableChoices
-            .concat(tanningCandidates.filter((c) => !c.craftable))
+            .concat(tanningCandidates.filter((choice) => !choice.craftable))
             .slice(0, MAX_DIALOG_OPTIONS);
         const meta = SKILL_DIALOG_META.tan;
         const openedDialog =
@@ -166,10 +140,10 @@ export function registerTanningInteractions(registry: IScriptRegistry, services:
                 id: meta.id,
                 title: meta.title,
                 modal: true,
-                options: orderedChoices.map((c) => c.label),
-                disabledOptions: orderedChoices.map((c) => !c.craftable),
-                onSelect: (idx) => {
-                    const selected = orderedChoices[idx];
+                options: orderedChoices.map((choice) => choice.label),
+                disabledOptions: orderedChoices.map((choice) => !choice.craftable),
+                onSelect: (index) => {
+                    const selected = orderedChoices[index];
                     if (!selected) {
                         services.messaging.sendGameMessage(
                             event.player,
@@ -182,7 +156,7 @@ export function registerTanningInteractions(registry: IScriptRegistry, services:
                         return;
                     }
                     closeDialog?.(event.player, meta.id);
-                    tryTanningRecipe(event.player, selected.recipe, event.tick, {
+                    tryTanningRecipe(event.player, selected.recipe, undefined, {
                         desiredCount: selected.batch,
                     });
                 },

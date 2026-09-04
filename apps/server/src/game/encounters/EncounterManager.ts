@@ -8,6 +8,7 @@ import type { CombatAttack, CombatAttackTraits } from "@server/game/combat/model
 import { EncounterRegistry } from "@server/game/encounters/EncounterRegistry";
 import { EncounterRuntime } from "@server/game/encounters/EncounterRuntime";
 import type {
+    EncounterDefinition,
     EncounterAnimationReference,
     EncounterThresholdEvent,
     PlannedEncounterAttack,
@@ -15,7 +16,7 @@ import type {
 
 export interface EncounterCleanupAdapter {
     removeNpc?(npcRuntimeId: number): void;
-    cancelTask?(taskId: string): void;
+    cancelTask?(taskId: string | number): void;
     removeHazard?(hazardId: string): void;
     removeLocation?(locationId: string): void;
 }
@@ -33,6 +34,7 @@ export class EncounterManager {
     private readonly byId = new Map<string, EncounterRuntime>();
     private readonly healthSubscriptions = new Map<number, () => void>();
     private readonly thresholdListeners = new Set<EncounterThresholdListener>();
+    private readonly stopObservingRegistry: () => void;
     private serial = 0;
     private currentTick = 0;
 
@@ -40,7 +42,11 @@ export class EncounterManager {
         private readonly registry: EncounterRegistry = EncounterRegistry.shared,
         private readonly cleanup: EncounterCleanupAdapter = {},
         private readonly resolveAnimation?: EncounterAnimationResolver,
-    ) {}
+    ) {
+        this.stopObservingRegistry = registry.onUnregistered((definition) => {
+            this.disposeDefinitionRuntimes(definition);
+        });
+    }
 
     setCurrentTick(tick: number): void {
         this.currentTick = Math.trunc(tick);
@@ -100,9 +106,16 @@ export class EncounterManager {
     }
 
     ensureForNpc(npc: NpcState): EncounterRuntime | undefined {
-        const existing = this.byNpcRuntimeId.get(npc.id);
-        if (existing) return existing;
         const definition = this.registry.findByNpcTypeId(npc.typeId);
+        const existing = this.byNpcRuntimeId.get(npc.id);
+        if (existing) {
+            if (existing.definition === definition) return existing;
+            // Provider reload/reset may remove or replace the global
+            // definition while this NPC is still alive. Dispose its owned
+            // mechanics/resources before falling back or binding the fresh
+            // definition; never keep executing a stale provider object.
+            this.disposeRuntimeForNpc(npc.id);
+        }
         if (!definition) return undefined;
         const serial = ++this.serial;
         const id = `${definition.id}:${serial}`;
@@ -178,18 +191,40 @@ export class EncounterManager {
     }
 
     removeNpc(npcRuntimeId: number): void {
-        const runtime = this.byNpcRuntimeId.get(Math.trunc(npcRuntimeId));
+        const normalizedNpcRuntimeId = Math.trunc(npcRuntimeId);
+        // An owned helper may have no encounter definition of its own. Release
+        // it from every parent runtime whenever NpcManager reports its removal,
+        // including ordinary death/lifetime expiry, so a recycled runtime id
+        // can never be removed later as stale encounter cleanup.
+        for (const owner of this.byId.values()) owner.releaseNpc(normalizedNpcRuntimeId);
+        this.disposeRuntimeForNpc(normalizedNpcRuntimeId);
+    }
+
+    private disposeRuntimeForNpc(npcRuntimeId: number): void {
+        const normalizedNpcRuntimeId = Math.trunc(npcRuntimeId);
+        const runtime = this.byNpcRuntimeId.get(normalizedNpcRuntimeId);
         if (!runtime) return;
         this.stopObservingHealth(runtime.currentNpcRuntimeId);
         this.byNpcRuntimeId.delete(runtime.currentNpcRuntimeId);
         this.byId.delete(runtime.id);
         const resources = runtime.dispose();
-        for (const ownedNpcId of resources.npcRuntimeIds) {
-            if (ownedNpcId !== npcRuntimeId) this.cleanup.removeNpc?.(ownedNpcId);
+        this.cleanupOwnedResources(resources, npcRuntimeId);
+    }
+
+    /** Releases the registry subscription and every runtime owned by this manager. */
+    dispose(): void {
+        this.stopObservingRegistry();
+        for (const npcRuntimeId of [...this.byNpcRuntimeId.keys()]) {
+            this.disposeRuntimeForNpc(npcRuntimeId);
         }
-        for (const taskId of resources.taskIds) this.cleanup.cancelTask?.(taskId);
-        for (const hazardId of resources.hazardIds) this.cleanup.removeHazard?.(hazardId);
-        for (const locationId of resources.locationIds) this.cleanup.removeLocation?.(locationId);
+        this.thresholdListeners.clear();
+    }
+
+    private disposeDefinitionRuntimes(definition: EncounterDefinition): void {
+        const npcRuntimeIds = [...this.byNpcRuntimeId]
+            .filter(([, runtime]) => runtime.definition === definition)
+            .map(([npcRuntimeId]) => npcRuntimeId);
+        for (const npcRuntimeId of npcRuntimeIds) this.disposeRuntimeForNpc(npcRuntimeId);
     }
 
     private seed(): number {
@@ -236,7 +271,8 @@ export class EncounterManager {
 
     private synchronizeHealth(runtime: EncounterRuntime, change: NpcHealthChange): void {
         if (change.reason === "reset") {
-            runtime.resetHealth();
+            const resources = runtime.resetHealth();
+            this.cleanupOwnedResources(resources, runtime.currentNpcRuntimeId);
             return;
         }
 
@@ -268,6 +304,41 @@ export class EncounterManager {
                     );
                 }
             }
+        }
+    }
+
+    private cleanupOwnedResources(
+        resources: ReturnType<EncounterRuntime["snapshotOwnedResources"]>,
+        preservedNpcRuntimeId?: number,
+    ): void {
+        for (const ownedNpcId of resources.npcRuntimeIds) {
+            if (ownedNpcId !== preservedNpcRuntimeId) {
+                this.runCleanup("NPC", ownedNpcId, () => this.cleanup.removeNpc?.(ownedNpcId));
+            }
+        }
+        for (const taskId of resources.taskIds) {
+            this.runCleanup("task", taskId, () => this.cleanup.cancelTask?.(taskId));
+        }
+        for (const hazardId of resources.hazardIds) {
+            this.runCleanup("hazard", hazardId, () => this.cleanup.removeHazard?.(hazardId));
+        }
+        for (const locationId of resources.locationIds) {
+            this.runCleanup("location", locationId, () => this.cleanup.removeLocation?.(locationId));
+        }
+    }
+
+    private runCleanup(
+        resourceType: string,
+        resourceId: string | number,
+        cleanup: () => void,
+    ): void {
+        try {
+            cleanup();
+        } catch (error) {
+            logger.warn(
+                `[encounter] failed to clean owned ${resourceType} '${resourceId}'`,
+                error,
+            );
         }
     }
 }

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { DoubleDoorDef, GateDef, SingleDoorDef } from "@server/world/DoorDefinitions";
+import { writeJsonFileAtomicallySync } from "@server/io/AtomicFile";
 
 export type RuntimeTilePairStats = {
     closed: number;
@@ -213,8 +214,7 @@ function readJsonIfExists(filePath: string): unknown {
 }
 
 function writeJsonFile(filePath: string, value: unknown): void {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+    writeJsonFileAtomicallySync(filePath, value);
 }
 
 export function resolveDoorCatalogPath(inputPath: string): string {

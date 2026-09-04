@@ -1,4 +1,5 @@
 import { sendWidgetAction } from "@client/core/network/ServerConnection";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import type { WidgetActionClientPayload } from "@client/core/network/ServerConnection";
 import type { Cs2Vm, ScriptEvent } from "@client/engine/cs2/Cs2Vm";
 import { createScriptEvent } from "@client/engine/cs2/Cs2Vm";
@@ -24,8 +25,11 @@ import {
     type WidgetActionEvent,
 } from "@client/engine/game/widgets/widgetActionPayload";
 import { handleTradeWidgetAction, type WidgetActionTradeDeps } from "@client/engine/game/widgets/widgetActionTrade";
+import { AttackOptionSettingsController } from "@client/engine/game/widgets/AttackOptionSettingsController";
 
 export type { WidgetActionEvent } from "@client/engine/game/widgets/widgetActionPayload";
+
+export type PreparedClientSettingAction = () => boolean;
 
 export type WidgetActionRouterDeps = WidgetActionHandlersDeps &
     WidgetActionTradeDeps & {
@@ -91,7 +95,41 @@ function resolveDynamicChildForAction(
  * Routes widget menu/click actions through CS2 handlers and server packets.
  */
 export class WidgetActionRouter {
+    private readonly attackOptionSettings = new AttackOptionSettingsController();
+
     constructor(private readonly deps: WidgetActionRouterDeps) {}
+
+    /**
+     * Observe a cache-driven client setting before its CS2 handler mutates or removes the
+     * dynamic dropdown widget, then return a commit step that can run after that handler.
+     *
+     * Primary clicks on non-draggable widgets are executed directly by widgetClickInput and do
+     * not otherwise pass through handleWidgetAction. Keeping this as a two-phase operation lets
+     * both input routes share the same setting logic without running widget scripts twice.
+     */
+    prepareClientSettingAction(event: WidgetActionEvent): PreparedClientSettingAction | undefined {
+        const widgetManager = this.deps.getWidgetManager();
+        const widget = resolveDynamicChildForAction(widgetManager, event.widget, event.slot);
+        const normalizedEvent =
+            widget !== event.widget
+                ? { ...event, widget, slot: (widget.childIndex ?? event.slot) as any }
+                : event;
+        const selection = this.attackOptionSettings.observeAction(
+            widgetManager,
+            normalizedEvent,
+        );
+        if (!selection) return undefined;
+
+        return () => {
+            const varManager = this.deps.getVarManager();
+            if (!varManager) return false;
+
+            // setVarp updates menu policy immediately. The existing TRANSMIT_VARPS hook persists
+            // the value server-side, so the dropdown widget operation must not also be sent.
+            varManager.setVarp(selection.varpId, selection.value);
+            return true;
+        };
+    }
 
     handleWidgetAction(event: WidgetActionEvent): void {
         const widgetManager = this.deps.getWidgetManager();
@@ -106,6 +144,7 @@ export class WidgetActionRouter {
                 : typeof w?.childIndex === "number"
                   ? w.childIndex
                   : w?.uid & 0xffff;
+        const commitClientSettingAction = this.prepareClientSettingAction(event);
 
         if (this.deps.getItemSpawnerUi().handleWidgetClick(groupId | 0, childId | 0)) {
             return;
@@ -125,7 +164,7 @@ export class WidgetActionRouter {
             const uid = typeof w.uid === "number" ? w.uid | 0 : undefined;
             const logGroupId = uid !== undefined ? (uid >>> 16) & 0xffff : (groupId as number);
             const logChildId = uid !== undefined ? uid & 0xffff : (childId as number);
-            console.log("[widget-click]", {
+            clientDebugLog("[widget-click]", {
                 uid,
                 groupId: logGroupId,
                 childId: logChildId,
@@ -234,6 +273,10 @@ export class WidgetActionRouter {
             }
         }
 
+        if (commitClientSettingAction?.()) {
+            return;
+        }
+
         const resumePauseTriggeredByHandler =
             meslayerBeforeAction === null &&
             (widgetManager?.meslayerContinueWidget ?? null) !== null;
@@ -257,16 +300,16 @@ export class WidgetActionRouter {
                     args: [2251],
                     widget: event.widget,
                 });
-                console.log(`[handleWidgetAction] Invoking chatbox_open_input for ${optionLower}`);
+                clientDebugLog(`[handleWidgetAction] Invoking chatbox_open_input for ${optionLower}`);
                 const result = cs2Vm?.runScriptEvent(scriptEvent);
-                console.log(`[handleWidgetAction] Script execution result: ${result}`);
+                clientDebugLog(`[handleWidgetAction] Script execution result: ${result}`);
 
                 if (cs2Vm) {
                     cs2Vm.inputDialogType = 0;
                     cs2Vm.inputDialogString = "";
                 }
                 this.deps.getVarManager()?.setVarcString(335, "");
-                console.log(
+                clientDebugLog(
                     `[handleWidgetAction] inputDialogType set to: ${cs2Vm?.inputDialogType}`,
                 );
             }
@@ -297,7 +340,7 @@ export class WidgetActionRouter {
                         const wChildIndex = (widget as any).childIndex ?? -1;
                         const wGroupId = (wId >> 16) & 0xffff;
                         const wChildId = wId & 0xffff;
-                        console.log(
+                        clientDebugLog(
                             `[OsrsClient] Widget action ${event.option} (op${opId}) not transmitted - transmit flag not set. ` +
                                 `Widget: uid=${widget.uid}, id=${wId} (group=${wGroupId}, child=${wChildId}), childIndex=${wChildIndex}, flags=${flags}`,
                         );

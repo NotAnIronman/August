@@ -1,5 +1,6 @@
 import { PRAYER_RECHARGE_SOUND_ID } from "@august/osrs-engine/prayer/prayers";
 import { SkillId } from "@august/osrs-engine/skill/skills";
+import { registerPlayerScopedCollections } from "@server/game/scripts/ScriptLifecycle";
 import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
 import { BURIABLE_BONES_XP } from "@server/content/gamemodes/vanilla/skills/prayer/prayerData";
 import { formatOfferMessage } from "@server/content/gamemodes/vanilla/skills/prayer/prayerMessages";
@@ -67,6 +68,13 @@ const markCooldown = (map: Map<number, number>, playerId: number, tick: number):
 };
 
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
+    registerPlayerScopedCollections(
+        registry,
+        services,
+        lastPrayTickByPlayer,
+        lastOfferTickByPlayer,
+    );
+
     for (const action of PRAY_ACTIONS) {
         registry.registerLocAction(action, (event) => {
             if (!ALTAR_LOC_ID_SET.has(event.locId)) return;

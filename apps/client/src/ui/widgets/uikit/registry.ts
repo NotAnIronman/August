@@ -49,10 +49,12 @@ export function processRegisteredUiPanelInput(
     frame: WidgetInputFrame,
     widgetManager: WidgetManager,
     widgetInteraction: WidgetInteractionController,
+    pointerInputEnabled: boolean,
 ): void {
     for (const panel of registeredPanels.values()) {
         syncCacheUiAssetsForGroup(widgetManager, panel.groupId);
         panel.onProcess?.(widgetManager);
+        if (!pointerInputEnabled) continue;
         panel.scrollController?.process(frame, widgetManager, widgetInteraction);
         panel.searchController?.process(frame, widgetManager, widgetInteraction);
         panel.galleryClickController?.process(frame, widgetManager, widgetInteraction);

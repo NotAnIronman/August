@@ -10,6 +10,8 @@ import {
     VARP_KEYBINDING_ESC_TO_CLOSE,
     VARP_MUSICPLAY,
     VARP_MUSIC_VOLUME,
+    VARP_OPTION_ATTACK_PRIORITY_NPC,
+    VARP_OPTION_ATTACK_PRIORITY_PLAYER,
     VARP_OPTION_RUN,
     VARP_SHOP_QUANTITY,
     VARP_SIDE_JOURNAL_STATE,
@@ -55,11 +57,19 @@ export function createVarpTransmitHandler(
             if (!p) return;
             const payload = ctx.payload;
             const varpId = payload.varpId;
-            const value = payload.value;
+            const transmittedValue = payload.value;
+            const value =
+                varpId === VARP_OPTION_ATTACK_PRIORITY_PLAYER ||
+                varpId === VARP_OPTION_ATTACK_PRIORITY_NPC
+                    ? Math.max(0, Math.min(3, transmittedValue | 0))
+                    : transmittedValue;
             const previousVarpValue = p.varps.getVarpValue(varpId);
 
             p.varps.setVarpValue(varpId, value);
             const nextVarpValue = p.varps.getVarpValue(varpId);
+            if (value !== transmittedValue) {
+                sendVarpCorrection(services, ctx.ws, varpId, value);
+            }
 
             if (varpId === VARP_SHOP_QUANTITY) {
                 p.varps.setVarbitValue(VARBIT_SHOP_QUANTITY, value & 0x7);
@@ -237,7 +247,7 @@ function handleInstantUtilitySpecial(
     services.queueCombatState(p);
     sendVarpCorrection(services, ws, VARP_SPECIAL_ATTACK, 0);
 
-    logger.info(
+    logger.debug(
         `[combat] instant utility special activated: player=${p.id} weapon=${weaponId} kind=${special.kind} seq=${special.seqId}`,
     );
 }
@@ -265,7 +275,7 @@ function handleAttackStyleVarp(
     p.varps.setVarpValue(VARP_ATTACK_STYLE, normalized);
     sendVarpCorrection(services, ws, VARP_ATTACK_STYLE, normalized);
     services.queueCombatState(p);
-    logger.info(`[combat] attack style change: player=${p.id} slot=${normalized}`);
+    logger.debug(`[combat] attack style change: player=${p.id} slot=${normalized}`);
 }
 
 function handleAutoRetaliateVarp(

@@ -1,4 +1,5 @@
 import { MenuTargetType, type OsrsMenuEntry } from "@august/osrs-engine/MenuEntry";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { MenuAction, inferMenuAction } from "@client/ui/runtime/menu/MenuAction";
 import type { MenuClickContext, SimpleMenuEntry } from "@client/ui/runtime/menu/MenuEngine";
 import { normalizeMenuEntries } from "@client/ui/runtime/menu/MenuEngine";
@@ -161,7 +162,7 @@ export function osrsTargetLabel(e: OsrsMenuEntry, opts: TargetLabelOptions = {})
     }
     if (
         includeIds &&
-        String(e.option).toLowerCase() === "examine" &&
+        inferMenuAction(e.option, e.targetType) === MenuAction.Examine &&
         (e.targetType === MenuTargetType.NPC ||
             e.targetType === MenuTargetType.LOC ||
             e.targetType === MenuTargetType.OBJ ||
@@ -211,11 +212,23 @@ export function worldEntriesToSimple(
             actionIndex:
                 typeof e.actionIndex === "number" && e.actionIndex >= 0 ? e.actionIndex : undefined,
             opcode: typeof e.opcode === "number" ? e.opcode : undefined,
+            // Preserve world-entry priority all the way into the normalized menu.
+            // Ground Items uses this to keep hidden drops available on right-click
+            // without allowing Take to become the default left-click action.
+            deprioritized: e.deprioritized === true,
             playerServerId:
                 typeof e.playerServerId === "number"
                     ? e.playerServerId
                     : ((e.spellCast?.playerServerId as number | undefined) ?? undefined),
             onClick: (gx?: number, gy?: number, ctx?: MenuClickContext) => {
+                // MenuState owns packet dispatch for native ground-item opcodes. Ground-item
+                // entries also retain high-level handlers for legacy/direct menu surfaces, so
+                // invoking both paths here would send the same action twice (and could select a
+                // different physical stack on the second send). Client-local Custom entries do
+                // not receive worldMenuStateDispatch and continue through this handler.
+                if (e.targetType === MenuTargetType.OBJ && ctx?.worldMenuStateDispatch) {
+                    return;
+                }
                 const evt = typeof toEvt === "function" ? toEvt(gx, gy) : undefined;
                 try {
                     e.onClick?.(e as any, evt, ctx as any);
@@ -386,7 +399,7 @@ export function widgetEntriesToSimple(
         return (gx?: number, gy?: number, clickCtx?: MenuClickContext) => {
             const dispatched = dispatchWidgetAction(clickCtx);
             if (!dispatched) {
-                console.log(
+                clientDebugLog(
                     `[ui] widget action: ${option}` + (target ? ` -> ${target}` : ""),
                     chosenWidget,
                 );

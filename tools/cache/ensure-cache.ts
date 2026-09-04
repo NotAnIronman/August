@@ -18,6 +18,7 @@ import {
     parseOpenRs2XteaKeys,
 } from "./ensure-cache-validation";
 import { serverAppPath, serverVarPath } from "@tools/lib/repository-paths";
+import { downloadToFile } from "@tools/lib/download-to-file";
 
 const OPENRS2_API = "https://archive.openrs2.org";
 const CACHES_DIR = serverVarPath("cache", "osrs");
@@ -26,6 +27,7 @@ const LOCK_FILE = path.join(CACHES_DIR, ".cache-download.lock");
 const CACHES_MANIFEST_FILE = path.join(CACHES_DIR, "caches.json");
 const LOCK_POLL_MS = 1000;
 const LOCK_STALE_MS = 10 * 60 * 1000;
+const METADATA_FETCH_TIMEOUT_MS = 60_000;
 
 type OpenRS2CacheEntry = {
     id: number;
@@ -102,12 +104,26 @@ function renderProgressBar(current: number, total: number, width = 40): string {
     return `  [${bar}] ${pct}% (${currentMB}/${totalMB} MB)`;
 }
 
+async function fetchCacheMetadata(url: string, label: string): Promise<Response> {
+    const signal = AbortSignal.timeout(METADATA_FETCH_TIMEOUT_MS);
+    try {
+        return await fetch(url, { signal });
+    } catch (error) {
+        if (signal.aborted) {
+            throw new Error(`${label} timed out after ${METADATA_FETCH_TIMEOUT_MS} ms (${url})`, {
+                cause: error,
+            });
+        }
+        throw error;
+    }
+}
+
 async function findCacheOnOpenRS2(
     revision: number,
     date: string,
 ): Promise<OpenRS2CacheEntry | undefined> {
     console.log("[CacheDownloader] Fetching cache index from OpenRS2...");
-    const resp = await fetch(`${OPENRS2_API}/caches.json`);
+    const resp = await fetchCacheMetadata(`${OPENRS2_API}/caches.json`, "Cache index request");
     if (!resp.ok) {
         throw new Error(`Failed to fetch OpenRS2 cache index: ${resp.status} ${resp.statusText}`);
     }
@@ -140,34 +156,26 @@ async function findCacheOnOpenRS2(
     return revisionMatches[0];
 }
 
-async function downloadWithProgress(url: string, label: string): Promise<Buffer> {
-    const resp = await fetch(url);
-    if (!resp.ok) {
-        throw new Error(`Download failed: ${resp.status} ${resp.statusText} (${url})`);
-    }
-
-    const contentLength = parseInt(resp.headers.get("content-length") ?? "0", 10);
-    if (!resp.body || contentLength === 0) {
-        const arrayBuf = await resp.arrayBuffer();
-        return Buffer.from(arrayBuf);
-    }
-
-    const reader = resp.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let received = 0;
-
+async function downloadWithProgress(
+    url: string,
+    label: string,
+    destinationPath: string,
+): Promise<void> {
     process.stdout.write(`  ${label}\n`);
-
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        received += value.length;
-        process.stdout.write(`\r${renderProgressBar(received, contentLength)}`);
-    }
-    process.stdout.write("\n");
-
-    return Buffer.concat(chunks);
+    const result = await downloadToFile({
+        url,
+        destinationPath,
+        onProgress: ({ receivedBytes, totalBytes }) => {
+            if (totalBytes) {
+                process.stdout.write(`\r${renderProgressBar(receivedBytes, totalBytes)}`);
+            }
+        },
+    });
+    process.stdout.write(
+        result.totalBytes
+            ? "\n"
+            : `  Downloaded ${(result.receivedBytes / (1024 * 1024)).toFixed(1)} MB\n`,
+    );
 }
 
 function refreshOwnedLock(ownership: CacheLockOwnership): void {
@@ -180,22 +188,32 @@ async function downloadCache(
     ownership: CacheLockOwnership,
 ): Promise<void> {
     fs.mkdirSync(cacheDir, { recursive: true });
+    const archivePath = `${cacheDir}.zip`;
 
-    refreshOwnedLock(ownership);
-    console.log(`[CacheDownloader] Downloading cache files (id=${entry.id})...`);
-    const zipBuffer = await downloadWithProgress(
-        `${OPENRS2_API}/caches/${entry.scope}/${entry.id}/disk.zip`,
-        "Downloading cache archive...",
-    );
+    try {
+        refreshOwnedLock(ownership);
+        fs.rmSync(archivePath, { force: true });
+        console.log(`[CacheDownloader] Downloading cache files (id=${entry.id})...`);
+        await downloadWithProgress(
+            `${OPENRS2_API}/caches/${entry.scope}/${entry.id}/disk.zip`,
+            "Downloading cache archive...",
+            archivePath,
+        );
 
-    refreshOwnedLock(ownership);
-    console.log("[CacheDownloader] Extracting cache files...");
-    const zip = new AdmZip(zipBuffer);
-    zip.extractEntryTo("cache/", cacheDir, false, true);
+        refreshOwnedLock(ownership);
+        console.log("[CacheDownloader] Extracting cache files...");
+        const zip = new AdmZip(archivePath);
+        zip.extractEntryTo("cache/", cacheDir, false, true);
+    } finally {
+        fs.rmSync(archivePath, { force: true });
+    }
 
     refreshOwnedLock(ownership);
     console.log("[CacheDownloader] Downloading XTEA keys...");
-    const keysResp = await fetch(`${OPENRS2_API}/caches/${entry.scope}/${entry.id}/keys.json`);
+    const keysResp = await fetchCacheMetadata(
+        `${OPENRS2_API}/caches/${entry.scope}/${entry.id}/keys.json`,
+        "XTEA key request",
+    );
     if (!keysResp.ok) {
         throw new Error(
             `XTEA key download failed: ${keysResp.status} ${keysResp.statusText}`,

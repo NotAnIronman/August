@@ -1,4 +1,5 @@
 import { setPacketSocket } from "@client/core/network/packet/index";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { WS_GLOBAL_KEY, WS_SUPPRESS_RECONNECT_KEY, RECONNECT_DELAY_MAX_MS, RECONNECT_MAX_ATTEMPTS } from "@client/core/network/server-connection/constants";
 import { clearLoginConnectRetryTimer } from "@client/core/network/server-connection/connection/loginHelpers";
 import { state } from "@client/core/network/server-connection/state";
@@ -12,7 +13,7 @@ export function initSocketCloseHandler(ws: WebSocket, initConnection: (url: stri
         state.socket = null;
         const reasonPart = evt.reason ? `, reason=${evt.reason}` : "";
         // eslint-disable-next-line no-console
-        console.log(`[ws] disconnected (code=${evt.code}, clean=${evt.wasClean}${reasonPart})`);
+        clientDebugLog(`[ws] disconnected (code=${evt.code}, clean=${evt.wasClean}${reasonPart})`);
         // Clear the packet writer state.socket
         setPacketSocket(null);
         state.lastSkillsState = undefined;
@@ -35,7 +36,7 @@ export function initSocketCloseHandler(ws: WebSocket, initConnection: (url: stri
                 !isIntentionalClose &&
                 state.reconnectAttempts < RECONNECT_MAX_ATTEMPTS;
 
-            console.log(
+            clientDebugLog(
                 `[ws] reconnect check: hasSession=${hasSession}, suppress=${suppress}, intentional=${isIntentionalClose}, attempts=${state.reconnectAttempts}/${RECONNECT_MAX_ATTEMPTS}, willReconnect=${shouldReconnect}`,
             );
 
@@ -46,7 +47,7 @@ export function initSocketCloseHandler(ws: WebSocket, initConnection: (url: stri
                 state.reconnectAttempts++;
                 const delay = Math.min(state.reconnectDelayMs | 0, RECONNECT_DELAY_MAX_MS);
                 // eslint-disable-next-line no-console
-                console.log(
+                clientDebugLog(
                     `[ws] reconnecting in ${delay}ms... (attempt ${state.reconnectAttempts}/${RECONNECT_MAX_ATTEMPTS})`,
                 );
                 state.reconnectTimer = setTimeout(() => {
@@ -74,7 +75,7 @@ export function initSocketCloseHandler(ws: WebSocket, initConnection: (url: stri
                 // Reconnection attempts exhausted - notify failure
                 state.isReconnecting = false;
                 // eslint-disable-next-line no-console
-                console.log("[ws] reconnection failed after max attempts");
+                console.warn("[ws] reconnection failed after max attempts");
                 for (const cb of state.reconnectFailedListeners) {
                     try {
                         cb();

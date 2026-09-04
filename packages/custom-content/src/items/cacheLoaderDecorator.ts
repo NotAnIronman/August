@@ -7,6 +7,7 @@ import {
 import type { ObjTypeLoader } from "@august/osrs-engine/config/objtype/ObjTypeLoader";
 
 import { CustomObjTypeLoader } from "@august/custom-content/items/CustomObjTypeLoader";
+import { ThievingLocTypeLoader } from "@august/custom-content/locs/ThievingLocTypeLoader";
 
 export type { CacheLoaderFactory } from "@august/osrs-engine/cache/loader/CacheLoaderFactory";
 
@@ -25,5 +26,6 @@ export function getCacheLoaderFactory(
 ): CacheLoaderFactory {
     return createCacheLoaderFactory(cacheInfo, cacheSystem, {
         decorateObjTypeLoader: decorateCustomObjTypeLoader,
+        decorateLocTypeLoader: (base, info) => new ThievingLocTypeLoader(base, info),
     });
 }

@@ -11,6 +11,7 @@ import type {
     LocInteractionEvent,
     ScriptServices,
 } from "@server/game/scripts/types";
+import { applyInventoryTransform } from "@server/game/skilling/InventoryTransform";
 
 const AIR_RUINS = [28914, 29090] as const;
 const AIR_ALTAR = 34760;
@@ -91,9 +92,17 @@ function craftAirRunes(player: PlayerState, services: ScriptServices): void {
     const perEss = 1 + Math.floor(level / MULTIPLIER_DIV);
     const craftCount = totalEss * perEss;
 
-    if (runeEss > 0) player.items.removeItem(RUNE_ESSENCE, runeEss, { assureFullRemoval: true });
-    if (pureEss > 0) player.items.removeItem(PURE_ESSENCE, pureEss, { assureFullRemoval: true });
-    player.items.addItem(AIR_RUNE, craftCount);
+    const exchange = applyInventoryTransform(services.inventory, player, {
+        inputs: [
+            ...(runeEss > 0 ? [{ itemId: RUNE_ESSENCE, quantity: runeEss }] : []),
+            ...(pureEss > 0 ? [{ itemId: PURE_ESSENCE, quantity: pureEss }] : []),
+        ],
+        outputs: [{ itemId: AIR_RUNE, quantity: craftCount }],
+    });
+    if (!exchange.ok) {
+        services.messaging.sendGameMessage(player, "The essence resists your attempt to bind it.");
+        return;
+    }
     services.inventory.snapshotInventory(player);
     services.skills.addSkillXp(player, SkillId.Runecraft, totalEss * XP_PER_ESS);
     services.messaging.sendGameMessage(player, "You bind the temple's power into Air Runes.");

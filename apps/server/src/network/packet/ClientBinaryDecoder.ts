@@ -19,25 +19,48 @@ import type { Appearance, TradeActionClientPayload } from "@server/network/messa
 export class ClientPacketReader {
     readonly data: Uint8Array;
     offset: number = 0;
+    private limit: number;
 
     constructor(data: Uint8Array | ArrayBuffer) {
         this.data = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+        this.limit = this.data.length;
     }
 
     get remaining(): number {
-        return this.data.length - this.offset;
+        return this.limit - this.offset;
+    }
+
+    /** Restrict reads to the declared payload, even if the frame has trailing bytes. */
+    setLimit(endExclusive: number): void {
+        if (
+            !Number.isSafeInteger(endExclusive) ||
+            endExclusive < this.offset ||
+            endExclusive > this.data.length
+        ) {
+            throw new RangeError("Invalid client packet boundary");
+        }
+        this.limit = endExclusive;
+    }
+
+    private requireRemaining(byteCount: number): void {
+        if (!Number.isSafeInteger(byteCount) || byteCount < 0 || this.remaining < byteCount) {
+            throw new RangeError("Client packet ended before its declared fields");
+        }
     }
 
     readByte(): number {
+        this.requireRemaining(1);
         return this.data[this.offset++] & 0xff;
     }
 
     readSignedByte(): number {
+        this.requireRemaining(1);
         const v = this.data[this.offset++];
         return v > 127 ? v - 256 : v;
     }
 
     readShort(): number {
+        this.requireRemaining(2);
         this.offset += 2;
         return ((this.data[this.offset - 2] & 0xff) << 8) | (this.data[this.offset - 1] & 0xff);
     }
@@ -48,6 +71,7 @@ export class ClientPacketReader {
     }
 
     readInt(): number {
+        this.requireRemaining(4);
         this.offset += 4;
         return (
             ((this.data[this.offset - 4] & 0xff) << 24) |
@@ -62,52 +86,64 @@ export class ClientPacketReader {
     }
 
     readString(): string {
-        let str = "";
-        let b: number;
-        while ((b = this.data[this.offset++]) !== 0) {
-            str += String.fromCharCode(b);
+        const terminator = this.data.indexOf(0, this.offset);
+        if (terminator < 0 || terminator >= this.limit) {
+            throw new RangeError("Unterminated client packet string");
         }
+        let str = "";
+        while (this.offset < terminator) {
+            str += String.fromCharCode(this.data[this.offset++]);
+        }
+        this.offset++;
         return str;
     }
 
     /** Read unsigned byte with ADD decoding: (value - 128) & 0xFF */
     readByteAdd(): number {
+        this.requireRemaining(1);
         return (this.data[this.offset++] - 128) & 0xff;
     }
 
     /** Read unsigned byte with NEG decoding: (0 - value) & 0xFF */
     readByteNeg(): number {
+        this.requireRemaining(1);
         return (0 - this.data[this.offset++]) & 0xff;
     }
 
     /** Read unsigned byte with SUB decoding: (128 - value) & 0xFF */
     readByteSub(): number {
+        this.requireRemaining(1);
         return (128 - this.data[this.offset++]) & 0xff;
     }
 
     /** Read signed byte with ADD decoding */
     readSignedByteAdd(): number {
+        this.requireRemaining(1);
         return ((this.data[this.offset++] - 128) << 24) >> 24;
     }
 
     /** Read signed byte with NEG decoding */
     readSignedByteNeg(): number {
+        this.requireRemaining(1);
         return ((0 - this.data[this.offset++]) << 24) >> 24;
     }
 
     /** Read signed byte with SUB decoding */
     readSignedByteSub(): number {
+        this.requireRemaining(1);
         return ((128 - this.data[this.offset++]) << 24) >> 24;
     }
 
     /** Read unsigned short little-endian: [low, high] */
     readShortLE(): number {
+        this.requireRemaining(2);
         this.offset += 2;
         return (this.data[this.offset - 2] & 0xff) | ((this.data[this.offset - 1] & 0xff) << 8);
     }
 
     /** Read unsigned short with ADD decoding: [high, low+128] -> big-endian */
     readShortAdd(): number {
+        this.requireRemaining(2);
         this.offset += 2;
         return (
             ((this.data[this.offset - 2] & 0xff) << 8) | ((this.data[this.offset - 1] - 128) & 0xff)
@@ -116,6 +152,7 @@ export class ClientPacketReader {
 
     /** Read unsigned short with ADD LE decoding: [low+128, high] -> little-endian */
     readShortAddLE(): number {
+        this.requireRemaining(2);
         this.offset += 2;
         return (
             ((this.data[this.offset - 2] - 128) & 0xff) | ((this.data[this.offset - 1] & 0xff) << 8)
@@ -130,6 +167,7 @@ export class ClientPacketReader {
 
     /** Read unsigned int little-endian: [b0, b1, b2, b3] */
     readIntLE(): number {
+        this.requireRemaining(4);
         this.offset += 4;
         return (
             ((this.data[this.offset - 4] & 0xff) |
@@ -142,6 +180,7 @@ export class ClientPacketReader {
 
     /** Read unsigned int middle-endian: [b1, b0, b3, b2] */
     readIntME(): number {
+        this.requireRemaining(4);
         this.offset += 4;
         return (
             (((this.data[this.offset - 2] & 0xff) << 24) |
@@ -154,6 +193,7 @@ export class ClientPacketReader {
 
     /** Read unsigned int inverse middle-endian: [b2, b3, b0, b1] */
     readIntIME(): number {
+        this.requireRemaining(4);
         this.offset += 4;
         return (
             (((this.data[this.offset - 3] & 0xff) << 24) |
@@ -182,12 +222,26 @@ type DebugPayloadJson = {
  * Decode a single binary client packet
  */
 export function decodeClientPacket(data: Uint8Array | ArrayBuffer): DecodedClientMessage | null {
+    try {
+        return decodeClientPacketUnchecked(data);
+    } catch {
+        // Network input is untrusted. A malformed length/count/string must be
+        // ignored by this socket, never escape an event handler and terminate
+        // the server process.
+        return null;
+    }
+}
+
+function decodeClientPacketUnchecked(
+    data: Uint8Array | ArrayBuffer,
+): DecodedClientMessage | null {
     const reader = new ClientPacketReader(data);
 
     if (reader.remaining < 1) return null;
 
     const opcode = reader.readByte() as ClientMessageId;
     const fixedLength = CLIENT_MESSAGE_LENGTHS[opcode];
+    if (fixedLength === undefined) return null;
 
     // Read length for variable packets
     let packetLength: number;
@@ -201,7 +255,10 @@ export function decodeClientPacket(data: Uint8Array | ArrayBuffer): DecodedClien
         packetLength = fixedLength;
     }
 
-    if (reader.remaining < packetLength) return null;
+    if (!Number.isSafeInteger(packetLength) || packetLength < 0 || reader.remaining < packetLength) {
+        return null;
+    }
+    reader.setLimit(reader.offset + packetLength);
 
     switch (opcode) {
         case ClientMessageId.HELLO:
@@ -340,6 +397,9 @@ export function decodeClientPacket(data: Uint8Array | ArrayBuffer): DecodedClien
             const quantity = reader.readInt() || undefined;
             const option = reader.readString() || undefined;
             const opNum = reader.readByte() || undefined;
+            // Optional trailer keeps packets from clients predating modifier
+            // propagation valid while preserving it for current clients.
+            const modifierFlags = reader.remaining > 0 ? reader.readByte() || undefined : undefined;
             return {
                 type: "ground_item_action",
                 payload: {
@@ -349,6 +409,7 @@ export function decodeClientPacket(data: Uint8Array | ArrayBuffer): DecodedClien
                     quantity,
                     option,
                     opNum,
+                    modifierFlags,
                 },
             };
         }

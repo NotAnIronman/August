@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { StatementSync } from "node:sqlite";
 
 import { getItemDefinition } from "@server/data/items";
 import {
@@ -60,6 +61,19 @@ type TradeRequestState = {
 
 type TradePersistenceTarget = Pick<TradePartyState, "player" | "accountKey">;
 
+type TradeStatements = {
+    selectPendingRefunds: StatementSync;
+    deletePendingRefund: StatementSync;
+    upsertPlayerState: StatementSync;
+    selectPartyEscrow: StatementSync;
+    deletePartyEscrow: StatementSync;
+    insertActiveEscrow: StatementSync;
+    insertPendingRefund: StatementSync;
+    movePartyEscrowToPending: StatementSync;
+    recoverAccountEscrows: StatementSync;
+    deleteAccountEscrows: StatementSync;
+};
+
 class TradeIntegrityError extends Error {
     constructor(message: string) {
         super(message);
@@ -82,6 +96,7 @@ export class TradeManager {
     private readonly sessions = new Map<string, TradeSession>();
     private readonly sessionByPlayer = new Map<number, TradeSession>();
     private readonly database: SqliteDatabase;
+    private preparedStatements: TradeStatements | undefined;
 
     constructor(
         private readonly svc: ServerServices,
@@ -92,6 +107,69 @@ export class TradeManager {
             getSqliteDatabase({
                 dataDir: getGamemodeDataDir(svc.gamemode.id),
             });
+    }
+
+    /** Compile persistence statements on first durable operation, then reuse them. */
+    private get statements(): TradeStatements {
+        if (this.preparedStatements) return this.preparedStatements;
+        const connection = this.database.connection;
+        const statements: TradeStatements = {
+            selectPendingRefunds: connection.prepare(
+                `SELECT id, item_id AS itemId, quantity
+                 FROM pending_trade_refunds
+                 WHERE account_name = ?
+                 ORDER BY id ASC`,
+            ),
+            deletePendingRefund: connection.prepare(
+                `DELETE FROM pending_trade_refunds
+                 WHERE id = ? AND account_name = ? AND item_id = ? AND quantity = ?`,
+            ),
+            upsertPlayerState: connection.prepare(
+                `INSERT INTO player_states (account_name, state_json, updated_at)
+                 VALUES (?, ?, ?)
+                 ON CONFLICT(account_name) DO UPDATE SET
+                    state_json = excluded.state_json,
+                    updated_at = excluded.updated_at`,
+            ),
+            selectPartyEscrow: connection.prepare(
+                `SELECT item_id AS itemId, quantity
+                 FROM active_trade_escrows
+                 WHERE session_id = ? AND account_name = ?`,
+            ),
+            deletePartyEscrow: connection.prepare(
+                "DELETE FROM active_trade_escrows WHERE session_id = ? AND account_name = ?",
+            ),
+            insertActiveEscrow: connection.prepare(
+                `INSERT INTO active_trade_escrows (
+                    session_id,
+                    account_name,
+                    item_id,
+                    quantity,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?)`,
+            ),
+            insertPendingRefund: connection.prepare(
+                `INSERT INTO pending_trade_refunds (account_name, item_id, quantity, created_at)
+                 VALUES (?, ?, ?, ?)`,
+            ),
+            movePartyEscrowToPending: connection.prepare(
+                `INSERT INTO pending_trade_refunds (account_name, item_id, quantity, created_at)
+                 SELECT account_name, item_id, quantity, ?
+                 FROM active_trade_escrows
+                 WHERE session_id = ? AND account_name = ?`,
+            ),
+            recoverAccountEscrows: connection.prepare(
+                `INSERT INTO pending_trade_refunds (account_name, item_id, quantity, created_at)
+                 SELECT account_name, item_id, quantity, ?
+                 FROM active_trade_escrows
+                 WHERE account_name = ?`,
+            ),
+            deleteAccountEscrows: connection.prepare(
+                "DELETE FROM active_trade_escrows WHERE account_name = ?",
+            ),
+        };
+        this.preparedStatements = statements;
+        return statements;
     }
 
     /**
@@ -107,14 +185,11 @@ export class TradeManager {
             return;
         }
         this.recoverActiveEscrows(accountName);
-        const refunds = this.database.connection
-            .prepare(
-                `SELECT id, item_id AS itemId, quantity
-                 FROM pending_trade_refunds
-                 WHERE account_name = ?
-                 ORDER BY id ASC`,
-            )
-            .all(accountName) as Array<{ id: number; itemId: number; quantity: number }>;
+        const refunds = this.statements.selectPendingRefunds.all(accountName) as Array<{
+            id: number;
+            itemId: number;
+            quantity: number;
+        }>;
         if (refunds.length === 0) return;
 
         let returnedCount = 0;
@@ -134,12 +209,12 @@ export class TradeManager {
             }
             try {
                 this.persistTradeMutation([{ player, accountKey: accountName }], () => {
-                    const result = this.database.connection
-                        .prepare(
-                            `DELETE FROM pending_trade_refunds
-                             WHERE id = ? AND account_name = ? AND item_id = ? AND quantity = ?`,
-                        )
-                        .run(refund.id, accountName, refund.itemId, refund.quantity);
+                    const result = this.statements.deletePendingRefund.run(
+                        refund.id,
+                        accountName,
+                        refund.itemId,
+                        refund.quantity,
+                    );
                     if (Number(result.changes) !== 1) {
                         throw new TradeIntegrityError(
                             `pending refund ${refund.id} changed before it was restored`,
@@ -1202,16 +1277,9 @@ export class TradeManager {
             }
 
             mutation();
-            const upsertPlayerState = this.database.connection.prepare(
-                `INSERT INTO player_states (account_name, state_json, updated_at)
-                 VALUES (?, ?, ?)
-                 ON CONFLICT(account_name) DO UPDATE SET
-                    state_json = excluded.state_json,
-                    updated_at = excluded.updated_at`,
-            );
             const updatedAt = new Date().toISOString();
             for (const [accountName, player] of uniqueTargets) {
-                upsertPlayerState.run(
+                this.statements.upsertPlayerState.run(
                     accountName,
                     JSON.stringify(player.exportPersistentVars()),
                     updatedAt,
@@ -1259,13 +1327,10 @@ export class TradeManager {
         offers: readonly TradeOfferState[],
     ): void {
         const expected = this.normalizeOfferLedger(offers);
-        const rows = this.database.connection
-            .prepare(
-                `SELECT item_id AS itemId, quantity
-                 FROM active_trade_escrows
-                 WHERE session_id = ? AND account_name = ?`,
-            )
-            .all(session.id, party.accountKey) as Array<{ itemId: number; quantity: number }>;
+        const rows = this.statements.selectPartyEscrow.all(session.id, party.accountKey) as Array<{
+            itemId: number;
+            quantity: number;
+        }>;
         const actual = new Map<number, number>();
         for (const row of rows) {
             if (!this.isValidItemQuantity(row.itemId, row.quantity) || actual.has(row.itemId)) {
@@ -1291,67 +1356,44 @@ export class TradeManager {
         offers: readonly TradeOfferState[],
     ): void {
         const normalized = this.normalizeOfferLedger(offers);
-        this.database.connection
-            .prepare("DELETE FROM active_trade_escrows WHERE session_id = ? AND account_name = ?")
-            .run(session.id, party.accountKey);
-        const insert = this.database.connection.prepare(
-            `INSERT INTO active_trade_escrows (
-                session_id,
-                account_name,
-                item_id,
-                quantity,
-                created_at
-            ) VALUES (?, ?, ?, ?, ?)`,
-        );
+        this.statements.deletePartyEscrow.run(session.id, party.accountKey);
         const createdAt = new Date().toISOString();
         for (const [itemId, quantity] of normalized) {
-            insert.run(session.id, party.accountKey, itemId, quantity, createdAt);
+            this.statements.insertActiveEscrow.run(
+                session.id,
+                party.accountKey,
+                itemId,
+                quantity,
+                createdAt,
+            );
         }
     }
 
     private deleteActiveEscrow(session: TradeSession, party: TradePartyState): void {
-        this.database.connection
-            .prepare("DELETE FROM active_trade_escrows WHERE session_id = ? AND account_name = ?")
-            .run(session.id, party.accountKey);
+        this.statements.deletePartyEscrow.run(session.id, party.accountKey);
     }
 
     private storePendingRefunds(accountKey: string, offers: readonly TradeOfferState[]): void {
-        const insertRefund = this.database.connection.prepare(
-            `INSERT INTO pending_trade_refunds (account_name, item_id, quantity, created_at)
-             VALUES (?, ?, ?, ?)`,
-        );
         const createdAt = new Date().toISOString();
         for (const [itemId, quantity] of this.normalizeOfferLedger(offers)) {
-            insertRefund.run(accountKey, itemId, quantity, createdAt);
+            this.statements.insertPendingRefund.run(accountKey, itemId, quantity, createdAt);
         }
     }
 
     private moveActiveEscrowToPending(session: TradeSession, party: TradePartyState): void {
-        this.database.connection
-            .prepare(
-                `INSERT INTO pending_trade_refunds (account_name, item_id, quantity, created_at)
-                 SELECT account_name, item_id, quantity, ?
-                 FROM active_trade_escrows
-                 WHERE session_id = ? AND account_name = ?`,
-            )
-            .run(new Date().toISOString(), session.id, party.accountKey);
+        this.statements.movePartyEscrowToPending.run(
+            new Date().toISOString(),
+            session.id,
+            party.accountKey,
+        );
         this.deleteActiveEscrow(session, party);
     }
 
     private recoverActiveEscrows(accountName: string): void {
         this.database.connection.exec("BEGIN IMMEDIATE");
         try {
-            this.database.connection
-                .prepare(
-                    `INSERT INTO pending_trade_refunds (account_name, item_id, quantity, created_at)
-                     SELECT account_name, item_id, quantity, ?
-                     FROM active_trade_escrows
-                     WHERE account_name = ?`,
-                )
-                .run(new Date().toISOString(), accountName);
-            this.database.connection
-                .prepare("DELETE FROM active_trade_escrows WHERE account_name = ?")
-                .run(accountName);
+            this.statements.recoverAccountEscrows.run(new Date().toISOString(), accountName);
+            this.statements.deleteAccountEscrows.run(accountName);
             this.database.connection.exec("COMMIT");
         } catch (err) {
             try {

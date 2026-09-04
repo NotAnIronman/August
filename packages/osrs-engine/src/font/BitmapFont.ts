@@ -4,6 +4,21 @@ import { IndexType } from "@august/osrs-engine/cache/IndexType";
 import { ByteBuffer } from "@august/osrs-engine/io/ByteBuffer";
 import { SpriteLoader } from "@august/osrs-engine/sprite/SpriteLoader";
 
+type GlyphCanvas = OffscreenCanvas | HTMLCanvasElement;
+
+function createGlyphCanvas(width: number, height: number): GlyphCanvas {
+    if (typeof OffscreenCanvas !== "undefined") {
+        return new OffscreenCanvas(width, height);
+    }
+    if (typeof document !== "undefined") {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        return canvas;
+    }
+    throw new Error("Canvas rendering is not available in this environment");
+}
+
 /**
  * Java-compatible Linear Congruential Generator (LCG) random number generator.
  * Matches Java's java.util.Random implementation.
@@ -35,6 +50,7 @@ class JavaRandom {
 }
 
 export class BitmapFont {
+    private static readonly MAX_GLYPH_COLOR_CACHES = 64;
     advances: number[] = new Array(256).fill(0);
     leftBearings: number[] = new Array(256).fill(0);
     topBearings: number[] = new Array(256).fill(0);
@@ -321,7 +337,29 @@ export class BitmapFont {
     }
 
     // Performance: cache rendered glyphs per color to avoid getImageData/putImageData per draw
-    private glyphCanvasCache = new Map<string, Map<number, OffscreenCanvas>>();
+    private glyphCanvasCache = new Map<string, Map<number, GlyphCanvas>>();
+
+    private getGlyphColorCache(color: string): Map<number, GlyphCanvas> {
+        const cached = this.glyphCanvasCache.get(color);
+        if (cached) {
+            this.glyphCanvasCache.delete(color);
+            this.glyphCanvasCache.set(color, cached);
+            return cached;
+        }
+
+        const created = new Map<number, GlyphCanvas>();
+        this.glyphCanvasCache.set(color, created);
+        while (this.glyphCanvasCache.size > BitmapFont.MAX_GLYPH_COLOR_CACHES) {
+            const oldest = this.glyphCanvasCache.keys().next();
+            if (oldest.done) break;
+            this.glyphCanvasCache.delete(oldest.value);
+        }
+        return created;
+    }
+
+    clearGlyphCache(): void {
+        this.glyphCanvasCache.clear();
+    }
 
     /**
      * Draw OSRS-markup text with optional per-character x offsets.
@@ -372,15 +410,6 @@ export class BitmapFont {
             const out = { r, g, b };
             rgbCache.set(color, out);
             return out;
-        };
-
-        const getColorCache = (color: string): Map<number, OffscreenCanvas> => {
-            let colorCache = this.glyphCanvasCache.get(color);
-            if (!colorCache) {
-                colorCache = new Map<number, OffscreenCanvas>();
-                this.glyphCanvasCache.set(color, colorCache);
-            }
-            return colorCache;
         };
 
         const prevAlpha = (ctx as any).globalAlpha;
@@ -468,7 +497,7 @@ export class BitmapFont {
                         const dstY = Math.round(baseY + tb);
 
                         if (curShadow) {
-                            const sc = getColorCache(curShadow);
+                            const sc = this.getGlyphColorCache(curShadow);
                             let shadowCanvas = sc.get(code);
                             if (!shadowCanvas) {
                                 const { r, g, b } = parseRgb(curShadow);
@@ -478,7 +507,7 @@ export class BitmapFont {
                             ctx.drawImage(shadowCanvas, dstX + 1, dstY + 1);
                         }
 
-                        const cc = getColorCache(curColor);
+                        const cc = this.getGlyphColorCache(curColor);
                         let glyphCanvas = cc.get(code);
                         if (!glyphCanvas) {
                             const { r, g, b } = parseRgb(curColor);
@@ -516,7 +545,7 @@ export class BitmapFont {
                     const dstY = Math.round(baseY + tb);
 
                     if (curShadow) {
-                        const sc = getColorCache(curShadow);
+                        const sc = this.getGlyphColorCache(curShadow);
                         let shadowCanvas = sc.get(code);
                         if (!shadowCanvas) {
                             const { r, g, b } = parseRgb(curShadow);
@@ -526,7 +555,7 @@ export class BitmapFont {
                         ctx.drawImage(shadowCanvas, dstX + 1, dstY + 1);
                     }
 
-                    const cc = getColorCache(curColor);
+                    const cc = this.getGlyphColorCache(curColor);
                     let glyphCanvas = cc.get(code);
                     if (!glyphCanvas) {
                         const { r, g, b } = parseRgb(curColor);
@@ -570,11 +599,7 @@ export class BitmapFont {
         }
 
         // Get or create color-specific glyph cache
-        let colorCache = this.glyphCanvasCache.get(color);
-        if (!colorCache) {
-            colorCache = new Map<number, OffscreenCanvas>();
-            this.glyphCanvasCache.set(color, colorCache);
-        }
+        const colorCache = this.getGlyphColorCache(color);
 
         for (let i = 0; i < text.length; i++) {
             let ch = text.charCodeAt(i) & 0xff;
@@ -613,13 +638,19 @@ export class BitmapFont {
         }
     }
 
-    private renderGlyphToCanvas(ch: number, r: number, g: number, b: number): OffscreenCanvas {
+    private renderGlyphToCanvas(ch: number, r: number, g: number, b: number): GlyphCanvas {
         const gw = this.widths[ch] | 0;
         const gh = this.heights[ch] | 0;
         const gp = this.glyphPixels[ch]!;
 
-        const canvas = new OffscreenCanvas(gw, gh);
-        const offCtx = canvas.getContext("2d")!;
+        const canvas = createGlyphCanvas(gw, gh);
+        const offCtx = canvas.getContext("2d") as
+            | CanvasRenderingContext2D
+            | OffscreenCanvasRenderingContext2D
+            | null;
+        if (!offCtx) {
+            throw new Error("2D canvas rendering is not available in this environment");
+        }
         const imageData = offCtx.createImageData(gw, gh);
         const data = imageData.data;
 

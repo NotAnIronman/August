@@ -4,7 +4,7 @@
  * =============================================================================
  *
  * Canonical non-auth gameplay handlers are registered from:
- * - server/src/network/MessageHandlers.ts
+ * - apps/server/src/network/MessageHandlers.ts
  * - wsServer.setupMessageRouter() for local/simple handlers.
  *
  * Keep this file focused on routing primitives only.

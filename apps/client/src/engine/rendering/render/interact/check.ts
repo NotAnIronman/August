@@ -1,195 +1,37 @@
-import Denque from "denque";
-import { mat4, vec2, vec3, vec4 } from "gl-matrix";
-import { button, folder } from "leva";
-import { Schema } from "leva/dist/declarations/src/types";
-import {
-    DrawCall,
-    Framebuffer,
-    App as PicoApp,
-    PicoGL,
-    Program,
-    Renderbuffer,
-    Texture,
-    Timer,
-    UniformBuffer,
-    VertexArray,
-    VertexBuffer,
-} from "picogl";
 
-import {
-    getClientCycle,
-    getCurrentTick,
-    getServerTickPhaseNow,
-    isServerConnected,
-    sendEmote,
-    sendInteractFollow,
-    sendInteractStop,
-    subscribeTick,
-} from "@client/core/network/ServerConnection";
-import { sendLogin } from "@client/core/network/ServerConnection";
-import { flushPackets } from "@client/core/network/packet/index";
-import { createTextureArray } from "@client/engine/rendering/picogl/PicoTexture";
-import { RS_TO_RADIANS } from "@august/osrs-engine/MathConstants";
-import { CollisionFlag } from "@august/game-model/collision/CollisionFlag";
-import { isInWilderness } from "@august/game-model/world/Wilderness";
 import { resolveLocActions } from "@august/game-model/world/LocActionOverrides";
+import { isInWilderness } from "@august/game-model/world/Wilderness";
+import { MenuTargetType,OsrsMenuEntry } from "@august/osrs-engine/MenuEntry";
 import {
-    getWorldLocChanges,
-    getWorldLocSpawns,
-    getWorldTerrainOverrides,
-} from "@client/features/content/GamemodeContentStore";
-import { OsrsMenuEntry } from "@august/osrs-engine/MenuEntry";
-import { MenuTargetType } from "@august/osrs-engine/MenuEntry";
-import type { OverlayFloorType } from "@august/osrs-engine/config/floortype/OverlayFloorType";
-import { LocModelLoader } from "@august/osrs-engine/config/loctype/LocModelLoader";
-import { LocModelType } from "@august/osrs-engine/config/loctype/LocModelType";
-import { NpcModelLoader } from "@august/osrs-engine/config/npctype/NpcModelLoader";
-import { NpcDrawPriority, NpcType } from "@august/osrs-engine/config/npctype/NpcType";
-import { PlayerAppearance } from "@august/osrs-engine/config/player/PlayerAppearance";
-import { PlayerModelLoader } from "@august/osrs-engine/config/player/PlayerModelLoader";
-import { decodeInteractionIndex } from "@august/osrs-engine/interaction/InteractionIndex";
-import { getMapIndexFromTile, getMapPlaneId, getMapSquareId } from "@august/osrs-engine/map/MapFileIndex";
-import { Model } from "@august/osrs-engine/model/Model";
-import { ModelData } from "@august/osrs-engine/model/ModelData";
-import { Scene } from "@august/osrs-engine/scene/Scene";
-import { getUiScale } from "@client/ui/runtime/UiScale";
-import { ClickCrossOverlay } from "@client/engine/rendering/overlays/ClickCrossOverlay";
-import { GroundItemOverlay } from "@client/engine/rendering/overlays/GroundItemOverlay";
-import { HealthBarOverlay } from "@client/engine/rendering/overlays/HealthBarOverlay";
-import { HitsplatOverlay } from "@client/engine/rendering/overlays/HitsplatOverlay";
+    isServerConnected,
+    sendInteractFollow,
+    sendInteractStop
+} from "@client/core/network/ServerConnection";
 import {
-    InteractHighlightDrawTarget,
-    InteractHighlightOverlay,
-} from "@client/engine/rendering/overlays/InteractHighlightOverlay";
-import { LoadingMessageOverlay } from "@client/engine/rendering/overlays/LoadingMessageOverlay";
-import { LoginOverlay } from "@client/engine/rendering/overlays/LoginOverlay";
-import { OverheadPrayerOverlay } from "@client/engine/rendering/overlays/OverheadPrayerOverlay";
-import { OverheadTextOverlay } from "@client/engine/rendering/overlays/OverheadTextOverlay";
+    isTouchDevice
+} from "@client/core/platform/device/DeviceUtil";
+import { ClientState } from "@client/engine/game/ClientState";
 import {
-    HealthBarEntry,
-    HitsplatEntry,
-    OverheadPrayerEntry,
-    OverheadTextEntry,
-    type OverlayUpdateArgs,
-    RenderPhase,
-} from "@client/engine/rendering/overlays/Overlay";
-import { OverlayManager } from "@client/engine/rendering/overlays/OverlayManager";
-import type { TileMarkerOverlay } from "@client/engine/rendering/overlays/TileMarkerOverlay";
-import { TileTextOverlay } from "@client/engine/rendering/overlays/TileTextOverlay";
-import { WidgetsOverlay } from "@client/engine/rendering/overlays/WidgetsOverlay";
-import { MENU_ACTION_DEPRIORITIZE_OFFSET, MenuAction, menuAction } from "@client/ui/runtime/menu/MenuAction";
-import { worldEntriesToSimple } from "@client/ui/runtime/menu/MenuBridge";
-import type { MenuClickContext, SimpleMenuEntry } from "@client/ui/runtime/menu/MenuEngine";
-import { chooseDefaultMenuEntry, shouldLeftClickOpenMenu } from "@client/ui/runtime/menu/MenuEngine";
+    ATTACK_OPTION_HIDDEN,
+    normalizeAttackOptionMode,
+    shouldDeprioritizeAttack,
+} from "@client/engine/game/menu/AttackOptionPolicy";
+import {
+    resolveGroundItemStackPlane
+} from "@client/engine/game/scene/PlaneResolver";
+import { InteractType } from "@client/engine/rendering/InteractType";
+import { formatPlayerCombatLabel } from "@client/engine/rendering/render/constants";
+import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
+import { MenuAction,inferMenuAction,menuAction } from "@client/ui/runtime/menu/MenuAction";
+import type { MenuClickContext,SimpleMenuEntry } from "@client/ui/runtime/menu/MenuEngine";
+import { chooseDefaultMenuEntry,shouldLeftClickOpenMenu } from "@client/ui/runtime/menu/MenuEngine";
 import { MenuOpcode } from "@client/ui/runtime/menu/MenuState";
-import { Model2DRenderer } from "@client/ui/runtime/model/Model2DRenderer";
 import {
     canTargetGroundItem,
     canTargetNpc,
     canTargetObject,
     canTargetPlayer,
 } from "@client/ui/widgets/WidgetFlags";
-import { WidgetLoader } from "@client/ui/widgets/WidgetLoader";
-import { WidgetManager } from "@client/ui/widgets/WidgetManager";
-import { layoutWidgets } from "@client/ui/widgets/layout/WidgetLayout";
-import { collectWidgetsAtPoint } from "@client/ui/widgets/menu/WidgetInteractionResolver";
-import {
-    getCanvasCssSize,
-    isIos,
-    isMobileMode,
-    isTouchDevice,
-    isWebGL2Supported,
-} from "@client/core/platform/device/DeviceUtil";
-import { clamp } from "@august/game-model/math/MathUtil";
-import { ClientState } from "@client/engine/game/ClientState";
-import { GameRenderer } from "@client/engine/rendering/core/GameRenderer";
-import type { HitsplatEventPayload } from "@client/engine/rendering/core/GameRenderer";
-import { OsrsRendererType, WEBGL } from "@client/engine/rendering/core/GameRenderers";
-import { ClickMode, getMousePos } from "@client/core/input/InputManager";
-import { OsrsClient } from "@client/engine/game/OsrsClient";
-import { ActorAnimationClip } from "@client/engine/game/actor/ActorAnimation";
-import {
-    ActorHealthBarsState,
-    ActorHitsplatState,
-    HealthBarBarState,
-    HealthBarDefinitionState,
-    HealthBarUpdateState,
-    MAX_HITSPLAT_SLOTS,
-    createActorHealthBarsState,
-    createActorHitsplatState,
-} from "@client/engine/game/actor/ActorOverlayState";
-import type { ClientGroundItemStack, GroundItemOverlayEntry } from "@client/engine/game/data/ground/GroundItemStore";
-import { NpcEcs } from "@client/engine/game/ecs/NpcEcs";
-import type { PlayerAnimKey } from "@client/engine/game/ecs/PlayerEcs";
-import { GameState, LoginIndex } from "@client/features/login/index";
-import { Ray, rayIntersectsBox } from "@client/engine/game/math/Raycast";
-import { isMouseInUIRegion as checkMouseInUIRegion } from "@client/engine/game/menu/WorldMenuBuilder";
-import {
-    advanceAnimation,
-    computeMovementOrientation,
-    computeMovementStep,
-    interpolateRotation,
-    parseInteractionTarget,
-} from "@client/engine/game/movement/NpcClientTick";
-import type { TileMarkersPluginConfig } from "@client/features/plugins/tilemarkers/types";
-import { computeRoofPlaneLimit } from "@client/engine/game/roof/RoofVisibility";
-import { sampleBridgeHeightForWorldTile } from "@client/engine/game/scene/BridgeHeightSampler";
-import {
-    BridgePlaneStrategy,
-    resolveBridgePromotedPlane,
-    resolveCollisionSamplePlaneForLocal,
-    resolveCollisionSamplePlaneForWorldTile,
-    resolveGroundItemStackPlane,
-    resolveHeightSamplePlaneForLocal,
-    resolveInteractionPlaneForLocal,
-    resolveInteractionPlaneForWorldTile,
-} from "@client/engine/game/scene/PlaneResolver";
-import { SceneRaycastHit, SceneRaycaster } from "@client/engine/game/scene/SceneRaycaster";
-import {
-    TILE_FLAG_BRIDGE,
-    getTileRenderFlagAt as lookupTileRenderFlagAt,
-} from "@client/engine/game/scene/TileRenderFlags";
-import { LoadingRequirement } from "@client/engine/game/state/LoadingTracker";
-import type { PlayerSpotAnimationEvent } from "@client/engine/game/sync/PlayerSyncTypes";
-import { RAD_TO_RS_UNITS, computeFacingRotation } from "@client/engine/game/movement/FacingRotation";
-import { AnimationFrames } from "@client/engine/rendering/AnimationFrames";
-import { ChatheadFactory } from "@client/engine/rendering/ChatheadFactory";
-import { type DrawBackend, createDrawBackend } from "@client/engine/rendering/DrawBackend";
-import { DrawRange, NULL_DRAW_RANGE, newDrawRange } from "@client/engine/rendering/DrawRange";
-import { InteractType } from "@client/engine/rendering/InteractType";
-import { profiler } from "@client/engine/rendering/PerformanceProfiler";
-import { PlayerChatheadFactory } from "@client/engine/rendering/PlayerChatheadFactory";
-import { resolveFogRange } from "@client/engine/rendering/RenderDistancePolicy";
-import { WebGLMapSquare } from "@client/engine/rendering/WebGLMapSquare";
-import { WorldEntityAnimator } from "@client/engine/rendering/WorldEntityAnimator";
-import { SceneBuffer } from "@client/engine/rendering/buffer/SceneBuffer";
-import { getModelFaces, isModelFaceTransparent } from "@client/engine/rendering/buffer/SceneBuffer";
-import { GfxManager } from "@client/engine/rendering/gfx/GfxManager";
-import { GfxRenderer } from "@client/engine/rendering/gfx/GfxRenderer";
-import { buildGroundItemGeometry } from "@client/engine/rendering/ground/GroundItemMeshBuilder";
-import { type MinimapIcon, SdMapData } from "@client/engine/rendering/loader/SdMapData";
-import { SdMapDataLoader } from "@client/engine/rendering/loader/SdMapDataLoader";
-import { SdMapLoaderInput } from "@client/engine/rendering/loader/SdMapLoaderInput";
-import { isDoorLocType } from "@client/engine/rendering/loc/SceneLocs";
-import {
-    DynamicNpcAnimLoader,
-    DynamicNpcFrameGeometry,
-    DynamicNpcSequenceMeta,
-} from "@client/engine/rendering/npc/DynamicNpcAnimLoader";
-import { PlayerRenderer } from "@client/engine/rendering/player/PlayerRenderer";
-import { ProjectileManager } from "@client/engine/rendering/projectiles/ProjectileManager";
-import { ProjectileRenderer } from "@client/engine/rendering/projectiles/ProjectileRenderer";
-import {
-    FRAME_FXAA_PROGRAM,
-    FRAME_PROGRAM,
-    createMainProgram,
-    createNpcProgram,
-    createPlayerProgram,
-    createProjectileProgram,
-} from "@client/engine/rendering/shaders/Shaders";
-import { KNOWN_WATER_TEXTURE_IDS } from "@client/engine/rendering/water/WaterTextureIds";
-import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
-import { RENDER_CONSTANTS, formatPlayerCombatLabel } from "@client/engine/rendering/render/constants";
 
 export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
 
@@ -414,38 +256,6 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
 
             const npcEcs = host.osrsClient.npcEcs;
             const playerEcs = host.osrsClient.playerEcs;
-            const normalizePlayerName = (name: string | undefined): string => {
-                return String(name ?? "")
-                    .replace(/<[^>]*>/g, "")
-                    .trim()
-                    .toLowerCase();
-            };
-            const clanMemberNames = new Set<string>();
-            try {
-                const cs2Ctx: any = host.osrsClient.cs2Vm?.context;
-                const addName = (raw: unknown): void => {
-                    if (typeof raw !== "string") return;
-                    const normalized = normalizePlayerName(raw);
-                    if (normalized.length > 0) clanMemberNames.add(normalized);
-                };
-                const addListByField = (list: unknown, fieldName: string): void => {
-                    if (!Array.isArray(list)) return;
-                    for (const entry of list) {
-                        addName((entry as any)?.[fieldName]);
-                    }
-                };
-                const addNameList = (list: unknown): void => {
-                    if (!Array.isArray(list)) return;
-                    for (const entry of list) addName(entry);
-                };
-                addListByField(cs2Ctx?.clanMembers, "name");
-                addNameList(cs2Ctx?.clanSettings?.memberNames);
-                addNameList(cs2Ctx?.clanChannel?.userNames);
-            } catch {}
-            const isClanMemberName = (name: string | undefined): boolean => {
-                const normalized = normalizePlayerName(name);
-                return normalized.length > 0 && clanMemberNames.has(normalized);
-            };
 
             const addPlayerMenuEntries = (
                 ecsIndex: number,
@@ -499,8 +309,6 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                         ? playerEcs.getY(localEcsIndex | 0) >> 7
                         : 0;
                 const canAttackPlayers = isInWilderness(localWorldX, localWorldY);
-                const targetIsClanMember = isClanMemberName(playerLabel);
-
                 // When hovering a player, Walk here target becomes the player's label.
                 if (walkHereEntry) {
                     walkHereEntry.targetName = `<col=ffffff>${playerWalkLabel}`;
@@ -605,17 +413,16 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                     } else if (actionIdx === 0) {
                         // Player combat is a Wilderness-only menu action.
                         if (!canAttackPlayers) continue;
-                        const attackOption = ClientState.playerAttackOption | 0;
-                        if (attackOption === 3) continue;
+                        const attackOption = normalizeAttackOptionMode(
+                            ClientState.playerAttackOption,
+                        );
+                        if (attackOption === ATTACK_OPTION_HIDDEN) continue;
 
-                        let deprioritized = false;
-                        if (attackOption === 1) {
-                            deprioritized = true;
-                        } else if (attackOption === 0) {
-                            deprioritized = targetCombatLevel > localCombatLevel;
-                        } else if (attackOption === 4) {
-                            deprioritized = targetIsClanMember;
-                        }
+                        let deprioritized = shouldDeprioritizeAttack(
+                            attackOption,
+                            localCombatLevel,
+                            targetCombatLevel,
+                        );
 
                         // Team logic overrides attack option priority when both players have teams.
                         if (localTeam !== 0 && targetTeam !== 0) {
@@ -790,17 +597,18 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                     const option = actions[actionIdx];
                     if (!option) continue;
                     if (option.toLowerCase() !== "attack") continue;
-                    if (ClientState.npcAttackOption === 3) continue;
+                    const attackOption = normalizeAttackOptionMode(
+                        ClientState.npcAttackOption,
+                    );
+                    if (attackOption === ATTACK_OPTION_HIDDEN) continue;
 
-                    let deprioritized = false;
-                    const attackOption = ClientState.npcAttackOption | 0;
-                    if (attackOption === 1) {
-                        deprioritized = true;
-                    } else if (attackOption === 0) {
-                        const npcLevel = (npcType.combatLevel ?? 0) | 0;
-                        const playerLevel = ClientState.localPlayerCombatLevel | 0 | 0;
-                        if (npcLevel > playerLevel) deprioritized = true;
-                    }
+                    const npcLevel = (npcType.combatLevel ?? 0) | 0;
+                    const playerLevel = ClientState.localPlayerCombatLevel | 0;
+                    const deprioritized = shouldDeprioritizeAttack(
+                        attackOption,
+                        playerLevel,
+                        npcLevel,
+                    );
 
                     menuEntries.push({
                         option,
@@ -976,13 +784,17 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
 
                     // Ground items stay indexed by the raw client plane; bridge promotion is render-only.
                     const plane = resolveGroundItemStackPlane(host.getPlayerRawPlane() | 0);
+                    const groundItemsPlugin = host.osrsClient.groundItemsPlugin;
                     const stacks = host.osrsClient.groundItems.getStacksAt(
                         worldTileX,
                         worldTileY,
                         plane,
+                        {
+                            aggregate:
+                                groundItemsPlugin.getConfig().collapseGroundItemMenu === true,
+                        },
                     );
                     if (!stacks || stacks.length === 0) continue;
-                    const groundItemsPlugin = host.osrsClient.groundItemsPlugin;
 
                     const tileKey = `${localX}:${localY}`;
                     if (objIds.has(tileKey)) continue;
@@ -1054,15 +866,17 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                         continue;
                     }
 
-                    // No selection: insert ground actions 4..0 with Take fallback at index 2, then Examine.
-                    for (const stack of stacks) {
+                    // No selection: filter and order the complete pile through the shared evaluator.
+                    // The menu bridge displays entries in reverse insertion order, matching the
+                    // ordering contract of sortStacksForMenu.
+                    const menuStacks = groundItemsPlugin.sortStacksForMenu(
+                        stacks.filter((stack) =>
+                            groundItemsPlugin.shouldDisplayStackInMenu(stack),
+                        ),
+                    );
+                    for (const stack of menuStacks) {
                         const objType = host.osrsClient.objTypeLoader.load(stack.itemId);
                         if (!objType || objType.name === "null") continue;
-                        const menuName = groundItemsPlugin.getMenuTargetName(stack, objType.name);
-                        const menuTarget = groundItemsPlugin.getMenuTargetColorized(
-                            stack,
-                            menuName,
-                        );
                         const deprioritized = groundItemsPlugin.shouldDeprioritizeInMenu(stack);
 
                         const actions = objType.groundActions ?? [];
@@ -1070,11 +884,16 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                             const option = actions[actionIdx];
                             if (option) {
                                 const capturedStack = stack;
-                                menuEntries.push({
+                                const style = groundItemsPlugin.getMenuStyle(
+                                    stack,
                                     option,
+                                    objType.name,
+                                );
+                                menuEntries.push({
+                                    option: style.option,
                                     targetId: stack.itemId,
                                     targetType: MenuTargetType.OBJ,
-                                    targetName: menuTarget,
+                                    targetName: style.targetName,
                                     targetLevel: -1,
                                     mapX: localX,
                                     mapY: localY,
@@ -1083,15 +902,25 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                                     onClick:
                                         option.toLowerCase() === "take"
                                             ? () => host.osrsClient.takeGroundItem(capturedStack)
-                                            : () => host.osrsClient.closeMenu(),
+                                            : () =>
+                                                  host.osrsClient.interactGroundItem(
+                                                      capturedStack,
+                                                      option,
+                                                      actionIdx,
+                                                  ),
                                 });
                             } else if (actionIdx === 2) {
                                 const capturedStack = stack;
+                                const style = groundItemsPlugin.getMenuStyle(
+                                    stack,
+                                    "Take",
+                                    objType.name,
+                                );
                                 menuEntries.push({
-                                    option: "Take",
+                                    option: style.option,
                                     targetId: stack.itemId,
                                     targetType: MenuTargetType.OBJ,
-                                    targetName: menuTarget,
+                                    targetName: style.targetName,
                                     targetLevel: -1,
                                     mapX: localX,
                                     mapY: localY,
@@ -1102,15 +931,65 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                             }
                         }
 
+                        const examineStyle = groundItemsPlugin.getMenuStyle(
+                            stack,
+                            "Examine",
+                            objType.name,
+                        );
                         menuEntries.push({
-                            option: "Examine",
+                            option: examineStyle.option,
                             targetId: stack.itemId,
                             targetType: MenuTargetType.OBJ,
-                            targetName: menuTarget,
+                            targetName: examineStyle.targetName,
                             targetLevel: -1,
                             mapX: localX,
                             mapY: localY,
+                            deprioritized: true,
                         });
+
+                        if (groundItemsPlugin.isHotkeyRevealActive()) {
+                            const menuName = groundItemsPlugin.getMenuTargetName(
+                                stack,
+                                objType.name,
+                            );
+                            menuEntries.push({
+                                option: groundItemsPlugin.hasExactItemListEntry(
+                                    stack.name,
+                                    "highlight",
+                                )
+                                    ? "Un-highlight"
+                                    : "Highlight",
+                                targetId: stack.itemId,
+                                targetType: MenuTargetType.OBJ,
+                                targetName: menuName,
+                                targetLevel: -1,
+                                mapX: localX,
+                                mapY: localY,
+                                opcode: MenuOpcode.Custom,
+                                deprioritized: true,
+                                onClick: () => {
+                                    groundItemsPlugin.toggleItemList(stack.name, "highlight");
+                                    host.osrsClient.closeMenu();
+                                },
+                            });
+                            menuEntries.push({
+                                option: groundItemsPlugin.hasExactItemListEntry(stack.name, "hide")
+                                    ? "Un-hide"
+                                    : "Hide",
+                                targetId: stack.itemId,
+                                targetType: MenuTargetType.OBJ,
+                                targetName: menuName,
+                                targetLevel: -1,
+                                mapX: localX,
+                                mapY: localY,
+                                opcode: MenuOpcode.Custom,
+                                deprioritized: true,
+                                onClick: () => {
+                                    groundItemsPlugin.toggleItemList(stack.name, "hide");
+                                    host.osrsClient.closeMenu();
+                                },
+                            });
+                        }
                     }
                 } else if (interactType === InteractType.NPC) {
                     // SceneRaycaster encodes players as InteractType.NPC with a high interactId offset.
@@ -1237,7 +1116,7 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                             e.targetType === MenuTargetType.LOC ||
                             e.targetType === MenuTargetType.PLAYER ||
                             e.targetType === MenuTargetType.OBJ) &&
-                        e.option !== "Examine"
+                        inferMenuAction(e.option, e.targetType) !== MenuAction.Examine
                     ) {
                         const orig = e.onClick;
                         e.onClick = (entry, evt?: MouseEvent, ctx?: unknown) =>

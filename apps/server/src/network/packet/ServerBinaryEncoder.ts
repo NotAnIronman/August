@@ -11,10 +11,29 @@ import {
 } from "@august/protocol/transport/messages/ServerMessage";
 import type { ProjectileLaunch } from "@august/protocol/projectiles/ProjectileLaunch";
 import type { FriendsChatSnapshot } from "@august/protocol/social/FriendsChat";
+import {
+    bossHealthBarMarkerStyleToId,
+    normalizeBossHealth,
+    normalizeBossHealthBarMarkers,
+    type BossHealthBarState,
+} from "@august/protocol/ui/bossHealthBar";
 import type { QuestListWidgetGroup } from "@august/protocol/ui/questList";
 import type { WorldEntityBuildArea } from "@august/protocol/worldentity/WorldEntityTypes";
-import type { CameraControlPayload } from "@server/network/messages";
+import type { CameraControlPayload, GroundItemStackMessage } from "@server/network/messages";
 import { BitWriter } from "@server/network/BitWriter";
+
+type GroundItemWireStack = GroundItemStackMessage;
+
+const GROUND_ITEM_METADATA_MAGIC = 0x4749; // "GI"
+const GROUND_ITEM_METADATA_VERSION = 1;
+const GROUND_ITEM_META_NAME = 1 << 0;
+const GROUND_ITEM_META_VALUE = 1 << 1;
+const GROUND_ITEM_META_HIGH_ALCH = 1 << 2;
+const GROUND_ITEM_META_BOOLS = 1 << 3;
+const GROUND_ITEM_META_TRADEABLE = 1 << 4;
+const GROUND_ITEM_META_STACKABLE = 1 << 5;
+const GROUND_ITEM_META_NOTED = 1 << 6;
+const GROUND_ITEM_META_UNNOTED_ID = 1 << 7;
 
 /**
  * Binary packet buffer for server encoding
@@ -653,6 +672,30 @@ export class ServerBinaryEncoder {
         return this.buffer.toPacket(ServerMessageId.WIDGET_SET_TRANSPARENCY);
     }
 
+    encodeWidgetSetBossHealthBar(state: BossHealthBarState): Uint8Array {
+        this.buffer.reset();
+        this.buffer.writeBoolean(state.active);
+        if (state.active) {
+            const health = normalizeBossHealth(state.current, state.maximum);
+            const markers = normalizeBossHealthBarMarkers(state.markers);
+            const name = String(state.name ?? "")
+                .replaceAll("\0", "")
+                .trim()
+                .slice(0, 128);
+            this.buffer.writeInt(Math.max(0, Math.trunc(state.npcTypeId)));
+            this.buffer.writeInt(health.current);
+            this.buffer.writeInt(health.maximum);
+            this.buffer.writeString(name);
+            this.buffer.writeByte(markers.length);
+            for (const marker of markers) {
+                this.buffer.writeShort(Math.round(marker.percent * 100));
+                this.buffer.writeByte(bossHealthBarMarkerStyleToId(marker.style));
+                this.buffer.writeString(marker.label ?? "");
+            }
+        }
+        return this.buffer.toPacket(ServerMessageId.WIDGET_SET_BOSS_HEALTH_BAR);
+    }
+
     encodeWidgetSetNpcHead(uid: number, npcId: number): Uint8Array {
         this.buffer.reset();
         this.buffer.writeInt(uid);
@@ -936,92 +979,115 @@ export class ServerBinaryEncoder {
     // GROUND ITEMS
     // ========================================
 
+    private writeGroundItemStack(s: GroundItemWireStack): void {
+        this.buffer.writeInt(s.id);
+        this.buffer.writeShort(s.itemId);
+        this.buffer.writeInt(s.quantity);
+        this.buffer.writeShort(s.tile.x);
+        this.buffer.writeShort(s.tile.y);
+        this.buffer.writeByte(s.tile.level);
+        this.buffer.writeInt(Number.isFinite(s.createdTick) ? (s.createdTick as number) : -1);
+        this.buffer.writeInt(s.privateUntilTick && s.privateUntilTick > 0 ? s.privateUntilTick : 0);
+        this.buffer.writeInt(s.expiresTick && s.expiresTick > 0 ? s.expiresTick : 0);
+        this.buffer.writeInt(s.ownerId !== undefined ? s.ownerId : -1);
+        this.buffer.writeBoolean(s.isPrivate === true);
+        const ownership = s.ownership;
+        this.buffer.writeByte(
+            ownership === 1 || ownership === 2 || ownership === 3 || ownership === 0
+                ? ownership
+                : 0,
+        );
+    }
+
+    /**
+     * Metadata is a versioned trailer rather than part of the legacy stack
+     * record. Older clients can safely ignore the trailer, while updated
+     * clients either decode the complete trailer or reject the packet.
+     */
+    private writeGroundItemMetadata(stacks: readonly GroundItemWireStack[]): void {
+        const entries = stacks.filter(
+            (stack) =>
+                (typeof stack.name === "string" && stack.name.length > 0) ||
+                Number.isFinite(stack.value) ||
+                Number.isFinite(stack.highAlch) ||
+                typeof stack.tradeable === "boolean" ||
+                typeof stack.stackable === "boolean" ||
+                typeof stack.noted === "boolean" ||
+                (Number.isFinite(stack.unnotedItemId) && (stack.unnotedItemId as number) > 0),
+        );
+        if (entries.length === 0) return;
+
+        this.buffer.writeShort(GROUND_ITEM_METADATA_MAGIC);
+        this.buffer.writeByte(GROUND_ITEM_METADATA_VERSION);
+        this.buffer.writeShort(entries.length);
+        for (const stack of entries) {
+            const hasName = typeof stack.name === "string" && stack.name.length > 0;
+            const hasValue = Number.isFinite(stack.value) && (stack.value as number) >= 0;
+            const hasHighAlch =
+                Number.isFinite(stack.highAlch) && (stack.highAlch as number) >= 0;
+            const hasBools =
+                typeof stack.tradeable === "boolean" &&
+                typeof stack.stackable === "boolean" &&
+                typeof stack.noted === "boolean";
+            const hasUnnotedId =
+                Number.isFinite(stack.unnotedItemId) && (stack.unnotedItemId as number) > 0;
+            let flags = 0;
+            if (hasName) flags |= GROUND_ITEM_META_NAME;
+            if (hasValue) flags |= GROUND_ITEM_META_VALUE;
+            if (hasHighAlch) flags |= GROUND_ITEM_META_HIGH_ALCH;
+            if (hasBools) flags |= GROUND_ITEM_META_BOOLS;
+            if (hasBools && stack.tradeable === true) flags |= GROUND_ITEM_META_TRADEABLE;
+            if (hasBools && stack.stackable === true) flags |= GROUND_ITEM_META_STACKABLE;
+            if (hasBools && stack.noted === true) flags |= GROUND_ITEM_META_NOTED;
+            if (hasUnnotedId) flags |= GROUND_ITEM_META_UNNOTED_ID;
+
+            this.buffer.writeInt(stack.id);
+            this.buffer.writeByte(flags);
+            if (hasName) this.buffer.writeString(stack.name as string);
+            if (hasValue) {
+                this.buffer.writeInt(
+                    Math.min(2_147_483_647, Math.max(0, Math.trunc(stack.value as number))),
+                );
+            }
+            if (hasHighAlch) {
+                this.buffer.writeInt(
+                    Math.min(2_147_483_647, Math.max(0, Math.trunc(stack.highAlch as number))),
+                );
+            }
+            if (hasUnnotedId) this.buffer.writeInt(Math.trunc(stack.unnotedItemId as number));
+        }
+    }
+
     encodeGroundItems(
         serial: number,
-        stacks: Array<{
-            id: number;
-            itemId: number;
-            quantity: number;
-            tile: { x: number; y: number; level: number };
-            createdTick?: number;
-            privateUntilTick?: number;
-            expiresTick?: number;
-            ownerId?: number;
-            isPrivate?: boolean;
-            ownership?: 0 | 1 | 2 | 3;
-        }>,
+        stacks: GroundItemWireStack[],
     ): Uint8Array {
         this.buffer.reset();
         this.buffer.writeInt(serial);
         this.buffer.writeShort(stacks.length);
         for (const s of stacks) {
-            this.buffer.writeInt(s.id);
-            this.buffer.writeShort(s.itemId);
-            this.buffer.writeInt(s.quantity);
-            this.buffer.writeShort(s.tile.x);
-            this.buffer.writeShort(s.tile.y);
-            this.buffer.writeByte(s.tile.level);
-            this.buffer.writeInt(Number.isFinite(s.createdTick) ? (s.createdTick as number) : -1);
-            this.buffer.writeInt(
-                s.privateUntilTick && s.privateUntilTick > 0 ? s.privateUntilTick : 0,
-            );
-            this.buffer.writeInt(s.expiresTick && s.expiresTick > 0 ? s.expiresTick : 0);
-            this.buffer.writeInt(s.ownerId !== undefined ? s.ownerId : -1);
-            this.buffer.writeBoolean(s.isPrivate === true);
-            const ownership = s.ownership;
-            this.buffer.writeByte(
-                ownership === 1 || ownership === 2 || ownership === 3 || ownership === 0
-                    ? ownership
-                    : 0,
-            );
+            this.writeGroundItemStack(s);
         }
+        this.writeGroundItemMetadata(stacks);
         return this.buffer.toPacket(ServerMessageId.GROUND_ITEMS);
     }
 
     encodeGroundItemsDelta(
         serial: number,
-        upserts: Array<{
-            id: number;
-            itemId: number;
-            quantity: number;
-            tile: { x: number; y: number; level: number };
-            createdTick?: number;
-            privateUntilTick?: number;
-            expiresTick?: number;
-            ownerId?: number;
-            isPrivate?: boolean;
-            ownership?: 0 | 1 | 2 | 3;
-        }>,
+        upserts: GroundItemWireStack[],
         removes: number[],
     ): Uint8Array {
         this.buffer.reset();
         this.buffer.writeInt(serial);
         this.buffer.writeShort(upserts.length);
         for (const s of upserts) {
-            this.buffer.writeInt(s.id);
-            this.buffer.writeShort(s.itemId);
-            this.buffer.writeInt(s.quantity);
-            this.buffer.writeShort(s.tile.x);
-            this.buffer.writeShort(s.tile.y);
-            this.buffer.writeByte(s.tile.level);
-            this.buffer.writeInt(Number.isFinite(s.createdTick) ? (s.createdTick as number) : -1);
-            this.buffer.writeInt(
-                s.privateUntilTick && s.privateUntilTick > 0 ? s.privateUntilTick : 0,
-            );
-            this.buffer.writeInt(s.expiresTick && s.expiresTick > 0 ? s.expiresTick : 0);
-            this.buffer.writeInt(s.ownerId !== undefined ? s.ownerId : -1);
-            this.buffer.writeBoolean(s.isPrivate === true);
-            const ownership = s.ownership;
-            this.buffer.writeByte(
-                ownership === 1 || ownership === 2 || ownership === 3 || ownership === 0
-                    ? ownership
-                    : 0,
-            );
+            this.writeGroundItemStack(s);
         }
         this.buffer.writeShort(removes.length);
         for (const stackId of removes) {
             this.buffer.writeInt(stackId);
         }
+        this.writeGroundItemMetadata(upserts);
         return this.buffer.toPacket(ServerMessageId.GROUND_ITEMS_DELTA);
     }
 
@@ -1628,7 +1694,7 @@ export class ServerBinaryEncoder {
 
     /**
      * Per-category "all items obtained" state, by tab index - see
-     * getCategoryCompletionByTab in server/src/game/collectionlog.ts. Used
+     * getCategoryCompletionByTab in apps/server/src/game/collectionlog.ts. Used
      * to color-code completed categories green in the sidebar list, since
      * the compiled cache script that draws that list doesn't do it itself.
      */

@@ -9,6 +9,7 @@ import {
 import { ComponentIds, type UiIconRow, type UiTextRow } from "@august/protocol/uikit/contracts";
 import { isValidSpriteCommonName, parseSpriteRef } from "@august/protocol/uikit/spriteNames";
 import type { PlayerState } from "@server/game/player";
+import { registerPlayerScopedCollections } from "@server/game/scripts/ScriptLifecycle";
 import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
 import { setSpriteName } from "@server/world/SpriteNameCatalogFile";
 import { registerUiPanelActions } from "@server/content/gamemodes/vanilla/uikit/actions";
@@ -225,6 +226,13 @@ export function registerDevUIKitMenu(
     registry: IScriptRegistry,
     services: ScriptServices,
 ): void {
+    registerPlayerScopedCollections(
+        registry,
+        services,
+        spriteGalleryPageByPlayerId,
+        spriteGalleryFilterByPlayerId,
+    );
+
     registry.registerCommand("dev", ({ player }) => {
         openTextMenu(player, services);
     }, {

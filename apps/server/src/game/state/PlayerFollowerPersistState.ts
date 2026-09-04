@@ -1,11 +1,30 @@
 import type { PlayerFollowerPersistentEntry } from "@server/game/player";
 import type { PersistentSubState } from "@server/game/state/PersistentSubState";
+import { getFollowerDefinitionByItemId } from "@server/game/followers/followerDefinitions";
+
+export type PendingPetReward = { itemId: number; quantity: number };
 
 export class PlayerFollowerPersistState implements PersistentSubState<
     PlayerFollowerPersistentEntry | undefined
 > {
     private state?: PlayerFollowerPersistentEntry;
     private activeNpcId?: number;
+    private pendingRewards: PendingPetReward[] = [];
+
+    getPendingRewards(): readonly PendingPetReward[] {
+        return this.pendingRewards;
+    }
+
+    setPendingRewards(rewards: readonly PendingPetReward[] | undefined): void {
+        this.pendingRewards = (rewards ?? [])
+            .filter(reward => reward && getFollowerDefinitionByItemId(reward.itemId)
+                && Number.isSafeInteger(reward.quantity) && reward.quantity > 0)
+            .map(reward => ({ ...reward }));
+    }
+
+    deferReward(itemId: number, quantity: number): void {
+        this.setPendingRewards([...this.pendingRewards, { itemId, quantity }]);
+    }
 
     getState(): PlayerFollowerPersistentEntry | undefined {
         return this.state;

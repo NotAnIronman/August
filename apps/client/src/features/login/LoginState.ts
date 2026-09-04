@@ -25,6 +25,12 @@ import {
     type SavedAccountCredentials,
     type SavedAccountSlot,
 } from "@client/features/login/SavedAccountSlots";
+import {
+    canUseLocalStorage,
+    readLocalStorageJson,
+    removeLocalStorageItem,
+    writeLocalStorageJson,
+} from "@client/core/storage/localStorage";
 
 const STORAGE_KEY_IOS_PWA_LOGIN_STATE = "osrs:iosPwaLoginState";
 const IOS_PWA_LOGIN_STATE_VERSION = 2;
@@ -92,9 +98,7 @@ export class LoginState {
 
     private supportsPersistedLoginState(): boolean {
         return (
-            isIosStandalonePwa() &&
-            typeof window !== "undefined" &&
-            typeof window.localStorage !== "undefined"
+            isIosStandalonePwa() && canUseLocalStorage()
         );
     }
 
@@ -104,15 +108,13 @@ export class LoginState {
         }
 
         try {
-            const raw = window.localStorage.getItem(STORAGE_KEY_IOS_PWA_LOGIN_STATE);
-            if (!raw) {
-                return;
-            }
-
-            const parsed = JSON.parse(raw) as Partial<PersistedIosPwaLoginState>;
+            const parsed = readLocalStorageJson<Partial<PersistedIosPwaLoginState>>(
+                STORAGE_KEY_IOS_PWA_LOGIN_STATE,
+            );
+            if (!parsed) return;
             if (parsed.version !== IOS_PWA_LOGIN_STATE_VERSION) {
                 // Clear version 1 data, which included a plaintext password.
-                window.localStorage.removeItem(STORAGE_KEY_IOS_PWA_LOGIN_STATE);
+                removeLocalStorageItem(STORAGE_KEY_IOS_PWA_LOGIN_STATE);
                 return;
             }
 
@@ -155,7 +157,7 @@ export class LoginState {
                 rememberUsername: this.rememberUsername,
                 isUsernameHidden: this.isUsernameHidden,
             };
-            window.localStorage.setItem(STORAGE_KEY_IOS_PWA_LOGIN_STATE, JSON.stringify(payload));
+            writeLocalStorageJson(STORAGE_KEY_IOS_PWA_LOGIN_STATE, payload);
         } catch {
             // localStorage unavailable
         }

@@ -3,6 +3,7 @@ import { CacheIndex } from "@august/osrs-engine/cache/CacheIndex";
 import { isGroupMissingError } from "@august/osrs-engine/cache/js5/GroupMissingError";
 import { SeqBaseLoader } from "@august/osrs-engine/model/seq/SeqBaseLoader";
 import { SkeletalSeq } from "@august/osrs-engine/model/skeletal/SkeletalSeq";
+import { BoundedLruCache } from "@august/osrs-engine/cache/BoundedLruCache";
 
 export interface SkeletalSeqLoader {
     load(id: number): SkeletalSeq | undefined;
@@ -18,7 +19,12 @@ export class IndexSkeletalSeqLoader implements SkeletalSeqLoader {
     constructor(
         readonly animIndex: CacheIndex,
         readonly baseLoader: SeqBaseLoader,
-    ) {}
+        maxCachedSequences: number = 2048,
+        maxCachedArchives: number = 512,
+    ) {
+        this.seqs = new BoundedLruCache(maxCachedSequences);
+        this.archiveCache = new BoundedLruCache(maxCachedArchives);
+    }
 
     load(id: number): SkeletalSeq | undefined {
         const cached = this.seqs.get(id);

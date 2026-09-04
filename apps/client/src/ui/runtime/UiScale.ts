@@ -1,3 +1,9 @@
+import {
+    readLocalStorageItem,
+    removeLocalStorageItem,
+    writeLocalStorageItem,
+} from "@client/core/storage/localStorage";
+
 const SCALE_STORAGE_KEY = "osrs.runeliteUiScale";
 
 export const RUNELITE_DEFAULT_RESIZABLE_SCALING_PERCENT = 50;
@@ -24,16 +30,11 @@ function normalizeUiScale(scale: number): number {
 }
 
 function loadOverride(): number | null {
-    if (typeof localStorage === "undefined") return null;
-    try {
-        const raw = localStorage.getItem(SCALE_STORAGE_KEY);
-        if (raw === null) return null;
-        const parsed = Number(raw);
-        if (!Number.isFinite(parsed)) return null;
-        return normalizeUiScale(parsed);
-    } catch {
-        return null;
-    }
+    const raw = readLocalStorageItem(SCALE_STORAGE_KEY);
+    if (raw === undefined) return null;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return null;
+    return normalizeUiScale(parsed);
 }
 
 function ensureOverrideLoaded(): void {
@@ -115,21 +116,13 @@ export function setUiScale(scale: number | null): void {
     overrideLoaded = true;
     if (scale === null) {
         manualScaleOverride = null;
-        if (typeof localStorage !== "undefined") {
-            try {
-                localStorage.removeItem(SCALE_STORAGE_KEY);
-            } catch {}
-        }
+        removeLocalStorageItem(SCALE_STORAGE_KEY);
         return;
     }
 
     const clamped = normalizeUiScale(scale);
     manualScaleOverride = clamped;
-    if (typeof localStorage !== "undefined") {
-        try {
-            localStorage.setItem(SCALE_STORAGE_KEY, String(clamped));
-        } catch {}
-    }
+    writeLocalStorageItem(SCALE_STORAGE_KEY, String(clamped));
 }
 
 export function setRuneliteInterfaceScalingEnabled(enabled: boolean): void {

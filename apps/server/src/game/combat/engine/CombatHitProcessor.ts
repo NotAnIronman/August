@@ -1458,6 +1458,9 @@ export class CombatHitProcessor {
         if (effects.poisonDamage !== undefined && hit.pending.landed) {
             hit.target.skillSystem.inflictPoison(effects.poisonDamage, hit.appliedClock);
         }
+        if (effects.venomDamage !== undefined && hit.pending.landed) {
+            hit.target.skillSystem.inflictVenom(effects.venomDamage, hit.appliedClock);
+        }
         if (effects.prayerDrainFraction !== undefined && hit.amount > 0) {
             const prayer = hit.target.skillSystem.getSkill(SkillId.Prayer);
             const current = Math.max(0, prayer.baseLevel + prayer.boost);
@@ -1466,6 +1469,14 @@ export class CombatHitProcessor {
                 Math.max(0, current - Math.floor(current * effects.prayerDrainFraction)),
             );
             hit.target.prayer.resetDrainAccumulator();
+        }
+        if (effects.defenceDrainFraction !== undefined && hit.amount > 0) {
+            const defence = hit.target.skillSystem.getSkill(SkillId.Defence);
+            const current = Math.max(0, defence.baseLevel + defence.boost);
+            hit.target.skillSystem.setSkillBoost(
+                SkillId.Defence,
+                Math.max(0, current - Math.floor(current * effects.defenceDrainFraction)),
+            );
         }
     }
 
@@ -1943,6 +1954,7 @@ export class CombatHitProcessor {
 
     private playBlockAnimation(target: CombatEntity): void {
         if (target instanceof NpcState) {
+            if (target.suppressDefenceAnimation) return;
             const defenceAnimation = this.services.combatDataService?.getNpcDefinition(target)
                 .animations.defence;
             if (defenceAnimation !== undefined && defenceAnimation > 0) {

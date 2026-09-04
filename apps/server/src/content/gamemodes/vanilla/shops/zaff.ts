@@ -1,4 +1,5 @@
 import type { PlayerState } from "@server/game/player";
+import { registerPlayerDialogSessions } from "@server/game/scripts/ScriptLifecycle";
 import {
     type IScriptRegistry,
     type NpcInteractionEvent,
@@ -87,7 +88,8 @@ function hasItemInBank(player: PlayerState, itemId: number): boolean {
 }
 
 export function registerZaffHandlers(registry: IScriptRegistry, services: ScriptServices): void {
-    const activeConvos = new Set<number>();
+    const activeConvos = new Map<number, PlayerState>();
+    registerPlayerDialogSessions(registry, services, activeConvos);
 
     function openMainOptions(player: PlayerState): void {
         const pid = player.id;
@@ -457,7 +459,7 @@ export function registerZaffHandlers(registry: IScriptRegistry, services: Script
     const zaffHandler = (event: NpcInteractionEvent) => {
         const pid = event.player.id;
         if (activeConvos.has(pid)) return;
-        activeConvos.add(pid);
+        activeConvos.set(pid, event.player);
         openMainGreeting(event.player);
     };
 

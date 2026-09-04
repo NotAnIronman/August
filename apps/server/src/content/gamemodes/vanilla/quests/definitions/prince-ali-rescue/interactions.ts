@@ -1,4 +1,9 @@
 import type { PlayerState } from "@server/game/player";
+import {
+    registerEventSubscription,
+    registerPlayerLifecycleCleanup,
+    removeTrackedPlayerNpc,
+} from "@server/game/scripts/ScriptLifecycle";
 import type {
     IScriptRegistry,
     LocInteractionEvent,
@@ -60,7 +65,6 @@ type SpawnRole = "joe" | "keli" | "prince";
 type SpawnedActors = Partial<Record<SpawnRole, number>>;
 
 const actorsByPlayer = new Map<number, SpawnedActors>();
-const registeredEventBuses = new WeakSet<object>();
 
 function insideJailZone(player: PlayerState): boolean {
     return (
@@ -76,7 +80,7 @@ function removeRole(playerId: number, role: SpawnRole, services: ScriptServices)
     const actors = actorsByPlayer.get(playerId);
     const npcId = actors?.[role];
     if (npcId === undefined) return;
-    services.npc.removeNpc(npcId);
+    removeTrackedPlayerNpc(services, playerId, npcId);
     delete actors![role];
     if (Object.keys(actors!).length === 0) actorsByPlayer.delete(playerId);
 }
@@ -142,14 +146,25 @@ function ensureJailActors(
     }
 }
 
-function registerActorLifecycle(quest: QuestDefinition, services: ScriptServices): void {
+function registerActorLifecycle(
+    quest: QuestDefinition,
+    registry: IScriptRegistry,
+    services: ScriptServices,
+): void {
     const eventBus = services.system.eventBus;
-    if (!eventBus || registeredEventBuses.has(eventBus)) return;
-    registeredEventBuses.add(eventBus);
-    eventBus.on("player:login", ({ player }) => {
-        if (insideJailZone(player)) ensureJailActors(player, services, quest);
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: (playerId) => clearActors(playerId, services),
+        reset: () => {
+            for (const playerId of [...actorsByPlayer.keys()]) clearActors(playerId, services);
+        },
     });
-    eventBus.on("player:logout", ({ playerId }) => clearActors(playerId, services));
+    if (!eventBus) return;
+    registerEventSubscription(
+        registry,
+        eventBus.on("player:login", ({ player }) => {
+            if (insideJailZone(player)) ensureJailActors(player, services, quest);
+        }),
+    );
 }
 
 function openPrisonGate(event: LocInteractionEvent): void {
@@ -335,5 +350,5 @@ export function registerPrinceAliRescueInteractions(
             ensureJailActors(player, eventServices, quest),
         exit: ({ player, services: eventServices }) => clearActors(player.id, eventServices),
     });
-    registerActorLifecycle(quest, services);
+    registerActorLifecycle(quest, registry, services);
 }

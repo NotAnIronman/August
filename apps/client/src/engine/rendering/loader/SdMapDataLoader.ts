@@ -1,4 +1,5 @@
 import { ConfigType } from "@august/osrs-engine/cache/ConfigType";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { IndexType } from "@august/osrs-engine/cache/IndexType";
 import { BasTypeLoader } from "@august/osrs-engine/config/bastype/BasTypeLoader";
 import { ContourGroundInfo, LocModelLoader } from "@august/osrs-engine/config/loctype/LocModelLoader";
@@ -574,7 +575,7 @@ function createMapFunctionResolver(
             };
         }
     } catch (e) {
-        console.log("Failed to load MapElementTypeLoader for minimap icons", e);
+        console.warn("Failed to load MapElementTypeLoader for minimap icons", e);
     }
     return () => undefined;
 }
@@ -1305,7 +1306,7 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
 
         // Apply loc overrides to scene builder (after baseX/baseY are calculated)
         if (locOverrides && locOverrides.size > 0) {
-            console.log(
+            clientDebugLog(
                 `[SdMapDataLoader] Received ${locOverrides.size} loc overrides for map (${mapX},${mapY})`,
             );
             state.sceneBuilder.clearLocOverrides();
@@ -1343,7 +1344,7 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
                     Number.isFinite(overrideValue.matchRotation)
                         ? overrideValue.matchRotation & 0x3
                         : undefined;
-                console.log(`[SdMapDataLoader] Processing override: ${key} -> ${newId}`);
+                clientDebugLog(`[SdMapDataLoader] Processing override: ${key} -> ${newId}`);
                 const parts = key.split(",");
                 if (parts.length === 4) {
                     const worldX = parseInt(parts[0]);
@@ -1359,7 +1360,7 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
                     const moveToSceneY =
                         moveToY !== undefined ? (moveToY | 0) - (baseY | 0) : undefined;
 
-                    console.log(
+                    clientDebugLog(
                         `[SdMapDataLoader] Converted world (${worldX},${worldY}) to scene (${sceneX},${sceneY}), baseX=${baseX}, baseY=${baseY}`,
                     );
 
@@ -1569,7 +1570,7 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
         const locsAnimated = shouldLoadDoorOnly
             ? []
             : locSceneBuf.addLocAnimatedGroups(locAnimatedGroups);
-        console.log(`animated locs: ${locsAnimated.length}`);
+        clientDebugLog(`animated locs: ${locsAnimated.length}`);
 
         // Npcs
 
@@ -1776,7 +1777,7 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
             ),
         );
 
-        console.log(
+        clientDebugLog(
             `draw ranges: ${drawRanges.length}, alpha: ${drawRangesAlpha.length}`,
             mapX,
             mapY,
@@ -1800,7 +1801,7 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
             ),
         );
 
-        console.log(
+        clientDebugLog(
             `draw ranges lod: ${drawRangesLod.length}, alpha: ${drawRangesLodAlpha.length}`,
             mapX,
             mapY,
@@ -1824,7 +1825,7 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
             ),
         );
 
-        console.log(`draw ranges interact: ${drawRangesInteract.length}`, mapX, mapY);
+        clientDebugLog(`draw ranges interact: ${drawRangesInteract.length}`, mapX, mapY);
 
         // Interact Lod (non merged)
         const drawRangesInteractLod = sceneBuf.drawCommandsInteractLod.map((cmd) =>
@@ -2165,7 +2166,7 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
 
         const totalBytes = transferables.reduce((sum, buf) => sum + buf.byteLength, 0);
 
-        console.log(
+        clientDebugLog(
             `total bytes: ${totalBytes} ${mapX},${mapY}`,
             usedTextureIds,
             loadedTextures.size,

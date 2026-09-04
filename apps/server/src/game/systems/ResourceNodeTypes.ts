@@ -23,6 +23,8 @@ export interface IResourceNodeTracker<T = unknown> {
         data: T,
     ): void;
     remove(key: string): boolean;
+    /** Removes every node and exposes it to restoration/cleanup logic exactly once. */
+    drain(callback: (node: TrackedNode<T>) => void): void;
     processExpired(currentTick: number, callback: (node: TrackedNode<T>) => void): void;
     readonly size: number;
 }

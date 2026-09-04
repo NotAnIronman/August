@@ -43,6 +43,7 @@ import type { RuneDataProvider } from "@server/game/data/RuneDataProvider";
 import type { GameEventBus } from "@server/game/events/GameEventBus";
 import type { OwnedItemLocation } from "@server/game/items/playerItemOwnership";
 import type { NpcSpawnConfig, NpcState } from "@server/game/npc";
+import type { PendingNpcDrop } from "@server/game/npcManager";
 import type { EncounterRuntime } from "@server/game/encounters/EncounterRuntime";
 import type { PlayerState } from "@server/game/player";
 import type { QueueTask, TaskGenerator } from "@server/game/model/queue";
@@ -531,6 +532,11 @@ export interface SystemFacade {
         debug: (...args: unknown[]) => void;
     };
     getCurrentTick(): number;
+    /** The authoritative duration of one world tick for this server. */
+    getTickDurationMs?(): number;
+    /** Permission-aware development bypass for content that must remain gated
+     * for normal accounts while an unfinished system is being tested. */
+    isDeveloper?(player: PlayerState): boolean;
     eventBus?: GameEventBus;
     gamemodeServices?: Record<string, unknown>;
 }
@@ -783,6 +789,8 @@ export interface InstanceFacade {
     create(player: PlayerState, spec: QuestInstanceSpec): QuestInstanceHandle | undefined;
     get(playerId: number): QuestInstanceHandle | undefined;
     getById(instanceId: string): QuestInstanceHandle | undefined;
+    /** Adds an NPC spawned after creation to instance visibility, cleanup, and HUD tracking. */
+    attachNpc(instanceId: string, npc: NpcState): boolean;
     /** Returns the live players currently assigned to this private instance. */
     getMemberPlayers(instanceId: string): readonly PlayerState[];
     listJoinable(definitionId?: string): readonly QuestInstanceHandle[];
@@ -884,7 +892,9 @@ export interface CombatFacade {
      * generically, e.g. the achievement diary's kill-trigger tracker.
      * Passes through to CombatActionHandler.registerOnNpcKilled.
      */
-    registerOnNpcKilled?(fn: (killer: PlayerState, npc: NpcState, tick: number) => void): void;
+    registerOnNpcKilled?(
+        fn: (killer: PlayerState, npc: NpcState, tick: number) => void,
+    ): (() => void) | undefined;
     applyPrayers(
         player: PlayerState,
         prayers: PrayerName[],
@@ -914,6 +924,15 @@ export interface CombatFacade {
         damage: number,
         tick?: number,
     ): { amount: number; style: number; hpCurrent: number; hpMax: number };
+    /** Scripted player-attributed damage against an NPC, including the normal
+     * pre-death and loot/death pipeline. */
+    applyPlayerDamageToNpc(
+        player: PlayerState,
+        npc: NpcState,
+        style: number,
+        damage: number,
+        tick?: number,
+    ): { amount: number; style: number; hpCurrent: number; hpMax: number } | undefined;
     /**
      * Apply a hitsplat to an NPC using the engine's full hit-effect handling
      * (damage, block, poison, heal, etc. - see HitEffects.ts). Content
@@ -937,6 +956,9 @@ export interface CombatFacade {
     ): { ok: boolean; reason?: string };
     clearPlayerFaceTarget(player: PlayerState): void;
     getDropEligibility(npc: NpcState): DropEligibility;
+    /** Rolls an NPC's normal table without spawning it. Encounter corpses use
+     * this to defer rewards until the player selects their loot option. */
+    rollNpcDrops(npc: NpcState, eligibility: DropEligibility | undefined): PendingNpcDrop[];
     clearNpcDamageRecords(npc: NpcState): void;
     getLastAttacker(actor: Actor, currentTick: number): Actor | null;
     isMultiCombat(x: number, y: number, plane: number): boolean;

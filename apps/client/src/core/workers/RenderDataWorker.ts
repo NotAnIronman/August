@@ -17,6 +17,7 @@ import {
 } from "@august/custom-content/items/cacheLoaderDecorator";
 import { Bzip2 } from "@august/osrs-engine/compression/Bzip2";
 import { Gzip } from "@august/osrs-engine/compression/Gzip";
+import { initOptionalWasm } from "@august/osrs-engine/compression/initOptionalWasm";
 import { BasTypeLoader } from "@august/osrs-engine/config/bastype/BasTypeLoader";
 import { IdkTypeLoader } from "@august/osrs-engine/config/idktype/IdkTypeLoader";
 import { LocModelLoader } from "@august/osrs-engine/config/loctype/LocModelLoader";
@@ -46,8 +47,11 @@ import { RenderDataLoader, renderDataLoaderSerializer } from "@client/core/worke
 
 registerSerializer(renderDataLoaderSerializer);
 
-const compressionPromise = Promise.all([Bzip2.initWasm(), Gzip.initWasm()]);
-const hasherPromise = XxHasher.init();
+const compressionPromise = Promise.all([
+    initOptionalWasm("Bzip2", () => Bzip2.initWasm()),
+    Gzip.initWasm(),
+]);
+const hasherPromise = initOptionalWasm("XxHasher", () => XxHasher.init());
 const npcGeometryLoader = new SdMapDataLoader();
 
 export type WorkerState = {

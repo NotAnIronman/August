@@ -1,5 +1,6 @@
 import type { TickFrame } from "@server/game/tick/TickPhaseOrchestrator";
 import type { WidgetAction } from "@server/widgets/WidgetManager";
+import { logger } from "@server/observability/logger";
 import { encodeMessage } from "@server/network/messages";
 import type { BroadcastContext, BroadcastDomain } from "@server/network/broadcast/BroadcastDomain";
 
@@ -13,6 +14,23 @@ function isClosePhaseWidgetAction(action: WidgetAction | undefined): boolean {
         action?.action === "close" ||
         (action?.action === "set_hidden" && action.hidden === true && action.phase === "close")
     );
+}
+
+/**
+ * The boss HUD is a player-scoped snapshot, not a cache interface open/close.
+ * Keep only its final value for the tick so a same-tick enter/leave or boss
+ * replacement cannot be reordered by the broadcaster's native close phase.
+ */
+function latestBossHealthBarEventIndexes(
+    events: readonly { readonly playerId: number; readonly action?: WidgetAction }[],
+): ReadonlyMap<number, number> {
+    const latest = new Map<number, number>();
+    for (let index = 0; index < events.length; index++) {
+        if (events[index]?.action?.action === "set_boss_health_bar") {
+            latest.set(events[index].playerId, index);
+        }
+    }
+    return latest;
 }
 
 /**
@@ -53,7 +71,7 @@ export class WidgetBroadcaster implements BroadcastDomain {
                 // One bad widget event must not silently drop every other
                 // queued event this tick (e.g. the level-up popup's icon
                 // failing must never also take its text down with it).
-                console.error("[WidgetBroadcaster] failed to send close event:", evt.action, err);
+                logger.error("[WidgetBroadcaster] failed to send close event:", evt.action, err);
             }
         }
     }
@@ -61,8 +79,12 @@ export class WidgetBroadcaster implements BroadcastDomain {
     flushOpenEvents(frame: TickFrame, ctx: BroadcastContext): void {
         if (!frame.widgetEvents || frame.widgetEvents.length === 0) return;
 
+        const latestBossHealthBars = latestBossHealthBarEventIndexes(frame.widgetEvents);
         const nonCloseEvents = frame.widgetEvents.filter(
-            (evt: { action?: WidgetAction }) => !isClosePhaseWidgetAction(evt.action),
+            (evt: { playerId: number; action?: WidgetAction }, index: number) =>
+                !isClosePhaseWidgetAction(evt.action) &&
+                (evt.action?.action !== "set_boss_health_bar" ||
+                    latestBossHealthBars.get(evt.playerId) === index),
         );
         for (const evt of nonCloseEvents) {
             try {
@@ -74,7 +96,7 @@ export class WidgetBroadcaster implements BroadcastDomain {
                 );
                 this.services.syncPostWidgetOpenState(evt.playerId, evt.action);
             } catch (err) {
-                console.error("[WidgetBroadcaster] failed to send widget event:", evt.action, err);
+                logger.error("[WidgetBroadcaster] failed to send widget event:", evt.action, err);
             }
         }
     }

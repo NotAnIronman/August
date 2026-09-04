@@ -1,7 +1,18 @@
 import { isSafari } from "@client/core/platform/device/DeviceUtil";
 import { getCacheBaseUrl } from "@client/core/config/clientEnv";
-import { CacheFiles, ProgressListener } from "@august/osrs-engine/cache/CacheFiles";
+import { fetchWithTimeout } from "@client/core/network/fetchWithTimeout";
+import { readBoundedJsonResponse } from "@client/core/network/BoundedResponse";
+import { parseCacheInfos, parseXteaMap } from "@client/core/cache/CacheMetadata";
+import {
+    CacheFiles,
+    ProgressListener,
+    readCacheResponseBytes,
+} from "@august/osrs-engine/cache/CacheFiles";
 import { CacheInfo, getLatestCache } from "@august/osrs-engine/cache/CacheInfo";
+import {
+    MAX_CACHE_INDEX_COUNT,
+    assertCacheFileByteLength,
+} from "@august/osrs-engine/cache/CacheLimits";
 import { CacheType, detectCacheType } from "@august/osrs-engine/cache/CacheType";
 import { IndexType } from "@august/osrs-engine/cache/IndexType";
 import { validatePartialContentResponse } from "@august/osrs-engine/cache/js5/HttpRange";
@@ -10,8 +21,13 @@ import { PresenceBitset } from "@august/osrs-engine/cache/js5/PresenceBitset";
 import { Sector } from "@august/osrs-engine/cache/store/Sector";
 import { SectorCluster } from "@august/osrs-engine/cache/store/SectorCluster";
 import { SparseMemoryStore, computeIndexRegion } from "@august/osrs-engine/cache/store/SparseMemoryStore";
+import { mapWithConcurrency } from "@august/osrs-engine/util/AsyncConcurrency";
 
 const CACHE_PATH = getCacheBaseUrl();
+const CACHE_METADATA_TIMEOUT_MS = 15_000;
+const CACHE_CATALOG_MAX_BYTES = 1024 * 1024;
+const XTEA_CATALOG_MAX_BYTES = 16 * 1024 * 1024;
+const CACHE_INDEX_FETCH_CONCURRENCY = 8;
 
 function shouldSkipDat2MainCacheWrite(): boolean {
     return isSafari;
@@ -55,8 +71,18 @@ export function getIndexName(indexId: number): string {
 }
 
 export async function fetchCacheInfos(): Promise<CacheInfo[]> {
-    const resp = await fetch(CACHE_PATH + "caches.json");
-    return resp.json();
+    const url = `${CACHE_PATH}caches.json`;
+    const response = await fetchWithTimeout(url, CACHE_METADATA_TIMEOUT_MS, {
+        cache: "no-store",
+    });
+    if (!response.ok) {
+        throw new Error(`Cache metadata request failed (${response.status}) for ${url}`);
+    }
+    try {
+        return parseCacheInfos(await readBoundedJsonResponse(response, CACHE_CATALOG_MAX_BYTES));
+    } catch (cause) {
+        throw new Error(`Cache metadata was invalid for ${url}`, { cause });
+    }
 }
 
 export type CacheList = {
@@ -336,18 +362,30 @@ async function fetchRangeStreaming(
     const target = new Uint8Array(buffer);
     let offset = startByte;
     if (!resp.body) {
-        const data = new Uint8Array(await resp.arrayBuffer());
+        const data = await readCacheResponseBytes(resp, endByte - startByte);
         const chunk = data.subarray(0, endByte - offset);
         target.set(chunk, offset);
         onChunk(chunk.byteLength);
         return chunk.byteLength;
     }
     const reader = resp.body.getReader();
-    for (let res = await reader.read(); !res.done && res.value; res = await reader.read()) {
-        const chunk = res.value.subarray(0, Math.max(0, endByte - offset));
-        target.set(chunk, offset);
-        offset += chunk.byteLength;
-        onChunk(chunk.byteLength);
+    try {
+        while (offset < endByte) {
+            const result = await reader.read();
+            if (result.done || !result.value) break;
+            const chunk = result.value.subarray(0, endByte - offset);
+            target.set(chunk, offset);
+            offset += chunk.byteLength;
+            onChunk(chunk.byteLength);
+        }
+    } finally {
+        // Do not continue consuming an oversized/malformed response after the
+        // exact advertised range has arrived.
+        if (offset >= endByte) {
+            try {
+                await reader.cancel();
+            } catch {}
+        }
     }
     return offset - startByte;
 }
@@ -392,7 +430,12 @@ async function loadCacheFilesSparse(
     if (!metaData) {
         return undefined;
     }
-    const indexCount = Math.floor(metaData.byteLength / SectorCluster.SIZE);
+    const indexCount = metaData.byteLength / SectorCluster.SIZE;
+    if (!Number.isInteger(indexCount) || indexCount > MAX_CACHE_INDEX_COUNT) {
+        throw new Error(
+            `Invalid cache metadata: ${metaData.byteLength} bytes describes ${indexCount} indices`,
+        );
+    }
     // Only fetch idx files for indices whose reference table exists in the
     // meta file — requesting a missing file gets the SPA's index.html back
     // with status 200, which would then be parsed as garbage idx entries.
@@ -410,8 +453,10 @@ async function loadCacheFilesSparse(
     let loadedIndexCount = 0;
     const totalIndexFiles = indexIds.length + 1;
     report(1, totalIndexFiles, `Loading cache index (1/${totalIndexFiles})`);
-    await Promise.all(
-        indexIds.map(async (id) => {
+    await mapWithConcurrency(
+        indexIds,
+        CACHE_INDEX_FETCH_CONCURRENCY,
+        async (id) => {
             const data = await CacheFiles.fetchSingleIndex(
                 cachePath,
                 info.name,
@@ -428,7 +473,7 @@ async function loadCacheFilesSparse(
                 totalIndexFiles,
                 `Loading cache index (${loadedIndexCount + 1}/${totalIndexFiles})`,
             );
-        }),
+        },
     );
     if (idxDatas.size !== indexIds.length) {
         // A missing idx file would silently produce a cache without that
@@ -462,6 +507,7 @@ async function loadCacheFilesSparse(
     if (!Number.isFinite(totalSize) || totalSize <= 0) {
         return undefined;
     }
+    assertCacheFileByteLength(totalSize, dat2Path);
     const dat2Version =
         probe.headers.get("ETag") ?? probe.headers.get("Last-Modified") ?? String(totalSize);
 
@@ -497,8 +543,10 @@ async function loadCacheFilesSparse(
     const deferred = new Set(getDeferredIndexIds(info));
     const regions: SectorRun[] = [];
     const metaRegion = computeIndexRegion(metaData);
-    if (metaRegion) {
+    if (metaRegion && metaRegion.endSector <= totalSectors) {
         regions.push({ start: metaRegion.startSector, end: metaRegion.endSector });
+    } else if (metaRegion) {
+        console.warn("[js5] Metadata reference-table region exceeds dat2 size; skipping eager load");
     }
     for (const [id, data] of idxDatas) {
         if (deferred.has(id)) {
@@ -586,9 +634,15 @@ async function loadCacheFilesSparse(
 export type XteaMap = Map<number, number[]>;
 
 export async function fetchXteas(url: RequestInfo, signal?: AbortSignal): Promise<XteaMap> {
-    const resp = await fetch(url, {
+    const response = await fetch(url, {
         signal,
     });
-    const data: Record<string, number[]> = await resp.json();
-    return new Map(Object.keys(data).map((key) => [parseInt(key), data[key]]));
+    if (!response.ok) {
+        throw new Error(`XTEA metadata request failed (${response.status}) for ${String(url)}`);
+    }
+    try {
+        return parseXteaMap(await readBoundedJsonResponse(response, XTEA_CATALOG_MAX_BYTES));
+    } catch (cause) {
+        throw new Error(`XTEA metadata was invalid for ${String(url)}`, { cause });
+    }
 }

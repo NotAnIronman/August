@@ -251,10 +251,9 @@ export class BroadcastService {
     }
 
     queueClientScript(playerId: number, scriptId: number, ...args: (number | string)[]): void {
-        logger.info?.(
-            `[clientScript] queue player=${playerId} script=${scriptId} args=${JSON.stringify(
-                args,
-            )}`,
+        logger.debug(
+            `[clientScript] queue player=${playerId} script=${scriptId}`,
+            args,
         );
         const frame = this.svc.activeFrame;
         if (frame && !this.svc.networkLayer.getIsBroadcastPhase()) {

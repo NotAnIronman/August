@@ -1,4 +1,5 @@
 import { getCanvasCssSize, isMobileMode, isTouchDevice } from "@client/core/platform/device/DeviceUtil";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { computeAutoScale, getUiScale, setUiScale } from "@client/ui/runtime/UiScale";
 
 interface UiDiagWindow {
@@ -567,8 +568,18 @@ export function installUiDiagnostic(): void {
     if (typeof window === "undefined") return;
     const diag = new UiScaleDiagnostic();
     (window as any).__uiDiag = diag;
-    console.log(
+    clientDebugLog(
         "[UiScaleDiagnostic] Installed: __uiDiag.dump() | .setScale(n) | .testScales() | .widgets(depth) | .large(pct) | .grid()",
     );
-    waitForLogin(diag);
+
+    // The console API is always available, but the historical auto-poll and
+    // full widget-tree dump are intentionally opt-in. They otherwise leave a
+    // 500ms timer running throughout startup and do expensive work after every
+    // ordinary login.
+    try {
+        if (new URLSearchParams(window.location.search).has("debugUi")) {
+            console.log("[UiScaleDiagnostic] automatic login diagnostics enabled");
+            waitForLogin(diag);
+        }
+    } catch {}
 }

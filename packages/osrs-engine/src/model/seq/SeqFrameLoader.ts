@@ -5,6 +5,7 @@ import { isGroupMissingError } from "@august/osrs-engine/cache/js5/GroupMissingE
 import { SeqBaseLoader } from "@august/osrs-engine/model/seq/SeqBaseLoader";
 import { Dat2SeqFrame, DatSeqFrame, LegacySeqFrame, SeqFrame } from "@august/osrs-engine/model/seq/SeqFrame";
 import { SeqFrameMap } from "@august/osrs-engine/model/seq/SeqFrameMap";
+import { BoundedLruCache } from "@august/osrs-engine/cache/BoundedLruCache";
 
 export interface SeqFrameLoader {
     load(id: number): SeqFrame | undefined;
@@ -61,7 +62,10 @@ export class Dat2SeqFrameLoader implements SeqFrameLoader {
         readonly cacheInfo: CacheInfo,
         readonly animIndex: CacheIndex,
         readonly baseLoader: SeqBaseLoader,
-    ) {}
+        maxCachedFrameMaps: number = 512,
+    ) {
+        this.frameMaps = new BoundedLruCache(maxCachedFrameMaps);
+    }
 
     // changed 610
     load(id: number): SeqFrame | undefined {

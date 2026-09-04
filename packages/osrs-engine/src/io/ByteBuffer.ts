@@ -26,9 +26,7 @@ export class ByteBuffer {
     }
 
     readByte(): number {
-        if (this.offset > this._data.length - 1) {
-            throw new Error("Buffer overflow");
-        }
+        this.requireAvailable(1);
         return this._data[this.offset++];
     }
 
@@ -197,6 +195,7 @@ export class ByteBuffer {
     }
 
     getByte(offset: number): number {
+        this.requireOffset(offset, 1);
         return this._data[offset];
     }
 
@@ -205,6 +204,7 @@ export class ByteBuffer {
     }
 
     getShort(offset: number): number {
+        this.requireOffset(offset, 2);
         return (this.getUnsignedByte(offset) << 8) | this.getUnsignedByte(offset + 1);
     }
 
@@ -213,6 +213,7 @@ export class ByteBuffer {
     }
 
     getInt(offset: number): number {
+        this.requireOffset(offset, 4);
         return (
             (this.getUnsignedByte(offset) << 24) |
             (this.getUnsignedByte(offset + 1) << 16) |
@@ -222,30 +223,39 @@ export class ByteBuffer {
     }
 
     readBytes(amount: number): Int8Array {
+        this.requireAvailable(amount);
         const bytes = this._data.subarray(this.offset, this.offset + amount);
         this.offset += amount;
         return bytes;
     }
 
     readUnsignedBytes(amount: number): Uint8Array {
-        const bytes = new Uint8Array(this._data.buffer).subarray(this.offset, this.offset + amount);
+        this.requireAvailable(amount);
+        const bytes = new Uint8Array(
+            this._data.buffer,
+            this._data.byteOffset + this.offset,
+            amount,
+        );
         this.offset += amount;
         return bytes;
     }
 
     writeBytes(bytes: Int8Array): void {
+        this.requireAvailable(bytes.length);
         this._data.set(bytes, this.offset);
         this.offset += bytes.length;
     }
 
-    writeInt(v: number) {
+    writeInt(v: number): void {
+        this.requireAvailable(4);
         this._data[this.offset++] = v >> 24;
         this._data[this.offset++] = v >> 16;
         this._data[this.offset++] = v >> 8;
         this._data[this.offset++] = v;
     }
 
-    setInt(offset: number, v: number) {
+    setInt(offset: number, v: number): void {
+        this.requireOffset(offset, 4);
         this._data[offset++] = v >> 24;
         this._data[offset++] = v >> 16;
         this._data[offset++] = v >> 8;
@@ -262,5 +272,29 @@ export class ByteBuffer {
 
     get data(): Int8Array {
         return this._data;
+    }
+
+    private requireAvailable(amount: number): void {
+        if (
+            !Number.isSafeInteger(this.offset) ||
+            !Number.isSafeInteger(amount) ||
+            this.offset < 0 ||
+            amount < 0 ||
+            this.offset > this.length - amount
+        ) {
+            throw new Error("Buffer overflow");
+        }
+    }
+
+    private requireOffset(offset: number, amount: number): void {
+        if (
+            !Number.isSafeInteger(offset) ||
+            !Number.isSafeInteger(amount) ||
+            offset < 0 ||
+            amount < 0 ||
+            offset > this.length - amount
+        ) {
+            throw new Error("Buffer overflow");
+        }
     }
 }

@@ -1,7 +1,7 @@
 /**
  * Regression coverage for player-to-player trade inventory capacity.
  *
- * Run with: npx tsx tests/trade-inventory-capacity.test.ts
+ * Run with: pnpm exec tsx tests/trade-inventory-capacity.test.ts
  */
 import assert from "node:assert/strict";
 
@@ -119,7 +119,19 @@ const services = {
         },
     },
 } as unknown as ServerServices;
-const manager = new TradeManager(services, {} as SqliteDatabase);
+let databaseConnectionReads = 0;
+const databaseLessFixture = Object.defineProperty({}, "connection", {
+    get: () => {
+        databaseConnectionReads++;
+        return undefined;
+    },
+}) as SqliteDatabase;
+const manager = new TradeManager(services, databaseLessFixture);
+assert.equal(
+    databaseConnectionReads,
+    0,
+    "non-persistence trade checks must not eagerly initialize SQLite statements",
+);
 const session = {
     id: "capacity-test",
     stage: TradeStage.Offer,

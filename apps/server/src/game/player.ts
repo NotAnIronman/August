@@ -222,6 +222,7 @@ export interface PlayerPersistentVars {
         }>;
     };
     follower?: PlayerFollowerPersistentEntry;
+    pendingPetRewards?: Array<{ itemId: number; quantity: number }>;
     instanceGrave?: InstanceGraveSnapshot;
     playTimeSeconds?: number;
 }
@@ -1172,4 +1173,8 @@ export class PlayerState extends Actor {
     }
 }
 
-export { PlayerManager, type OrphanedPlayer } from "@server/game/PlayerManager";
+export {
+    PlayerManager,
+    type OrphanedPlayer,
+    type PlayerManagerOptions,
+} from "@server/game/PlayerManager";

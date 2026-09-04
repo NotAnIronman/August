@@ -43,7 +43,9 @@ import type { InventoryActionHandler } from "@server/game/actions/handlers/Inven
 import type { WidgetDialogHandler } from "@server/game/actions/handlers/WidgetDialogHandler";
 import { applyAutocastState, clearAutocastState } from "@server/game/combat/AutocastState";
 import { hasNpcLineOfSightToPlayer } from "@server/game/combat/CombatAction";
+import { AttackType } from "@server/game/combat/AttackType";
 import type { CombatEffectApplicator } from "@server/game/combat/CombatEffectApplicator";
+import type { CombatEffectService } from "@server/game/services/CombatEffectService";
 import type { DamageTracker } from "@server/game/combat/DamageTracker";
 import type { MultiCombatSystem } from "@server/game/combat/MultiCombatZones";
 import { getEmoteSeq } from "@server/game/emotes";
@@ -120,6 +122,8 @@ export interface ScriptServiceAdapterDeps {
     instancedAreaManager: InstancedAreaManager;
     // Not-yet-extracted deps (still on WSServer)
     getCurrentTick: () => number;
+    getTickMs: () => number;
+    isDeveloper?: (player: PlayerState) => boolean;
     getPathService: () => PathService;
     doorManager: DoorStateManager;
     npcManager: NpcManager;
@@ -138,6 +142,8 @@ export interface ScriptServiceAdapterDeps {
     inventoryActionHandler: InventoryActionHandler;
     effectDispatcher: EffectDispatcher;
     combatEffectApplicator: CombatEffectApplicator;
+    /** Deferred until the combat service has completed its construction. */
+    combatEffectService?: CombatEffectService;
     combatActionHandler?: CombatActionHandler;
     damageTracker: DamageTracker;
     multiCombatSystem: MultiCombatSystem;
@@ -527,6 +533,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
         system: {
             logger,
             getCurrentTick: () => deps.getCurrentTick(),
+            getTickDurationMs: () => deps.getTickMs(),
+            isDeveloper: (player) => deps.isDeveloper?.(player) ?? false,
             eventBus: deps.eventBus,
         },
         inventory: {
@@ -852,6 +860,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             create: (player, spec) => deps.instancedAreaManager.create(player, spec),
             get: (playerId) => deps.instancedAreaManager.get(playerId),
             getById: (instanceId) => deps.instancedAreaManager.getById(instanceId),
+            attachNpc: (instanceId, npc) =>
+                deps.instancedAreaManager.attachNpc(instanceId, npc),
             getMemberPlayers: (instanceId) =>
                 deps.instancedAreaManager.getMemberPlayers(instanceId),
             listJoinable: (definitionId) =>
@@ -899,9 +909,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             faceTile: (player, tile) => deps.locationService.faceTile(player, tile),
         },
         combat: {
-            registerOnNpcKilled: (fn) => {
-                deps.combatActionHandler?.registerOnNpcKilled(fn);
-            },
+            registerOnNpcKilled: (fn) =>
+                deps.combatActionHandler?.registerOnNpcKilled(fn),
             requestAction: (player, request, currentTick) => {
                 try {
                     const groups = Array.isArray(request?.groups) ? request.groups : [];
@@ -981,6 +990,15 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                 });
                 return result;
             },
+            applyPlayerDamageToNpc: (player, npc, style, damage, tick) =>
+                deps.combatEffectService?.applyPlayerDamageToNpc(
+                    player,
+                    npc,
+                    damage,
+                    style,
+                    tick ?? deps.getCurrentTick(),
+                    AttackType.Melee,
+                ),
             applyNpcHitsplat: (npc, style, damage, tick, maxHit) => {
                 const currentTick = tick ?? deps.getCurrentTick();
                 const result = deps.combatEffectApplicator.applyNpcHitsplat(
@@ -1012,6 +1030,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                 } catch {}
             },
             getDropEligibility: (npc) => deps.damageTracker.getDropEligibility(npc),
+            rollNpcDrops: (npc, eligibility) =>
+                deps.combatEffectService?.rollNpcDrops(npc, eligibility) ?? [],
             clearNpcDamageRecords: (npc) => deps.damageTracker.clearNpc(npc),
             getLastAttacker: (actor, currentTick) =>
                 deps.multiCombatSystem.getLastAttacker(actor, currentTick),

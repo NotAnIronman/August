@@ -1,4 +1,5 @@
 import { logger as defaultLogger } from "@server/observability/logger";
+import type { EventSubscription } from "@server/game/events/GameEventBus";
 import { ScriptScheduler } from "@server/game/systems/ScriptScheduler";
 import { ScriptRegistry } from "@server/game/scripts/ScriptRegistry";
 import {
@@ -69,6 +70,7 @@ export class ScriptRuntime {
     private readonly loadedHandlerIds = new Set<string>();
     private readonly handlerDisposers = new Map<string, ScriptRegistrationResult[]>();
     private readonly hotReloadEnabled: boolean;
+    private playerLogoutSubscription?: EventSubscription;
 
     constructor(options: ScriptRuntimeOptions) {
         this.registry = options.registry;
@@ -104,6 +106,7 @@ export class ScriptRuntime {
         id: string,
         fn: (registry: IScriptRegistry, services: ScriptServices) => void,
     ): void {
+        this.ensureLifecycleSubscriptions();
         if (!this.hotReloadEnabled && this.loadedHandlerIds.has(id)) {
             this.logger.debug(`[script] handlers already loaded: ${id}`);
             return;
@@ -113,7 +116,16 @@ export class ScriptRuntime {
         }
         const disposers: ScriptRegistrationResult[] = [];
         const trackingRegistry = this.createTrackingRegistry(disposers);
-        fn(trackingRegistry, this.services);
+        try {
+            fn(trackingRegistry, this.services);
+        } catch (error) {
+            // Registration is a provider-level transaction. A module can
+            // legitimately register dozens of handlers before a later data
+            // validation fails; retaining that prefix would leave live,
+            // unowned behavior that neither reset nor hot reload can remove.
+            this.unregisterTrackedHandlers(id, disposers, "registration rollback");
+            throw error;
+        }
         this.handlerDisposers.set(id, disposers);
         this.loadedHandlerIds.add(id);
         this.logger.info(`[script] loaded handlers: ${id}`);
@@ -137,14 +149,14 @@ export class ScriptRuntime {
             if (handler) handlerSource = "action";
         }
         if (!handler) {
-            this.logger.info(
+            this.logger.debug(
                 `[script] no NPC handler for id=${npcId} type=${npcTypeId} option=${
                     scriptEvent.option || "default"
                 }`,
             );
             return false;
         }
-        this.logger.info(
+        this.logger.debug(
             `[script] queue npc handler id=${npcId} type=${npcTypeId} option=${
                 scriptEvent.option || "default"
             } via=${handlerSource} player=${playerId}`,
@@ -651,32 +663,46 @@ export class ScriptRuntime {
 
     reset(): void {
         for (const [handlerId, disposers] of this.handlerDisposers.entries()) {
-            for (const disposer of disposers.reverse()) {
-                try {
-                    disposer.unregister();
-                } catch (err) {
-                    this.logger.warn(`[script] disposer for ${handlerId} threw`, err);
-                }
-            }
+            this.unregisterTrackedHandlers(handlerId, disposers, "reset");
         }
         this.handlerDisposers.clear();
         this.registry.clearAll();
         this.scheduler.clear();
         this.loadedHandlerIds.clear();
+        this.playerLogoutSubscription?.unsubscribe();
+        this.playerLogoutSubscription = undefined;
+    }
+
+    private ensureLifecycleSubscriptions(): void {
+        if (this.playerLogoutSubscription) return;
+        this.playerLogoutSubscription = this.services.system?.eventBus?.on(
+            "player:logout",
+            ({ playerId }) => {
+                this.scheduler.cancelOwner({ kind: "player", id: playerId });
+            },
+        );
     }
 
     private unloadHandlers(id: string): void {
         const disposers = this.handlerDisposers.get(id);
         if (!disposers) return;
-        for (const disposer of disposers.reverse()) {
-            try {
-                disposer.unregister();
-            } catch (err) {
-                this.logger.warn(`[script] disposer for ${id} threw`, err);
-            }
-        }
+        this.unregisterTrackedHandlers(id, disposers, "hot reload");
         this.handlerDisposers.delete(id);
         this.loadedHandlerIds.delete(id);
+    }
+
+    private unregisterTrackedHandlers(
+        id: string,
+        disposers: readonly ScriptRegistrationResult[],
+        stage: string,
+    ): void {
+        for (let index = disposers.length - 1; index >= 0; index--) {
+            try {
+                disposers[index]?.unregister();
+            } catch (err) {
+                this.logger.warn(`[script] disposer for ${id} threw during ${stage}`, err);
+            }
+        }
     }
 
     private scheduleHandler<TEvent>(
@@ -710,6 +736,7 @@ export class ScriptRuntime {
             return out;
         };
         return {
+            registerCleanup: (cleanup) => track(this.registry.registerCleanup(cleanup)),
             registerNpcInteraction: (npcId, handler, option) =>
                 track(this.registry.registerNpcInteraction(npcId, handler, option)),
             registerNpcScript: (params) => track(this.registry.registerNpcScript(params)),

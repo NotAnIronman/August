@@ -6,6 +6,10 @@
  * listeners - all input comes through InputManager.
  */
 import { ClickMode, InputManager } from "@client/core/input/InputManager";
+import {
+    clientDebugLog,
+    isClientDiagnosticsEnabled,
+} from "@client/core/diagnostics/clientDiagnostics";
 import { ClickRegistry } from "@client/ui/widgets/gl/widgets-gl/input/ClickRegistry";
 import type { GLRenderer } from "@client/ui/widgets/gl/renderer";
 
@@ -98,11 +102,15 @@ export class WidgetInputBridge {
         if (sameInputState && targetVersion === this.lastProcessedTargetVersion) {
             return;
         }
-        if (sameInputState && this.lastProcessedTargetVersion >= 0) {
+        if (
+            sameInputState &&
+            this.lastProcessedTargetVersion >= 0 &&
+            isClientDiagnosticsEnabled()
+        ) {
             this.unchangedInputProcessedCount++;
             const now = performance.now();
             if (now - this.lastUnchangedInputLogMs >= 1000) {
-                console.log(
+                clientDebugLog(
                     `[ui-input] unchanged input processed because targets changed count=${
                         this.unchangedInputProcessedCount
                     } targets=${this.clicks.getTargetCount()} targetVersion=${targetVersion} prevTargetVersion=${

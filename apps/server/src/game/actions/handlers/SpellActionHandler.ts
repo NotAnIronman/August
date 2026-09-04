@@ -532,7 +532,7 @@ export class SpellActionHandler {
 
         const spellData = getSpellData(spellId);
         if (!spellData) {
-            logger.info(
+            logger.debug(
                 `[combat] disabling autocast (npc) for player ${player.id}: invalid spellId=${spellId}`,
             );
             this.svc.equipmentService.resetAutocast(player);
@@ -549,7 +549,7 @@ export class SpellActionHandler {
         const validation = SpellCaster.validate(castContext);
         if (!validation.success) {
             const castMode = player.combat.autocastMode ?? "autocast";
-            logger.info(
+            logger.debug(
                 `[combat] disabling autocast (npc) for player ${
                     player.id
                 }: spellId=${spellId} reason=${String(validation.reason ?? "unknown")}`,
@@ -859,7 +859,7 @@ export class SpellActionHandler {
                 if (spellData) break;
             }
             spellId = spellData?.id ?? -1;
-            logger.info(
+            logger.debug(
                 `[spell] Widget lookup: group=${spellbookGroupId}, children=${childCandidates.join(
                     ",",
                 )} -> spellId=${spellId}, name=${
@@ -1015,14 +1015,14 @@ export class SpellActionHandler {
             targetNpc = npc;
             targetTile = { x: npc.tileX, y: npc.tileY, plane: npc.level };
         } else if (request.target.type === "player") {
-            logger.info(`[spell] Looking up player target: ${request.target.playerId}`);
+            logger.debug(`[spell] Looking up player target: ${request.target.playerId}`);
             const opponent = this.svc.players?.getById(request.target.playerId);
             if (!opponent) {
                 logger.warn(`[spell] Target player ${request.target.playerId} not found`);
                 base.reason = "invalid_target";
                 return base;
             }
-            logger.info(`[spell] Found target player: id=${opponent.id}, name=${opponent.name}`);
+            logger.debug(`[spell] Found target player: id=${opponent.id}, name=${opponent.name}`);
             if (opponent.id === player.id) {
                 logger.warn(`[spell] Cannot target self`);
                 base.reason = "invalid_target";

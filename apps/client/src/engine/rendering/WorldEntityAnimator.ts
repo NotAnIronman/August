@@ -60,7 +60,7 @@ export class WorldEntityAnimator {
                 rootTransform: mat4.create() as Float32Array,
             });
         } catch (e) {
-            console.log(
+            console.warn(
                 `[WorldEntityAnimator] Failed to load animation for config ${configId}:`,
                 e,
             );
@@ -103,7 +103,7 @@ export class WorldEntityAnimator {
                     (mat4.create() as Float32Array),
             });
         } catch (e) {
-            console.log(`[WorldEntityAnimator] Failed to set sequence animation ${animId}:`, e);
+            console.warn(`[WorldEntityAnimator] Failed to set sequence animation ${animId}:`, e);
         }
     }
 

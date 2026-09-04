@@ -1,4 +1,9 @@
-import { CacheLike, openCache } from "@august/osrs-engine/cache/CacheFiles";
+import {
+    CacheLike,
+    openCache,
+    readCacheResponseBytes,
+} from "@august/osrs-engine/cache/CacheFiles";
+import { MAX_CACHE_FILE_BYTES } from "@august/osrs-engine/cache/CacheLimits";
 import { Sector } from "@august/osrs-engine/cache/store/Sector";
 import { PresenceBitset } from "@august/osrs-engine/cache/js5/PresenceBitset";
 
@@ -7,6 +12,9 @@ const MANIFEST_SEGMENT = "/range/manifest";
 const RANGE_START_HEADER = "Range-Start";
 const RANGE_KEY_HEADER = "Range-Key";
 const FLUSH_DELAY_MS = 1500;
+const MAX_MANIFEST_BYTES = 16 * 1024;
+const MAX_MANIFEST_VERSION_LENGTH = 256;
+const MAX_PERSISTED_RANGES = 65_536;
 
 type SectorRun = { start: number; end: number };
 
@@ -54,8 +62,18 @@ export class Js5Persistence {
             if (!resp) {
                 return undefined;
             }
-            const manifest = (await resp.json()) as { total?: number; version?: string };
-            if (typeof manifest.total === "number" && manifest.total > 0) {
+            const manifest = JSON.parse(
+                new TextDecoder().decode(await readCacheResponseBytes(resp, MAX_MANIFEST_BYTES)),
+            ) as { total?: number; version?: string };
+            if (
+                typeof manifest.total === "number" &&
+                Number.isSafeInteger(manifest.total) &&
+                manifest.total > 0 &&
+                manifest.total <= MAX_CACHE_FILE_BYTES &&
+                (manifest.version === undefined ||
+                    (typeof manifest.version === "string" &&
+                        manifest.version.length <= MAX_MANIFEST_VERSION_LENGTH))
+            ) {
                 return { total: manifest.total, version: manifest.version ?? "" };
             }
         } catch {}
@@ -95,24 +113,33 @@ export class Js5Persistence {
 
     /** Drop every persisted range (the server's dat2 changed identity). */
     async clearAllRanges(): Promise<void> {
-        const cache = await this.cachePromise;
-        if (!cache.matchAll) {
-            return;
+        if (this.flushTimer !== undefined) {
+            clearTimeout(this.flushTimer);
+            this.flushTimer = undefined;
         }
+        this.pendingRuns = [];
         try {
-            const responses = await cache.matchAll(this.dat2Path + RANGE_SEGMENT, {
-                ignoreSearch: true,
-            });
-            for (const resp of responses) {
-                const key = resp.headers.get(RANGE_KEY_HEADER);
-                if (key) {
-                    await cache.delete(key);
+            // Let an already-running write finish before deleting its output.
+            // Keep cleanup best-effort if storage initialization or an earlier
+            // write failed; the in-memory presence state still must be reset.
+            await this.flushChain;
+            const cache = await this.cachePromise;
+            if (cache.matchAll) {
+                const responses = await cache.matchAll(this.dat2Path + RANGE_SEGMENT, {
+                    ignoreSearch: true,
+                });
+                for (const resp of responses) {
+                    const key = resp.headers.get(RANGE_KEY_HEADER);
+                    if (key) {
+                        await cache.delete(key);
+                    }
                 }
             }
         } catch (e) {
             console.warn("[js5] Failed clearing persisted ranges:", e);
         } finally {
             this.persistedRangeIndex = undefined;
+            this.persistedSectors.fill(0);
         }
     }
 
@@ -143,8 +170,14 @@ export class Js5Persistence {
                 if (!response) {
                     continue;
                 }
-                const bytes = new Uint8Array(await response.arrayBuffer());
-                if (bytes.byteLength === 0) {
+                let bytes: Uint8Array;
+                try {
+                    const expectedLength = range.endByte - range.startByte;
+                    bytes = await readCacheResponseBytes(response, expectedLength);
+                    if (bytes.byteLength !== expectedLength) continue;
+                } catch {
+                    // Ignore a corrupt persisted entry and continue restoring
+                    // independent ranges from the same cache.
                     continue;
                 }
                 apply(range.startByte, bytes);
@@ -176,10 +209,15 @@ export class Js5Persistence {
         if (!response) {
             return undefined;
         }
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        if (bytes.byteLength < endByte - range.startByte) {
+        let bytes: Uint8Array;
+        try {
+            const expectedLength = range.endByte - range.startByte;
+            bytes = await readCacheResponseBytes(response, expectedLength);
+            if (bytes.byteLength !== expectedLength) return undefined;
+        } catch {
             return undefined;
         }
+        if (bytes.byteLength < endByte - range.startByte) return undefined;
         return { byteOffset: range.startByte, bytes };
     }
 
@@ -193,6 +231,15 @@ export class Js5Persistence {
 
     /** Queue a fetched byte range for persistence (write-behind, coalesced). */
     queue(byteOffset: number, byteLength: number): void {
+        if (
+            !Number.isSafeInteger(byteOffset) ||
+            !Number.isSafeInteger(byteLength) ||
+            byteOffset < 0 ||
+            byteLength <= 0 ||
+            byteOffset >= this.buffer.byteLength
+        ) {
+            return;
+        }
         const start = Math.floor(byteOffset / Sector.SIZE);
         const endByte = Math.min(byteOffset + byteLength, this.buffer.byteLength);
         const end =
@@ -268,16 +315,24 @@ export class Js5Persistence {
         if (runs.length === 0) {
             return this.flushChain;
         }
-        this.flushChain = this.flushChain.then(async () => {
-            const cache = await this.cachePromise;
-            for (const run of runs) {
+        this.flushChain = this.flushChain
+            // A transient storage failure must not permanently poison the
+            // write-behind chain and prevent every later range from flushing.
+            .catch(() => {})
+            .then(async () => {
                 try {
-                    await this.persistRun(cache, run);
+                    const cache = await this.cachePromise;
+                    for (const run of runs) {
+                        try {
+                            await this.persistRun(cache, run);
+                        } catch (e) {
+                            console.warn("[js5] Failed persisting range:", e);
+                        }
+                    }
                 } catch (e) {
-                    console.warn("[js5] Failed persisting range:", e);
+                    console.warn("[js5] Failed opening range persistence:", e);
                 }
-            }
-        });
+            });
         return this.flushChain;
     }
 
@@ -336,19 +391,23 @@ export class Js5Persistence {
             });
             const ranges: PersistedRange[] = [];
             for (const response of responses) {
+                if (ranges.length >= MAX_PERSISTED_RANGES) break;
                 const key = response.headers.get(RANGE_KEY_HEADER);
                 const startByte = Number(response.headers.get(RANGE_START_HEADER));
                 const byteLength = Number(response.headers.get("Content-Length"));
                 if (
                     !key ||
+                    !key.startsWith(`${this.dat2Path}${RANGE_SEGMENT}?`) ||
                     !Number.isInteger(startByte) ||
                     startByte < 0 ||
-                    !Number.isFinite(byteLength) ||
-                    byteLength <= 0
+                    startByte >= this.buffer.byteLength ||
+                    !Number.isSafeInteger(byteLength) ||
+                    byteLength <= 0 ||
+                    byteLength > this.buffer.byteLength - startByte
                 ) {
                     continue;
                 }
-                const endByte = Math.min(startByte + byteLength, this.buffer.byteLength);
+                const endByte = startByte + byteLength;
                 if (endByte <= startByte) {
                     continue;
                 }

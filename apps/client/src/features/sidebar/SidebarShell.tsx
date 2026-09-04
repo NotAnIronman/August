@@ -1,6 +1,11 @@
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import type { OsrsClient } from "@client/engine/game/OsrsClient";
+import {
+    bossHealthBarPreferences,
+    type BossHealthBarStyle,
+} from "@client/features/boss-health/BossHealthBarPreferences";
+import { compileGroundItemRules } from "@client/features/plugins/grounditems/GroundItemRuleEngine";
 import type { GroundItemsPluginConfig } from "@client/features/plugins/grounditems/types";
 import type { InteractHighlightPluginConfig } from "@client/features/plugins/interacthighlight/types";
 import type { TileMarkersPluginConfig } from "@client/features/plugins/tilemarkers/types";
@@ -80,6 +85,15 @@ function GroundItemsPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Eleme
     const getSnapshot = useCallback(() => plugin.getState(), [plugin]);
     const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
     const config = state.config;
+    const [ruleDraft, setRuleDraft] = useState(config.advancedFilterRules);
+    useEffect(() => {
+        setRuleDraft(config.advancedFilterRules);
+    }, [config.advancedFilterRules]);
+    const ruleDiagnostics = useMemo(
+        () => compileGroundItemRules(ruleDraft).diagnostics,
+        [ruleDraft],
+    );
+    const ruleDraftChanged = ruleDraft !== config.advancedFilterRules;
 
     const update = useCallback(
         <K extends keyof GroundItemsPluginConfig>(key: K, value: GroundItemsPluginConfig[K]) => {
@@ -92,328 +106,671 @@ function GroundItemsPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Eleme
         <div className="rl-sidebar-panel-content rl-sidebar-scrollable">
             <div className="rl-sidebar-panel-title">Ground Items</div>
             <p className="rl-sidebar-panel-copy">
-                RuneLite-style filtering, highlighting, and value coloring for item labels.
+                Control labels, menus, tile highlights, loot beams, and local loot filters from
+                one place.
             </p>
-            {!config.enabled && (
-                <p className="rl-sidebar-panel-copy">Plugin is currently disabled in xRSPS.</p>
-            )}
-
-            <label className="rl-sidebar-check">
+            <label className="rl-sidebar-check rl-sidebar-ground-master-toggle">
                 <input
                     type="checkbox"
-                    checked={config.showHighlightedOnly}
-                    onChange={(event) => update("showHighlightedOnly", event.target.checked)}
+                    checked={config.enabled}
+                    onChange={(event) => update("enabled", event.target.checked)}
                 />
-                <span>Show highlighted items only</span>
+                <span>Enable Ground Items</span>
             </label>
 
-            <label className="rl-sidebar-check">
-                <input
-                    type="checkbox"
-                    checked={config.showMenuItemQuantities}
-                    onChange={(event) => update("showMenuItemQuantities", event.target.checked)}
-                />
-                <span>Show menu item quantities</span>
-            </label>
-
-            <label className="rl-sidebar-check">
-                <input
-                    type="checkbox"
-                    checked={config.recolorMenuHiddenItems}
-                    onChange={(event) => update("recolorMenuHiddenItems", event.target.checked)}
-                />
-                <span>Recolor hidden menu entries</span>
-            </label>
-
-            <label className="rl-sidebar-check">
-                <input
-                    type="checkbox"
-                    checked={config.rightClickHidden}
-                    onChange={(event) => update("rightClickHidden", event.target.checked)}
-                />
-                <span>Right click hidden items</span>
-            </label>
-
-            <label className="rl-sidebar-check">
-                <input
-                    type="checkbox"
-                    checked={config.dontHideUntradeables}
-                    onChange={(event) => update("dontHideUntradeables", event.target.checked)}
-                />
-                <span>Do not hide untradeables</span>
-            </label>
-
-            <div className="rl-sidebar-row">
-                <label className="rl-sidebar-field">
-                    <span>Price display mode</span>
-                    <select
-                        value={config.priceDisplayMode}
-                        onChange={(event) =>
-                            update(
-                                "priceDisplayMode",
-                                event.target.value as GroundItemsPluginConfig["priceDisplayMode"],
-                            )
-                        }
-                    >
-                        <option value="both">Both</option>
-                        <option value="ge">Grand Exchange</option>
-                        <option value="ha">High Alchemy</option>
-                        <option value="off">Off</option>
-                    </select>
-                </label>
-                <label className="rl-sidebar-field">
-                    <span>Ownership filter</span>
-                    <select
-                        value={config.ownershipFilterMode}
-                        onChange={(event) =>
-                            update(
-                                "ownershipFilterMode",
-                                event.target
-                                    .value as GroundItemsPluginConfig["ownershipFilterMode"],
-                            )
-                        }
-                    >
-                        <option value="all">All</option>
-                        <option value="takeable">Takeable</option>
-                        <option value="drops">Drops</option>
-                    </select>
-                </label>
+            <div className="rl-sidebar-callout">
+                Hold <kbd>Alt</kbd> to reveal filtered items. Double-tap <kbd>Alt</kbd> to toggle
+                ground-item overlays without changing your filters. While holding it, right-click
+                a ground item to highlight or hide that item by name.
             </div>
 
-            <div className="rl-sidebar-row">
-                <label className="rl-sidebar-field">
-                    <span>Value mode</span>
-                    <select
-                        value={config.valueCalculationMode}
-                        onChange={(event) =>
-                            update(
-                                "valueCalculationMode",
-                                event.target
-                                    .value as GroundItemsPluginConfig["valueCalculationMode"],
-                            )
-                        }
-                    >
-                        <option value="highest">Highest</option>
-                        <option value="ge">Grand Exchange</option>
-                        <option value="ha">High Alchemy</option>
-                    </select>
-                </label>
-                <label className="rl-sidebar-field">
-                    <span>Despawn timer</span>
-                    <select
-                        value={config.despawnTimerMode}
-                        onChange={(event) =>
-                            update(
-                                "despawnTimerMode",
-                                event.target.value as GroundItemsPluginConfig["despawnTimerMode"],
-                            )
-                        }
-                    >
-                        <option value="off">Off</option>
-                        <option value="ticks">Ticks</option>
-                        <option value="seconds">Seconds</option>
-                    </select>
-                </label>
-            </div>
+            <details className="rl-sidebar-settings-group" open>
+                <summary>Labels &amp; visibility</summary>
+                <div className="rl-sidebar-settings-body">
+                    <div className="rl-sidebar-row">
+                        <label className="rl-sidebar-field">
+                            <span>Colour highlight surfaces</span>
+                            <select
+                                value={config.itemHighlightMode}
+                                onChange={(event) =>
+                                    update(
+                                        "itemHighlightMode",
+                                        event.target
+                                            .value as GroundItemsPluginConfig["itemHighlightMode"],
+                                    )
+                                }
+                            >
+                                <option value="both">Labels and menus</option>
+                                <option value="overlay">Labels only</option>
+                                <option value="menu">Menus only</option>
+                                <option value="none">Neither (default label colour)</option>
+                            </select>
+                        </label>
+                        <label className="rl-sidebar-field">
+                            <span>Ownership filter</span>
+                            <select
+                                value={config.ownershipFilterMode}
+                                onChange={(event) =>
+                                    update(
+                                        "ownershipFilterMode",
+                                        event.target
+                                            .value as GroundItemsPluginConfig["ownershipFilterMode"],
+                                    )
+                                }
+                            >
+                                <option value="all">All items</option>
+                                <option value="takeable">Takeable only</option>
+                                <option value="drops">Your drops</option>
+                            </select>
+                        </label>
+                    </div>
 
-            <label className="rl-sidebar-field">
-                <span>Hide under value</span>
-                <input
-                    type="number"
-                    min={0}
-                    value={config.hideUnderValue}
-                    onChange={(event) =>
-                        update(
-                            "hideUnderValue",
-                            parseInteger(event.target.value, config.hideUnderValue),
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.showHighlightedOnly}
+                            onChange={(event) =>
+                                update("showHighlightedOnly", event.target.checked)
+                            }
+                        />
+                        <span>Show highlighted items only</span>
+                    </label>
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.dontHideUntradeables}
+                            onChange={(event) =>
+                                update("dontHideUntradeables", event.target.checked)
+                            }
+                        />
+                        <span>Protect untradeables from value filtering</span>
+                    </label>
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.textOutline}
+                            onChange={(event) => update("textOutline", event.target.checked)}
+                        />
+                        <span>Outline ground-item text</span>
+                    </label>
+
+                    <div className="rl-sidebar-row">
+                        <label className="rl-sidebar-field">
+                            <span>Price display</span>
+                            <select
+                                value={config.priceDisplayMode}
+                                onChange={(event) =>
+                                    update(
+                                        "priceDisplayMode",
+                                        event.target
+                                            .value as GroundItemsPluginConfig["priceDisplayMode"],
+                                    )
+                                }
+                            >
+                                <option value="both">GE and HA</option>
+                                <option value="ge">Grand Exchange</option>
+                                <option value="ha">High Alchemy</option>
+                                <option value="off">Off</option>
+                            </select>
+                        </label>
+                        <label className="rl-sidebar-field">
+                            <span>Value calculation</span>
+                            <select
+                                value={config.valueCalculationMode}
+                                onChange={(event) =>
+                                    update(
+                                        "valueCalculationMode",
+                                        event.target
+                                            .value as GroundItemsPluginConfig["valueCalculationMode"],
+                                    )
+                                }
+                            >
+                                <option value="highest">Highest value</option>
+                                <option value="ge">Grand Exchange</option>
+                                <option value="ha">High Alchemy</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div className="rl-sidebar-row">
+                        <label className="rl-sidebar-field">
+                            <span>Despawn timer</span>
+                            <select
+                                value={config.despawnTimerMode}
+                                onChange={(event) =>
+                                    update(
+                                        "despawnTimerMode",
+                                        event.target
+                                            .value as GroundItemsPluginConfig["despawnTimerMode"],
+                                    )
+                                }
+                            >
+                                <option value="off">Off</option>
+                                <option value="ticks">Ticks</option>
+                                <option value="seconds">Seconds</option>
+                            </select>
+                        </label>
+                        <label className="rl-sidebar-field">
+                            <span>Hide below value</span>
+                            <input
+                                type="number"
+                                min={0}
+                                value={config.hideUnderValue}
+                                onChange={(event) =>
+                                    update(
+                                        "hideUnderValue",
+                                        parseInteger(event.target.value, config.hideUnderValue),
+                                    )
+                                }
+                            />
+                            <small className="rl-sidebar-field-help">
+                                An item is filtered only when both its GE and HA totals are below
+                                this value, protecting valuable alchables. Set to 0 to disable.
+                            </small>
+                        </label>
+                    </div>
+
+                    <label className="rl-sidebar-field">
+                        <span>Alt double-tap window (ms)</span>
+                        <input
+                            type="number"
+                            min={0}
+                            max={5000}
+                            step={50}
+                            value={config.doubleTapDelayMs}
+                            onChange={(event) =>
+                                update(
+                                    "doubleTapDelayMs",
+                                    Math.min(
+                                        5000,
+                                        parseInteger(event.target.value, config.doubleTapDelayMs),
+                                    ),
+                                )
+                            }
+                        />
+                        <small className="rl-sidebar-field-help">
+                            Set to 0 to disable the double-tap shortcut.
+                        </small>
+                    </label>
+                </div>
+            </details>
+
+            <details className="rl-sidebar-settings-group">
+                <summary>Ground-item menus</summary>
+                <div className="rl-sidebar-settings-body">
+                    <div className="rl-sidebar-row">
+                        <label className="rl-sidebar-field">
+                            <span>Color menu text</span>
+                            <select
+                                value={config.menuHighlightMode}
+                                onChange={(event) =>
+                                    update(
+                                        "menuHighlightMode",
+                                        event.target
+                                            .value as GroundItemsPluginConfig["menuHighlightMode"],
+                                    )
+                                }
+                            >
+                                <option value="both">Option and name</option>
+                                <option value="name">Item name</option>
+                                <option value="option">Option</option>
+                            </select>
+                        </label>
+                        <label className="rl-sidebar-field">
+                            <span>Menu sorting</span>
+                            <select
+                                value={config.menuSortMode}
+                                onChange={(event) =>
+                                    update(
+                                        "menuSortMode",
+                                        event.target.value as GroundItemsPluginConfig["menuSortMode"],
+                                    )
+                                }
+                            >
+                                <option value="off">Game order</option>
+                                <option value="value">Highest value</option>
+                                <option value="name">Item name</option>
+                            </select>
+                        </label>
+                    </div>
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.showMenuItemQuantities}
+                            onChange={(event) =>
+                                update("showMenuItemQuantities", event.target.checked)
+                            }
+                        />
+                        <span>Show item quantities</span>
+                    </label>
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.recolorMenuHiddenItems}
+                            onChange={(event) =>
+                                update("recolorMenuHiddenItems", event.target.checked)
+                            }
+                        />
+                        <span>Recolor hidden entries</span>
+                    </label>
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.rightClickHidden}
+                            onChange={(event) => update("rightClickHidden", event.target.checked)}
+                        />
+                        <span>Move hidden items behind right-click</span>
+                    </label>
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.collapseGroundItemMenu}
+                            onChange={(event) =>
+                                update("collapseGroundItemMenu", event.target.checked)
+                            }
+                        />
+                        <span>Collapse matching menu entries</span>
+                    </label>
+                </div>
+            </details>
+
+            <details className="rl-sidebar-settings-group">
+                <summary>Tiles &amp; loot beams</summary>
+                <div className="rl-sidebar-settings-body">
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.highlightTiles}
+                            onChange={(event) => update("highlightTiles", event.target.checked)}
+                        />
+                        <span>Highlight tiles beneath items</span>
+                    </label>
+                    <label className="rl-sidebar-field">
+                        <span>Tile fill opacity</span>
+                        <input
+                            type="number"
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            value={config.tileHighlightFillAlpha}
+                            onChange={(event) => {
+                                const parsed = Number(event.target.value);
+                                update(
+                                    "tileHighlightFillAlpha",
+                                    Number.isFinite(parsed)
+                                        ? Math.min(1, Math.max(0, parsed))
+                                        : config.tileHighlightFillAlpha,
+                                );
+                            }}
+                        />
+                    </label>
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.lootBeamEnabled}
+                            onChange={(event) => update("lootBeamEnabled", event.target.checked)}
+                        />
+                        <span>Show loot beams</span>
+                    </label>
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.lootBeamForHighlightedItems}
+                            onChange={(event) =>
+                                update("lootBeamForHighlightedItems", event.target.checked)
+                            }
+                        />
+                        <span>Always beam explicitly highlighted items</span>
+                    </label>
+                    <div className="rl-sidebar-row">
+                        <label className="rl-sidebar-field">
+                            <span>Beam style</span>
+                            <select
+                                value={config.lootBeamStyle}
+                                onChange={(event) =>
+                                    update(
+                                        "lootBeamStyle",
+                                        event.target.value as GroundItemsPluginConfig["lootBeamStyle"],
+                                    )
+                                }
+                            >
+                                <option value="modern">Modern</option>
+                                <option value="light">Light</option>
+                            </select>
+                        </label>
+                        <label className="rl-sidebar-field">
+                            <span>Minimum beam tier</span>
+                            <select
+                                value={config.lootBeamMinimumTier}
+                                onChange={(event) =>
+                                    update(
+                                        "lootBeamMinimumTier",
+                                        event.target
+                                            .value as GroundItemsPluginConfig["lootBeamMinimumTier"],
+                                    )
+                                }
+                            >
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="insane">Insane</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </details>
+
+            <details className="rl-sidebar-settings-group">
+                <summary>Drop notifications</summary>
+                <div className="rl-sidebar-settings-body">
+                    <label className="rl-sidebar-check">
+                        <input
+                            type="checkbox"
+                            checked={config.notifyHighlightedDrops}
+                            onChange={(event) =>
+                                update("notifyHighlightedDrops", event.target.checked)
+                            }
+                        />
+                        <span>Notify for explicitly highlighted drops</span>
+                    </label>
+                    <label className="rl-sidebar-field">
+                        <span>Minimum notification tier</span>
+                        <select
+                            value={config.notifyMinimumTier}
+                            onChange={(event) =>
+                                update(
+                                    "notifyMinimumTier",
+                                    event.target
+                                        .value as GroundItemsPluginConfig["notifyMinimumTier"],
+                                )
+                            }
+                        >
+                            <option value="off">Off</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="insane">Insane</option>
+                        </select>
+                    </label>
+                </div>
+            </details>
+
+            <details className="rl-sidebar-settings-group">
+                <summary>Value tiers &amp; colors</summary>
+                <div className="rl-sidebar-settings-body">
+                    <div className="rl-sidebar-row rl-sidebar-value-row">
+                        <label className="rl-sidebar-field">
+                            <span>Low value</span>
+                            <input
+                                type="number"
+                                min={0}
+                                value={config.lowValuePrice}
+                                onChange={(event) =>
+                                    update(
+                                        "lowValuePrice",
+                                        parseInteger(event.target.value, config.lowValuePrice),
+                                    )
+                                }
+                            />
+                        </label>
+                        <input
+                            className="rl-sidebar-color-input"
+                            type="color"
+                            value={toColorInput(config.lowValueColor)}
+                            onChange={(event) =>
+                                update(
+                                    "lowValueColor",
+                                    parseColorInput(event.target.value, config.lowValueColor),
+                                )
+                            }
+                            title="Low value color"
+                            aria-label="Low value color"
+                        />
+                    </div>
+                    <div className="rl-sidebar-row rl-sidebar-value-row">
+                        <label className="rl-sidebar-field">
+                            <span>Medium value</span>
+                            <input
+                                type="number"
+                                min={0}
+                                value={config.mediumValuePrice}
+                                onChange={(event) =>
+                                    update(
+                                        "mediumValuePrice",
+                                        parseInteger(event.target.value, config.mediumValuePrice),
+                                    )
+                                }
+                            />
+                        </label>
+                        <input
+                            className="rl-sidebar-color-input"
+                            type="color"
+                            value={toColorInput(config.mediumValueColor)}
+                            onChange={(event) =>
+                                update(
+                                    "mediumValueColor",
+                                    parseColorInput(event.target.value, config.mediumValueColor),
+                                )
+                            }
+                            title="Medium value color"
+                            aria-label="Medium value color"
+                        />
+                    </div>
+                    <div className="rl-sidebar-row rl-sidebar-value-row">
+                        <label className="rl-sidebar-field">
+                            <span>High value</span>
+                            <input
+                                type="number"
+                                min={0}
+                                value={config.highValuePrice}
+                                onChange={(event) =>
+                                    update(
+                                        "highValuePrice",
+                                        parseInteger(event.target.value, config.highValuePrice),
+                                    )
+                                }
+                            />
+                        </label>
+                        <input
+                            className="rl-sidebar-color-input"
+                            type="color"
+                            value={toColorInput(config.highValueColor)}
+                            onChange={(event) =>
+                                update(
+                                    "highValueColor",
+                                    parseColorInput(event.target.value, config.highValueColor),
+                                )
+                            }
+                            title="High value color"
+                            aria-label="High value color"
+                        />
+                    </div>
+                    <div className="rl-sidebar-row rl-sidebar-value-row">
+                        <label className="rl-sidebar-field">
+                            <span>Insane value</span>
+                            <input
+                                type="number"
+                                min={0}
+                                value={config.insaneValuePrice}
+                                onChange={(event) =>
+                                    update(
+                                        "insaneValuePrice",
+                                        parseInteger(event.target.value, config.insaneValuePrice),
+                                    )
+                                }
+                            />
+                        </label>
+                        <input
+                            className="rl-sidebar-color-input"
+                            type="color"
+                            value={toColorInput(config.insaneValueColor)}
+                            onChange={(event) =>
+                                update(
+                                    "insaneValueColor",
+                                    parseColorInput(event.target.value, config.insaneValueColor),
+                                )
+                            }
+                            title="Insane value color"
+                            aria-label="Insane value color"
+                        />
+                    </div>
+                    <div className="rl-sidebar-color-grid">
+                        <label className="rl-sidebar-field">
+                            <span>Default</span>
+                            <input
+                                className="rl-sidebar-color-input rl-sidebar-color-full"
+                                type="color"
+                                value={toColorInput(config.defaultColor)}
+                                onChange={(event) =>
+                                    update(
+                                        "defaultColor",
+                                        parseColorInput(event.target.value, config.defaultColor),
+                                    )
+                                }
+                                title="Default item color"
+                            />
+                        </label>
+                        <label className="rl-sidebar-field">
+                            <span>Highlighted</span>
+                            <input
+                                className="rl-sidebar-color-input rl-sidebar-color-full"
+                                type="color"
+                                value={toColorInput(config.highlightedColor)}
+                                onChange={(event) =>
+                                    update(
+                                        "highlightedColor",
+                                        parseColorInput(event.target.value, config.highlightedColor),
+                                    )
+                                }
+                                title="Explicit highlighted item color"
+                            />
+                        </label>
+                        <label className="rl-sidebar-field">
+                            <span>Hidden</span>
+                            <input
+                                className="rl-sidebar-color-input rl-sidebar-color-full"
+                                type="color"
+                                value={toColorInput(config.hiddenColor)}
+                                onChange={(event) =>
+                                    update(
+                                        "hiddenColor",
+                                        parseColorInput(event.target.value, config.hiddenColor),
+                                    )
+                                }
+                                title="Hidden item color"
+                            />
+                        </label>
+                    </div>
+                </div>
+            </details>
+
+            <details className="rl-sidebar-settings-group">
+                <summary>Item lists</summary>
+                <div className="rl-sidebar-settings-body">
+                    <label className="rl-sidebar-field">
+                        <span>Highlighted items</span>
+                        <textarea
+                            className="rl-sidebar-textarea"
+                            rows={4}
+                            value={config.highlightedItems}
+                            onChange={(event) => update("highlightedItems", event.target.value)}
+                            placeholder="Abyssal whip, *clue scroll*"
+                        />
+                        <small className="rl-sidebar-field-help">
+                            Comma-separated names; <code>*</code> matches any text.
+                        </small>
+                    </label>
+                    <label className="rl-sidebar-field">
+                        <span>Hidden items</span>
+                        <textarea
+                            className="rl-sidebar-textarea"
+                            rows={4}
+                            value={config.hiddenItems}
+                            onChange={(event) => update("hiddenItems", event.target.value)}
+                            placeholder="Ashes, Bones, Bronze *"
+                        />
+                        <small className="rl-sidebar-field-help">
+                            Exact matches take priority over wildcard matches.
+                        </small>
+                    </label>
+                </div>
+            </details>
+
+            <details className="rl-sidebar-settings-group">
+                <summary>
+                    Advanced loot filters
+                    {ruleDiagnostics.length > 0 && (
+                        <span className="rl-sidebar-settings-badge">{ruleDiagnostics.length}</span>
+                    )}
+                </summary>
+                <div className="rl-sidebar-settings-body">
+                    <p className="rl-sidebar-panel-copy">
+                        Rules run from top to bottom. <code>hide</code>, <code>show</code>,{" "}
+                        <code>highlight</code>, and <code>beam</code> stop evaluation;{" "}
+                        <code>apply</code> continues to later rules.
+                    </p>
+                    <label className="rl-sidebar-field">
+                        <span>Local filter rules (one per line)</span>
+                        <textarea
+                            className="rl-sidebar-textarea rl-sidebar-filter-rules"
+                            rows={9}
+                            value={ruleDraft}
+                            onChange={(event) => setRuleDraft(event.target.value)}
+                            spellCheck={false}
+                            aria-invalid={ruleDiagnostics.length > 0}
+                            placeholder={[
+                                "name=*clue* | highlight | color=#00ffff | beam=true",
+                                "name=Ashes | qty<100 | hide",
+                                "area=3200,3200,12 | apply | tile=true",
+                            ].join("\n")}
+                        />
+                        <small className="rl-sidebar-field-help">
+                            Changes remain a draft until Apply is pressed. Ownership accepts none,
+                            self, or other; group is reserved for future shared-drop ownership.
+                        </small>
+                    </label>
+                    <div className="rl-sidebar-rule-examples" aria-label="Filter examples">
+                        <code>name=*clue* | highlight | color=#00ffff | beam=true</code>
+                        <code>name=Ashes | qty&lt;100 | hide</code>
+                        <code>area=3200,3200,12 | apply | tile=true</code>
+                    </div>
+                    {ruleDiagnostics.length > 0 ? (
+                        <div className="rl-sidebar-rule-diagnostics" role="alert">
+                            <strong>Filter issues</strong>
+                            <ul>
+                                {ruleDiagnostics.map((diagnostic, index) => (
+                                    <li key={`${diagnostic.line}:${diagnostic.source}:${index}`}>
+                                        <span>Line {diagnostic.line}:</span> {diagnostic.message}
+                                        {diagnostic.source.trim().length > 0 && (
+                                            <code>{diagnostic.source}</code>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : (
+                        ruleDraft.trim().length > 0 && (
+                            <div className="rl-sidebar-rule-valid">No filter issues found.</div>
                         )
-                    }
-                />
-            </label>
-
-            <div className="rl-sidebar-row rl-sidebar-value-row">
-                <label className="rl-sidebar-field">
-                    <span>Low value</span>
-                    <input
-                        type="number"
-                        min={0}
-                        value={config.lowValuePrice}
-                        onChange={(event) =>
-                            update(
-                                "lowValuePrice",
-                                parseInteger(event.target.value, config.lowValuePrice),
-                            )
-                        }
-                    />
-                </label>
-                <input
-                    className="rl-sidebar-color-input"
-                    type="color"
-                    value={toColorInput(config.lowValueColor)}
-                    onChange={(event) =>
-                        update(
-                            "lowValueColor",
-                            parseColorInput(event.target.value, config.lowValueColor),
-                        )
-                    }
-                    title="Low value color"
-                />
-            </div>
-
-            <div className="rl-sidebar-row rl-sidebar-value-row">
-                <label className="rl-sidebar-field">
-                    <span>Medium value</span>
-                    <input
-                        type="number"
-                        min={0}
-                        value={config.mediumValuePrice}
-                        onChange={(event) =>
-                            update(
-                                "mediumValuePrice",
-                                parseInteger(event.target.value, config.mediumValuePrice),
-                            )
-                        }
-                    />
-                </label>
-                <input
-                    className="rl-sidebar-color-input"
-                    type="color"
-                    value={toColorInput(config.mediumValueColor)}
-                    onChange={(event) =>
-                        update(
-                            "mediumValueColor",
-                            parseColorInput(event.target.value, config.mediumValueColor),
-                        )
-                    }
-                    title="Medium value color"
-                />
-            </div>
-
-            <div className="rl-sidebar-row rl-sidebar-value-row">
-                <label className="rl-sidebar-field">
-                    <span>High value</span>
-                    <input
-                        type="number"
-                        min={0}
-                        value={config.highValuePrice}
-                        onChange={(event) =>
-                            update(
-                                "highValuePrice",
-                                parseInteger(event.target.value, config.highValuePrice),
-                            )
-                        }
-                    />
-                </label>
-                <input
-                    className="rl-sidebar-color-input"
-                    type="color"
-                    value={toColorInput(config.highValueColor)}
-                    onChange={(event) =>
-                        update(
-                            "highValueColor",
-                            parseColorInput(event.target.value, config.highValueColor),
-                        )
-                    }
-                    title="High value color"
-                />
-            </div>
-
-            <div className="rl-sidebar-row rl-sidebar-value-row">
-                <label className="rl-sidebar-field">
-                    <span>Insane value</span>
-                    <input
-                        type="number"
-                        min={0}
-                        value={config.insaneValuePrice}
-                        onChange={(event) =>
-                            update(
-                                "insaneValuePrice",
-                                parseInteger(event.target.value, config.insaneValuePrice),
-                            )
-                        }
-                    />
-                </label>
-                <input
-                    className="rl-sidebar-color-input"
-                    type="color"
-                    value={toColorInput(config.insaneValueColor)}
-                    onChange={(event) =>
-                        update(
-                            "insaneValueColor",
-                            parseColorInput(event.target.value, config.insaneValueColor),
-                        )
-                    }
-                    title="Insane value color"
-                />
-            </div>
-
-            <div className="rl-sidebar-row">
-                <label className="rl-sidebar-field">
-                    <span>Default color</span>
-                    <input
-                        className="rl-sidebar-color-input rl-sidebar-color-full"
-                        type="color"
-                        value={toColorInput(config.defaultColor)}
-                        onChange={(event) =>
-                            update(
-                                "defaultColor",
-                                parseColorInput(event.target.value, config.defaultColor),
-                            )
-                        }
-                        title="Default item color"
-                    />
-                </label>
-                <label className="rl-sidebar-field">
-                    <span>Highlighted color</span>
-                    <input
-                        className="rl-sidebar-color-input rl-sidebar-color-full"
-                        type="color"
-                        value={toColorInput(config.highlightedColor)}
-                        onChange={(event) =>
-                            update(
-                                "highlightedColor",
-                                parseColorInput(event.target.value, config.highlightedColor),
-                            )
-                        }
-                        title="Explicit highlighted item color"
-                    />
-                </label>
-                <label className="rl-sidebar-field">
-                    <span>Hidden color</span>
-                    <input
-                        className="rl-sidebar-color-input rl-sidebar-color-full"
-                        type="color"
-                        value={toColorInput(config.hiddenColor)}
-                        onChange={(event) =>
-                            update(
-                                "hiddenColor",
-                                parseColorInput(event.target.value, config.hiddenColor),
-                            )
-                        }
-                        title="Hidden item color"
-                    />
-                </label>
-            </div>
-
-            <label className="rl-sidebar-field">
-                <span>Highlighted items (CSV, supports * wildcard)</span>
-                <textarea
-                    className="rl-sidebar-textarea"
-                    rows={3}
-                    value={config.highlightedItems}
-                    onChange={(event) => update("highlightedItems", event.target.value)}
-                />
-            </label>
-
-            <label className="rl-sidebar-field">
-                <span>Hidden items (CSV, supports * wildcard)</span>
-                <textarea
-                    className="rl-sidebar-textarea"
-                    rows={3}
-                    value={config.hiddenItems}
-                    onChange={(event) => update("hiddenItems", event.target.value)}
-                />
-            </label>
+                    )}
+                    <div className="rl-sidebar-rule-actions">
+                        <button
+                            type="button"
+                            onClick={() => update("advancedFilterRules", ruleDraft)}
+                            disabled={!ruleDraftChanged || ruleDiagnostics.length > 0}
+                        >
+                            Apply
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setRuleDraft(config.advancedFilterRules)}
+                            disabled={!ruleDraftChanged}
+                        >
+                            Revert
+                        </button>
+                    </div>
+                </div>
+            </details>
         </div>
     );
 }
@@ -633,6 +990,19 @@ function PluginHubPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Element
         tileMarkersGetSnapshot,
         tileMarkersGetSnapshot,
     );
+    const bossHealthBarStyle = useSyncExternalStore(
+        bossHealthBarPreferences.subscribe,
+        bossHealthBarPreferences.getSnapshot,
+        bossHealthBarPreferences.getSnapshot,
+    );
+
+    const bossHealthBarStyles: ReadonlyArray<{
+        value: BossHealthBarStyle;
+        label: string;
+    }> = [
+        { value: "modern", label: "Modern" },
+        { value: "oldschool", label: "Oldschool" },
+    ];
 
     const pluginToggles = useMemo<PluginHubToggle[]>(
         () => [
@@ -705,6 +1075,36 @@ function PluginHubPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Element
                     />
                 </label>
             ))}
+            <section
+                className="rl-sidebar-plugin-style-setting"
+                aria-labelledby="boss-health-bar-style-name"
+            >
+                <span className="rl-sidebar-plugin-meta">
+                    <span id="boss-health-bar-style-name" className="rl-sidebar-plugin-name">
+                        Boss health bar style
+                    </span>
+                    <span className="rl-sidebar-plugin-desc">
+                        Modern is detailed; Oldschool is a compact red/green bar.
+                    </span>
+                </span>
+                <div
+                    className="rl-sidebar-style-toggle"
+                    role="group"
+                    aria-label="Boss Health Bar style"
+                >
+                    {bossHealthBarStyles.map((option) => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            className={bossHealthBarStyle === option.value ? "active" : undefined}
+                            aria-pressed={bossHealthBarStyle === option.value}
+                            onClick={() => bossHealthBarPreferences.setStyle(option.value)}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+            </section>
         </div>
     );
 }

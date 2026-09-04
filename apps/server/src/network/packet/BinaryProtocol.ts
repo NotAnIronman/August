@@ -26,7 +26,7 @@ export function sendMessage(
         if (!binary || !(binary instanceof Uint8Array) || binary.length === 0) return;
         ws.send(binary);
     } catch (err) {
-        logger.info(`[binary] failed to send message type="${type}"`, err);
+        logger.warn(`[binary] failed to send message type="${type}"`, err);
     }
 }
 

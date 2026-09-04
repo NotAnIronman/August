@@ -495,7 +495,7 @@ registerUiPanel({
     }),
 });
 
-// Numbered outline view of a DialogueTree (see server/src/game/dialogue/
+// Numbered outline view of a DialogueTree (see apps/server/src/game/dialogue/
 // DialogueTree.ts and gamemodes/vanilla/widgets/devDialogueEditor.ts).
 // Structural edits (select/edit/delete/reorder/add) are click-driven, same
 // mechanism as the sprite gallery: an invisible full-row hit-zone per row

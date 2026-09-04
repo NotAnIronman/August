@@ -64,6 +64,7 @@ import {
     VARP_SIDE_JOURNAL_STATE,
 } from "@august/game-model/state/vars";
 import { AttackType } from "@server/game/combat/AttackType";
+import { logger } from "@server/observability/logger";
 import type { PlayerState } from "@server/game/player";
 import {
     type DisplayMode,
@@ -376,23 +377,23 @@ function getLeagueRelicIndexMap(
     const enumLoader = services.data.getEnumTypeLoader();
     const structLoader = services.data.getStructTypeLoader();
     if (!enumLoader?.load) {
-        console.log(`[league] getLeagueRelicIndexMap: enumLoader missing`);
+        logger.debug(`[league] getLeagueRelicIndexMap: enumLoader missing`);
         return null;
     }
     if (!structLoader?.load) {
-        console.log(`[league] getLeagueRelicIndexMap: structLoader missing`);
+        logger.debug(`[league] getLeagueRelicIndexMap: structLoader missing`);
         return null;
     }
     const leagueEnum = asLeagueCacheEnumType(enumLoader.load(ENUM_LEAGUE_TYPE_STRUCT));
     if (!leagueEnum) {
-        console.log(
+        logger.debug(
             `[league] getLeagueRelicIndexMap: failed to load enum ${ENUM_LEAGUE_TYPE_STRUCT}`,
         );
         return null;
     }
     const leagueStructId = findEnumIntValue(leagueEnum, lt);
     if (!(leagueStructId && leagueStructId > 0)) {
-        console.log(`[league] getLeagueRelicIndexMap: no struct for leagueType=${lt} in enum`);
+        logger.debug(`[league] getLeagueRelicIndexMap: no struct for leagueType=${lt} in enum`);
         return null;
     }
     const leagueStruct = asLeagueCacheStructType(structLoader.load(leagueStructId));
@@ -400,7 +401,7 @@ function getLeagueRelicIndexMap(
         | number
         | undefined;
     if (typeof tierEnumId !== "number" || tierEnumId <= 0) {
-        console.log(
+        logger.debug(
             `[league] getLeagueRelicIndexMap: missing tier enum param in struct ${leagueStructId}`,
         );
         return null;
@@ -1467,7 +1468,7 @@ function ensureLeagueAreaSelectionsInitialized(
                 services.variables.queueVarbit?.(player.id, varbitId, next);
             }
         }
-        console.log(
+        logger.debug(
             `[league] Sanitized league area selections: ${values.join(",")} -> ${sanitized.join(
                 ",",
             )}`,
@@ -1502,7 +1503,7 @@ export function registerLeagueWidgetHandlers(
     registry: IScriptRegistry,
     services: ScriptServices,
 ): void {
-    console.log("[leagueWidgets] Registering league widget handlers (pure CS2 approach)");
+    logger.debug("[leagueWidgets] Registering league widget handlers (pure CS2 approach)");
     registerLeagueTutorialHintWidgetHandlers(registry, services);
 
     // ========== League 5 Side Panel (656) ==========
@@ -1510,7 +1511,7 @@ export function registerLeagueWidgetHandlers(
     registry.onButton(LEAGUE_SIDE_PANEL_L5_GROUP_ID, L5_COMP_VIEW_MASTERIES, (event) => {
         const mainmodalUid = getMainmodalUid(event.player.displayMode);
         const player = event.player;
-        console.log(`[league] L5 View Masteries clicked`);
+        logger.debug(`[league] L5 View Masteries clicked`);
         ensureLeagueBasicsInitialized(player, services);
         services.dialog.openSubInterface(player, mainmodalUid, LEAGUE_COMBAT_MASTERY_GROUP_ID, 0, {
             varps: getLeagueVarpsForPlayer(player),
@@ -1557,7 +1558,7 @@ export function registerLeagueWidgetHandlers(
 
     registry.onButton(LEAGUE_SIDE_PANEL_L5_GROUP_ID, L5_COMP_VIEW_INFO, (event) => {
         const mainmodalUid = getMainmodalUid(event.player.displayMode);
-        console.log(`[league] L5 View Info clicked`);
+        logger.debug(`[league] L5 View Info clicked`);
         ensureLeagueBasicsInitialized(event.player, services);
         services.dialog.openSubInterface(event.player, mainmodalUid, LEAGUE_INFO_GROUP_ID, 0, {
             varps: getLeagueVarpsForPlayer(event.player),
@@ -1568,7 +1569,7 @@ export function registerLeagueWidgetHandlers(
     registry.onButton(LEAGUE_SIDE_PANEL_L5_GROUP_ID, L5_COMP_VIEW_TASKS, (event) => {
         const mainmodalUid = getMainmodalUid(event.player.displayMode);
         const player = event.player;
-        console.log(`[league] L5 View Tasks clicked`);
+        logger.debug(`[league] L5 View Tasks clicked`);
         ensureLeagueBasicsInitialized(player, services);
         const tutorial = player.varps.getVarbitValue?.(VARBIT_LEAGUE_TUTORIAL_COMPLETED) ?? 0;
 
@@ -1624,7 +1625,7 @@ export function registerLeagueWidgetHandlers(
     registry.onButton(LEAGUE_SIDE_PANEL_L5_GROUP_ID, L5_COMP_VIEW_RELICS, (event) => {
         const mainmodalUid = getMainmodalUid(event.player.displayMode);
         const player = event.player;
-        console.log(`[league] L5 View Relics clicked`);
+        logger.debug(`[league] L5 View Relics clicked`);
         ensureLeagueBasicsInitialized(player, services);
         try {
             player.gamemodeState.delete("leagueRelicPendingSelection");
@@ -1705,7 +1706,7 @@ export function registerLeagueWidgetHandlers(
     registry.onButton(LEAGUE_SIDE_PANEL_L5_GROUP_ID, L5_COMP_VIEW_AREAS, (event) => {
         const mainmodalUid = getMainmodalUid(event.player.displayMode);
         const player = event.player;
-        console.log(`[league] L5 View Areas clicked`);
+        logger.debug(`[league] L5 View Areas clicked`);
 
         ensureLeagueBasicsInitialized(player, services);
         //  + data hygiene: ensure area selection varbits are valid before opening,
@@ -1763,7 +1764,7 @@ export function registerLeagueWidgetHandlers(
 
     registry.onButton(LEAGUE_SIDE_PANEL_L5_GROUP_ID, L5_COMP_SHOW_SUMMARY, (event) => {
         const mainmodalUid = getMainmodalUid(event.player.displayMode);
-        console.log(`[league] L5 Show Summary clicked`);
+        logger.debug(`[league] L5 Show Summary clicked`);
         ensureLeagueBasicsInitialized(event.player, services);
         services.dialog.openSubInterface(event.player, mainmodalUid, LEAGUE_SUMMARY_GROUP_ID, 0, {
             varps: getLeagueVarpsForPlayer(event.player),
@@ -1773,7 +1774,7 @@ export function registerLeagueWidgetHandlers(
 
     registry.onButton(LEAGUE_SIDE_PANEL_L5_GROUP_ID, L5_COMP_SHOW_RANKS, (event) => {
         const mainmodalUid = getMainmodalUid(event.player.displayMode);
-        console.log(`[league] L5 Show Ranks clicked`);
+        logger.debug(`[league] L5 Show Ranks clicked`);
         ensureLeagueBasicsInitialized(event.player, services);
         services.dialog.openSubInterface(event.player, mainmodalUid, LEAGUE_RANK_GROUP_ID, 0, {
             varps: getLeagueVarpsForPlayer(event.player),
@@ -1788,7 +1789,7 @@ export function registerLeagueWidgetHandlers(
     for (const area of LEAGUE_AREAS) {
         const onClick = (event: WidgetActionEvent) => {
             const player = event.player;
-            console.log(`[league] Area clicked: ${area.name} (regionId=${area.regionId})`);
+            logger.debug(`[league] Area clicked: ${area.name} (regionId=${area.regionId})`);
 
             // Allow viewing all areas - they'll show the appropriate button state (Locked/Unlock/Teleport).
             const tutorial = player.varps.getVarbitValue?.(VARBIT_LEAGUE_TUTORIAL_COMPLETED) ?? 0;
@@ -1879,12 +1880,12 @@ export function registerLeagueWidgetHandlers(
             player.varps.getVarbitValue?.(VARBIT_LEAGUE_AREA_LAST_VIEWED) ?? -1;
         const currentRegion = normalizeLeagueAreaSelectionValue(currentRegionRaw);
         const unlocked = isLeagueAreaUnlocked(player, currentRegion);
-        console.log(
+        logger.debug(
             `[league] Select clicked: regionId=${currentRegion} unlocked=${unlocked ? 1 : 0}`,
         );
 
         if (!(currentRegion > 0)) {
-            console.log(`[league] Invalid region ID: ${currentRegionRaw}`);
+            logger.debug(`[league] Invalid region ID: ${currentRegionRaw}`);
             return;
         }
 
@@ -1900,7 +1901,7 @@ export function registerLeagueWidgetHandlers(
             }
             const coord = getLeagueAreaTeleportCoord(services, currentRegion);
             if (coord === null) {
-                console.log(`[league] Missing area teleport coord: regionId=${currentRegion}`);
+                logger.debug(`[league] Missing area teleport coord: regionId=${currentRegion}`);
                 return;
             }
             const { x, y, level } = decodeCoord(coord);
@@ -1933,7 +1934,7 @@ export function registerLeagueWidgetHandlers(
         // when locked, the client shows a confirm overlay first.
         // The actual unlock is performed on the Confirm button (handled below).
         const state = getLeagueAreaButtonState(player, services, currentRegion);
-        console.log(`[league] Awaiting confirm for unlock: regionId=${currentRegion}`);
+        logger.debug(`[league] Awaiting confirm for unlock: regionId=${currentRegion}`);
 
         // Set IF_SETEVENTS for the confirm and cancel buttons so they're clickable
         // (Static widgets use fromSlot=-1, toSlot=-1)
@@ -1980,19 +1981,19 @@ export function registerLeagueWidgetHandlers(
         const currentRegionRaw =
             player.varps.getVarbitValue?.(VARBIT_LEAGUE_AREA_LAST_VIEWED) ?? -1;
         const currentRegion = normalizeLeagueAreaSelectionValue(currentRegionRaw);
-        console.log(`[league] Confirm unlock clicked: regionId=${currentRegion}`);
+        logger.debug(`[league] Confirm unlock clicked: regionId=${currentRegion}`);
 
         const state = getLeagueAreaButtonState(player, services, currentRegion);
         if (state !== 2) {
-            console.log(`[league] Unlock rejected: state=${state} regionId=${currentRegion}`);
+            logger.debug(`[league] Unlock rejected: state=${state} regionId=${currentRegion}`);
             return;
         }
 
         const res = tryUnlockLeagueArea(player, services, currentRegion);
         if (!res.ok) {
-            console.log(`[league] Unlock failed: reason=${res.reason ?? "unknown"}`);
+            logger.debug(`[league] Unlock failed: reason=${res.reason ?? "unknown"}`);
         } else {
-            console.log(`[league] Area unlocked: regionId=${currentRegion}`);
+            logger.debug(`[league] Area unlocked: regionId=${currentRegion}`);
 
             // Play area unlock sound
             services.sound.sendSound(player, SYNTH_TRAILBLAZER_UNLOCK_TWUNKLES);
@@ -2074,7 +2075,7 @@ export function registerLeagueWidgetHandlers(
 
     // Back button - CS2 handles returning to map view
     registry.onButton(LEAGUE_AREAS_GROUP_ID, COMP_SELECT_BACK, () => {
-        console.log(`[league] Back button clicked`);
+        logger.debug(`[league] Back button clicked`);
     });
 
     // Close button - mirrors relic/tasks fallback handling for non-parity click routes.
@@ -2113,11 +2114,11 @@ export function registerLeagueWidgetHandlers(
         // Dynamic clickzones: widgetId is 655:22, and the dynamic child index is carried in `slot`.
         const player = event.player;
         const leagueType = player.varps.getVarbitValue?.(VARBIT_LEAGUE_TYPE) ?? 0;
-        console.log(
+        logger.debug(
             `[league] onRelicClickzoneView: widgetId=${event.widgetId} slot=${event.slot} childId=${event.childId} leagueType=${leagueType}`,
         );
         if (!(leagueType > 0) || leagueType === 3) {
-            console.log(`[league] Relic view rejected: leagueType=${leagueType} (need >0 and !=3)`);
+            logger.debug(`[league] Relic view rejected: leagueType=${leagueType} (need >0 and !=3)`);
             return;
         }
 
@@ -2125,7 +2126,7 @@ export function registerLeagueWidgetHandlers(
 
         const indexMap = getLeagueRelicIndexMap(services, leagueType);
         if (!indexMap) {
-            console.log(
+            logger.debug(
                 `[league] Relic view rejected: indexMap is null for leagueType=${leagueType}`,
             );
             return;
@@ -2136,18 +2137,18 @@ export function registerLeagueWidgetHandlers(
         const slotVal = event.slot ?? -1;
         const globalIndex = slotVal >= 0 && slotVal !== 65535 ? slotVal : event.childId;
         const entry = indexMap[globalIndex];
-        console.log(
+        logger.debug(
             `[league] Relic lookup: slotVal=${slotVal} globalIndex=${globalIndex} entry=${
                 entry ? `tier${entry.tierIndex}key${entry.relicKey}` : "null"
             } indexMapLen=${indexMap.length}`,
         );
         if (!entry || entry.globalIndex !== globalIndex) {
-            console.log(`[league] Relic view rejected: no entry for globalIndex=${globalIndex}`);
+            logger.debug(`[league] Relic view rejected: no entry for globalIndex=${globalIndex}`);
             return;
         }
 
         player.gamemodeState.set("leagueRelicPendingSelection", entry);
-        console.log(
+        logger.debug(
             `[league] Pending relic selection leagueType=${leagueType} tier=${entry.tierIndex} key=${entry.relicKey} idx=${globalIndex}`,
         );
 
@@ -2264,13 +2265,13 @@ export function registerLeagueWidgetHandlers(
         const player = event.player;
         const pending = getPendingRelicSelection(player);
         if (!pending) {
-            console.log(`[league] Relic confirm rejected: no pending selection`);
+            logger.debug(`[league] Relic confirm rejected: no pending selection`);
             return;
         }
 
         const leagueType = player.varps.getVarbitValue?.(VARBIT_LEAGUE_TYPE) ?? 0;
         if (leagueType !== pending.leagueType || leagueType === 3) {
-            console.log(
+            logger.debug(
                 `[league] Relic confirm rejected: leagueType mismatch (${leagueType} vs ${pending.leagueType})`,
             );
             return;
@@ -2278,7 +2279,7 @@ export function registerLeagueWidgetHandlers(
 
         const tierVarbitId = getRelicSelectionVarbitIdForTier(pending.tierIndex);
         if (!tierVarbitId) {
-            console.log(`[league] Relic confirm rejected: invalid tier varbit`);
+            logger.debug(`[league] Relic confirm rejected: invalid tier varbit`);
             return;
         }
 
@@ -2286,12 +2287,12 @@ export function registerLeagueWidgetHandlers(
         if (pending.tierIndex > 0) {
             const prevVarbitId = getRelicSelectionVarbitIdForTier(pending.tierIndex - 1);
             if (!prevVarbitId) {
-                console.log(`[league] Relic confirm rejected: invalid prev tier varbit`);
+                logger.debug(`[league] Relic confirm rejected: invalid prev tier varbit`);
                 return;
             }
             const prev = player.varps.getVarbitValue?.(prevVarbitId) ?? 0;
             if (prev === 0) {
-                console.log(`[league] Relic confirm rejected: previous tier not selected`);
+                logger.debug(`[league] Relic confirm rejected: previous tier not selected`);
                 return;
             }
         }
@@ -2299,14 +2300,14 @@ export function registerLeagueWidgetHandlers(
         // Tier must not already be selected.
         const existing = player.varps.getVarbitValue?.(tierVarbitId) ?? 0;
         if (existing !== 0) {
-            console.log(`[league] Relic confirm rejected: tier already selected (${existing})`);
+            logger.debug(`[league] Relic confirm rejected: tier already selected (${existing})`);
             return;
         }
 
         // Points gate.
         const points = player.varps.getVarpValue?.(VARP_LEAGUE_POINTS_CLAIMED) ?? 0;
         if (points < pending.tierPointsRequired) {
-            console.log(
+            logger.debug(
                 `[league] Relic confirm rejected: not enough points (${points} < ${pending.tierPointsRequired})`,
             );
             return;
@@ -2336,11 +2337,11 @@ export function registerLeagueWidgetHandlers(
             // Send varbit immediately so client has the new state before running scripts
             services.variables.sendVarbit?.(player, tierVarbitId, pending.relicKey);
 
-            console.log(
+            logger.debug(
                 `[league] Relic unlocked! tier=${pending.tierIndex} key=${pending.relicKey} varbit=${tierVarbitId}`,
             );
         } catch (err) {
-            console.error(`[league] Relic confirm ERROR:`, err);
+            logger.error(`[league] Relic confirm ERROR:`, err);
             return;
         }
 
@@ -2431,7 +2432,7 @@ export function registerLeagueWidgetHandlers(
         const player = event.player;
         const slotVal = event.slot ?? -1;
         const clickedIndex = slotVal >= 0 && slotVal !== 65535 ? slotVal : event.childId;
-        console.log(
+        logger.debug(
             `[league] onMasteryClickzoneView: widgetId=${event.widgetId} slot=${event.slot} childId=${event.childId} clickedIndex=${clickedIndex}`,
         );
 
@@ -2492,7 +2493,7 @@ export function registerLeagueWidgetHandlers(
             masteryStructId,
             passiveStructId,
         } as PendingMasterySelection);
-        console.log(
+        logger.debug(
             `[league] Pending mastery selection: type=${masteryType} tier=${tier} struct=${masteryStructId}`,
         );
 
@@ -2572,11 +2573,11 @@ export function registerLeagueWidgetHandlers(
         const player = event.player;
         const pending = getPendingMasterySelection(player);
         if (!pending) {
-            console.log(`[league] Mastery select rejected: no pending selection`);
+            logger.debug(`[league] Mastery select rejected: no pending selection`);
             return;
         }
 
-        console.log(
+        logger.debug(
             `[league] Mastery select button clicked: type=${pending.masteryType} tier=${pending.tier}`,
         );
 
@@ -2585,7 +2586,7 @@ export function registerLeagueWidgetHandlers(
 
         // Shared masteries are unlocked passively when selecting combat masteries
         if (pending.masteryType === "shared") {
-            console.log(
+            logger.debug(
                 `[league] Mastery select rejected: cannot directly select shared masteries`,
             );
             clearPendingMasterySelection(player);
@@ -2607,7 +2608,7 @@ export function registerLeagueWidgetHandlers(
 
         // Validate: must select tiers in order
         if (pending.tier !== currentLevel + 1) {
-            console.log(
+            logger.debug(
                 `[league] Mastery select rejected: must select tier ${currentLevel + 1}, not tier ${
                     pending.tier
                 }`,
@@ -2618,7 +2619,7 @@ export function registerLeagueWidgetHandlers(
 
         // Validate: need at least 1 point
         if (pointsToSpend < 1) {
-            console.log(`[league] Mastery select rejected: no points to spend`);
+            logger.debug(`[league] Mastery select rejected: no points to spend`);
             clearPendingMasterySelection(player);
             return;
         }
@@ -2638,7 +2639,7 @@ export function registerLeagueWidgetHandlers(
             pointsToSpend - 1,
         );
 
-        console.log(
+        logger.debug(
             `[league] Mastery ${pending.masteryType} upgraded to tier ${newLevel}, ${
                 pointsToSpend - 1
             } points remaining`,
@@ -2675,7 +2676,7 @@ export function registerLeagueWidgetHandlers(
 
     // Cancel button for mastery confirm overlay
     registry.onButton(LEAGUE_COMBAT_MASTERY_GROUP_ID, L5_MASTERY_CANCEL_BUTTON_CHILD, (event) => {
-        console.log(`[league] Mastery cancel button clicked`);
+        logger.debug(`[league] Mastery cancel button clicked`);
         const player = event.player;
 
         const uidForMastery = (childId: number): number =>
@@ -2696,11 +2697,11 @@ export function registerLeagueWidgetHandlers(
         const player = event.player;
         const pending = getPendingMasterySelection(player);
         if (!pending) {
-            console.log(`[league] Mastery confirm rejected: no pending selection`);
+            logger.debug(`[league] Mastery confirm rejected: no pending selection`);
             return;
         }
 
-        console.log(`[league] Mastery confirm: type=${pending.masteryType} tier=${pending.tier}`);
+        logger.debug(`[league] Mastery confirm: type=${pending.masteryType} tier=${pending.tier}`);
 
         // Get current mastery level and points
         const masteryVarbitId =
@@ -2714,7 +2715,7 @@ export function registerLeagueWidgetHandlers(
 
         // Shared masteries are unlocked passively when selecting combat masteries
         if (pending.masteryType === "shared") {
-            console.log(
+            logger.debug(
                 `[league] Mastery confirm rejected: cannot directly select shared masteries`,
             );
             clearPendingMasterySelection(player);
@@ -2727,7 +2728,7 @@ export function registerLeagueWidgetHandlers(
 
         // Validate: must select tiers in order
         if (pending.tier !== currentLevel + 1) {
-            console.log(
+            logger.debug(
                 `[league] Mastery confirm rejected: must select tier ${
                     currentLevel + 1
                 }, not tier ${pending.tier}`,
@@ -2738,7 +2739,7 @@ export function registerLeagueWidgetHandlers(
 
         // Validate: need at least 1 point
         if (pointsToSpend < 1) {
-            console.log(`[league] Mastery confirm rejected: no points to spend`);
+            logger.debug(`[league] Mastery confirm rejected: no points to spend`);
             clearPendingMasterySelection(player);
             return;
         }
@@ -2758,7 +2759,7 @@ export function registerLeagueWidgetHandlers(
             pointsToSpend - 1,
         );
 
-        console.log(
+        logger.debug(
             `[league] Mastery ${pending.masteryType} upgraded to tier ${newLevel}, ${
                 pointsToSpend - 1
             } points remaining`,

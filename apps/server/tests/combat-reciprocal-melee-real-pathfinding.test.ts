@@ -6,7 +6,7 @@
  * (PathService.findNpcPathStep) are involved, rather than a simplified
  * mock that always greedily reduces distance.
  *
- * Run with: npx tsx tests/combat-reciprocal-melee-real-pathfinding.test.ts
+ * Run with: pnpm exec tsx tests/combat-reciprocal-melee-real-pathfinding.test.ts
  */
 import assert from "node:assert/strict";
 

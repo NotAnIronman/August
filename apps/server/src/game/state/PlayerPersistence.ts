@@ -1,8 +1,10 @@
 import fs from "fs";
+import type { StatementSync } from "node:sqlite";
 import path from "path";
 
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
-import { MAX_XP, SKILL_IDS } from "@august/osrs-engine/skill/skills";
+import { PRAYER_NAME_SET, type PrayerName } from "@august/osrs-engine/prayer/prayers";
+import { SKILL_IDS } from "@august/osrs-engine/skill/skills";
 import { DEFAULT_EQUIP_SLOT_COUNT } from "@server/game/equipment";
 import {
     type BankSnapshotEntry,
@@ -17,7 +19,11 @@ import {
 } from "@server/game/player";
 import type { PersistenceProvider } from "@server/game/state/PersistenceProvider";
 import { DEFAULT_BANK_CAPACITY } from "@server/game/state/PlayerBankSystem";
-import { getSqliteDatabase, type SqliteDatabase } from "@server/game/state/SqliteDatabase";
+import {
+    MAX_PLAYER_STATE_JSON_BYTES,
+    getSqliteDatabase,
+    type SqliteDatabase,
+} from "@server/game/state/SqliteDatabase";
 import { serverVarPath } from "@server/paths";
 
 const DEFAULT_DATA_DIR = serverVarPath("gamemodes", "default");
@@ -26,6 +32,44 @@ const MAX_LOCATION_LEVEL = 3;
 const MAX_ROTATION = 2047;
 const MAX_RUN_ENERGY = 10000;
 const MAX_SPECIAL_ENERGY = 100;
+const MAX_STACK_QUANTITY = 2_147_483_647;
+const MIN_SIGNED_INTEGER = -2_147_483_648;
+const MAX_BANK_TAB = 9;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function finiteInteger(value: unknown): number | undefined {
+    return typeof value === "number" && Number.isSafeInteger(value) ? value : undefined;
+}
+
+function clampedInteger(value: unknown, minimum: number, maximum: number): number | undefined {
+    const normalized = finiteInteger(value);
+    if (normalized === undefined) return undefined;
+    return Math.max(minimum, Math.min(maximum, normalized));
+}
+
+function rangedInteger(value: unknown, minimum: number, maximum: number): number | undefined {
+    const normalized = finiteInteger(value);
+    return normalized !== undefined && normalized >= minimum && normalized <= maximum
+        ? normalized
+        : undefined;
+}
+
+function positiveId(value: unknown): number | undefined {
+    const normalized = finiteInteger(value);
+    return normalized !== undefined && normalized > 0 && normalized <= MAX_STACK_QUANTITY
+        ? normalized
+        : undefined;
+}
+
+function stackQuantity(value: unknown, allowZero = false): number | undefined {
+    const normalized = finiteInteger(value);
+    const minimum = allowZero ? 0 : 1;
+    if (normalized === undefined || normalized < minimum) return undefined;
+    return Math.min(MAX_STACK_QUANTITY, normalized);
+}
 
 interface SanitizedCollectionLogCategoryStat {
     structId: number;
@@ -57,20 +101,19 @@ function sanitizeInventorySnapshot(
 ): InventorySnapshotEntry[] | undefined {
     if (entries === undefined) return undefined;
     if (!Array.isArray(entries)) return [];
-    const sanitized: InventorySnapshotEntry[] = [];
+    const bySlot = new Map<number, InventorySnapshotEntry>();
     for (const entry of entries) {
-        if (entry === undefined || entry === null) continue;
-        const slot = entry.slot;
-        const itemId = entry.itemId;
-        const quantity = entry.quantity;
-        if (slot < 0 || slot >= INVENTORY_SLOT_COUNT) continue;
-        if (!(itemId > 0) || !(quantity > 0)) continue;
-        sanitized.push({
-            slot,
-            itemId,
-            quantity: Math.max(1, quantity),
-        });
+        if (!isRecord(entry)) continue;
+        const slot = rangedInteger(entry.slot, 0, INVENTORY_SLOT_COUNT - 1);
+        const itemId = positiveId(entry.itemId);
+        const quantity = stackQuantity(entry.quantity);
+        if (slot === undefined) continue;
+        if (itemId === undefined || quantity === undefined) continue;
+        // PlayerInventoryState applies entries in order, so retaining the last
+        // valid value preserves the old duplicate-slot behavior deterministically.
+        bySlot.set(slot, { slot, itemId, quantity });
     }
+    const sanitized = Array.from(bySlot.values());
     sanitized.sort((a, b) => a.slot - b.slot);
     return entries.length === 0 ? [] : sanitized;
 }
@@ -80,19 +123,22 @@ function sanitizeEquipmentSnapshot(
 ): EquipmentSnapshotEntry[] | undefined {
     if (entries === undefined) return undefined;
     if (!Array.isArray(entries)) return [];
-    const sanitized: EquipmentSnapshotEntry[] = [];
+    const bySlot = new Map<number, EquipmentSnapshotEntry>();
     for (const entry of entries) {
-        if (!entry) continue;
-        const slot = entry.slot;
-        if (slot < 0 || slot >= DEFAULT_EQUIP_SLOT_COUNT) continue;
-        if (!(entry.itemId > 0)) continue;
+        if (!isRecord(entry)) continue;
+        const slot = rangedInteger(entry.slot, 0, DEFAULT_EQUIP_SLOT_COUNT - 1);
+        const itemId = positiveId(entry.itemId);
+        if (slot === undefined) continue;
+        if (itemId === undefined) continue;
         if (slot === EquipmentSlot.AMMO) {
-            const qty = entry.quantity !== undefined ? Math.max(1, entry.quantity) : 1;
-            sanitized.push({ slot, itemId: entry.itemId, quantity: qty });
+            const quantity = entry.quantity === undefined ? 1 : stackQuantity(entry.quantity);
+            if (quantity === undefined) continue;
+            bySlot.set(slot, { slot, itemId, quantity });
         } else {
-            sanitized.push({ slot, itemId: entry.itemId });
+            bySlot.set(slot, { slot, itemId });
         }
     }
+    const sanitized = Array.from(bySlot.values());
     sanitized.sort((a, b) => a.slot - b.slot);
     return entries.length === 0 ? [] : sanitized;
 }
@@ -103,96 +149,173 @@ function sanitizeSkillsSnapshot(
     if (entries === undefined) return undefined;
     if (!Array.isArray(entries)) return [];
     const validIds = new Set<number>(SKILL_IDS);
-    const sanitized: PlayerSkillPersistentEntry[] = [];
+    const byId = new Map<number, PlayerSkillPersistentEntry>();
     for (const entry of entries) {
-        if (!entry) continue;
-        const normalizedId = entry.id;
+        if (!isRecord(entry)) continue;
+        const normalizedId = finiteInteger(entry.id);
+        if (normalizedId === undefined) continue;
         if (!validIds.has(normalizedId)) continue;
-        if (!Number.isFinite(entry.xp)) continue;
+        if (typeof entry.xp !== "number" || !Number.isFinite(entry.xp)) continue;
         const out: PlayerSkillPersistentEntry = {
             id: normalizedId,
             xp: normalizeSkillXpValue(entry.xp),
         };
         if (entry.boost !== undefined) {
-            out.boost = Math.floor(entry.boost);
+            const boost = finiteInteger(entry.boost);
+            if (boost !== undefined) out.boost = boost;
         }
-        sanitized.push(out);
+        byId.set(normalizedId, out);
     }
+    const sanitized = Array.from(byId.values()).sort((a, b) => a.id - b.id);
     return entries.length === 0 ? [] : sanitized;
 }
 
 function sanitizeLocationSnapshot(
     snapshot: PlayerLocationSnapshot | undefined,
 ): PlayerLocationSnapshot | undefined {
-    if (snapshot === undefined) return undefined;
+    if (!isRecord(snapshot)) return undefined;
+    const x = clampedInteger(snapshot.x, 0, MAX_TILE_COORD);
+    const y = clampedInteger(snapshot.y, 0, MAX_TILE_COORD);
+    const level = clampedInteger(snapshot.level, 0, MAX_LOCATION_LEVEL);
+    if (x === undefined || y === undefined || level === undefined) return undefined;
     const normalized: PlayerLocationSnapshot = {
-        x: clampCoord(snapshot.x),
-        y: clampCoord(snapshot.y),
-        level: Math.max(0, Math.min(MAX_LOCATION_LEVEL, snapshot.level)),
+        x,
+        y,
+        level,
     };
-    if (snapshot.orientation !== undefined) {
-        normalized.orientation = snapshot.orientation & MAX_ROTATION;
+    const orientation = finiteInteger(snapshot.orientation);
+    if (orientation !== undefined) {
+        normalized.orientation = orientation & MAX_ROTATION;
     }
-    if (snapshot.rot !== undefined) {
-        normalized.rot = snapshot.rot & MAX_ROTATION;
+    const rotation = finiteInteger(snapshot.rot);
+    if (rotation !== undefined) {
+        normalized.rot = rotation & MAX_ROTATION;
     }
     return normalized;
 }
 
-function clampCoord(value: number): number {
-    return Math.max(0, Math.min(MAX_TILE_COORD, Math.floor(value)));
+function sanitizeBankSnapshot(entries: BankSnapshotEntry[] | undefined): BankSnapshotEntry[] {
+    if (!Array.isArray(entries)) return [];
+    const bySlot = new Map<number, BankSnapshotEntry>();
+    for (const entry of entries) {
+        if (!isRecord(entry)) continue;
+        const slot = rangedInteger(entry.slot, 0, DEFAULT_BANK_CAPACITY - 1);
+        const itemId = positiveId(entry.itemId);
+        const quantity = stackQuantity(entry.quantity, true);
+        if (slot === undefined || itemId === undefined || quantity === undefined) continue;
+        const placeholder = entry.placeholder === true;
+        const filler = entry.filler === true;
+        if (quantity === 0 && !placeholder && !filler) continue;
+        bySlot.set(slot, {
+            slot,
+            itemId,
+            quantity,
+            placeholder,
+            filler,
+            tab: clampedInteger(entry.tab, 0, MAX_BANK_TAB) ?? 0,
+        });
+    }
+    return Array.from(bySlot.values()).sort((left, right) => left.slot - right.slot);
+}
+
+function sanitizeInstanceGraveSnapshot(
+    data: PlayerPersistentVars["instanceGrave"] | undefined,
+): PlayerPersistentVars["instanceGrave"] | undefined {
+    if (!isRecord(data) || !Array.isArray(data.items)) return undefined;
+
+    const items: Array<{ itemId: number; quantity: number }> = [];
+    for (const item of data.items) {
+        if (!isRecord(item)) continue;
+        const itemId = positiveId(item.itemId);
+        const quantity = stackQuantity(item.quantity);
+        if (itemId !== undefined && quantity !== undefined) {
+            items.push({ itemId, quantity });
+        }
+    }
+    if (items.length === 0) return undefined;
+
+    const result: NonNullable<PlayerPersistentVars["instanceGrave"]> = { items };
+    const reclaimCost = clampedInteger(data.reclaimCost, 0, MAX_STACK_QUANTITY);
+    if (reclaimCost !== undefined && reclaimCost > 0) result.reclaimCost = reclaimCost;
+
+    if (isRecord(data.location) && isRecord(data.location.tile)) {
+        const locId = positiveId(data.location.locId);
+        const x = clampedInteger(data.location.tile.x, 0, MAX_TILE_COORD);
+        const y = clampedInteger(data.location.tile.y, 0, MAX_TILE_COORD);
+        const level = clampedInteger(data.location.level, 0, MAX_LOCATION_LEVEL);
+        if (locId !== undefined && x !== undefined && y !== undefined && level !== undefined) {
+            result.location = { locId, tile: { x, y }, level };
+        }
+    }
+    return result;
 }
 
 function sanitizeCollectionLogSnapshot(
     data: PlayerPersistentVars["collectionLog"] | undefined,
 ): PlayerPersistentVars["collectionLog"] | undefined {
-    if (data === undefined) return undefined;
+    if (!isRecord(data)) return undefined;
 
     const result: NonNullable<PlayerPersistentVars["collectionLog"]> = {};
 
     if (Array.isArray(data.items)) {
-        const sanitizedItems: Array<{ itemId: number; quantity: number }> = [];
+        const itemsById = new Map<number, { itemId: number; quantity: number }>();
         for (const item of data.items) {
-            if (item === undefined || item === null) continue;
-            if (item.itemId <= 0 || item.quantity <= 0) continue;
-            sanitizedItems.push({ itemId: item.itemId, quantity: item.quantity });
+            if (!isRecord(item)) continue;
+            const itemId = positiveId(item.itemId);
+            const quantity = stackQuantity(item.quantity);
+            if (itemId === undefined || quantity === undefined) continue;
+            itemsById.set(itemId, { itemId, quantity });
         }
+        const sanitizedItems = Array.from(itemsById.values()).sort(
+            (left, right) => left.itemId - right.itemId,
+        );
         if (sanitizedItems.length > 0) {
             result.items = sanitizedItems;
         }
     }
 
     if (Array.isArray(data.itemUnlocks)) {
-        const sanitizedItemUnlocks: SanitizedCollectionLogUnlockEntry[] = [];
+        const unlocksByItemId = new Map<number, SanitizedCollectionLogUnlockEntry>();
         for (const entry of data.itemUnlocks) {
-            if (entry === undefined || entry === null) continue;
-            if (entry.itemId <= 0 || entry.runeDay < 0 || entry.sequence <= 0) continue;
-            sanitizedItemUnlocks.push({
-                itemId: entry.itemId,
-                runeDay: Math.max(0, Math.floor(entry.runeDay)),
-                sequence: Math.max(1, Math.floor(entry.sequence)),
-            });
+            if (!isRecord(entry)) continue;
+            const itemId = positiveId(entry.itemId);
+            const runeDay = rangedInteger(entry.runeDay, 0, MAX_STACK_QUANTITY);
+            const sequence = rangedInteger(entry.sequence, 1, MAX_STACK_QUANTITY);
+            if (itemId === undefined || runeDay === undefined || sequence === undefined) continue;
+            const normalized = { itemId, runeDay, sequence };
+            const existing = unlocksByItemId.get(itemId);
+            if (!existing || normalized.sequence > existing.sequence) {
+                unlocksByItemId.set(itemId, normalized);
+            }
         }
+        const sanitizedItemUnlocks = Array.from(unlocksByItemId.values()).sort(
+            (left, right) => left.sequence - right.sequence,
+        );
         if (sanitizedItemUnlocks.length > 0) {
             result.itemUnlocks = sanitizedItemUnlocks;
         }
     }
 
     if (Array.isArray(data.categoryStats)) {
-        const sanitizedStats: SanitizedCollectionLogCategoryStat[] = [];
+        const statsByStructId = new Map<number, SanitizedCollectionLogCategoryStat>();
         for (const stat of data.categoryStats) {
-            if (stat === undefined || stat === null) continue;
-            const structId = stat.structId;
-            const count1 = stat.count1;
-            if (structId < 0) continue;
+            if (!isRecord(stat)) continue;
+            const structId = rangedInteger(stat.structId, 0, MAX_STACK_QUANTITY);
+            const count1 = clampedInteger(stat.count1, 0, MAX_STACK_QUANTITY);
+            if (structId === undefined || count1 === undefined) continue;
             const entry: SanitizedCollectionLogCategoryStat = {
                 structId,
                 count1,
             };
-            if (stat.count2 !== undefined) entry.count2 = stat.count2;
-            if (stat.count3 !== undefined) entry.count3 = stat.count3;
-            sanitizedStats.push(entry);
+            const count2 = clampedInteger(stat.count2, 0, MAX_STACK_QUANTITY);
+            const count3 = clampedInteger(stat.count3, 0, MAX_STACK_QUANTITY);
+            if (count2 !== undefined) entry.count2 = count2;
+            if (count3 !== undefined) entry.count3 = count3;
+            statsByStructId.set(structId, entry);
         }
+        const sanitizedStats = Array.from(statsByStructId.values()).sort(
+            (left, right) => left.structId - right.structId,
+        );
         if (sanitizedStats.length > 0) {
             result.categoryStats = sanitizedStats;
         }
@@ -203,34 +326,44 @@ function sanitizeCollectionLogSnapshot(
     return result;
 }
 
-function mergeStates(
+export function mergePlayerPersistentVars(
     defaults?: PlayerPersistentVars,
     overrides?: PlayerPersistentVars,
 ): PlayerPersistentVars | undefined {
-    if (!defaults && !overrides) return undefined;
+    const safeDefaults = isRecord(defaults) ? (defaults as PlayerPersistentVars) : undefined;
+    const safeOverrides = isRecord(overrides) ? (overrides as PlayerPersistentVars) : undefined;
+    if (!safeDefaults && !safeOverrides) return undefined;
     const varps: Record<number, number> = {};
     const varbits: Record<number, number> = {};
     let gamemodeData: Record<string, unknown> | undefined;
-    const sources: PlayerPersistentVars[] = [defaults ?? {}, overrides ?? {}];
+    const sources: PlayerPersistentVars[] = [safeDefaults ?? {}, safeOverrides ?? {}];
     for (const source of sources) {
-        if (source.varps) {
+        if (isRecord(source.varps)) {
             for (const [key, value] of Object.entries(source.varps)) {
-                const id = parseInt(key, 10);
-                if (!Number.isNaN(id)) {
-                    varps[id] = value;
+                if (!/^(0|[1-9]\d*)$/.test(key)) continue;
+                const id = rangedInteger(Number(key), 0, MAX_STACK_QUANTITY);
+                const normalizedValue = clampedInteger(
+                    value,
+                    MIN_SIGNED_INTEGER,
+                    MAX_STACK_QUANTITY,
+                );
+                if (id !== undefined && normalizedValue !== undefined) {
+                    varps[id] = normalizedValue;
                 }
             }
         }
-        if (source.varbits) {
+        if (isRecord(source.varbits)) {
             for (const [key, value] of Object.entries(source.varbits)) {
-                const id = parseInt(key, 10);
-                if (!Number.isNaN(id)) {
-                    varbits[id] = value;
+                if (!/^(0|[1-9]\d*)$/.test(key)) continue;
+                const id = rangedInteger(Number(key), 0, MAX_STACK_QUANTITY);
+                const normalizedValue = clampedInteger(value, 0, MAX_STACK_QUANTITY);
+                if (id !== undefined && normalizedValue !== undefined) {
+                    varbits[id] = normalizedValue;
                 }
             }
         }
         // Merge gamemodeData (shallow merge, latest source wins per key)
-        if (source.gamemodeData) {
+        if (isRecord(source.gamemodeData)) {
             gamemodeData = { ...(gamemodeData ?? {}), ...source.gamemodeData };
         }
     }
@@ -240,75 +373,81 @@ function mergeStates(
     if (gamemodeData && Object.keys(gamemodeData).length > 0) {
         result.gamemodeData = gamemodeData;
     }
-    const bankSource = overrides?.bank ?? defaults?.bank;
-    if (bankSource) {
-        const sanitized: BankSnapshotEntry[] = [];
-        for (const entry of bankSource) {
-            if (!entry) continue;
-            const slot = entry.slot;
-            if (!(entry.itemId > 0)) continue;
-            const placeholder = !!entry.placeholder;
-            const filler = !!entry.filler;
-            if (!(entry.quantity > 0) && !placeholder && !filler) continue;
-            sanitized.push({
-                slot,
-                itemId: entry.itemId,
-                quantity: Math.max(0, entry.quantity),
-                placeholder,
-                filler,
-                tab: entry.tab !== undefined ? Math.max(0, entry.tab) : 0,
-            });
-        }
-        // Sort slots to keep deterministic ordering
-        sanitized.sort((a, b) => a.slot - b.slot);
-        result.bank = sanitized;
+    const bankSource = safeOverrides?.bank ?? safeDefaults?.bank;
+    if (bankSource !== undefined) {
+        result.bank = sanitizeBankSnapshot(bankSource);
     }
-    const bankCapacitySource = overrides?.bankCapacity ?? defaults?.bankCapacity;
-    if (bankCapacitySource !== undefined && bankCapacitySource > 0) {
+    const bankCapacitySource = safeOverrides?.bankCapacity ?? safeDefaults?.bankCapacity;
+    const normalizedBankCapacity = clampedInteger(
+        bankCapacitySource,
+        1,
+        DEFAULT_BANK_CAPACITY,
+    );
+    if (normalizedBankCapacity !== undefined) {
         // Existing accounts may have been saved under an older, smaller bank
         // limit. Raise them to the current default on load instead of leaving
         // those players permanently constrained by the legacy capacity.
-        result.bankCapacity = Math.max(DEFAULT_BANK_CAPACITY, bankCapacitySource);
+        result.bankCapacity = Math.max(DEFAULT_BANK_CAPACITY, normalizedBankCapacity);
     } else if (result.bank) {
         result.bankCapacity = DEFAULT_BANK_CAPACITY;
     }
-    const bankPlaceholders = overrides?.bankPlaceholders ?? defaults?.bankPlaceholders;
-    if (bankPlaceholders !== undefined) {
+    const bankPlaceholders = safeOverrides?.bankPlaceholders ?? safeDefaults?.bankPlaceholders;
+    if (typeof bankPlaceholders === "boolean") {
         result.bankPlaceholders = bankPlaceholders;
     }
-    const bankWithdrawNotes = overrides?.bankWithdrawNotes ?? defaults?.bankWithdrawNotes;
-    if (bankWithdrawNotes !== undefined) {
+    const bankWithdrawNotes = safeOverrides?.bankWithdrawNotes ?? safeDefaults?.bankWithdrawNotes;
+    if (typeof bankWithdrawNotes === "boolean") {
         result.bankWithdrawNotes = bankWithdrawNotes;
     }
-    const bankInsertMode = overrides?.bankInsertMode ?? defaults?.bankInsertMode;
-    if (bankInsertMode !== undefined) {
+    const bankInsertMode = safeOverrides?.bankInsertMode ?? safeDefaults?.bankInsertMode;
+    if (typeof bankInsertMode === "boolean") {
         result.bankInsertMode = bankInsertMode;
     }
-    const bankQuantityMode = overrides?.bankQuantityMode ?? defaults?.bankQuantityMode;
+    const bankQuantityMode = clampedInteger(
+        safeOverrides?.bankQuantityMode ?? safeDefaults?.bankQuantityMode,
+        0,
+        5,
+    );
     if (bankQuantityMode !== undefined) {
-        result.bankQuantityMode = Math.max(0, Math.min(5, bankQuantityMode));
+        result.bankQuantityMode = bankQuantityMode;
     }
-    const bankCurrentTab = overrides?.bankCurrentTab ?? defaults?.bankCurrentTab;
-    if (bankCurrentTab !== undefined && Number.isFinite(bankCurrentTab)) {
-        result.bankCurrentTab = Math.max(0, Math.min(15, Math.trunc(bankCurrentTab)));
+    const bankQuantityCustom = clampedInteger(
+        safeOverrides?.bankQuantityCustom ?? safeDefaults?.bankQuantityCustom,
+        0,
+        MAX_STACK_QUANTITY,
+    );
+    if (bankQuantityCustom !== undefined) {
+        result.bankQuantityCustom = bankQuantityCustom;
     }
-    const bankTabDisplayMode = overrides?.bankTabDisplayMode ?? defaults?.bankTabDisplayMode;
-    if (bankTabDisplayMode !== undefined && Number.isFinite(bankTabDisplayMode)) {
-        result.bankTabDisplayMode = Math.max(0, Math.min(3, Math.trunc(bankTabDisplayMode)));
+    const bankCurrentTab = clampedInteger(
+        safeOverrides?.bankCurrentTab ?? safeDefaults?.bankCurrentTab,
+        0,
+        15,
+    );
+    if (bankCurrentTab !== undefined) {
+        result.bankCurrentTab = bankCurrentTab;
+    }
+    const bankTabDisplayMode = clampedInteger(
+        safeOverrides?.bankTabDisplayMode ?? safeDefaults?.bankTabDisplayMode,
+        0,
+        3,
+    );
+    if (bankTabDisplayMode !== undefined) {
+        result.bankTabDisplayMode = bankTabDisplayMode;
     }
 
     const inventorySource =
-        overrides && Object.prototype.hasOwnProperty.call(overrides, "inventory")
-            ? overrides.inventory
-            : defaults?.inventory;
+        safeOverrides && Object.prototype.hasOwnProperty.call(safeOverrides, "inventory")
+            ? safeOverrides.inventory
+            : safeDefaults?.inventory;
     if (inventorySource !== undefined) {
         result.inventory = sanitizeInventorySnapshot(inventorySource) ?? [];
     }
 
     const equipmentSource =
-        overrides && Object.prototype.hasOwnProperty.call(overrides, "equipment")
-            ? overrides.equipment
-            : defaults?.equipment;
+        safeOverrides && Object.prototype.hasOwnProperty.call(safeOverrides, "equipment")
+            ? safeOverrides.equipment
+            : safeDefaults?.equipment;
     if (equipmentSource !== undefined) {
         result.equipment = sanitizeEquipmentSnapshot(equipmentSource) ?? [];
     }
@@ -316,10 +455,10 @@ function mergeStates(
     const pick = <K extends keyof PlayerPersistentVars>(
         key: K,
     ): PlayerPersistentVars[K] | undefined => {
-        if (overrides && Object.prototype.hasOwnProperty.call(overrides, key)) {
-            return overrides[key];
+        if (safeOverrides && Object.prototype.hasOwnProperty.call(safeOverrides, key)) {
+            return safeOverrides[key];
         }
-        return defaults?.[key];
+        return safeDefaults?.[key];
     };
 
     const skillsSource = pick("skills");
@@ -328,33 +467,38 @@ function mergeStates(
     }
 
     // Project-specific onboarding/character design state
-    const accountStage = pick("accountStage");
+    const accountStage = clampedInteger(pick("accountStage"), 0, 10);
     if (accountStage !== undefined) {
-        result.accountStage = Math.max(0, Math.min(10, Math.floor(accountStage)));
+        result.accountStage = accountStage;
     }
     const preferredMode = pick("preferredMode");
     if (preferredMode === "vanilla" || preferredMode === "leagues") {
         result.preferredMode = preferredMode;
     }
-    const accountCreationTimeMs = pick("accountCreationTimeMs");
+    const accountCreationTimeMs = clampedInteger(
+        pick("accountCreationTimeMs"),
+        0,
+        Number.MAX_SAFE_INTEGER,
+    );
     if (accountCreationTimeMs !== undefined) {
-        result.accountCreationTimeMs = Math.max(
-            0,
-            Math.min(Number.MAX_SAFE_INTEGER, Math.floor(accountCreationTimeMs)),
-        );
+        result.accountCreationTimeMs = accountCreationTimeMs;
     }
     const appearanceSource = pick("appearance");
-    if (appearanceSource) {
+    if (isRecord(appearanceSource)) {
         const apOut: NonNullable<PlayerPersistentVars["appearance"]> = {};
-        const gender = appearanceSource.gender;
+        const gender = finiteInteger(appearanceSource.gender);
         if (gender !== undefined) {
             apOut.gender = gender === 1 ? 1 : 0;
         }
-        if (appearanceSource.kits) {
-            apOut.kits = appearanceSource.kits.map((n) => n).slice(0, 7);
+        if (Array.isArray(appearanceSource.kits)) {
+            apOut.kits = appearanceSource.kits
+                .slice(0, 7)
+                .map((value) => finiteInteger(value) ?? -1);
         }
-        if (appearanceSource.colors) {
-            apOut.colors = appearanceSource.colors.map((n) => n).slice(0, 5);
+        if (Array.isArray(appearanceSource.colors)) {
+            apOut.colors = appearanceSource.colors
+                .slice(0, 5)
+                .map((value) => finiteInteger(value) ?? 0);
         }
         if (
             Object.prototype.hasOwnProperty.call(apOut, "gender") ||
@@ -365,9 +509,9 @@ function mergeStates(
         }
     }
 
-    const hpSource = pick("hitpoints");
+    const hpSource = clampedInteger(pick("hitpoints"), 0, MAX_STACK_QUANTITY);
     if (hpSource !== undefined) {
-        result.hitpoints = Math.max(0, Math.floor(hpSource));
+        result.hitpoints = hpSource;
     }
 
     const location = sanitizeLocationSnapshot(pick("location"));
@@ -375,46 +519,51 @@ function mergeStates(
         result.location = location;
     }
 
-    const runEnergy = pick("runEnergy");
+    const runEnergy = clampedInteger(pick("runEnergy"), 0, MAX_RUN_ENERGY);
     if (runEnergy !== undefined) {
-        result.runEnergy = Math.max(0, Math.min(MAX_RUN_ENERGY, Math.floor(runEnergy)));
+        result.runEnergy = runEnergy;
     }
 
     const runToggle = pick("runToggle");
-    if (runToggle !== undefined) {
+    if (typeof runToggle === "boolean") {
         result.runToggle = runToggle;
     }
 
     const autoRetaliate = pick("autoRetaliate");
-    if (autoRetaliate !== undefined) {
+    if (typeof autoRetaliate === "boolean") {
         result.autoRetaliate = autoRetaliate;
     }
 
-    const playTimeSeconds = pick("playTimeSeconds");
+    const playTimeSeconds = clampedInteger(
+        pick("playTimeSeconds"),
+        0,
+        Number.MAX_SAFE_INTEGER,
+    );
     if (playTimeSeconds !== undefined) {
-        result.playTimeSeconds = Math.max(
-            0,
-            Math.min(Number.MAX_SAFE_INTEGER, Math.floor(playTimeSeconds)),
-        );
+        result.playTimeSeconds = playTimeSeconds;
     }
 
-    const combatStyleSlot = pick("combatStyleSlot");
+    const combatStyleSlot = clampedInteger(pick("combatStyleSlot"), 0, 3);
     if (combatStyleSlot !== undefined) {
         result.combatStyleSlot = combatStyleSlot;
     }
 
-    const combatStyleCategory = pick("combatStyleCategory");
+    const combatStyleCategory = clampedInteger(
+        pick("combatStyleCategory"),
+        0,
+        MAX_STACK_QUANTITY,
+    );
     if (combatStyleCategory !== undefined) {
         result.combatStyleCategory = combatStyleCategory;
     }
 
-    const combatSpellId = pick("combatSpellId");
+    const combatSpellId = positiveId(pick("combatSpellId"));
     if (combatSpellId !== undefined) {
         result.combatSpellId = combatSpellId;
     }
 
     const autocastEnabled = pick("autocastEnabled");
-    if (autocastEnabled !== undefined) {
+    if (typeof autocastEnabled === "boolean") {
         result.autocastEnabled = autocastEnabled;
     }
 
@@ -427,44 +576,67 @@ function mergeStates(
         result.autocastMode = autocastMode ?? null;
     }
 
-    const specialEnergy = pick("specialEnergy");
+    const specialEnergy = clampedInteger(pick("specialEnergy"), 0, MAX_SPECIAL_ENERGY);
     if (specialEnergy !== undefined) {
-        result.specialEnergy = Math.max(0, Math.min(MAX_SPECIAL_ENERGY, Math.floor(specialEnergy)));
+        result.specialEnergy = specialEnergy;
+    }
+
+    const quickPrayersSource = pick("quickPrayers");
+    if (Array.isArray(quickPrayersSource)) {
+        result.quickPrayers = Array.from(
+            new Set(
+                quickPrayersSource.filter(
+                    (entry): entry is PrayerName =>
+                        typeof entry === "string" && PRAYER_NAME_SET.has(entry as PrayerName),
+                ),
+            ),
+        );
     }
 
     const equipmentChargesSource = pick("equipmentCharges");
     if (Array.isArray(equipmentChargesSource)) {
-        const equipmentCharges: Array<{ itemId: number; charges: number }> = [];
+        const chargesByItemId = new Map<number, { itemId: number; charges: number }>();
         for (const entry of equipmentChargesSource) {
-            if (!entry) continue;
-            const itemId = Math.floor(entry.itemId);
-            const charges = Math.floor(entry.charges);
-            if (itemId <= 0 || charges <= 0 || !Number.isSafeInteger(charges)) continue;
-            equipmentCharges.push({ itemId, charges });
+            if (!isRecord(entry)) continue;
+            const itemId = positiveId(entry.itemId);
+            const charges = stackQuantity(entry.charges);
+            if (itemId === undefined || charges === undefined) continue;
+            chargesByItemId.set(itemId, { itemId, charges });
         }
+        const equipmentCharges = Array.from(chargesByItemId.values()).sort(
+            (left, right) => left.itemId - right.itemId,
+        );
         if (equipmentCharges.length > 0) result.equipmentCharges = equipmentCharges;
     }
 
     const specialActivated = pick("specialActivated");
-    if (specialActivated !== undefined) {
+    if (typeof specialActivated === "boolean") {
         result.specialActivated = specialActivated;
     }
 
     const followerSource = pick("follower");
-    if (
-        followerSource &&
-        Number.isFinite(followerSource.itemId) &&
-        Number.isFinite(followerSource.npcTypeId) &&
-        followerSource.itemId > 0 &&
-        followerSource.npcTypeId > 0
-    ) {
-        result.follower = {
-            itemId: Math.floor(followerSource.itemId),
-            npcTypeId: Math.floor(followerSource.npcTypeId),
-        };
+    if (isRecord(followerSource)) {
+        const itemId = positiveId(followerSource.itemId);
+        const npcTypeId = positiveId(followerSource.npcTypeId);
+        if (itemId !== undefined && npcTypeId !== undefined) {
+            result.follower = {
+                itemId,
+                npcTypeId,
+            };
+        }
     }
 
-    // Collection log: merge items and category stats from both sources
+    const pendingPets = pick("pendingPetRewards");
+    if (Array.isArray(pendingPets)) {
+        result.pendingPetRewards = pendingPets.flatMap(reward => {
+            if (!isRecord(reward)) return [];
+            const itemId = positiveId(reward.itemId);
+            const quantity = stackQuantity(reward.quantity);
+            return itemId !== undefined && quantity !== undefined ? [{ itemId, quantity }] : [];
+        });
+    }
+
+    // Collection log snapshots are replaced as a unit by an account override.
     const collectionLogSource = pick("collectionLog");
     const sanitizedCollectionLog = sanitizeCollectionLogSnapshot(collectionLogSource);
     if (sanitizedCollectionLog) {
@@ -474,24 +646,29 @@ function mergeStates(
     // Degradation charges (crystal bow, etc.)
     const degradationSource = pick("degradationCharges");
     if (Array.isArray(degradationSource)) {
-        const sanitizedDegradation: Array<{ slot: number; itemId: number; charges: number }> = [];
+        const degradationBySlot = new Map<
+            number,
+            { slot: number; itemId: number; charges: number }
+        >();
         for (const entry of degradationSource) {
-            if (entry === undefined || entry === null) continue;
-            const slot = entry.slot;
-            const itemId = entry.itemId;
-            const charges = entry.charges;
-            if (slot < 0 || slot >= DEFAULT_EQUIP_SLOT_COUNT) continue;
-            if (itemId <= 0 || charges <= 0) continue;
-            sanitizedDegradation.push({
-                slot,
-                itemId,
-                charges,
-            });
+            if (!isRecord(entry)) continue;
+            const slot = rangedInteger(entry.slot, 0, DEFAULT_EQUIP_SLOT_COUNT - 1);
+            const itemId = positiveId(entry.itemId);
+            const charges = stackQuantity(entry.charges);
+            if (slot === undefined) continue;
+            if (itemId === undefined || charges === undefined) continue;
+            degradationBySlot.set(slot, { slot, itemId, charges });
         }
+        const sanitizedDegradation = Array.from(degradationBySlot.values()).sort(
+            (left, right) => left.slot - right.slot,
+        );
         if (sanitizedDegradation.length > 0) {
             result.degradationCharges = sanitizedDegradation;
         }
     }
+
+    const instanceGrave = sanitizeInstanceGraveSnapshot(pick("instanceGrave"));
+    if (instanceGrave) result.instanceGrave = instanceGrave;
 
     return result;
 }
@@ -504,6 +681,12 @@ export interface PlayerPersistenceOptions {
     defaultsPath?: string;
 }
 
+type PlayerPersistenceStatements = Readonly<{
+    selectExists: StatementSync;
+    selectReadableState: StatementSync;
+    upsertState: StatementSync;
+}>;
+
 /**
  * Default SQLite-backed persistence provider.
  * Stores each player state as an independent row per gamemode.
@@ -512,6 +695,7 @@ export class PlayerPersistence implements PersistenceProvider {
     private readonly defaults: PlayerPersistentVars | undefined;
     private readonly defaultsPath: string;
     private readonly database: SqliteDatabase;
+    private readonly statements: PlayerPersistenceStatements;
 
     constructor(options: PlayerPersistenceOptions = {}) {
         const dataDir = options.dataDir ? path.resolve(options.dataDir) : DEFAULT_DATA_DIR;
@@ -519,6 +703,29 @@ export class PlayerPersistence implements PersistenceProvider {
             ? path.resolve(options.defaultsPath)
             : path.join(dataDir, "player-defaults.json");
         this.database = getSqliteDatabase({ dataDir, databasePath: options.databasePath });
+        const connection = this.database.connection;
+        this.statements = {
+            selectExists: connection.prepare(
+                "SELECT 1 FROM player_states WHERE account_name = ?",
+            ),
+            // Keep legacy/corrupt rows out of JavaScript entirely. The database
+            // trigger protects new writes, while this predicate also protects
+            // installations that already contain an oversized or non-text row.
+            selectReadableState: connection.prepare(
+                `SELECT state_json AS stateJson
+                 FROM player_states
+                 WHERE account_name = ?
+                   AND typeof(state_json) = 'text'
+                   AND length(CAST(state_json AS BLOB)) <= ${MAX_PLAYER_STATE_JSON_BYTES}`,
+            ),
+            upsertState: connection.prepare(
+                `INSERT INTO player_states (account_name, state_json, updated_at)
+                 VALUES (?, ?, ?)
+                 ON CONFLICT(account_name) DO UPDATE SET
+                    state_json = excluded.state_json,
+                    updated_at = excluded.updated_at`,
+            ),
+        };
         this.defaults = readJsonFile<PlayerPersistentVars | undefined>(
             this.defaultsPath,
             undefined,
@@ -526,16 +733,12 @@ export class PlayerPersistence implements PersistenceProvider {
     }
 
     applyToPlayer(player: PlayerState, key: string): void {
-        const snapshot = mergeStates(this.defaults, this.getSnapshot(key));
+        const snapshot = mergePlayerPersistentVars(this.defaults, this.getSnapshot(key));
         player.applyPersistentVars(snapshot);
     }
 
     hasKey(key: string): boolean {
-        return (
-            this.database.connection
-                .prepare("SELECT 1 FROM player_states WHERE account_name = ?")
-                .get(key) !== undefined
-        );
+        return this.statements.selectExists.get(key) !== undefined;
     }
 
     saveSnapshot(key: string, player: PlayerState): void {
@@ -563,9 +766,9 @@ export class PlayerPersistence implements PersistenceProvider {
     }
 
     private getSnapshot(key: string): PlayerPersistentVars | undefined {
-        const row = this.database.connection
-            .prepare("SELECT state_json AS stateJson FROM player_states WHERE account_name = ?")
-            .get(key) as { stateJson?: unknown } | undefined;
+        const row = this.statements.selectReadableState.get(key) as
+            | { stateJson?: unknown }
+            | undefined;
         if (!row || typeof row.stateJson !== "string") return undefined;
         try {
             return JSON.parse(row.stateJson) as PlayerPersistentVars;
@@ -575,14 +778,6 @@ export class PlayerPersistence implements PersistenceProvider {
     }
 
     private upsertSnapshot(key: string, snapshot: PlayerPersistentVars, updatedAt: string): void {
-        this.database.connection
-            .prepare(
-                `INSERT INTO player_states (account_name, state_json, updated_at)
-                 VALUES (?, ?, ?)
-                 ON CONFLICT(account_name) DO UPDATE SET
-                    state_json = excluded.state_json,
-                    updated_at = excluded.updated_at`,
-            )
-            .run(key, JSON.stringify(snapshot), updatedAt);
+        this.statements.upsertState.run(key, JSON.stringify(snapshot), updatedAt);
     }
 }

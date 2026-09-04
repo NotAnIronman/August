@@ -27,7 +27,17 @@ const SPRITE_REF_PATTERN = /^(\d+):(\d+)$/;
 export function parseSpriteRef(input: string): { archiveId: number; frame: number } | undefined {
     const match = SPRITE_REF_PATTERN.exec(input.trim());
     if (!match) return undefined;
-    return { archiveId: Number(match[1]) | 0, frame: Number(match[2]) | 0 };
+    const archiveId = Number(match[1]);
+    const frame = Number(match[2]);
+    if (
+        !Number.isSafeInteger(archiveId) ||
+        !Number.isSafeInteger(frame) ||
+        archiveId > 0x7fffffff ||
+        frame > 0x7fffffff
+    ) {
+        return undefined;
+    }
+    return { archiveId, frame };
 }
 
 const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;

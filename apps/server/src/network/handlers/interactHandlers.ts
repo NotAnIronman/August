@@ -13,7 +13,7 @@ export function registerInteractHandlers(
         try {
             const res = services.startFollowing(ctx.ws, targetId, mode, modifierFlags);
             if (!res?.ok) {
-                logger.info(`interact rejected: ${res?.message || "invalid"}`);
+                logger.debug(`[interact] rejected: ${res?.message || "invalid"}`);
             }
         } catch (err) {
             logger.warn("Failed to start player interaction", err);
@@ -29,7 +29,7 @@ export function registerInteractHandlers(
             if (targetId <= 0 || targetId === player.id) return;
             const target = services.getPlayerById(targetId);
             if (!target) {
-                logger.info?.(`[combat] player ${targetId} not found for attack`);
+                logger.debug(`[combat] player ${targetId} not found for attack`);
                 return;
             }
             services.startPlayerCombat(ctx.ws, target.id);

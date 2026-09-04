@@ -1,4 +1,9 @@
 import type { PlayerState } from "@server/game/player";
+import {
+    registerEventSubscription,
+    registerPlayerLifecycleCleanup,
+    removeTrackedPlayerNpc,
+} from "@server/game/scripts/ScriptLifecycle";
 import type {
     IScriptRegistry,
     ItemOnNpcEvent,
@@ -23,7 +28,6 @@ type HarlowEvent = NpcInteractionEvent | ItemOnNpcEvent;
 
 const knownPlayers = new Map<number, PlayerState>();
 const countByPlayer = new Map<number, number>();
-const registeredEventBuses = new WeakSet<object>();
 
 function hasItem(player: PlayerState, services: ScriptServices, itemId: number): boolean {
     return services.inventory.playerHasItem(player, itemId);
@@ -186,6 +190,7 @@ function spawnCount(player: PlayerState, services: ScriptServices): void {
         name: "Count Draynor",
         ...COUNT_TILE,
         wanderRadius: 1,
+        ownerPlayerId: player.id,
     });
     if (!count) return;
 
@@ -202,43 +207,61 @@ function spawnCount(player: PlayerState, services: ScriptServices): void {
     }
 }
 
-function registerCountDeathHandler(quest: QuestDefinition, services: ScriptServices): void {
+function registerCountDeathHandler(
+    quest: QuestDefinition,
+    registry: IScriptRegistry,
+    services: ScriptServices,
+): void {
     const eventBus = services.system.eventBus;
-    if (!eventBus || registeredEventBuses.has(eventBus)) return;
-    registeredEventBuses.add(eventBus);
-
-    eventBus.on("player:login", ({ player }) => knownPlayers.set(player.id, player));
-    eventBus.on("player:logout", ({ playerId }) => {
+    const clearPlayer = (playerId: number): void => {
         knownPlayers.delete(playerId);
+        const countId = countByPlayer.get(playerId);
+        removeTrackedPlayerNpc(services, playerId, countId);
         countByPlayer.delete(playerId);
+    };
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearPlayer,
+        reset: () => {
+            for (const playerId of new Set([...knownPlayers.keys(), ...countByPlayer.keys()])) {
+                clearPlayer(playerId);
+            }
+        },
     });
-    eventBus.on("npc:death", ({ npc, npcTypeId, killerPlayerId }) => {
-        if (
-            npcTypeId !== NPC.count ||
-            killerPlayerId === undefined ||
-            countByPlayer.get(killerPlayerId) !== npc.id
-        ) {
-            return;
-        }
-        countByPlayer.delete(killerPlayerId);
-        const player = knownPlayers.get(killerPlayerId);
-        if (!player || getQuestStage(player, quest) >= STAGE_COMPLETE) return;
+    if (!eventBus) return;
+    registerEventSubscription(
+        registry,
+        eventBus.on("player:login", ({ player }) => knownPlayers.set(player.id, player)),
+    );
+    registerEventSubscription(
+        registry,
+        eventBus.on("npc:death", ({ npc, npcTypeId, killerPlayerId }) => {
+            if (
+                npcTypeId !== NPC.count ||
+                killerPlayerId === undefined ||
+                countByPlayer.get(killerPlayerId) !== npc.id
+            ) {
+                return;
+            }
+            countByPlayer.delete(killerPlayerId);
+            const player = knownPlayers.get(killerPlayerId);
+            if (!player || getQuestStage(player, quest) >= STAGE_COMPLETE) return;
 
-        const canStake =
-            hasItem(player, services, ITEM.stake) && hasItem(player, services, ITEM.hammer);
-        if (!canStake) {
-            services.messaging.sendGameMessage(
-                player,
-                "Without a stake and hammer, Count Draynor regenerates!",
-            );
-            spawnCount(player, services);
-            return;
-        }
-        takeQuestItems(player, services, [
-            { itemId: ITEM.stake, quantity: 1, journalLabel: "" },
-        ]);
-        completeQuest(player, services, quest);
-    });
+            const canStake =
+                hasItem(player, services, ITEM.stake) && hasItem(player, services, ITEM.hammer);
+            if (!canStake) {
+                services.messaging.sendGameMessage(
+                    player,
+                    "Without a stake and hammer, Count Draynor regenerates!",
+                );
+                spawnCount(player, services);
+                return;
+            }
+            takeQuestItems(player, services, [
+                { itemId: ITEM.stake, quantity: 1, journalLabel: "" },
+            ]);
+            completeQuest(player, services, quest);
+        }),
+    );
 }
 
 export function registerVampyreSlayerInteractions(
@@ -294,5 +317,5 @@ export function registerVampyreSlayerInteractions(
         });
     }
 
-    registerCountDeathHandler(quest, services);
+    registerCountDeathHandler(quest, registry, services);
 }

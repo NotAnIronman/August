@@ -6,6 +6,7 @@
  * binary encoding.
  */
 import { ClientState, MOUSE_CROSS_YELLOW } from "@client/engine/game/ClientState";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { OsrsClientPacket, createPacket, queuePacket } from "@client/core/network/packet/index";
 import { MenuTargetType } from "@august/osrs-engine/MenuEntry";
 import { MODIFIER_FLAG_CTRL, MODIFIER_FLAG_CTRL_SHIFT } from "@august/protocol/input/modifierFlags";
@@ -118,7 +119,10 @@ export function inferMenuAction(
     _targetType?: MenuTargetType,
 ): MenuAction | undefined {
     if (!option) return undefined;
-    const s = String(option).trim().toLowerCase();
+    // Plugin-facing menu entries may decorate the visible option with RuneScape
+    // markup. Classification must use the semantic text or colored Take/Examine
+    // entries are mistaken for custom actions.
+    const s = String(option).replace(/<[^>]*>/g, "").trim().toLowerCase();
     switch (s) {
         case "cast":
             return MenuAction.Cast;
@@ -933,7 +937,7 @@ export function menuAction(
 
         const groupId = (arg1 >>> 16) & 0xffff;
         const childId = arg1 & 0xffff;
-        console.log(
+        clientDebugLog(
             `[ItemSelect] UseItem triggered: widgetId=${arg1} (group=${groupId}, child=${childId}), slot=${arg0}, itemId=${itemId}, action="${action}", target="${target}"`,
         );
 

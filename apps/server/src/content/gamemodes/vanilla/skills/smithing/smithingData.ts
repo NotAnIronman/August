@@ -1,4 +1,6 @@
 export const HAMMER_ITEM_ID = 2347;
+/** The wieldable hammer has two cache variants; both count as a normal hammer. */
+export const IMCANDO_HAMMER_ITEM_IDS = [25644, 25645] as const;
 export const FURNACE_ANIMATION = 899;
 
 export type SmithingProductSlot =
@@ -56,6 +58,10 @@ export interface SmeltingRecipe {
     level: number;
     xp: number;
     inputs: SmeltingRequirement[];
+    /** Required tools are checked but never consumed. */
+    requiredToolItemIds?: readonly number[];
+    /** Omit for ordinary furnaces; restricted recipes validate their source. */
+    allowedLocIds?: readonly number[];
     outputItemId: number;
     outputQuantity: number;
     animation?: number;
@@ -65,6 +71,32 @@ export interface SmeltingRecipe {
 }
 
 export const SMITHING_RECIPES: SmithingRecipe[] = [
+    {
+        id: "blurite_bolts",
+        name: "Blurite bolts (unf)",
+        level: 8,
+        xp: 17.5,
+        barItemId: 9467,
+        barCount: 1,
+        outputItemId: 9376,
+        outputQuantity: 10,
+        slot: "bolts",
+        animation: 898,
+        delayTicks: 4,
+    },
+    {
+        id: "blurite_limbs",
+        name: "Blurite limbs",
+        level: 13,
+        xp: 17.5,
+        barItemId: 9467,
+        barCount: 1,
+        outputItemId: 9422,
+        outputQuantity: 1,
+        slot: "limbs",
+        animation: 898,
+        delayTicks: 4,
+    },
     {
         id: "bronze_dagger",
         name: "Bronze dagger",
@@ -2100,7 +2132,7 @@ export const SMELTING_RECIPES: SmeltingRecipe[] = [
         id: "smelt_bronze_bar",
         name: "Bronze bar",
         level: 1,
-        xp: 6,
+        xp: 6.2,
         inputs: [
             { itemId: 436, quantity: 1 },
             { itemId: 438, quantity: 1 },
@@ -2113,10 +2145,23 @@ export const SMELTING_RECIPES: SmeltingRecipe[] = [
         ingredientsLabel: "Copper + Tin ore",
     },
     {
+        id: "smelt_blurite_bar",
+        name: "Blurite bar",
+        level: 13,
+        xp: 8,
+        inputs: [{ itemId: 668, quantity: 1 }],
+        outputItemId: 9467,
+        outputQuantity: 1,
+        animation: FURNACE_ANIMATION,
+        delayTicks: 4,
+        successType: "guaranteed",
+        ingredientsLabel: "Blurite ore",
+    },
+    {
         id: "smelt_iron_bar",
         name: "Iron bar",
         level: 15,
-        xp: 13,
+        xp: 12.5,
         inputs: [{ itemId: 440, quantity: 1 }],
         outputItemId: 2351,
         outputQuantity: 1,
@@ -2129,7 +2174,7 @@ export const SMELTING_RECIPES: SmeltingRecipe[] = [
         id: "smelt_silver_bar",
         name: "Silver bar",
         level: 20,
-        xp: 14,
+        xp: 13.7,
         inputs: [{ itemId: 442, quantity: 1 }],
         outputItemId: 2355,
         outputQuantity: 1,
@@ -2142,7 +2187,7 @@ export const SMELTING_RECIPES: SmeltingRecipe[] = [
         id: "smelt_steel_bar",
         name: "Steel bar",
         level: 30,
-        xp: 18,
+        xp: 17.5,
         inputs: [
             { itemId: 440, quantity: 1 },
             { itemId: 453, quantity: 2 },
@@ -2158,7 +2203,7 @@ export const SMELTING_RECIPES: SmeltingRecipe[] = [
         id: "smelt_gold_bar",
         name: "Gold bar",
         level: 40,
-        xp: 22,
+        xp: 22.5,
         inputs: [{ itemId: 444, quantity: 1 }],
         outputItemId: 2357,
         outputQuantity: 1,
@@ -2166,6 +2211,51 @@ export const SMELTING_RECIPES: SmeltingRecipe[] = [
         delayTicks: 4,
         successType: "guaranteed",
         ingredientsLabel: "Gold ore",
+    },
+    {
+        id: "make_steel_cannonballs_double",
+        name: "Steel cannonball",
+        level: 35,
+        xp: 51.2,
+        inputs: [{ itemId: 2353, quantity: 2 }],
+        requiredToolItemIds: [27012, 27013],
+        outputItemId: 2,
+        outputQuantity: 8,
+        animation: FURNACE_ANIMATION,
+        delayTicks: 8,
+        successType: "guaranteed",
+        ingredientsLabel: "2 Steel bars + Double ammo mould",
+    },
+    {
+        id: "make_steel_cannonballs",
+        name: "Steel cannonball",
+        level: 35,
+        xp: 25.6,
+        inputs: [{ itemId: 2353, quantity: 1 }],
+        requiredToolItemIds: [4],
+        outputItemId: 2,
+        outputQuantity: 4,
+        animation: FURNACE_ANIMATION,
+        delayTicks: 8,
+        successType: "guaranteed",
+        ingredientsLabel: "Steel bar + Ammo mould",
+    },
+    {
+        id: "smelt_lovakite_bar",
+        name: "Lovakite bar",
+        level: 45,
+        xp: 20,
+        inputs: [
+            { itemId: 13356, quantity: 1 },
+            { itemId: 453, quantity: 2 },
+        ],
+        allowedLocIds: [28562],
+        outputItemId: 13354,
+        outputQuantity: 1,
+        animation: FURNACE_ANIMATION,
+        delayTicks: 4,
+        successType: "guaranteed",
+        ingredientsLabel: "Lovakite ore + 2 Coal",
     },
     {
         id: "smelt_mithril_bar",
@@ -2233,9 +2323,10 @@ export function getSmeltingRecipeById(id: string): SmeltingRecipe | undefined {
 }
 
 export function calculateIronSmeltChance(level: number): number {
-    const normalized = Math.max(15, Math.floor(level));
-    const chancePercent = Math.min(100, 50 + (normalized - 15));
-    return Math.max(0, Math.min(1, chancePercent / 100));
+    // Regular-furnace iron is always a 50% roll. Ring of Forging is handled
+    // by the caller as an explicit override.
+    void level;
+    return 0.5;
 }
 
 export function computeSmeltingBatchCount(
@@ -2266,4 +2357,13 @@ function countItem(entries: Array<{ itemId: number; quantity: number }>, itemId:
         total += Math.max(0, entry.quantity);
     }
     return total;
+}
+
+export function hasRequiredSmeltingTools(
+    entries: Array<{ itemId: number; quantity: number }>,
+    recipe: SmeltingRecipe,
+): boolean {
+    const required = recipe.requiredToolItemIds;
+    if (!required || required.length === 0) return true;
+    return required.some((itemId) => countItem(entries, itemId) > 0);
 }

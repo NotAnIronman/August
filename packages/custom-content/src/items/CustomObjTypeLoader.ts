@@ -1,8 +1,12 @@
 import type { CacheInfo } from "@august/osrs-engine/cache/CacheInfo";
 import { ObjType } from "@august/osrs-engine/config/objtype/ObjType";
 import type { ObjTypeLoader } from "@august/osrs-engine/config/objtype/ObjTypeLoader";
-import { CustomItemRegistry } from "@august/custom-content/items/CustomItemRegistry";
+import {
+    CustomItemRegistry,
+    type CustomItemRegistryStore,
+} from "@august/custom-content/items/CustomItemRegistry";
 import type { CustomObjTypeProps } from "@august/custom-content/items/CustomItemTypes";
+import { BoundedLruCache } from "@august/osrs-engine/cache/BoundedLruCache";
 
 /**
  * Wrapping ObjTypeLoader that injects custom items.
@@ -15,20 +19,28 @@ import type { CustomObjTypeProps } from "@august/custom-content/items/CustomItem
  * an existing cache item before applying customizations.
  */
 export class CustomObjTypeLoader implements ObjTypeLoader {
-    private readonly customCache = new Map<number, ObjType>();
+    private readonly customCache: Map<number, ObjType>;
+    private registryRevision: number;
 
     constructor(
         private readonly base: ObjTypeLoader,
         private readonly cacheInfo: CacheInfo,
-    ) {}
+        private readonly registry: CustomItemRegistryStore = CustomItemRegistry,
+        maxCachedItems: number = 4096,
+    ) {
+        this.registryRevision = registry.revision;
+        this.customCache = new BoundedLruCache(maxCachedItems);
+    }
 
     load(id: number): ObjType {
+        this.invalidateCustomCacheIfRegistryChanged();
+
         // Check custom cache first
         const cached = this.customCache.get(id);
         if (cached) return cached;
 
         // Check for custom item
-        const customItem = CustomItemRegistry.get(id);
+        const customItem = this.registry.get(id);
         if (customItem) {
             const objType = this.createCustomObjType(
                 id,
@@ -201,14 +213,22 @@ export class CustomObjTypeLoader implements ObjTypeLoader {
     }
 
     getCount(): number {
+        this.invalidateCustomCacheIfRegistryChanged();
         // Include custom items in count
         const baseCount = this.base.getCount();
-        const maxCustomId = CustomItemRegistry.getMaxCustomId();
+        const maxCustomId = this.registry.getMaxCustomId();
         return Math.max(baseCount, maxCustomId + 1);
     }
 
     clearCache(): void {
         this.customCache.clear();
+        this.registryRevision = this.registry.revision;
         this.base.clearCache();
+    }
+
+    private invalidateCustomCacheIfRegistryChanged(): void {
+        if (this.registryRevision === this.registry.revision) return;
+        this.customCache.clear();
+        this.registryRevision = this.registry.revision;
     }
 }

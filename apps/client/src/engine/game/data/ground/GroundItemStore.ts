@@ -5,9 +5,16 @@ import {
 
 export type ClientGroundItemStack = GroundItemStackMessage & {
     name: string;
+    /** Authoritative server display value for one item. */
+    value: number;
+    /** Authoritative server high-alchemy value for one item. */
+    highAlch: number;
     gePrice: number;
     haPrice: number;
     tradeable: boolean;
+    stackable: boolean;
+    noted: boolean;
+    unnotedItemId?: number;
     /**
      * Server stack ids represented by this display pile. The first id is the
      * authoritative stack used for interactions; the server still decides how
@@ -24,6 +31,8 @@ export type GroundItemOverlayEntry = {
     color?: number;
     timerLabel?: string;
     timerColor?: number;
+    /** Draw a crisp one-pixel black outline around both label color segments. */
+    textOutline?: boolean;
     line?: number;
     heightOffsetTiles?: number;
 };
@@ -33,6 +42,9 @@ export type GroundItemMetadata = {
     gePrice: number;
     haPrice: number;
     tradeable: boolean;
+    stackable?: boolean;
+    noted?: boolean;
+    unnotedItemId?: number;
 };
 
 type ResolveMetadata = (itemId: number) => GroundItemMetadata;
@@ -42,6 +54,9 @@ const DEFAULT_METADATA_RESOLVER: ResolveMetadata = (itemId: number) => ({
     gePrice: 0,
     haPrice: 0,
     tradeable: false,
+    stackable: false,
+    noted: false,
+    unnotedItemId: itemId > 0 ? itemId | 0 : undefined,
 });
 
 export class GroundItemStore {
@@ -55,6 +70,38 @@ export class GroundItemStore {
         if (!stack || !(stack.id > 0) || !(stack.itemId > 0)) return undefined;
         const tile = stack.tile ? stack.tile : { x: 0, y: 0, level: 0 };
         const metadata = this.resolveMetadata(stack.itemId | 0);
+        const name =
+            typeof stack.name === "string" && stack.name.length > 0
+                ? stack.name
+                : typeof metadata.name === "string" && metadata.name.length > 0
+                  ? metadata.name
+                  : `Item ${stack.itemId | 0}`;
+        const value =
+            Number.isFinite(stack.value) && (stack.value as number) >= 0
+                ? Math.min(2_147_483_647, Math.trunc(stack.value as number))
+                : Math.max(0, metadata.gePrice | 0);
+        const highAlch =
+            Number.isFinite(stack.highAlch) && (stack.highAlch as number) >= 0
+                ? Math.min(2_147_483_647, Math.trunc(stack.highAlch as number))
+                : Math.max(0, metadata.haPrice | 0);
+        const tradeable =
+            typeof stack.tradeable === "boolean"
+                ? stack.tradeable
+                : metadata.tradeable === true;
+        const stackable =
+            typeof stack.stackable === "boolean"
+                ? stack.stackable
+                : metadata.stackable === true;
+        const noted =
+            typeof stack.noted === "boolean" ? stack.noted : metadata.noted === true;
+        const wireUnnotedId =
+            Number.isFinite(stack.unnotedItemId) && (stack.unnotedItemId as number) > 0
+                ? Math.trunc(stack.unnotedItemId as number)
+                : undefined;
+        const fallbackUnnotedId =
+            Number.isFinite(metadata.unnotedItemId) && (metadata.unnotedItemId as number) > 0
+                ? Math.trunc(metadata.unnotedItemId as number)
+                : undefined;
         return {
             id: stack.id | 0,
             itemId: stack.itemId | 0,
@@ -84,13 +131,15 @@ export class GroundItemStore {
                 stack.ownership === 3
                     ? stack.ownership
                     : 0,
-            name:
-                typeof metadata.name === "string" && metadata.name.length > 0
-                    ? metadata.name
-                    : `Item ${stack.itemId | 0}`,
-            gePrice: Math.max(0, metadata.gePrice | 0),
-            haPrice: Math.max(0, metadata.haPrice | 0),
-            tradeable: metadata.tradeable === true,
+            name,
+            value,
+            highAlch,
+            gePrice: value,
+            haPrice: highAlch,
+            tradeable,
+            stackable,
+            noted,
+            unnotedItemId: wireUnnotedId ?? fallbackUnnotedId,
         };
     }
 
@@ -234,11 +283,17 @@ export class GroundItemStore {
         return this.version | 0;
     }
 
-    getStacksAt(tileX: number, tileY: number, level: number): ClientGroundItemStack[] {
+    getStacksAt(
+        tileX: number,
+        tileY: number,
+        level: number,
+        opts: { aggregate?: boolean } = {},
+    ): ClientGroundItemStack[] {
         const key = this.tileKey(tileX | 0, tileY | 0, level | 0);
         const list = this.stacksByTile.get(key);
         if (!list || list.length === 0) return [];
-        return this.aggregateDisplayStacks(list);
+        if (opts.aggregate !== false) return this.aggregateDisplayStacks(list);
+        return list.map((entry) => ({ ...entry, tile: { ...entry.tile } }));
     }
 
     getStackById(stackId: number): ClientGroundItemStack | undefined {

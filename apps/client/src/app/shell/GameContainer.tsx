@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { RenderStatsOverlay } from "@client/ui/components/render-stats-overlay/index";
 import { OsrsLoadingBar } from "@client/ui/components/osrs-loading-bar/index";
@@ -8,11 +8,16 @@ import { DownloadProgress } from "@august/osrs-engine/cache/CacheFiles";
 import { Canvas } from "@client/ui/runtime/Canvas";
 import { formatBytes } from "@august/protocol/binary";
 import { isIos, isMobileMode } from "@client/core/platform/device/DeviceUtil";
-import { DebugControls } from "@client/dev/components/DebugControls";
 import "@client/app/shell/GameContainer.css";
 import { GameRenderer } from "@client/engine/rendering/core/GameRenderer";
 import { OsrsClient } from "@client/engine/game/OsrsClient";
 import { SidebarShell } from "@client/features/sidebar/SidebarShell";
+import { BossHealthHud } from "@client/features/boss-health";
+
+const DebugControls = lazy(async () => {
+    const module = await import("@client/dev/components/DebugControls");
+    return { default: module.DebugControls };
+});
 
 interface OsrsContainerProps {
     osrsClient: OsrsClient;
@@ -112,44 +117,30 @@ export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
 
     // Legacy CSS menu props removed
 
-    const requestRef = useRef<number | undefined>(undefined);
-
     const widgetManagerReady = osrsClient.widgetManager != null;
-
-    const fpsUiLastMs = useRef(0);
-
-    const animate = useCallback(
-        (_time: DOMHighResTimeStamp) => {
-            const now = performance.now();
-            // Cap React FPS UI updates (~4Hz). Per-RAF setState was thrashing the tree.
-            if (now - fpsUiLastMs.current >= 250) {
-                fpsUiLastMs.current = now;
-                setFps(Math.round(renderer.stats.frameTimeFps));
-                setFramePacing({
-                    rafHz: Math.round(renderer.stats.estimatedRefreshHz),
-                    cap: Math.max(0, Math.trunc(osrsClient.targetFps)),
-                    skipped: Math.max(0, Math.trunc(renderer.stats.limiterSkippedCallbacks)),
-                    jsMs: Math.max(0, renderer.stats.frameTimeJs),
-                });
-                if (!hideUi && osrsClient.hoverOverlayEnabled) {
-                    forceStatsOverlayRefresh(renderer.stats.frameCount | 0);
-                }
-            }
-
-            requestRef.current = requestAnimationFrame(animate);
-        },
-        [hideUi, osrsClient, renderer],
-    );
 
     useEffect(() => {
         renderer.setUiHidden(hideUi);
     }, [renderer, hideUi]);
 
     useEffect(() => {
-        requestRef.current = requestAnimationFrame(animate);
+        const updateDiagnostics = () => {
+            setFps(Math.round(renderer.stats.frameTimeFps));
+            setFramePacing({
+                rafHz: Math.round(renderer.stats.estimatedRefreshHz),
+                cap: Math.max(0, Math.trunc(osrsClient.targetFps)),
+                skipped: Math.max(0, Math.trunc(renderer.stats.limiterSkippedCallbacks)),
+                jsMs: Math.max(0, renderer.stats.frameTimeJs),
+            });
+            if (!hideUi && osrsClient.hoverOverlayEnabled) {
+                forceStatsOverlayRefresh(renderer.stats.frameCount | 0);
+            }
+        };
 
-        return () => cancelAnimationFrame(requestRef.current!);
-    }, [animate]);
+        updateDiagnostics();
+        const timer = window.setInterval(updateDiagnostics, 250);
+        return () => window.clearInterval(timer);
+    }, [hideUi, osrsClient, renderer]);
 
     useEffect(() => {
         const frameId = requestAnimationFrame(() => {
@@ -371,6 +362,10 @@ export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
                     <div className="game-canvas-stage">
                         {loadingBarOverlay}
 
+                        {!hideUi && !osrsClient.isOnLoginScreen() && (
+                            <BossHealthHud store={osrsClient.bossHealthHud} />
+                        )}
+
                         <div className="hud right-top">
                             <div className="fps-counter content-text">
                                 FPS {fps} | rAF {framePacing.rafHz || "?"} Hz | cap {framePacing.cap || "off"}
@@ -447,13 +442,15 @@ export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
 
             {/* Debug controls sidebar (Leva) - top-left corner */}
 
-            <DebugControls
-                renderer={renderer}
-                hideUi={hideUi}
-                setRenderer={setRenderer}
-                setHideUi={setHideUi}
-                setDownloadProgress={setDownloadProgress}
-            />
+            <Suspense fallback={null}>
+                <DebugControls
+                    renderer={renderer}
+                    hideUi={hideUi}
+                    setRenderer={setRenderer}
+                    setHideUi={setHideUi}
+                    setDownloadProgress={setDownloadProgress}
+                />
+            </Suspense>
         </div>
     );
 }

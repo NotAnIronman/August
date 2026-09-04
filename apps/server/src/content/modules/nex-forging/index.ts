@@ -2,6 +2,7 @@ import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { IScriptRegistry, ItemOnItemEvent, ItemOnLocEvent, ScriptServices } from "@server/game/scripts/types";
 import type { PlayerState } from "@server/game/player";
 import { LockState } from "@server/game/model/LockState";
+import { applyInventoryTransform } from "@server/game/skilling/InventoryTransform";
 
 const ANCIENT_FORGE = 42966;
 const TORVA_ANVIL = 28563;
@@ -30,10 +31,6 @@ function hasSmithingHammer(player: PlayerState): boolean {
         || player.appearance.equip.includes(IMCANDO_HAMMER);
 }
 
-function restoreInventory(player: PlayerState, snapshot: readonly { itemId: number; quantity: number }[]): void {
-    snapshot.forEach((entry, slot) => player.items.setInventorySlot(slot, entry.itemId, entry.quantity));
-}
-
 function lockAndAnimate(player: PlayerState, services: ScriptServices, animation: number): void {
     const previousLock = player.lock;
     player.lock = LockState.FULL;
@@ -54,27 +51,22 @@ function transact(
     inputs: readonly { itemId: number; quantity: number }[],
     result: { itemId: number; quantity: number },
 ): boolean {
-    const snapshot = player.items.getInventoryEntries().map((entry) => ({ ...entry }));
-    try {
-        for (const input of inputs) {
-            if (player.items.removeItem(input.itemId, input.quantity, { assureFullRemoval: true }).completed !== input.quantity) {
-                restoreInventory(player, snapshot);
-                return false;
-            }
-        }
-        if (player.items.addItem(result.itemId, result.quantity, { assureFullInsertion: true }).completed !== result.quantity) {
-            restoreInventory(player, snapshot);
-            services.messaging.sendGameMessage(player, "You need more inventory space to do that.");
-            return false;
-        }
+    const exchange = applyInventoryTransform(services.inventory, player, {
+        inputs,
+        outputs: [result],
+        outputPlacement: "first-consumed-slot",
+    });
+    if (exchange.ok) {
         services.inventory.snapshotInventoryImmediate(player);
         return true;
-    } catch {
-        restoreInventory(player, snapshot);
+    }
+    if (exchange.reason === "inventory-full") {
+        services.messaging.sendGameMessage(player, "You need more inventory space to do that.");
+    } else if (exchange.reason === "mutation-failed") {
         services.inventory.snapshotInventoryImmediate(player);
         services.messaging.sendGameMessage(player, "Nothing happens.");
-        return false;
     }
+    return false;
 }
 
 function breakDownBandos({ player, source, services }: ItemOnLocEvent): void {

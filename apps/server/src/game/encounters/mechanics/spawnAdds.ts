@@ -2,6 +2,7 @@ import type { EncounterRuntime } from "@server/game/encounters/EncounterRuntime"
 import { createMechanicHandle, type MechanicHandle } from "@server/game/encounters/mechanics/MechanicHandle";
 import { registerMechanic } from "@server/game/encounters/mechanics/MechanicRegistry";
 import { runMechanicCallback } from "@server/game/encounters/mechanics/MechanicSafety";
+import type { NpcState } from "@server/game/npc";
 import type { PlayerState } from "@server/game/player";
 import type { ScriptServices } from "@server/game/scripts/types";
 
@@ -32,13 +33,25 @@ export function spawnAdds(
 ): MechanicHandle {
     const source = services.combat.getNpc(runtime.currentNpcRuntimeId);
     const id = params.id ?? `spawn-adds:${runtime.nextMechanicSerial()}`;
-    const spawnedIds = new Set<number>();
+    const spawnedNpcs = new Map<number, NpcState>();
     let expiryTaskId: number | undefined;
     let handle!: MechanicHandle;
     handle = createMechanicHandle(`${runtime.id}:${id}`, () => {
         if (expiryTaskId !== undefined) services.scheduler.cancel(expiryTaskId);
-        for (const npcId of spawnedIds) services.npc.removeNpc(npcId);
-        spawnedIds.clear();
+        for (const [npcId, spawnedNpc] of spawnedNpcs) {
+            // The add may already have died or expired. Only remove the exact
+            // object this mechanic created; a later NPC may reuse its numeric id.
+            const liveNpc = services.combat.getNpc(npcId);
+            if (liveNpc === spawnedNpc) {
+                runtime.releaseNpc(npcId);
+                services.npc.removeNpc(npcId);
+            } else if (!liveNpc) {
+                // A harness or alternate host may not expose NpcManager's
+                // removal hook; with no current holder of the id it is safe to release.
+                runtime.releaseNpc(npcId);
+            }
+        }
+        spawnedNpcs.clear();
         runtime.releaseMechanic(handle);
     });
     const count = Math.max(0, Math.trunc(params.count));
@@ -65,7 +78,7 @@ export function spawnAdds(
             });
             if (!add) continue;
             add.suppressDrops = params.suppressDrops === true;
-            spawnedIds.add(add.id);
+            spawnedNpcs.set(add.id, add);
             runtime.ownNpc(add.id);
             if (params.target) services.npc.engageCombat(add, params.target);
         }

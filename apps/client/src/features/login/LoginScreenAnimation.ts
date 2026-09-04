@@ -1,4 +1,9 @@
 import { IndexedSprite } from "@august/osrs-engine/sprite/IndexedSprite";
+import {
+    createCanvasSurface2D,
+    type CanvasSurface,
+    type CanvasSurfaceContext,
+} from "@client/core/platform/browser/CanvasSurface";
 
 /**
  * Login screen runes flame animation.
@@ -23,8 +28,8 @@ export class LoginScreenAnimation {
     private lastCycle: number = 0;
     private noiseOffset: number = 0;
     private sparkCycle: number = 0;
-    private offscreenCanvas: OffscreenCanvas | null = null;
-    private offscreenCtx: OffscreenCanvasRenderingContext2D | null = null;
+    private offscreenCanvas: CanvasSurface | null = null;
+    private offscreenCtx: CanvasSurfaceContext | null = null;
     private cachedImageData: ImageData | null = null;
     private cachedImageDataWidth: number = 0;
     private cachedImageDataHeight: number = 0;
@@ -332,7 +337,7 @@ export class LoginScreenAnimation {
     /**
      * Update fire animation and return the offscreen canvas.
      */
-    updateAndGetCanvas(_cycle: number): OffscreenCanvas | null {
+    updateAndGetCanvas(_cycle: number): CanvasSurface | null {
         const now = performance.now();
         if (this.lastTimeMs === 0) {
             this.lastTimeMs = now;
@@ -357,23 +362,17 @@ export class LoginScreenAnimation {
     }
 
     /** Render fire to offscreen canvas. */
-    private renderFireToCanvas(): OffscreenCanvas | null {
+    private renderFireToCanvas(): CanvasSurface | null {
         this.updatePalette();
 
         const width = LoginScreenAnimation.FIRE_WIDTH;
         const height = LoginScreenAnimation.FIRE_TEXTURE_HEIGHT;
 
-        if (typeof OffscreenCanvas === "undefined") {
-            return null;
-        }
-
         if (!this.offscreenCanvas) {
-            this.offscreenCanvas = new OffscreenCanvas(width, height);
-            const ctx2d = this.offscreenCanvas.getContext("2d");
-            if (!ctx2d) {
-                return null;
-            }
-            this.offscreenCtx = ctx2d;
+            const surface = createCanvasSurface2D(width, height);
+            if (!surface) return null;
+            this.offscreenCanvas = surface.canvas;
+            this.offscreenCtx = surface.context;
         }
 
         if (!this.offscreenCtx) {

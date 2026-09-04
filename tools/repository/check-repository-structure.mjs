@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
@@ -97,6 +98,16 @@ const obsoleteLockfiles = new Set([
     "yarn.lock",
 ]);
 
+const rootScratchExtensions = new Set([
+    ".db",
+    ".html",
+    ".patch",
+    ".sqlite",
+    ".sqlite3",
+    ".txt",
+    ".zip",
+]);
+
 const applicationSourceExtensions = new Set([
     ".ts",
     ".tsx",
@@ -108,12 +119,46 @@ const applicationSourceExtensions = new Set([
     ".cts",
 ]);
 
+const ignoredLegacyStateRoots = new Set(["server"]);
+
+function isIgnoredLocalRootDirectory(directoryName) {
+    return directoryName === "sqlite-transfer" || /^game\.sqlite(?:[.-].*)?$/i.test(directoryName);
+}
+
 function absolute(relativePath) {
     return path.join(repositoryRoot, ...relativePath.split("/"));
 }
 
 function report(code, relativePath, message) {
     errors.push(`${relativePath} [${code}] ${message}`);
+}
+
+function listTrackedRepositoryFiles() {
+    if (!existsSync(path.join(repositoryRoot, ".git"))) return undefined;
+    const result = spawnSync("git", ["-C", repositoryRoot, "ls-files", "-z"], {
+        encoding: "utf8",
+        windowsHide: true,
+    });
+    if (!result.error && result.status === 0) {
+        return new Set(result.stdout.split("\0").filter(Boolean));
+    }
+    if (process.env.CI) {
+        report(
+            "git-index-unavailable",
+            ".git",
+            "could not inspect tracked files while validating ignored legacy state",
+        );
+    }
+    return undefined;
+}
+
+function hasTrackedPath(files, relativePath) {
+    if (!files) return false;
+    const prefix = `${relativePath}/`;
+    for (const file of files) {
+        if (file === relativePath || file.startsWith(prefix)) return true;
+    }
+    return false;
 }
 
 function toPosix(filePath) {
@@ -430,14 +475,43 @@ for (const relativePath of requiredFiles) {
     }
 }
 
+const trackedRepositoryFiles = listTrackedRepositoryFiles();
+
+if (trackedRepositoryFiles) {
+    for (const relativePath of trackedRepositoryFiles) {
+        if (relativePath.includes("/")) continue;
+        if (!rootScratchExtensions.has(path.extname(relativePath).toLowerCase())) continue;
+        report(
+            "root-artifact",
+            relativePath,
+            "scratch, database, archive, and standalone tool files need an explicit owner below the repository root",
+        );
+    }
+}
+
 for (const relativePath of forbiddenPaths) {
     if (existsSync(absolute(relativePath))) {
+        // The migration deliberately leaves ignored runtime databases on a
+        // developer's machine. Enforce this boundary against the Git index so
+        // preserved local state does not make every repository check fail.
+        if (
+            ignoredLegacyStateRoots.has(relativePath) &&
+            existsSync(path.join(repositoryRoot, ".git")) &&
+            !hasTrackedPath(trackedRepositoryFiles, relativePath)
+        ) {
+            continue;
+        }
         report("legacy-path", relativePath, "obsolete pre-monorepo path must not return");
     }
 }
 
 for (const entry of readdirSync(repositoryRoot, { withFileTypes: true })) {
-    if (entry.isDirectory() && !permittedRootDirectories.has(entry.name)) {
+    if (
+        entry.isDirectory() &&
+        !permittedRootDirectories.has(entry.name) &&
+        !isIgnoredLocalRootDirectory(entry.name) &&
+        !forbiddenPaths.includes(entry.name)
+    ) {
         report("unknown-root", entry.name, "top-level directories must have a documented role");
     }
 }

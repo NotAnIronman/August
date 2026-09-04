@@ -1,6 +1,7 @@
 import fs from "fs";
 import { serverGeneratedDataPath } from "@server/paths";
 import { type ShopDefinition } from "@server/content/gamemodes/vanilla/shops/types";
+import { logger } from "@server/observability/logger";
 
 type ShopsFile = {
     shops?: ShopDefinition[];
@@ -119,10 +120,10 @@ function loadGeneratedShops(): ShopDefinition[] {
                 );
             }
         } catch (err) {
-            console.warn(`[shops] Failed to load ${filePath}:`, err);
+            logger.warn(`[shops] Failed to load ${filePath}:`, err);
         }
     }
-    console.warn("[shops] shops.json not found; only override shops will be available");
+    logger.warn("[shops] shops.json not found; only override shops will be available");
     return [];
 }
 

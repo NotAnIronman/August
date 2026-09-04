@@ -49,6 +49,14 @@ export class VarManager {
 
     private persistentVarcs: boolean[] = [];
 
+    private isValidVarpId(id: number): boolean {
+        return Number.isInteger(id) && id >= 0 && id < this.values.length;
+    }
+
+    private static isValidArrayId(id: number): boolean {
+        return Number.isInteger(id) && id >= 0 && id < VarManager.MAX_ARRAY_SLOTS;
+    }
+
     constructor(
         varbitLoader: VarBitTypeLoader,
         readonly varcIntTypeLoader?: VarcIntTypeLoader,
@@ -83,26 +91,42 @@ export class VarManager {
      * This is used for varbits not present in the cache.
      */
     registerVarbit(id: number, baseVar: number, startBit: number, endBit: number): void {
+        if (!Number.isSafeInteger(id) || id < 0) {
+            throw new RangeError(`Invalid varbit ID: ${id}`);
+        }
+        if (
+            !this.isValidVarpId(baseVar) ||
+            !Number.isInteger(startBit) ||
+            !Number.isInteger(endBit) ||
+            startBit < 0 ||
+            endBit < startBit ||
+            endBit >= 32 ||
+            endBit - startBit >= BIT_MASKS.length
+        ) {
+            throw new RangeError(
+                `Invalid varbit range: varp=${baseVar}, start=${startBit}, end=${endBit}`,
+            );
+        }
         this.customVarbits.set(id, { baseVar, startBit, endBit });
     }
 
     /**
      * Register league-related varbits that may not be in the cache.
      * These definitions match OSRS cache varbit layouts.
-     * registerVarbit uses an exclusive endBit, so inclusive bit ranges pass lastBit + 1.
+     * Varbit end positions are inclusive, matching cache VarBitType definitions.
      */
     private registerLeagueVarbits(): void {
         // Varbit 10046: league_total_tasks_completed
         // Stored in varp 2612, bits 0-15 (16-bit value for task counts 0-65535)
-        this.registerVarbit(10046, 2612, 0, 16);
+        this.registerVarbit(10046, 2612, 0, 15);
 
         // Varbit 10037: league_tutorial_completed (already in cache but ensure fallback)
         // Stored in varp 2606, bits 13-17
-        this.registerVarbit(10037, 2606, 13, 18);
+        this.registerVarbit(10037, 2606, 13, 17);
 
         // Varbit 10032: league_type
         // Stored in varp 2606, bits 1-4
-        this.registerVarbit(10032, 2606, 1, 5);
+        this.registerVarbit(10032, 2606, 1, 4);
     }
 
     /**
@@ -111,6 +135,9 @@ export class VarManager {
     private getVarbitDef(
         id: number,
     ): { baseVar: number; startBit: number; endBit: number } | undefined {
+        if (!Number.isSafeInteger(id) || id < 0) {
+            return undefined;
+        }
         // Try cache first
         const cached = this.varbitLoader.load(id);
         if (cached && cached.baseVar !== undefined) {
@@ -201,21 +228,22 @@ export class VarManager {
     }
 
     getVarp(id: number): number {
-        return this.values[id];
+        return this.isValidVarpId(id) ? this.values[id] : 0;
     }
 
     setVarp(id: number, value: number): boolean {
-        if (id >= this.values.length) {
+        if (!this.isValidVarpId(id)) {
             return false;
         }
+        const normalizedValue = value | 0;
         const oldValue = this.values[id];
-        if (oldValue === value) {
+        if (oldValue === normalizedValue) {
             return false;
         }
-        this.values[id] = value;
+        this.values[id] = normalizedValue;
         // Fire change callback for onVarTransmit handling
         if (this.onVarpChange) {
-            this.onVarpChange(id, oldValue, value);
+            this.onVarpChange(id, oldValue, normalizedValue);
         }
         return true;
     }
@@ -227,6 +255,17 @@ export class VarManager {
             return 0;
         }
         const { baseVar, startBit, endBit } = varbit;
+        if (
+            !this.isValidVarpId(baseVar) ||
+            !Number.isInteger(startBit) ||
+            !Number.isInteger(endBit) ||
+            startBit < 0 ||
+            endBit < startBit ||
+            endBit >= 32 ||
+            endBit - startBit >= BIT_MASKS.length
+        ) {
+            return 0;
+        }
         const mask = BIT_MASKS[endBit - startBit];
         const value = (this.values[baseVar] >> startBit) & mask;
         return value;
@@ -241,7 +280,15 @@ export class VarManager {
             return false;
         }
         const { baseVar, startBit, endBit } = varbit;
-        if (baseVar >= this.values.length) {
+        if (
+            !this.isValidVarpId(baseVar) ||
+            !Number.isInteger(startBit) ||
+            !Number.isInteger(endBit) ||
+            startBit < 0 ||
+            endBit < startBit ||
+            endBit >= 32 ||
+            endBit - startBit >= BIT_MASKS.length
+        ) {
             return false;
         }
         let mask = BIT_MASKS[endBit - startBit];
@@ -297,7 +344,7 @@ export class VarManager {
      */
     defineArray(id: number, length: number, isString: boolean = false): void {
         // OSRS only has 5 array slots (0-4)
-        if (id < 0 || id >= VarManager.MAX_ARRAY_SLOTS) {
+        if (!VarManager.isValidArrayId(id)) {
             console.warn(
                 `[VarManager] Array slot ${id} out of bounds (max ${
                     VarManager.MAX_ARRAY_SLOTS - 1
@@ -306,7 +353,13 @@ export class VarManager {
             return;
         }
         // OSRS limits array length to 5000
-        const clampedLength = Math.min(length, VarManager.MAX_ARRAY_LENGTH);
+        const clampedLength = Math.max(
+            0,
+            Math.min(
+                Number.isFinite(length) ? Math.trunc(length) : 0,
+                VarManager.MAX_ARRAY_LENGTH,
+            ),
+        );
         this.arrayLengths[id] = clampedLength;
         this.arrayIsString[id] = isString;
         // Clear the array portion being used (OSRS doesn't reallocate, just tracks length)
@@ -320,7 +373,7 @@ export class VarManager {
     }
 
     getArrayInt(id: number, index: number): number {
-        if (id < 0 || id >= VarManager.MAX_ARRAY_SLOTS) {
+        if (!VarManager.isValidArrayId(id)) {
             return 0;
         }
         if (index >= 0 && index < this.arrayLengths[id]) {
@@ -330,7 +383,7 @@ export class VarManager {
     }
 
     setArrayInt(id: number, index: number, value: number): void {
-        if (id < 0 || id >= VarManager.MAX_ARRAY_SLOTS) {
+        if (!VarManager.isValidArrayId(id)) {
             return;
         }
         if (index >= 0 && index < this.arrayLengths[id]) {
@@ -339,7 +392,7 @@ export class VarManager {
     }
 
     getArrayString(id: number, index: number): string {
-        if (id < 0 || id >= VarManager.MAX_ARRAY_SLOTS) {
+        if (!VarManager.isValidArrayId(id)) {
             return "";
         }
         if (index >= 0 && index < this.arrayLengths[id]) {
@@ -349,7 +402,7 @@ export class VarManager {
     }
 
     setArrayString(id: number, index: number, value: string): void {
-        if (id < 0 || id >= VarManager.MAX_ARRAY_SLOTS) {
+        if (!VarManager.isValidArrayId(id)) {
             return;
         }
         if (index >= 0 && index < this.arrayLengths[id]) {
@@ -358,14 +411,14 @@ export class VarManager {
     }
 
     isStringArray(id: number): boolean {
-        if (id < 0 || id >= VarManager.MAX_ARRAY_SLOTS) {
+        if (!VarManager.isValidArrayId(id)) {
             return false;
         }
         return this.arrayIsString[id];
     }
 
     sortArray(id: number): void {
-        if (id < 0 || id >= VarManager.MAX_ARRAY_SLOTS) {
+        if (!VarManager.isValidArrayId(id)) {
             return;
         }
         const length = this.arrayLengths[id];
@@ -384,8 +437,8 @@ export class VarManager {
      * @param secondaryId Array slot to keep synchronized with primary
      */
     sortArrayPaired(primaryId: number, secondaryId: number): void {
-        if (primaryId < 0 || primaryId >= VarManager.MAX_ARRAY_SLOTS) return;
-        if (secondaryId < 0 || secondaryId >= VarManager.MAX_ARRAY_SLOTS) return;
+        if (!VarManager.isValidArrayId(primaryId)) return;
+        if (!VarManager.isValidArrayId(secondaryId)) return;
 
         const length = this.arrayLengths[primaryId];
         if (length <= 1) return;
@@ -434,14 +487,14 @@ export class VarManager {
     }
 
     getArray(id: number): Int32Array | undefined {
-        if (id < 0 || id >= VarManager.MAX_ARRAY_SLOTS) {
+        if (!VarManager.isValidArrayId(id)) {
             return undefined;
         }
         return this.arrays[id].subarray(0, this.arrayLengths[id]);
     }
 
     getArrayLength(id: number): number {
-        if (id < 0 || id >= VarManager.MAX_ARRAY_SLOTS) {
+        if (!VarManager.isValidArrayId(id)) {
             return 0;
         }
         return this.arrayLengths[id];
@@ -452,7 +505,7 @@ export class VarManager {
      * Used by ARRAY_SORT_BY opcode.
      */
     shuffleArray(id: number, seedHigh: number, seedLow: number): void {
-        if (id < 0 || id >= VarManager.MAX_ARRAY_SLOTS) {
+        if (!VarManager.isValidArrayId(id)) {
             return;
         }
         const length = this.arrayLengths[id];

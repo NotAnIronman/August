@@ -1,8 +1,10 @@
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import { SkillId } from "@august/osrs-engine/skill/skills";
-import { PRAYER_RECHARGE_SOUND_ID } from "@august/osrs-engine/prayer/prayers";
 import { AttackType } from "@server/game/combat/AttackType";
-import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
+import { attack, defineBoss } from "@server/game/encounters/BossDefinition";
+import { registerOwnedEncounter } from "@server/game/encounters/EncounterRegistry";
+import { defineBossRoom } from "@server/game/encounters/BossRoom";
+import { defineGwdAltar } from "@server/game/encounters/GwdAltar";
 import { knockback } from "@server/game/encounters/mechanics";
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
 import type { PlayerState } from "@server/game/player";
@@ -32,11 +34,9 @@ const ARMADYL_NPCS = Object.freeze([
     Object.freeze({ id: 3165, offsetX: 2833 - INSTANCE_BASE.x, offsetY: 5297 - INSTANCE_BASE.y, level: 2 }),
 ]);
 const crateUses = new WeakMap<PlayerState, number>();
-const altarUses = new WeakMap<PlayerState, number>();
 
-function registerArmadylEncounters(): void {
-    if (!EncounterRegistry.shared.get("kreearra")) {
-        registerEncounter({
+function registerArmadylEncounters(registry: IScriptRegistry): void {
+    registerOwnedEncounter(registry, defineBoss({
             id: "kreearra", npcTypeIds: [3162], maxHealth: 255,
             bossHealthBar: { name: "Kree'arra", npcTypeId: 3162 },
             killcount: { name: "Kree'arra", collectionLogStructId: 493 },
@@ -45,24 +45,69 @@ function registerArmadylEncounters(): void {
             attacks: [
                 // While engaged, Kree rolls these two tornadoes evenly. If nobody is attacking her,
                 // she instead closes in and uses her melee attack.
-                { id: "ranged-tornado", type: AttackType.Ranged, rangeTiles: 15, speedTicks: 3, maxHit: 69, weight: 1, animation: "ranged", condition: (context) => context.targetIsAttackingNpc },
-                { id: "magic-tornado", type: AttackType.Magic, rangeTiles: 15, speedTicks: 3, maxHit: 21, weight: 1, animation: "magic", effects: { defenceRollAttackType: AttackType.Ranged }, condition: (context) => context.targetIsAttackingNpc },
-                { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 3, maxHit: 26, weight: 1, animation: "melee", condition: (context) => !context.targetIsAttackingNpc },
+                attack.ranged({ id: "ranged-tornado", rangeTiles: 15, speedTicks: 3, maxHit: 69, weight: 1, animation: "ranged", condition: (context) => context.targetIsAttackingNpc }),
+                attack.magic({ id: "magic-tornado", rangeTiles: 15, speedTicks: 3, maxHit: 21, weight: 1, animation: "magic", effects: { defenceRollAttackType: AttackType.Ranged }, condition: (context) => context.targetIsAttackingNpc }),
+                attack.melee({ id: "melee", speedTicks: 3, maxHit: 26, weight: 1, animation: "melee", condition: (context) => !context.targetIsAttackingNpc }),
             ],
-        });
-    }
+        }));
     const guards = [
         { id: "wingman-skree", npcTypeId: 3163, type: AttackType.Magic, range: 10, maxHit: 16 },
         { id: "flockleader-geerin", npcTypeId: 3164, type: AttackType.Ranged, range: 10, maxHit: 25 },
         { id: "flight-kilisa", npcTypeId: 3165, type: AttackType.Melee, range: 1, maxHit: 15 },
     ] as const;
     for (const guard of guards) {
-        if (EncounterRegistry.shared.get(guard.id)) continue;
-        registerEncounter({ id: guard.id, npcTypeIds: [guard.npcTypeId], movement: { wanderRadius: 8, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 }, attacks: [{ id: "attack", type: guard.type, rangeTiles: guard.range, preferredDistance: guard.type === AttackType.Melee ? 1 : guard.range, speedTicks: 4, maxHit: guard.maxHit, animation: "attack" }] });
+        registerOwnedEncounter(registry, defineBoss({ id: guard.id, npcTypeIds: [guard.npcTypeId], movement: { wanderRadius: 8, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 }, attacks: [{ id: "attack", type: guard.type, rangeTiles: guard.range, preferredDistance: guard.type === AttackType.Melee ? 1 : guard.range, speedTicks: 4, maxHit: guard.maxHit, animation: "attack" }] }));
     }
 }
 
-function inKreeRoom(player: PlayerState, services: ScriptServices): boolean { return services.instances.get(player.id)?.definitionId === ARMADYL_DEFINITION_ID; }
+const armadylRoom = defineBossRoom({
+    id: ARMADYL_DEFINITION_ID,
+    doorLocId: ARMADYL_DOOR_LOC_ID,
+    templateCopies: [
+        {
+            sourceBaseX: 2808,
+            sourceBaseY: 5280,
+            widthChunks: 5,
+            heightChunks: 5,
+            sourcePlanes: [2],
+            destinationChunkX: 3,
+            destinationChunkY: 5,
+        },
+    ],
+    destination: INSTANCE_ENTRANCE,
+    exit: INSTANCE_EXIT,
+    grave: INSTANCE_GRAVE,
+    npcs: ARMADYL_NPCS,
+    dialogs: {
+        entry: { id: "armadyl-instance-entry", title: "Enter the Armadyl chamber" },
+        join: { id: "armadyl-instance-join", title: "Join an Armadyl party" },
+    },
+    messages: {
+        alreadyInside: "You are already inside an instance.",
+        unavailable: "The Armadyl room is unavailable right now.",
+        leaveBeforeJoining: "Leave your current instance before joining another party.",
+        noJoinableParties: "There are no joinable Armadyl parties.",
+        partyUnavailable: "That party is no longer available.",
+        peek: (count) =>
+            count > 0
+                ? `You can see ${count} adventurer${count === 1 ? "" : "s"} in this room.`
+                : "You cannot see anyone waiting in a joinable Armadyl room.",
+    },
+    // The cache exposes no Peek action for this door today.
+    actions: { peek: [] },
+});
+
+const armadylAltar = defineGwdAltar({
+    locId: ARMADYL_ALTAR_LOC_ID,
+    roomDefinitionId: ARMADYL_DEFINITION_ID,
+    cooldownTicks: CRATE_COOLDOWN_TICKS,
+    messages: {
+        cooldown: "The gods have already blessed you recently.",
+        alreadyFull: "You already have full Prayer points.",
+        restored: "The gods bless you, restoring your Prayer points.",
+    },
+});
+
 function hasGrappleEquipment(player: PlayerState, services: ScriptServices): boolean {
     const weapon = services.equipment.getEquippedItem(player, EquipmentSlot.WEAPON);
     const ammo = services.equipment.getEquippedItem(player, EquipmentSlot.AMMO);
@@ -91,37 +136,6 @@ function searchCrate({ player, services, tick }: LocInteractionEvent): void {
     crateUses.set(player, tick);
     services.inventory.snapshotInventoryImmediate(player);
     services.messaging.sendGameMessage(player, "You find a mithril grapple in the crate.");
-}
-function prayAtAltar({ player, services, tick }: LocInteractionEvent): void {
-    if (!inKreeRoom(player, services)) return;
-    const readyAt = (altarUses.get(player) ?? -Infinity) + CRATE_COOLDOWN_TICKS;
-    if (tick < readyAt) { services.messaging.sendGameMessage(player, "The gods have already blessed you recently."); return; }
-    const prayer = player.skillSystem.getSkill(SkillId.Prayer);
-    if (prayer.baseLevel + prayer.boost >= prayer.baseLevel) { services.messaging.sendGameMessage(player, "You already have full Prayer points."); return; }
-    services.animation.playPlayerSeq(player, 645);
-    player.skillSystem.setSkillBoost(SkillId.Prayer, prayer.baseLevel);
-    player.prayer.resetDrainAccumulator();
-    services.sound.sendSound(player, PRAYER_RECHARGE_SOUND_ID);
-    altarUses.set(player, tick);
-    services.messaging.sendGameMessage(player, "The gods bless you, restoring your Prayer points.");
-}
-function createRoom(player: PlayerState, services: ScriptServices, access: "solo" | "party"): void {
-    if (services.instances.get(player.id)) { services.messaging.sendGameMessage(player, "You are already inside an instance."); return; }
-    const templateChunks = services.instances.buildTemplate([{ sourceBaseX: 2808, sourceBaseY: 5280, widthChunks: 5, heightChunks: 5, sourcePlanes: [2], destinationChunkX: 3, destinationChunkY: 5 }]);
-    const room = services.instances.create(player, { definitionId: ARMADYL_DEFINITION_ID, access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party", templateChunks, destination: INSTANCE_ENTRANCE, exit: INSTANCE_EXIT, grave: INSTANCE_GRAVE, npcs: ARMADYL_NPCS });
-    if (!room) { services.messaging.sendGameMessage(player, "The Armadyl room is unavailable right now."); return; }
-    services.instances.markStarted(room.id);
-}
-function joinOptions(player: PlayerState, services: ScriptServices): void {
-    if (services.instances.get(player.id)) { services.messaging.sendGameMessage(player, "Leave your current instance before joining another party."); return; }
-    const rooms = services.instances.listJoinable(ARMADYL_DEFINITION_ID);
-    if (!rooms.length) { services.messaging.sendGameMessage(player, "There are no joinable Armadyl parties."); return; }
-    const visible = rooms.slice(0, 5);
-    services.dialog.openDialogOptions(player, { id: "armadyl-instance-join", title: "Join an Armadyl party", options: visible.map((room) => `${room.ownerName}'s party (${room.memberPlayerIds.length}/${room.maxPlayers})`), modal: true, onSelect: (choice) => { const room = visible[choice]; if (!room || !services.instances.join(player, room.id)) services.messaging.sendGameMessage(player, "That party is no longer available."); } });
-}
-function entryOptions(player: PlayerState, services: ScriptServices): void {
-    if (inKreeRoom(player, services)) { services.instances.leave(player, INSTANCE_EXIT); return; }
-    services.dialog.openDialogOptions(player, { id: "armadyl-instance-entry", title: "Enter the Armadyl chamber", options: ["Enter solo", "Create a party instance", "Join a party instance"], modal: true, onSelect: (choice) => { if (choice === 0) createRoom(player, services, "solo"); else if (choice === 1) createRoom(player, services, "party"); else if (choice === 2) joinOptions(player, services); } });
 }
 function kreeTornado(event: NpcAttackEvent): void {
     const room = event.services.instances.get(event.target.id);
@@ -156,15 +170,11 @@ function kreeAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     kreeTornado(event);
 }
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
-    registerArmadylEncounters();
+    registerArmadylEncounters(registry);
     registry.registerLocInteraction(ARMADYL_PILLAR_LOC_ID, grapple, "grapple");
     registry.registerLocInteraction(ARMADYL_PILLAR_LOC_ID, grapple);
     registry.registerLocInteraction(ARMADYL_CRATE_LOC_ID, searchCrate, "search");
-    registry.registerLocInteraction(ARMADYL_ALTAR_LOC_ID, prayAtAltar, "pray");
-    registry.registerLocInteraction(ARMADYL_ALTAR_LOC_ID, prayAtAltar, "pray-at");
-    registry.registerLocInteraction(ARMADYL_DOOR_LOC_ID, ({ player, services }) => entryOptions(player, services), "open");
-    registry.registerLocInteraction(ARMADYL_DOOR_LOC_ID, ({ player, services }) => createRoom(player, services, "solo"), "enter solo");
-    registry.registerLocInteraction(ARMADYL_DOOR_LOC_ID, ({ player, services }) => createRoom(player, services, "party"), "enter party");
-    registry.registerLocInteraction(ARMADYL_DOOR_LOC_ID, ({ player, services }) => joinOptions(player, services), "join party");
+    armadylAltar.register(registry);
+    armadylRoom.register(registry);
     registry.registerNpcAttack(3162, kreeAttack);
 }

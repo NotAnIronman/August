@@ -21,6 +21,10 @@ import * as inputMouse from "@client/features/login/renderer/input/mouseClick";
 import * as sceneEntry from "@client/features/login/renderer/render/sceneEntry";
 import * as titleScene from "@client/features/login/renderer/render/titleScene";
 import { getMobileWorldIndexAtPosition } from "@client/features/login/renderer/world/worldSelectMobile";
+import type {
+    CanvasSurface,
+    CanvasSurfaceContext,
+} from "@client/core/platform/browser/CanvasSurface";
 
 export type { LoginLayoutConfig, ServerListEntry, World } from "@client/features/login/renderer/types";
 export { WorldFlags } from "@client/features/login/renderer/types";
@@ -59,7 +63,7 @@ export class LoginRenderer implements LoginRendererHost {
     loginBoxX = 202;
     loginBoxCenter = 382;
 
-    titleBackgroundImage: ImageBitmap | undefined;
+    titleBackgroundImage: ImageBitmap | HTMLImageElement | undefined;
     logoSprite: import("@august/osrs-engine/sprite/IndexedSprite").IndexedSprite | undefined;
     logoImage: HTMLImageElement | undefined;
     logoImageLoaded = false;
@@ -101,22 +105,26 @@ export class LoginRenderer implements LoginRendererHost {
     cachedSortOption = -1;
     cachedSortDirection = -1;
     loginScreenRunesAnimation: import("@client/features/login/LoginScreenAnimation").LoginScreenAnimation | undefined;
+    lifecycleAbortController = new AbortController();
 
     canvas: HTMLCanvasElement | undefined;
     ctx: CanvasRenderingContext2D | undefined;
-    spriteCache = new WeakMap<import("@august/osrs-engine/sprite/IndexedSprite").IndexedSprite, OffscreenCanvas>();
+    spriteCache = new WeakMap<
+        import("@august/osrs-engine/sprite/IndexedSprite").IndexedSprite,
+        CanvasSurface
+    >();
     textMeasureCache = new WeakMap<import("@august/osrs-engine/font/BitmapFont").BitmapFont, Map<string, number>>();
 
-    worldSelectCache: OffscreenCanvas | null = null;
-    worldSelectCacheCtx: OffscreenCanvasRenderingContext2D | null = null;
+    worldSelectCache: CanvasSurface | null = null;
+    worldSelectCacheCtx: CanvasSurfaceContext | null = null;
     worldSelectCachePage = -1;
     worldSelectCacheSortOption = -1;
     worldSelectCacheSortDirection = -1;
     worldSelectCacheWidth = 0;
     worldSelectCacheHeight = 0;
 
-    titleCache: OffscreenCanvas | null = null;
-    titleCacheCtx: OffscreenCanvasRenderingContext2D | null = null;
+    titleCache: CanvasSurface | null = null;
+    titleCacheCtx: CanvasSurfaceContext | null = null;
     titleCacheStateHash = "";
     titleCacheWidth = 0;
     titleCacheHeight = 0;

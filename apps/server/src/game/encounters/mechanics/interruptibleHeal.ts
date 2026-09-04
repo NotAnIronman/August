@@ -31,14 +31,20 @@ export function interruptibleHeal(
     let elapsed = 0;
     let handle!: MechanicHandle;
     const scheduleNext = (): void => {
+        const remaining = duration === undefined ? interval : duration - elapsed;
+        if (remaining <= 0) {
+            handle.cancel();
+            return;
+        }
+        const delay = Math.min(interval, remaining);
         let taskId = -1;
-        taskId = services.scheduler.after(interval, () => runMechanicCallback(runtime, handle, id, () => {
+        taskId = services.scheduler.after(delay, () => runMechanicCallback(runtime, handle, id, () => {
             taskIds.delete(taskId);
             if (!handle.isActive || source.getHitpoints() <= 0) {
                 handle.cancel();
                 return;
             }
-            if (duration !== undefined && elapsed >= duration) {
+            if (duration !== undefined && elapsed + interval > duration) {
                 handle.cancel();
                 return;
             }

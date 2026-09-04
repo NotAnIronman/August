@@ -19,7 +19,7 @@ import { encodeMessage, type BankServerUpdate } from "@server/network/messages";
 import { VanillaUiController } from "@server/content/gamemodes/vanilla/VanillaUiController";
 import { BankingManager, registerBankInterfaceHooks, registerBankingHandlers } from "@server/content/gamemodes/vanilla/banking";
 import type { BankingProviderServices } from "@server/content/gamemodes/vanilla/banking/BankingProvider";
-import "./combat/BossCombatScript";
+import { registerBossCombatEncounters } from "@server/content/gamemodes/vanilla/combat/BossCombatScript";
 import { createCombatStyleSequenceProvider } from "@server/content/gamemodes/vanilla/combat/CombatStyleSequences";
 import { createEquipmentBonusProvider } from "@server/content/gamemodes/vanilla/combat/EquipmentBonuses";
 import { createInstantUtilitySpecialProvider } from "@server/content/gamemodes/vanilla/combat/InstantUtilitySpecialCatalog";
@@ -76,6 +76,12 @@ import { registerRomeoHandlers } from "@server/content/gamemodes/vanilla/scripts
 import { registerBoatTravelHandlers } from "@server/content/gamemodes/vanilla/scripts/content/travel/boats";
 import { registerWildernessAccessHandlers } from "@server/content/gamemodes/vanilla/scripts/content/wildernessAccess";
 import { registerFollowerItemHandlers } from "@server/content/gamemodes/vanilla/scripts/items/followers";
+import {
+    CLUE_SCROLL_LIMIT,
+    countCluesForTier,
+    getClueScrollDefinitionForDirectItem,
+    registerClueScrollBoxHandlers,
+} from "@server/content/gamemodes/vanilla/scripts/items/clueScrollBoxes";
 import { registerPacksHandlers } from "@server/content/gamemodes/vanilla/scripts/items/packs";
 import { registerToxicBlowpipeHandlers } from "@server/content/gamemodes/vanilla/scripts/items/toxicBlowpipe";
 import { registerWebweaverBowHandlers } from "@server/content/gamemodes/vanilla/scripts/items/webweaverBow";
@@ -131,6 +137,21 @@ export class VanillaGamemode extends BaseGamemode {
         itemId: number,
         player: PlayerState | undefined,
     ): boolean {
+        const clue = getClueScrollDefinitionForDirectItem(itemId);
+        if (clue) {
+            if (!player) return false;
+            const services = this.scriptServices;
+            if (!services) return false;
+            if (countCluesForTier(player, clue.tier, services) >= CLUE_SCROLL_LIMIT) {
+                services.messaging.sendGameMessage(
+                    player,
+                    "<col=ff0000>You have a feeling you would have received a clue scroll.</col>",
+                );
+                return false;
+            }
+            return true;
+        }
+
         const variants = VanillaGamemode.FROZEN_KEY_PIECE_VARIANTS.get(itemId);
         if (!variants) return true;
         if (!player) return false;
@@ -149,6 +170,14 @@ export class VanillaGamemode extends BaseGamemode {
         // canonical completion stage instead of duplicating a varbit here.
         const frozenDoor = getQuestDefinition("The Frozen Door");
         return !frozenDoor || !isQuestComplete(player, frozenDoor);
+    }
+
+    override transformDropItemId(
+        _npcTypeId: number,
+        itemId: number,
+        _player: PlayerState | undefined,
+    ): number {
+        return getClueScrollDefinitionForDirectItem(itemId)?.boxItemId ?? itemId;
     }
 
     getLootDistributionConfig(npcTypeId: number): NpcLootConfig | undefined {
@@ -326,6 +355,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerDigHandlers(registry, services);
 
         // Content
+        registerBossCombatEncounters(registry);
         registerBarrowsHandlers(registry, services);
         registerClimbingHandlers(registry, services);
         // Key doors before generic door open/close so locked locs win.
@@ -351,6 +381,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerDemoInteractionHandlers(registry, services);
 
         // Items
+        registerClueScrollBoxHandlers(registry, services);
         registerFollowerItemHandlers(registry, services);
         registerPacksHandlers(registry, services);
         registerToxicBlowpipeHandlers(registry, services);
@@ -379,7 +410,7 @@ export class VanillaGamemode extends BaseGamemode {
 
         // Level-up display (event-driven from SkillService)
         if (services.system.eventBus) {
-            registerLevelUpHandlers(services, services.system.eventBus);
+            registerLevelUpHandlers(registry, services, services.system.eventBus);
         }
     }
 

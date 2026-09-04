@@ -18,6 +18,7 @@ import type {
     IScriptRegistry,
     ScriptServices,
 } from "@server/game/scripts/types";
+import { registerPlayerScopedCollections } from "@server/game/scripts/ScriptLifecycle";
 import { registerUiPanelActions, type UiPanelAction } from "@server/content/gamemodes/vanilla/uikit/actions";
 import {
     openUiPanel, sendUiActivateSignal, sendUiControls, sendUiRowActions, sendUiRowClickZones, sendUiTextRows,
@@ -25,7 +26,7 @@ import {
 
 /**
  * ::dev "Dialogue Editor" tab — a live outline view of a DialogueTree
- * override (see server/src/game/dialogue/DialogueTree.ts), numbered the same
+ * override (see apps/server/src/game/dialogue/DialogueTree.ts), numbered the same
  * way the design mockup for this feature was drawn: "1." NPC lines, "1A."/
  * "1B." player response options nested under the line that prompted them,
  * "1A1." continuing inside a chosen branch, and so on.
@@ -807,6 +808,8 @@ function applyGiveItemAction(state: DialogueEditorState, args: string[]): string
 // ============================================================================
 
 export function registerDevDialogueEditor(registry: IScriptRegistry, services: ScriptServices): void {
+    registerPlayerScopedCollections(registry, services, editorStateByPlayerId);
+
     const registerDeveloperCommand = (name: string, handler: CommandHandler): void => {
         registry.registerCommand(name, handler, {
             permission: "developer",

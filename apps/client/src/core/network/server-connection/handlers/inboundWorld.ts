@@ -1,4 +1,3 @@
-import { ClientState } from "@client/engine/game/ClientState";
 import {
     VARP_AREA_SOUNDS_VOLUME,
     VARP_COMBAT_TARGET_PLAYER_INDEX,
@@ -9,36 +8,9 @@ import {
     VARP_OPTION_ATTACK_PRIORITY_PLAYER,
     VARP_SOUND_EFFECTS_VOLUME,
 } from "@august/game-model/state/vars";
-import { send } from "@client/core/network/server-connection/connection/send";
-import { emitCollectionLog, emitInventory } from "@client/core/network/server-connection/domain/inventory";
-import { handleShopPayload } from "@client/core/network/server-connection/domain/shop";
-import { handleSmithingPayload } from "@client/core/network/server-connection/domain/smithing";
-import { emitPlayerSync, emitSkills } from "@client/core/network/server-connection/domain/skills";
-import { handleTradePayload } from "@client/core/network/server-connection/domain/trade";
-import { getClientCycle } from "@client/core/network/server-connection/timing";
-import { cloneRunEnergyState, state } from "@client/core/network/server-connection/state";
-import {
-    BANK_SLOT_COUNT_FALLBACK,
-    DEFAULT_SERVER_TICK_MS,
-    RUN_ENERGY_MAX_UNITS,
-} from "@client/core/network/server-connection/constants";
-import type {
-    BankServerUpdate,
-    ChatMessageEvent,
-    GroundItemsServerPayload,
-    NotificationEvent,
-    RunEnergyPayload,
-    RunEnergyState,
-    ShopServerPayload,
-    SmithingServerPayload,
-    SkillsServerPayload,
-    SpotAnimationPayload,
-    TradeServerPayload,
-} from "@client/core/network/server-connection/types/index";
-import type { WidgetServerPayload } from "@client/core/network/server-connection/types/widgets";
-import { decodeBase64 } from "@client/core/network/server-connection/encoding/Base64";
-import { applyGroundItemsDelta, cloneGroundItemsPayload } from "@client/core/network/server-connection/domain/groundItems";
-import { sanitizeBankSlotMessage, sanitizeInventorySlotMessage, sanitizeSpellResult } from "@client/core/network/server-connection/normalization/InboundPayloads";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
+import { state } from "@client/core/network/server-connection/state";
+import { ClientState } from "@client/engine/game/ClientState";
 
 export function handleInboundWorld(msg: any): boolean {
     if (msg.type === "camera") {
@@ -280,20 +252,20 @@ export function handleInboundWorld(msg: any): boolean {
 
                 // Apply attack option varps to ClientState for menu building
                 if (varpId === VARP_OPTION_ATTACK_PRIORITY_PLAYER) {
-                    ClientState.playerAttackOption = Math.max(0, Math.min(4, value | 0));
-                    console.log(
+                    ClientState.playerAttackOption = Math.max(0, Math.min(3, value | 0));
+                    clientDebugLog(
                         `[varp] Player attack option set to ${ClientState.playerAttackOption}`,
                     );
                 } else if (varpId === VARP_OPTION_ATTACK_PRIORITY_NPC) {
                     ClientState.npcAttackOption = Math.max(0, Math.min(3, value | 0));
-                    console.log(`[varp] NPC attack option set to ${ClientState.npcAttackOption}`);
+                    clientDebugLog(`[varp] NPC attack option set to ${ClientState.npcAttackOption}`);
                 } else if (varpId === VARP_FOLLOWER_INDEX) {
                     const followerIndex = value === 65535 ? -1 : value & 0xffff;
                     ClientState.followerIndex = followerIndex;
-                    console.log(`[varp] Follower index set to ${ClientState.followerIndex}`);
+                    clientDebugLog(`[varp] Follower index set to ${ClientState.followerIndex}`);
                 } else if (varpId === VARP_COMBAT_TARGET_PLAYER_INDEX) {
                     ClientState.combatTargetPlayerIndex = value === -1 ? -1 : value & 0x7ff;
-                    console.log(
+                    clientDebugLog(
                         `[varp] Combat target player index set to ${ClientState.combatTargetPlayerIndex}`,
                     );
                 }
@@ -339,7 +311,7 @@ export function handleInboundWorld(msg: any): boolean {
             if (mv && mv.cs2Vm) {
                 const scriptId = payload.scriptId | 0;
                 const args = payload.args || [];
-                console.log(`[runClientScript] executing script ${scriptId} with args:`, args);
+                clientDebugLog(`[runClientScript] executing script ${scriptId} with args:`, args);
                 const script = mv.cs2Vm.context?.loadScript?.(scriptId);
                 if (script) {
                     // Separate int and string args

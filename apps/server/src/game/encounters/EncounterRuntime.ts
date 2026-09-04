@@ -3,10 +3,12 @@ import { EncounterRandom } from "@server/game/encounters/EncounterRandom";
 import type { MechanicHandle } from "@server/game/encounters/mechanics/MechanicHandle";
 import { logger } from "@server/observability/logger";
 import type {
+    EncounterAttackDefinition,
     EncounterContext,
     EncounterDefinition,
     EncounterLifecycle,
     EncounterOwnedResources,
+    EncounterPhaseDefinition,
     EncounterThresholdEvent,
     PlannedEncounterAttack,
 } from "@server/game/encounters/EncounterTypes";
@@ -25,14 +27,17 @@ export class EncounterRuntime {
     private readonly cooldownUntil = new Map<string, number>();
     private readonly firedThresholds = new Set<string>();
     private readonly ownedNpcRuntimeIds = new Set<number>();
-    private readonly ownedTaskIds = new Set<string>();
+    private readonly ownedTaskIds = new Set<string | number>();
     private readonly ownedHazardIds = new Set<string>();
     private readonly ownedLocationIds = new Set<string>();
     private plannedAttack?: PlannedEncounterAttack;
     private previousAttackId?: string;
     private readonly activeMechanics = new Set<MechanicHandle>();
     private readonly mechanicsByBinding = new Map<string, Set<MechanicHandle>>();
+    private readonly mechanicEventCounts = new Map<string, number>();
+    private readonly phasesByHealth: readonly EncounterPhaseDefinition[];
     private mechanicSerial = 0;
+    private resetGeneration = 0;
 
     constructor(
         readonly id: string,
@@ -46,6 +51,9 @@ export class EncounterRuntime {
         this.currentNpcTypeId = npcTypeId;
         this.healthMax = Math.max(1, Math.trunc(definition.maxHealth ?? actorMaxHealth));
         this.healthCurrent = this.healthMax;
+        this.phasesByHealth = [...(definition.phases ?? [])].sort(
+            (first, second) => first.startsAtHealthPercent - second.startsAtHealthPercent,
+        );
         this.rng = new EncounterRandom(seed);
         // Keep animation variation on an independent deterministic stream so
         // adding a pool never changes which attacks the encounter selects.
@@ -54,11 +62,9 @@ export class EncounterRuntime {
     }
 
     get phaseId(): string {
-        const phases = [...(this.definition.phases ?? [])].sort(
-            (first, second) => first.startsAtHealthPercent - second.startsAtHealthPercent,
-        );
-        const current = phases.find(
-            (phase) => this.healthPercent <= phase.startsAtHealthPercent,
+        const healthPercent = this.healthPercent;
+        const current = this.phasesByHealth.find(
+            (phase) => healthPercent <= phase.startsAtHealthPercent,
         );
         return current?.id ?? "default";
     }
@@ -75,21 +81,11 @@ export class EncounterRuntime {
         targetIsAttackingNpc?: boolean;
     }): PlannedEncounterAttack | undefined {
         if (this.lifecycle === "dead" || this.lifecycle === "disposed") return undefined;
-        if (this.plannedAttack?.targetId === input.targetId) {
-            // Keep an attack reserved while the NPC closes to its preferred
-            // distance, but do not let a now-impossible short-range attack pin
-            // the NPC in pursuit forever. Hybrid bosses must be allowed to
-            // re-plan as soon as their target leaves that attack's max range.
-            const maximumDistance =
-                this.plannedAttack.definition.maxDistance ?? Number.POSITIVE_INFINITY;
-            if (input.targetDistance <= maximumDistance) return this.plannedAttack;
-        }
-        this.plannedAttack = undefined;
-
-        const context = this.createContext(input);
-        const phase = this.definition.phases?.find((entry) => entry.id === this.phaseId);
+        const phaseId = this.phaseId;
+        const context = this.createContext(input, phaseId);
+        const phase = this.definition.phases?.find((entry) => entry.id === phaseId);
         const allowedIds = phase?.attackIds ? new Set(phase.attackIds) : undefined;
-        const candidates = this.definition.attacks.filter((attack) => {
+        const isEligible = (attack: EncounterAttackDefinition): boolean => {
             if (allowedIds && !allowedIds.has(attack.id)) return false;
             if (input.tick < (this.cooldownUntil.get(attack.id) ?? 0)) return false;
             if (input.targetDistance < (attack.minDistance ?? 0)) return false;
@@ -97,7 +93,18 @@ export class EncounterRuntime {
                 return false;
             }
             return attack.condition?.(context) ?? true;
-        });
+        };
+        if (this.plannedAttack?.targetId === input.targetId) {
+            // Keep an attack reserved while the NPC closes to its preferred
+            // distance only while it remains legal in the current phase and
+            // context. This is important for conditional pursuit attacks such
+            // as Kree'arra's melee attempt, which must stop once its condition
+            // changes before the old reservation is consumed.
+            if (isEligible(this.plannedAttack.definition)) return this.plannedAttack;
+        }
+        this.plannedAttack = undefined;
+
+        const candidates = this.definition.attacks.filter(isEligible);
         if (candidates.length === 0) return undefined;
 
         const highestPriority = Math.max(...candidates.map((attack) => attack.priority ?? 0));
@@ -178,16 +185,24 @@ export class EncounterRuntime {
      * reset). Normal healing deliberately does not re-arm thresholds, while a
      * true reset clears every per-life combat decision and threshold.
      */
-    resetHealth(): void {
-        if (this.lifecycle === "disposed") return;
+    resetHealth(): EncounterOwnedResources {
+        if (this.lifecycle === "disposed") return this.emptyOwnedResources();
         this.lifecycle = "resetting";
+        this.resetGeneration += 1;
         this.cancelMechanics();
+        const resources = this.snapshotOwnedResources();
+        this.clearOwnedResources();
+        // The actor being reset remains the encounter's primary NPC. Every
+        // other owned NPC belongs to the life which just ended.
+        this.ownedNpcRuntimeIds.add(this.currentNpcRuntimeId);
         this.healthCurrent = this.healthMax;
         this.cooldownUntil.clear();
         this.firedThresholds.clear();
+        this.mechanicEventCounts.clear();
         this.plannedAttack = undefined;
         this.previousAttackId = undefined;
         this.lifecycle = "idle";
+        return resources;
     }
 
     transitionForm(npcRuntimeId: number, npcTypeId: number): void {
@@ -199,6 +214,9 @@ export class EncounterRuntime {
         this.currentNpcRuntimeId = Math.trunc(npcRuntimeId);
         this.currentNpcTypeId = Math.trunc(npcTypeId);
         this.ownedNpcRuntimeIds.add(this.currentNpcRuntimeId);
+        // Forms have independent attack rotations; the old form's cadence
+        // must not leak into the replacement's first attack.
+        this.mechanicEventCounts.clear();
         this.plannedAttack = undefined;
         this.lifecycle = this.healthCurrent <= 0 ? "dead" : "engaged";
     }
@@ -206,7 +224,7 @@ export class EncounterRuntime {
     ownNpc(npcRuntimeId: number): void {
         this.ownedNpcRuntimeIds.add(Math.trunc(npcRuntimeId));
     }
-    ownTask(taskId: string): void {
+    ownTask(taskId: string | number): void {
         this.ownedTaskIds.add(taskId);
     }
     ownHazard(hazardId: string): void {
@@ -214,6 +232,27 @@ export class EncounterRuntime {
     }
     ownLocation(locationId: string): void {
         this.ownedLocationIds.add(locationId);
+    }
+
+    releaseNpc(npcRuntimeId: number): void {
+        this.ownedNpcRuntimeIds.delete(Math.trunc(npcRuntimeId));
+    }
+
+    releaseTask(taskId: string | number): void {
+        this.ownedTaskIds.delete(taskId);
+    }
+
+    releaseHazard(hazardId: string): void {
+        this.ownedHazardIds.delete(hazardId);
+    }
+
+    releaseLocation(locationId: string): void {
+        this.ownedLocationIds.delete(locationId);
+    }
+
+    /** Monotonically changes whenever a same-actor encounter life is reset. */
+    get generation(): number {
+        return this.resetGeneration;
     }
 
     ownMechanic(handle: MechanicHandle): void {
@@ -238,6 +277,13 @@ export class EncounterRuntime {
         policy: MechanicReentrancyPolicy,
         create: () => MechanicHandle,
     ): MechanicHandle | undefined {
+        if (
+            this.lifecycle === "dead" ||
+            this.lifecycle === "disposed" ||
+            this.lifecycle === "resetting"
+        ) {
+            return undefined;
+        }
         const key = bindingId.trim();
         if (!key) throw new Error("Encounter mechanic binding id cannot be empty.");
         const existing = [...(this.mechanicsByBinding.get(key) ?? [])].filter(
@@ -255,6 +301,13 @@ export class EncounterRuntime {
             return undefined;
         }
         if (!handle.isActive) return handle;
+        // A mechanic launched through this policy boundary is encounter-owned
+        // even when its factory is a small content-specific implementation
+        // rather than one of the shared factories. Shared factories already
+        // call ownMechanic themselves; Set membership makes that registration
+        // safely idempotent. Without this ownership, resetHealth()/dispose()
+        // could leave a content mechanic running after its boss reset.
+        this.ownMechanic(handle);
         let handles = this.mechanicsByBinding.get(key);
         if (!handles) {
             handles = new Set();
@@ -269,6 +322,33 @@ export class EncounterRuntime {
         return this.mechanicSerial;
     }
 
+    /**
+     * Advances one declarative mechanic cadence for this encounter life.
+     * Returns the one-based event count, or undefined once the encounter can
+     * no longer start mechanics. Counts are cleared by health resets and form
+     * transitions, and are never shared between spawned runtimes.
+     */
+    advanceMechanicEvent(bindingId: string): number | undefined {
+        if (
+            this.lifecycle === "dead" ||
+            this.lifecycle === "disposed" ||
+            this.lifecycle === "resetting"
+        ) {
+            return undefined;
+        }
+        const key = bindingId.trim();
+        if (!key) throw new Error("Encounter mechanic event id cannot be empty.");
+        const count = (this.mechanicEventCounts.get(key) ?? 0) + 1;
+        this.mechanicEventCounts.set(key, count);
+        return count;
+    }
+
+    resetMechanicEvent(bindingId: string): void {
+        const key = bindingId.trim();
+        if (!key) throw new Error("Encounter mechanic event id cannot be empty.");
+        this.mechanicEventCounts.delete(key);
+    }
+
     snapshotOwnedResources(): EncounterOwnedResources {
         return {
             npcRuntimeIds: new Set(this.ownedNpcRuntimeIds),
@@ -281,13 +361,28 @@ export class EncounterRuntime {
     dispose(): EncounterOwnedResources {
         const resources = this.snapshotOwnedResources();
         this.lifecycle = "disposed";
+        this.resetGeneration += 1;
         this.cancelMechanics();
+        this.mechanicEventCounts.clear();
         this.plannedAttack = undefined;
+        this.clearOwnedResources();
+        return resources;
+    }
+
+    private clearOwnedResources(): void {
         this.ownedNpcRuntimeIds.clear();
         this.ownedTaskIds.clear();
         this.ownedHazardIds.clear();
         this.ownedLocationIds.clear();
-        return resources;
+    }
+
+    private emptyOwnedResources(): EncounterOwnedResources {
+        return {
+            npcRuntimeIds: new Set(),
+            taskIds: new Set(),
+            hazardIds: new Set(),
+            locationIds: new Set(),
+        };
     }
 
     private cancelMechanics(): void {
@@ -308,7 +403,7 @@ export class EncounterRuntime {
         targetDistance: number;
         targetProtectingFromMelee?: boolean;
         targetIsAttackingNpc?: boolean;
-    }): EncounterContext {
+    }, phaseId: string): EncounterContext {
         return {
             tick: Math.trunc(input.tick),
             encounterId: this.id,
@@ -319,7 +414,7 @@ export class EncounterRuntime {
             healthCurrent: this.healthCurrent,
             healthMax: this.healthMax,
             healthPercent: this.healthPercent,
-            phaseId: this.phaseId,
+            phaseId,
             previousAttackId: this.previousAttackId,
             targetProtectingFromMelee: input.targetProtectingFromMelee === true,
             targetIsAttackingNpc: input.targetIsAttackingNpc === true,

@@ -2,6 +2,10 @@ import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { PlayerState } from "@server/game/player";
 import {
+    registerPlayerLifecycleCleanup,
+    removeTrackedPlayerNpc,
+} from "@server/game/scripts/ScriptLifecycle";
+import {
     NpcPreDeathDecision,
     type IScriptRegistry,
     type NpcInteractionEvent,
@@ -261,12 +265,24 @@ export function registerLostCityInteractions(
     registry: IScriptRegistry,
     services: ScriptServices,
 ): void {
+    const clearPlayer = (playerId: number): void => {
+        const shamusId = shamusByPlayer.get(playerId);
+        removeTrackedPlayerNpc(services, playerId, shamusId);
+        const spiritId = spiritByPlayer.get(playerId);
+        removeTrackedPlayerNpc(services, playerId, spiritId);
+        shamusByPlayer.delete(playerId);
+        spiritByPlayer.delete(playerId);
+    };
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearPlayer,
+        reset: () => {
+            for (const playerId of new Set([...shamusByPlayer.keys(), ...spiritByPlayer.keys()])) {
+                clearPlayer(playerId);
+            }
+        },
+    });
     registerAdventurers(quest, registry);
     registerLeprechaunTree(quest, registry);
     registerDramenTree(quest, registry);
     registerStaffAndDoor(quest, registry);
-    services.system.eventBus?.on("player:logout", ({ playerId }) => {
-        shamusByPlayer.delete(playerId);
-        spiritByPlayer.delete(playerId);
-    });
 }

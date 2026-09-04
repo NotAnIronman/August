@@ -8,6 +8,11 @@ const redirectServedPath = require("react-dev-utils/redirectServedPathMiddleware
 const paths = require("react-scripts/config/paths");
 const express = require("express");
 
+// Public hosts should not expose application source or transfer multi-megabyte
+// source maps unless a developer opts into them for a diagnostic build.
+const emitProductionSourceMaps =
+    String(process.env.GENERATE_SOURCEMAP ?? "").trim().toLowerCase() === "true";
+
 // This package is the CRA app root. Runtime source lives under src/ and shared
 // workspace packages are compiled explicitly below.
 const appRoot = __dirname;
@@ -70,6 +75,10 @@ module.exports = {
     },
     webpack: {
         configure: (webpackConfig) => {
+            if (webpackConfig.mode === "production" && !emitProductionSourceMaps) {
+                webpackConfig.devtool = false;
+            }
+
             const jsXxhashPath = path.resolve(appRoot, "node_modules/js-xxhash");
             const glslLoader = {
                 test: /\.(glsl|vs|fs)$/,
@@ -131,6 +140,11 @@ module.exports = {
 
             webpackConfig.resolve.fallback = {
                 fs: false,
+                // @foxglove/wasm-bz2 ships a universal Emscripten wrapper
+                // with guarded Node-only path calls. The browser never runs
+                // that branch, so an empty core-module shim is both smaller
+                // and more accurate than shipping a Node path polyfill.
+                path: false,
             };
 
             webpackConfig.resolve.alias = {

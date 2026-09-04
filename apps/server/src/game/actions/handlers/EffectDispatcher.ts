@@ -227,7 +227,7 @@ export class EffectDispatcher {
 
         if (level === "error") logger.error(logLine);
         else if (level === "warn") logger.warn(logLine);
-        else logger.info(logLine);
+        else logger.debug(logLine);
 
         const messageType: "game" | "server" =
             level === "warn" || level === "error" ? "server" : "game";

@@ -31,6 +31,7 @@ import {
     resolveNpcOptionByOpNum,
 } from "@server/network/handlers/examineHandler";
 import { encodeMessage } from "@server/network/messages";
+import { rememberPendingDebugRequest } from "@server/network/PendingDebugRequests";
 
 export function registerMessageHandlers(svc: ServerServices, router: MessageRouter): void {
     // Register extracted handlers from MessageHandlers.ts
@@ -284,7 +285,9 @@ export function registerMessageHandlers(svc: ServerServices, router: MessageRout
             svc.networkLayer.sendAdminResponse(ws, message, context),
         withDirectSendBypass: (context, fn) => svc.networkLayer.withDirectSendBypass(context, fn),
         encodeMessage: encodeMessage,
-        setPendingDebugRequest: (requestId, ws) => svc.pendingDebugRequests!.set(requestId, ws),
+        setPendingDebugRequest: (requestId, ws) => {
+            rememberPendingDebugRequest(svc.pendingDebugRequests!, requestId, ws);
+        },
         getPendingDebugRequest: (requestId) => svc.pendingDebugRequests!.get(requestId),
 
         // Tick

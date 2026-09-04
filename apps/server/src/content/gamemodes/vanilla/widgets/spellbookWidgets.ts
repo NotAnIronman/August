@@ -5,6 +5,8 @@ import { SpellbookName } from "@server/data/spellWidgetLoader";
 import { RUNE_IDS } from "@server/game/data/RuneDataProvider";
 import type { PlayerState } from "@server/game/player";
 import { SpellCaster } from "@server/game/spells/SpellCaster";
+import { applyInventoryTransform } from "@server/game/skilling/InventoryTransform";
+import { defineSkillAction, requestSkillAction } from "@server/game/skilling/SkillAction";
 import {
     type SkillBoltEnchantActionData as BoltEnchantActionData,
     HOME_TELEPORT_TIMER,
@@ -44,9 +46,10 @@ const CHATBOX_RESET_SCRIPT_ID = 2379;
 const MAGIC_SKILL_ID = SkillId.Magic;
 const CROSSBOW_BOLT_ENCHANT_ANIM_ID = 4462;
 const BOLTS_PER_ENCHANT_SET = 10;
-const BOLT_ENCHANT_ACTION_KIND = "skill.bolt_enchant";
-const BOLT_ENCHANT_ACTION_DELAY_TICKS = 3;
-const BOLT_ENCHANT_ACTION_GROUP = "skill.bolt_enchant";
+const BOLT_ENCHANT_START_ACTION = defineSkillAction("bolt_enchant", {
+    delayTicks: 0,
+    cooldownTicks: 3,
+});
 const MINIGAME_TELEPORT_GROUP_ID = 951;
 const MINIGAME_TELEPORT_OPEN_VARBIT_ID = 12393;
 const SCRIPT_MINIGAMES_PREPARE = 2524;
@@ -906,18 +909,14 @@ function startBoltEnchantAction(
         animationId: CROSSBOW_BOLT_ENCHANT_ANIM_ID,
     };
 
-    const result = services.combat.requestAction(
+    const accepted = requestSkillAction(
+        services,
         player,
-        {
-            kind: BOLT_ENCHANT_ACTION_KIND,
-            data: actionData,
-            delayTicks: 0,
-            cooldownTicks: BOLT_ENCHANT_ACTION_DELAY_TICKS,
-            groups: [BOLT_ENCHANT_ACTION_GROUP],
-        },
+        BOLT_ENCHANT_START_ACTION,
+        actionData,
         tick,
     );
-    if (!result.ok) {
+    if (!accepted) {
         services.messaging.sendGameMessage(player, "You can't enchant bolts right now.");
     }
 }
@@ -965,30 +964,22 @@ function executeBoltEnchant(
         quantity: Math.max(0, entry.quantity * finalSets),
     }));
 
-    if (totalRunesToConsume.length > 0) {
-        consumeRunesFromInventory(player, totalRunesToConsume, services, { snapshot: false });
-    }
-
-    const removedBolts = consumeItemFromInventory(
-        player,
-        variant.sourceItemId,
-        boltsToEnchant,
-        services,
-    );
-    if (!removedBolts) {
-        services.messaging.sendGameMessage(player, "You don't have enough bolts to enchant.");
-        return;
-    }
-
-    const added = services.inventory.addItemToInventory(
-        player,
-        variant.enchantedItemId,
-        boltsToEnchant,
-    );
-    if (added.added < boltsToEnchant) {
-        services.messaging.sendGameMessage(player, "You don't have enough inventory space.");
-        // Best-effort rollback for unexpected failure.
-        services.inventory.addItemToInventory(player, variant.sourceItemId, boltsToEnchant);
+    const exchange = applyInventoryTransform(services.inventory, player, {
+        inputs: [
+            { itemId: variant.sourceItemId, quantity: boltsToEnchant },
+            ...totalRunesToConsume
+                .filter((entry) => entry.quantity > 0)
+                .map((entry) => ({ itemId: entry.runeId, quantity: entry.quantity })),
+        ],
+        outputs: [{ itemId: variant.enchantedItemId, quantity: boltsToEnchant }],
+    });
+    if (!exchange.ok) {
+        services.messaging.sendGameMessage(
+            player,
+            exchange.reason === "inventory-full"
+                ? "You don't have enough inventory space."
+                : "You no longer have the bolts and runes needed for that enchantment.",
+        );
         return;
     }
 

@@ -700,19 +700,12 @@ export function registerClientOps(handlers: HandlerMap): void {
         ctx.cs2Vm.inputDialogType = 0;
         ctx.cs2Vm.inputDialogWidgetId = -1;
         ctx.cs2Vm.inputDialogString = "";
-        // --- TEMP DIAGNOSTIC: remove once the right-click-blocks-typing cause is found ---
-        console.log("[typing-diag] SETKEYINPUTMODE_ALL fired — inputDialogType reset to 0");
-        console.trace("[typing-diag] call site");
-        // --- END TEMP DIAGNOSTIC ---
     });
 
     // Opcode 3139: SETKEYINPUTMODE_KEYBOARD - Enable keyboard input mode (type 1)
     // Used to enable chatbox input for typing
     handlers.set(Opcodes.SETKEYINPUTMODE_KEYBOARD, (ctx) => {
         ctx.cs2Vm.inputDialogType = 1;
-        // --- TEMP DIAGNOSTIC: remove once the right-click-blocks-typing cause is found ---
-        console.log("[typing-diag] SETKEYINPUTMODE_KEYBOARD fired — keyboard input mode enabled");
-        // --- END TEMP DIAGNOSTIC ---
     });
 
     // Opcode 3140: GETKEYINPUTMODE - Get current key input mode

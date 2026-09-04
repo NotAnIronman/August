@@ -1,6 +1,8 @@
 import fs from "fs";
 
+import { writeJsonFileAtomicallySync } from "@server/io/AtomicFile";
 import { serverCatalogPath } from "@server/paths";
+import { registerPlayerScopedCollections } from "@server/game/scripts/ScriptLifecycle";
 import type {
     CommandHandler,
     IScriptRegistry,
@@ -75,7 +77,7 @@ function readCatalog(): ObjectTransitionFile {
 }
 
 function saveCatalog(catalog: ObjectTransitionFile): void {
-    fs.writeFileSync(CATALOG_PATH, `${JSON.stringify(catalog, null, 2)}\n`, "utf8");
+    writeJsonFileAtomicallySync(CATALOG_PATH, catalog);
 }
 
 /** Convert the first development build's verbose IDs into short stable IDs. */
@@ -155,19 +157,35 @@ function hasRequirements(event: LocInteractionEvent, transition: ObjectTransitio
     return undefined;
 }
 
+const pendingTransitions = new Set<number>();
+
 function executeTransition(event: LocInteractionEvent, transition: ObjectTransition): void {
+    if (pendingTransitions.has(event.player.id)) return;
     const failure = hasRequirements(event, transition);
     if (failure) {
         event.services.messaging.sendGameMessage(event.player, failure);
         return;
     }
-    event.services.movement.teleportPlayer(event.player, transition.to.x, transition.to.y, transition.to.level);
+    pendingTransitions.add(event.player.id);
+    event.services.dialog.queueDebugMessage(event.player.id, {
+        kind: "transport_prefetch",
+        x: transition.to.x,
+        y: transition.to.y,
+        level: transition.to.level,
+    });
     if (transition.animationId !== undefined) {
-        // Teleport queues the stop sequence. Clear it first so this animation is visible.
+        // Keep the player at the source tile while destination data streams.
         event.player.clearPendingSeqs();
         event.services.animation.playPlayerSeq(event.player, transition.animationId);
     }
-    if (transition.message) event.services.messaging.sendGameMessage(event.player, transition.message);
+    event.services.scheduler.after(2, () => {
+        // Logout/reset removes the pending token. A delayed callback from the
+        // old session must then become a no-op instead of teleporting a stale
+        // PlayerState after its protocol id has been reused.
+        if (!pendingTransitions.delete(event.player.id)) return;
+        event.services.movement.teleportPlayer(event.player, transition.to.x, transition.to.y, transition.to.level);
+        if (transition.message) event.services.messaging.sendGameMessage(event.player, transition.message);
+    }, { kind: "player", id: event.player.id });
 }
 
 /**
@@ -185,6 +203,7 @@ function executeTransition(event: LocInteractionEvent, transition: ObjectTransit
  * every standable tile instead of needing a duplicate rule per tile.
  */
 export function registerDevObjectTransitions(registry: IScriptRegistry, services: ScriptServices): void {
+    registerPlayerScopedCollections(registry, services, pendingTransitions);
     let catalog = readCatalog();
     if (normalizeRuleIds(catalog)) saveCatalog(catalog);
     const registrations = new Map<string, ScriptRegistrationResult>();
@@ -254,11 +273,12 @@ export function registerDevObjectTransitions(registry: IScriptRegistry, services
         saveCatalog(catalog);
         refresh();
     };
-    reloadActiveTransitions = (): void => {
+    const reload = (): void => {
         catalog = readCatalog();
         if (normalizeRuleIds(catalog)) saveCatalog(catalog);
         refresh();
     };
+    reloadActiveTransitions = reload;
 
     const nextRuleId = (): string => {
         const highest = catalog.transitions.reduce((highestId, rule) => {
@@ -400,4 +420,9 @@ export function registerDevObjectTransitions(registry: IScriptRegistry, services
         summary: "Create and edit live object movement rules.",
     });
     refresh();
+    registry.registerCleanup(() => {
+        if (reloadActiveTransitions === reload) reloadActiveTransitions = undefined;
+        for (const registration of registrations.values()) registration.unregister();
+        registrations.clear();
+    });
 }

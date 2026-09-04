@@ -1,7 +1,80 @@
 import { getConfiguredServers } from "@client/core/config/clientEnv";
+import { fetchWithTimeout } from "@client/core/network/fetchWithTimeout";
+import { readBoundedJsonResponse } from "@client/core/network/BoundedResponse";
 import { SERVER_LIST_URL } from "@client/features/login/renderer/constants";
 import type { LoginRendererHost } from "@client/features/login/renderer/host";
 import type { ServerListEntry } from "@client/features/login/renderer/types";
+import { mapWithConcurrency } from "@august/osrs-engine/util/AsyncConcurrency";
+
+export const MAX_SERVER_LIST_ENTRIES = 256;
+const SERVER_PROBE_CONCURRENCY = 8;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+        return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isValidServerAddress(value: string): boolean {
+        const address = value.trim();
+        if (!address || address.length > 512 || /[\s/\\@?#]/.test(address)) return false;
+        try {
+            const parsed = new URL(`ws://${address}`);
+            return !!parsed.hostname && parsed.username === "" && parsed.password === "";
+        } catch {
+            return false;
+        }
+}
+
+/** Normalize an untrusted public server list before rendering or probing it. */
+export function parseServerListEntries(value: unknown): ServerListEntry[] {
+        if (!Array.isArray(value) || value.length === 0 || value.length > MAX_SERVER_LIST_ENTRIES) {
+            return [];
+        }
+        const result: ServerListEntry[] = [];
+        for (const [index, raw] of value.entries()) {
+            if (!isRecord(raw) || typeof raw.address !== "string" || !isValidServerAddress(raw.address)) {
+                continue;
+            }
+            const id =
+                typeof raw.id === "number" && Number.isSafeInteger(raw.id) && raw.id >= 0
+                    ? raw.id
+                    : index + 1;
+            const name =
+                typeof raw.name === "string" && raw.name.trim() && raw.name.length <= 128
+                    ? raw.name.trim()
+                    : "Unknown";
+            const activity =
+                typeof raw.activity === "string" && raw.activity.length <= 256
+                    ? raw.activity
+                    : "";
+            const maxPlayers =
+                typeof raw.maxPlayers === "number" &&
+                Number.isSafeInteger(raw.maxPlayers) &&
+                raw.maxPlayers >= 1 &&
+                raw.maxPlayers <= 2_047
+                    ? raw.maxPlayers
+                    : 2_047;
+            const location =
+                typeof raw.location === "number" && Number.isSafeInteger(raw.location)
+                    ? raw.location
+                    : 0;
+            const properties =
+                typeof raw.properties === "number" && Number.isSafeInteger(raw.properties)
+                    ? raw.properties
+                    : 0;
+            result.push({
+                id,
+                name,
+                activity,
+                address: raw.address.trim(),
+                secure: raw.secure === true,
+                playerCount: null,
+                maxPlayers,
+                location,
+                properties,
+            });
+        }
+        return result;
+}
 
 function filterServersForCurrentHost(servers: ServerListEntry[]) {
 
@@ -29,33 +102,41 @@ function filterServersForCurrentHost(servers: ServerListEntry[]) {
     
 }
 
-function probeWebSocket(url: string, timeoutMs: number) {
+function probeWebSocket(url: string, timeoutMs: number, signal?: AbortSignal) {
 
-        return new Promise((resolve) => {
+        return new Promise<boolean>((resolve) => {
+            if (signal?.aborted) {
+                resolve(false);
+                return;
+            }
             let settled = false;
-            const ws = new WebSocket(url);
-            const timer = setTimeout(() => {
-                if (!settled) {
-                    settled = true;
+            let ws: WebSocket;
+            try {
+                ws = new WebSocket(url);
+            } catch {
+                resolve(false);
+                return;
+            }
+            let timer: ReturnType<typeof setTimeout> | undefined;
+            const finish = (alive: boolean) => {
+                if (settled) return;
+                settled = true;
+                if (timer !== undefined) clearTimeout(timer);
+                signal?.removeEventListener("abort", handleAbort);
+                ws.removeEventListener("open", handleOpen);
+                ws.removeEventListener("error", handleError);
+                try {
                     ws.close();
-                    resolve(false);
-                }
-            }, timeoutMs);
-            ws.addEventListener("open", () => {
-                if (!settled) {
-                    settled = true;
-                    clearTimeout(timer);
-                    ws.close();
-                    resolve(true);
-                }
-            });
-            ws.addEventListener("error", () => {
-                if (!settled) {
-                    settled = true;
-                    clearTimeout(timer);
-                    resolve(false);
-                }
-            });
+                } catch {}
+                resolve(alive);
+            };
+            const handleOpen = () => finish(true);
+            const handleError = () => finish(false);
+            const handleAbort = () => finish(false);
+            timer = setTimeout(() => finish(false), timeoutMs);
+            ws.addEventListener("open", handleOpen);
+            ws.addEventListener("error", handleError);
+            signal?.addEventListener("abort", handleAbort, { once: true });
         });
     
 }
@@ -63,11 +144,13 @@ function probeWebSocket(url: string, timeoutMs: number) {
 export async function fetchServerList(host: LoginRendererHost): Promise<void> {
 
         if (host.serverListFetched) return;
+        const signal = host.lifecycleAbortController.signal;
+        if (signal.aborted) return;
 
         const configured = getConfiguredServers();
         if (configured && configured.length > 0) {
             host.serverList = filterServersForCurrentHost(
-                configured.map((s) => ({
+                parseServerListEntries(configured.map((s) => ({
                     id: s.id,
                     name: s.name,
                     activity: s.activity,
@@ -77,73 +160,97 @@ export async function fetchServerList(host: LoginRendererHost): Promise<void> {
                     maxPlayers: s.maxPlayers,
                     location: 0,
                     properties: 0,
-                })),
+                }))),
             );
             host.serverListFetched = true;
             return;
         }
 
         try {
-            const res = await fetch(SERVER_LIST_URL, { signal: AbortSignal.timeout(5000) });
+            const res = await fetchWithTimeout(SERVER_LIST_URL, 5000, { signal });
             if (res.ok) {
-                const data = await res.json();
-                if (Array.isArray(data) && data.length > 0) {
+                const data = await readBoundedJsonResponse(res, 256 * 1024);
+                if (signal.aborted) return;
+                const parsed = parseServerListEntries(data);
+                if (parsed.length > 0) {
                     host.serverList = filterServersForCurrentHost(
-                        data.map((s: any) => ({
-                            id: typeof s.id === "number" ? s.id : 0,
-                            name: s.name ?? "Unknown",
-                            activity: s.activity ?? "",
-                            address: s.address ?? "",
-                            secure: s.secure ?? false,
-                            playerCount: null,
-                            maxPlayers: s.maxPlayers ?? 2047,
-                            location: s.location ?? 0,
-                            properties: s.properties ?? 0,
-                        })),
+                        parsed,
                     );
                 }
             }
         } catch {
             // keep fallback
         }
-        host.serverListFetched = true;
+        if (!signal.aborted) host.serverListFetched = true;
     
 }
 
 export function refreshServerList(host: LoginRendererHost) {
 
         if (host.probing) return;
+        const signal = host.lifecycleAbortController.signal;
+        if (signal.aborted) return;
         host.probed = false;
         host.probing = true;
 
-        const promises = host.serverList.map(async (server) => {
-            const protocol = server.secure ? "https" : "http";
-            let httpOk = false;
-            try {
-                const res = await fetch(`${protocol}://${server.address}/status`, {
-                    signal: AbortSignal.timeout(8000),
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    server.playerCount =
-                        typeof data.playerCount === "number" ? data.playerCount : null;
-                    if (typeof data.maxPlayers === "number") server.maxPlayers = data.maxPlayers;
-                    httpOk = true;
+        const probes = mapWithConcurrency(
+            host.serverList.slice(0, MAX_SERVER_LIST_ENTRIES),
+            SERVER_PROBE_CONCURRENCY,
+            async (server) => {
+                if (signal.aborted) return;
+                const protocol = server.secure ? "https" : "http";
+                let httpOk = false;
+                try {
+                    const res = await fetchWithTimeout(
+                        `${protocol}://${server.address}/status`,
+                        8000,
+                        { signal },
+                    );
+                    if (res.ok) {
+                        const data = await readBoundedJsonResponse(res, 64 * 1024);
+                        if (signal.aborted) return;
+                        const status =
+                            data && typeof data === "object"
+                                ? (data as Record<string, unknown>)
+                                : undefined;
+                        server.playerCount =
+                            typeof status?.playerCount === "number" &&
+                            Number.isSafeInteger(status.playerCount) &&
+                            status.playerCount >= 0 &&
+                            status.playerCount <= 2_047
+                                ? status.playerCount
+                                : null;
+                        if (
+                            typeof status?.maxPlayers === "number" &&
+                            Number.isSafeInteger(status.maxPlayers) &&
+                            status.maxPlayers >= 1 &&
+                            status.maxPlayers <= 2_047
+                        ) {
+                            server.maxPlayers = status.maxPlayers;
+                        }
+                        httpOk = true;
+                    }
+                } catch {
+                    /* fall through to ws probe */
                 }
-            } catch {
-                /* fall through to ws probe */
-            }
 
-            if (!httpOk) {
-                const wsProto = server.secure ? "wss" : "ws";
-                const alive = await probeWebSocket(`${wsProto}://${server.address}`, 5000);
-                server.playerCount = alive ? -1 : null;
-            }
-        });
+                if (!httpOk) {
+                    const wsProto = server.secure ? "wss" : "ws";
+                    const alive = await probeWebSocket(
+                        `${wsProto}://${server.address}`,
+                        5000,
+                        signal,
+                    );
+                    if (signal.aborted) return;
+                    server.playerCount = alive ? -1 : null;
+                }
+            },
+        );
 
-        Promise.all(promises).finally(() => {
+        const finish = () => {
             host.probing = false;
-            host.probed = true;
-        });
+            if (!signal.aborted) host.probed = true;
+        };
+        void probes.then(finish, finish);
     
 }

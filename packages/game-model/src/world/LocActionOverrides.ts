@@ -37,6 +37,17 @@ export const LOC_ACTION_OVERRIDES: Readonly<Record<number, readonly (string | nu
             "Enter Party",
             "Join Party",
         ]),
+        // Araxxor was released after the generated loc catalogue in this
+        // workspace. Without an override its entrance has no client actions,
+        // which means the server never receives an interaction packet at all.
+        54161: Object.freeze([
+            "Open",
+            "Peek",
+            "Enter Solo",
+            "Enter Party",
+            "Join Party",
+        ]),
+        54274: Object.freeze(["Quick-escape"]),
         // Moons statues begin only a solo encounter. This must mirror the
         // server registration exactly: menu labels are action identifiers.
         51372: Object.freeze(["Start solo"]),

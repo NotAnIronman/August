@@ -1,4 +1,5 @@
 import { logger } from "@server/observability/logger";
+import type { BossHealthBarState } from "@august/protocol/ui/bossHealthBar";
 import type { QuestListWidgetGroup } from "@august/protocol/ui/questList";
 import {
     ContainerChildIds,
@@ -118,7 +119,8 @@ export type WidgetAction =
     | {
           action: "set_quest_list";
           groups: QuestListWidgetGroup[];
-      };
+      }
+    | ({ action: "set_boss_health_bar" } & BossHealthBarState);
 
 /**
  * Get all default interfaces to open for a display mode

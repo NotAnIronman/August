@@ -1,4 +1,5 @@
 import type { IdkTypeLoader } from "@august/osrs-engine/config/idktype/IdkTypeLoader";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import type { ObjTypeLoader } from "@august/osrs-engine/config/objtype/ObjTypeLoader";
 import { Gender, PlayerAppearance } from "@august/osrs-engine/config/player/PlayerAppearance";
 import {
@@ -33,7 +34,7 @@ export class PlayerChatheadFactory {
 
     get(appearance: PlayerAppearance | undefined): Model | undefined {
         if (!appearance) {
-            console.log("[PlayerChatheadFactory] No appearance provided");
+            clientDebugLog("[PlayerChatheadFactory] No appearance provided");
             return undefined;
         }
         const keyBase = appearance.getCacheKey?.() ?? JSON.stringify(appearance);
@@ -138,7 +139,10 @@ export class PlayerChatheadFactory {
             if (rawHead >= 256 && rawHead < 512) {
                 // 256-511 encodes a kit (id = val - 256)
                 const kitId = rawHead - 256;
-                console.log("[PlayerChatheadFactory] Head slot encoded as kit", { rawHead, kitId });
+                clientDebugLog("[PlayerChatheadFactory] Head slot encoded as kit", {
+                    rawHead,
+                    kitId,
+                });
                 pushKitModels(kitId);
                 headCoveredByItem = true;
             } else if (rawHead >= 0 && this.objTypeLoader) {
@@ -210,7 +214,7 @@ export class PlayerChatheadFactory {
                         if (foundItem.noteTemplate !== -1 && foundItem.unnotedId >= 0) {
                             const base = this.objTypeLoader.load(foundItem.unnotedId);
                             if (base) {
-                                console.log("[PlayerChatheadFactory] Unnoting head item", {
+                                clientDebugLog("[PlayerChatheadFactory] Unnoting head item", {
                                     resolvedItemId,
                                     unnotedId: foundItem.unnotedId,
                                 });
@@ -224,7 +228,7 @@ export class PlayerChatheadFactory {
                         if (foundItem.placeholderTemplate !== -1 && foundItem.placeholder !== -1) {
                             const base = this.objTypeLoader.load(foundItem.placeholder);
                             if (base) {
-                                console.log("[PlayerChatheadFactory] Unplaceholder head item", {
+                                clientDebugLog("[PlayerChatheadFactory] Unplaceholder head item", {
                                     resolvedItemId,
                                     placeholderId: foundItem.placeholder,
                                 });
@@ -237,7 +241,7 @@ export class PlayerChatheadFactory {
                         }
                     } catch {}
 
-                    console.log("[PlayerChatheadFactory] Using head item", {
+                    clientDebugLog("[PlayerChatheadFactory] Using head item", {
                         rawHeadItemId: rawHead,
                         resolvedItemId,
                         candidates,
@@ -268,7 +272,7 @@ export class PlayerChatheadFactory {
                         if (b2 >= 0) bodyModels.push(b2);
                         if (b3 >= 0) bodyModels.push(b3);
                         if (bodyModels.length) {
-                            console.log(
+                            clientDebugLog(
                                 "[PlayerChatheadFactory] Using wearable body models as head fallback",
                                 bodyModels,
                             );
@@ -286,7 +290,7 @@ export class PlayerChatheadFactory {
                     for (const cand of candidates) {
                         const md = this.modelLoader.getModel(cand);
                         if (md) {
-                            console.log(
+                            clientDebugLog(
                                 "[PlayerChatheadFactory] Treating candidate as direct model id",
                                 cand,
                             );
@@ -314,7 +318,7 @@ export class PlayerChatheadFactory {
                     // (Simple heuristic: usually first heads are male, later female, but we check valid models)
                     if (part === 0) {
                         // Just pick the first available head for now as fallback
-                        console.log("[PlayerChatheadFactory] Found fallback head kit", id);
+                        clientDebugLog("[PlayerChatheadFactory] Found fallback head kit", id);
                         effectiveHeadKitId = id;
                         break;
                     }
@@ -334,7 +338,7 @@ export class PlayerChatheadFactory {
             );
         }
 
-        console.log("[PlayerChatheadFactory] Final model IDs:", modelIds);
+        clientDebugLog("[PlayerChatheadFactory] Final model IDs:", modelIds);
 
         if (!modelIds.length) {
             console.warn("[PlayerChatheadFactory] No model IDs found for chathead");

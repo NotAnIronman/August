@@ -1,7 +1,7 @@
 /**
  * Regression coverage for face-entity sync after auto-retaliation.
  *
- * Run with: npx tsx tests/combat-interaction-facing.test.ts
+ * Run with: pnpm exec tsx tests/combat-interaction-facing.test.ts
  */
 import assert from "node:assert/strict";
 

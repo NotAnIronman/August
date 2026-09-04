@@ -80,6 +80,12 @@ Browser client only:
 pnpm run client
 ```
 
+Routine server logs stay at **info** without tracing each walk, attack, item, or
+widget packet. Set **LOG_LEVEL=debug** temporarily when diagnosing those paths;
+**LOG_INCLUDE** and **LOG_EXCLUDE** can narrow output to comma-separated categories.
+Set **REACT_APP_CLIENT_DEBUG=true** in **apps/client/.env.local** before starting or
+building the browser when verbose client diagnostics are needed.
+
 Run one configured world:
 
 ```bash
@@ -95,6 +101,11 @@ the login screen from the client configuration.
 New-account registration is enabled unless **ALLOW_ACCOUNT_REGISTRATION=false**.
 Privileged usernames are empty by default and must be configured explicitly.
 
+Production startup fails when a gamemode or content module cannot register, preventing a
+partially functional world from accepting players. Development logs all broken providers
+and continues so one module can be repaired at a time. Set **SCRIPT_STRICT_STARTUP**
+explicitly only when you need to override that environment-sensitive default.
+
 Legacy account-file claiming is disabled by default. Enable it only for a controlled
 migration:
 
@@ -102,6 +113,16 @@ migration:
 $env:ALLOW_LEGACY_ACCOUNT_CLAIM = "true"
 pnpm run start
 ```
+
+## Player persistence
+
+Connected players are autosaved every two minutes by default. Large worlds save in
+bounded batches so serialization and SQLite work do not monopolize a game tick. Override
+the cadence with **PLAYER_AUTOSAVE_TICKS** and the batch size with
+**PLAYER_AUTOSAVE_BATCH_SIZE**; the root **.env.example** documents their defaults and
+limits. Setting **PLAYER_AUTOSAVE_TICKS=0** disables periodic saves, but an orderly server
+shutdown still drains pending work and performs one final complete save before closing
+the database.
 
 ## Troubleshooting
 
@@ -148,7 +169,7 @@ failure.
 | **pnpm run prepare:data** | Ensure cache inputs and build collision data |
 | **pnpm run start** | Start both configured worlds and the client |
 | **pnpm run start:vanilla** | Start World 1 and the client |
-| **pnpm run check** | Type-check, run safe tests, and build docs |
+| **pnpm run check** | Run repository contracts, typechecks, safe tests, and all production builds |
 | **pnpm run typecheck:all** | Include broader maintenance/test typing |
 | **pnpm run test:all** | Run all app suites |
 | **pnpm run test:cache** | Run cache-dependent suites |

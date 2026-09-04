@@ -1,5 +1,9 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { PlayerState } from "@server/game/player";
+import {
+    registerPlayerLifecycleCleanup,
+    removeTrackedPlayerNpc,
+} from "@server/game/scripts/ScriptLifecycle";
 import type {
     IScriptRegistry,
     NpcInteractionEvent,
@@ -88,7 +92,7 @@ function ensurePlatformHolgart(player: PlayerState, services: ScriptServices): v
 
 function removePlatformHolgart(playerId: number, services: ScriptServices): void {
     const npcId = platformHolgartByPlayer.get(playerId);
-    if (npcId !== undefined) services.npc.removeNpc(npcId);
+    removeTrackedPlayerNpc(services, playerId, npcId);
     platformHolgartByPlayer.delete(playerId);
 }
 
@@ -420,6 +424,14 @@ export function registerSeaSlugInteractions(
     registry: IScriptRegistry,
     services: ScriptServices,
 ): void {
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: (playerId) => removePlatformHolgart(playerId, services),
+        reset: () => {
+            for (const playerId of [...platformHolgartByPlayer.keys()]) {
+                removePlatformHolgart(playerId, services);
+            }
+        },
+    });
     const caroline = createCarolineHandler(quest);
     registry.registerNpcScript({ npcId: NPC.caroline, option: "talk-to", handler: caroline });
     registry.registerNpcScript({ npcId: NPC.caroline, option: undefined, handler: caroline });
@@ -555,8 +567,5 @@ export function registerSeaSlugInteractions(
             }
         },
         exit: ({ player, services: eventServices }) => removePlatformHolgart(player.id, eventServices),
-    });
-    services.system.eventBus?.on("player:logout", ({ playerId }) => {
-        platformHolgartByPlayer.delete(playerId);
     });
 }

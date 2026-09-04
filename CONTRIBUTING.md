@@ -25,7 +25,8 @@ until every consumer has moved to its final package, content, resource, or data 
    removal condition.
 4. Add or update tests at the owning boundary. Bug fixes require a regression.
 5. Run focused validation while developing and **pnpm run check** before handoff. The
-   check covers layout, naming, dependency boundaries, types, tests, and builds.
+   check covers layout, naming, dependency boundaries, generated-data and documentation
+   portability, types, tests, builds, and the browser artifact budget.
 6. Complete the pull-request template with command results, transition state, data impact,
    and cleanup lifecycle.
 

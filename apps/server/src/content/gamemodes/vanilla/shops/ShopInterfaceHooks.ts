@@ -18,6 +18,7 @@
  * ```
  */
 import type { PlayerState } from "@server/game/player";
+import { logger } from "@server/observability/logger";
 import {
     GameframeTab,
     type InterfaceHookContext,
@@ -64,7 +65,7 @@ export function registerShopInterfaceHooks(interfaceService: InterfaceService): 
     interfaceService.onInterfaceOpen(SHOP_INTERFACE_ID, (player, ctx) => {
         const shopData = ctx.data as ShopOpenData | undefined;
         if (!shopData) {
-            console.warn("[ShopHooks] onOpen: No shop data provided");
+            logger.warn("[shops] interface opened without shop data");
             return;
         }
 

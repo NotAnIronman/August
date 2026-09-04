@@ -1,7 +1,7 @@
 /**
  * Regression coverage for the native trade inventory side-panel scripts.
  *
- * Run with: npx tsx tests/trade-inventory-widget.test.ts
+ * Run with: pnpm exec tsx tests/trade-inventory-widget.test.ts
  */
 import assert from "node:assert/strict";
 

@@ -13,6 +13,7 @@ import type { SpellSelectionController } from "@client/engine/game/widgets/Spell
 import type { WidgetInteractionController } from "@client/engine/game/widgets/WidgetInteractionController";
 import type { ItemSpawnerUi } from "@client/features/item-spawner/index";
 import type { WidgetActionEvent } from "@client/engine/game/widgets/widgetActionPayload";
+import type { PreparedClientSettingAction } from "@client/engine/game/widgets/WidgetActionRouter";
 
 export type WidgetInputState = {
     hoveredWidgetUids: Set<number>;
@@ -66,6 +67,9 @@ export type WidgetInputControllerDeps = {
         eventContext?: Partial<ScriptEvent>,
     ) => void;
     handleWidgetAction: (event: WidgetActionEvent) => void;
+    prepareClientSettingAction: (
+        event: WidgetActionEvent,
+    ) => PreparedClientSettingAction | undefined;
     handleTradeWidgetAction: (
         widget: any,
         event: { option?: string; slot?: number; itemId?: number },

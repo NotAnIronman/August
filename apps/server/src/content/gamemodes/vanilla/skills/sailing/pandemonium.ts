@@ -1,4 +1,5 @@
 import type { PlayerState } from "@server/game/player";
+import { registerPlayerDialogSessions } from "@server/game/scripts/ScriptLifecycle";
 import {
     BaseComponentUids,
     type IScriptRegistry,
@@ -120,7 +121,8 @@ const ANIM_CHATSAD1 = 610;
 // ============================================================================
 
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
-    const activeConvos = new Set<number>();
+    const activeConvos = new Map<number, PlayerState>();
+    registerPlayerDialogSessions(registry, services, activeConvos);
 
     function getSailingIntro(player: PlayerState): number {
         return player.varps.getVarbitValue(VARBIT_SAILING_INTRO);
@@ -132,7 +134,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
         const state = getSailingIntro(player);
 
         if (activeConvos.has(pid)) return;
-        activeConvos.add(pid);
+        activeConvos.set(pid, player);
 
         const playerName = player.name ?? "You";
         const onClose = () => activeConvos.delete(pid);
@@ -186,7 +188,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
         const pid = player.id;
 
         if (activeConvos.has(pid)) return;
-        activeConvos.add(pid);
+        activeConvos.set(pid, player);
 
         const playerName = player.name ?? "You";
         const onClose = () => activeConvos.delete(pid);

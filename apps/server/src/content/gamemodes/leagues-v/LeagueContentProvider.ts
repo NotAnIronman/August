@@ -3,6 +3,7 @@ import { deflateSync } from "zlib";
 import { CustomItemRegistry } from "@august/custom-content/items/CustomItemRegistry";
 import { ServerMessageId } from "@august/protocol/transport/messages/ServerMessage";
 import { CustomWidgetRegistry } from "@server/game/scripts/CustomWidgetRegistry";
+import { logger } from "@server/observability/logger";
 import { getAllCustomChallenges, getAllCustomTasks } from "@server/content/gamemodes/leagues-v/data/custom";
 import "./data/custom-items/customItems";
 import {
@@ -62,7 +63,7 @@ export class LeagueContentProvider {
         packet.set(compressed, 8);
 
         this.cachedPacket = packet;
-        console.log(
+        logger.info(
             `[leagues-v] content data built: ${jsonBytes.length} bytes JSON → ${
                 compressed.length
             } bytes compressed (${Math.round((compressed.length / jsonBytes.length) * 100)}%)`,

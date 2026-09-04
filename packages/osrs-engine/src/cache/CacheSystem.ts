@@ -8,6 +8,7 @@ import { IndexType } from "@august/osrs-engine/cache/IndexType";
 import { PresenceBitset } from "@august/osrs-engine/cache/js5/PresenceBitset";
 import { MemoryStore } from "@august/osrs-engine/cache/store/MemoryStore";
 import { SparseMemoryStore } from "@august/osrs-engine/cache/store/SparseMemoryStore";
+import { UnsupportedOperationError } from "@august/osrs-engine/util/UnsupportedOperationError";
 
 export class CacheSystem<A extends ApiType = ApiType.SYNC> {
     static loadIndicesFromStore(cacheType: "dat" | "dat2", store: MemoryStore) {
@@ -99,6 +100,10 @@ export class CacheSystem<A extends ApiType = ApiType.SYNC> {
         presence?: PresenceBitset,
     ): CacheSystem {
         switch (cacheType) {
+            case "classic":
+                throw new UnsupportedOperationError(
+                    'CacheSystem.fromFiles does not support the "classic" cache format',
+                );
             case "legacy":
                 return CacheSystem.loadLegacy(cacheFiles);
             case "dat":
@@ -110,7 +115,6 @@ export class CacheSystem<A extends ApiType = ApiType.SYNC> {
                 const indices = CacheSystem.loadIndicesFromStore(cacheType, store);
                 return new CacheSystem(indices, store, cacheType);
         }
-        throw new Error("Not implemented");
     }
 
     readonly indices: (CacheIndex<A> | undefined)[];

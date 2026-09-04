@@ -44,14 +44,14 @@ body,
     position: fixed;
     inset: 0;
     width: var(--app-vw, 100vw);
-    height: var(--app-vh, 100dvh);
+    height: var(--app-vh, 100vh);
     overflow: hidden;
     background: black;
 }
 
 .App.ios-safari-force-landscape {
     width: var(--ios-safari-landscape-w, var(--app-vw, 100vw));
-    height: var(--ios-safari-landscape-h, var(--app-vh, 100dvh));
+    height: var(--ios-safari-landscape-h, var(--app-vh, 100vh));
 }
 
 .App.ios-safari-force-landscape.ios-safari-force-landscape-rotated {
@@ -59,7 +59,7 @@ body,
     left: 50%;
     right: auto;
     bottom: auto;
-    width: var(--ios-safari-landscape-w, var(--app-vh, 100dvh));
+    width: var(--ios-safari-landscape-w, var(--app-vh, 100vh));
     height: var(--ios-safari-landscape-h, var(--app-vw, 100vw));
     transform: translate(-50%, -50%) rotate(90deg);
     transform-origin: center center;

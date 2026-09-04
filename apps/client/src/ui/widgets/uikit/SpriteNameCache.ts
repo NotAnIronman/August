@@ -1,4 +1,6 @@
 import { parseSpriteRef, spriteRefKey, type SpriteNameMap } from "@august/protocol/uikit/spriteNames";
+import { getPublicAssetUrl } from "@client/core/config/publicAssets";
+import { fetchWithTimeout } from "@client/core/network/fetchWithTimeout";
 
 /**
  * Polls the build-emitted /spriteNames.json catalog instead of importing it as
@@ -6,12 +8,13 @@ import { parseSpriteRef, spriteRefKey, type SpriteNameMap } from "@august/protoc
  * re-emits this asset after a ::Rename command or hand edit. Polling picks up
  * that emission without a dev-server restart or page reload.
  */
-const SPRITE_NAMES_URL = "/spriteNames.json";
+const SPRITE_NAMES_URL = getPublicAssetUrl("spriteNames.json");
 // 1 game tick (600ms), not the earlier 1500ms - the original interval
 // assumed occasional single renames; bulk-skipping thousands of icons
 // wants the gallery to catch up in one tick, not lag a full second-plus
 // behind every click.
 const POLL_INTERVAL_MS = 600;
+const POLL_TIMEOUT_MS = 5_000;
 
 let names: SpriteNameMap = {};
 let namesByCommonName: ReadonlyMap<string, { archiveId: number; frame: number }> = new Map();
@@ -45,7 +48,7 @@ function pollIfDue(): void {
     if (pollInFlight || now - lastPollStartedAt < POLL_INTERVAL_MS) return;
     lastPollStartedAt = now;
     pollInFlight = true;
-    fetch(SPRITE_NAMES_URL, { cache: "no-store" })
+    fetchWithTimeout(SPRITE_NAMES_URL, POLL_TIMEOUT_MS, { cache: "no-store" })
         .then((response) => (response.ok ? response.json() : undefined))
         .then((data) => {
             if (data && typeof data === "object" && !Array.isArray(data)) {

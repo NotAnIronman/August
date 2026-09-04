@@ -5,7 +5,7 @@
  * oscillation (the "walk in, walk out, forever" symptom) across many ticks
  * rather than just the first tick.
  *
- * Run with: npx tsx tests/combat-reciprocal-melee-approach-stress.test.ts
+ * Run with: pnpm exec tsx tests/combat-reciprocal-melee-approach-stress.test.ts
  */
 import assert from "node:assert/strict";
 

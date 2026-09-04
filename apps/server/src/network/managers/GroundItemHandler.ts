@@ -15,7 +15,11 @@ import type { PlayerState } from "@server/game/player";
 import type { ScriptGroundItem } from "@server/game/scripts/types";
 import { MAX_ITEM_STACK_QUANTITY } from "@server/game/trade/TradeInventoryCapacity";
 import { logger } from "@server/observability/logger";
-import { encodeMessage } from "@server/network/messages";
+import {
+    encodeMessage,
+    type GroundItemStackMessage,
+    type GroundItemsServerPayload as NetworkGroundItemsServerPayload,
+} from "@server/network/messages";
 
 /** Pickup radius in tiles */
 const GROUND_ITEM_PICKUP_RADIUS_TILES = 2;
@@ -39,31 +43,8 @@ export interface GroundItemActionPayload {
 }
 
 /** Ground items server payload */
-type GroundItemStackPayload = {
-    id: number;
-    itemId: number;
-    quantity: number;
-    tile: { x: number; y: number; level: number };
-    createdTick?: number;
-    privateUntilTick?: number;
-    expiresTick?: number;
-    ownerId?: number;
-    isPrivate?: boolean;
-    ownership?: 0 | 1 | 2 | 3;
-};
-
-export type GroundItemsServerPayload =
-    | {
-          kind: "snapshot";
-          serial: number;
-          stacks: GroundItemStackPayload[];
-      }
-    | {
-          kind: "delta";
-          serial: number;
-          upserts: GroundItemStackPayload[];
-          removes: number[];
-      };
+type GroundItemStackPayload = GroundItemStackMessage;
+export type GroundItemsServerPayload = NetworkGroundItemsServerPayload;
 
 export function resolveGroundItemPickupQuantity(options: {
     requested: number;
@@ -92,6 +73,19 @@ export class GroundItemHandler {
         number,
         Map<number, GroundItemStackPayload>
     >();
+    private readonly itemMetadata = new Map<
+        number,
+        Pick<
+            GroundItemStackPayload,
+            | "name"
+            | "value"
+            | "highAlch"
+            | "tradeable"
+            | "stackable"
+            | "noted"
+            | "unnotedItemId"
+        >
+    >();
 
     constructor(private readonly svc: ServerServices) {}
 
@@ -116,6 +110,82 @@ export class GroundItemHandler {
         this.svc.playerGroundChunk.delete(playerId);
     }
 
+    private getItemMetadata(itemIdRaw: number): Pick<
+        GroundItemStackPayload,
+        | "name"
+        | "value"
+        | "highAlch"
+        | "tradeable"
+        | "stackable"
+        | "noted"
+        | "unnotedItemId"
+    > {
+        const itemId = Math.trunc(itemIdRaw);
+        const cached = this.itemMetadata.get(itemId);
+        if (cached) return cached;
+
+        const asNonNegativeInt = (value: unknown): number =>
+            Number.isFinite(value)
+                ? Math.min(2_147_483_647, Math.max(0, Math.trunc(value as number)))
+                : 0;
+        try {
+            const direct = getItemDefinition(itemId);
+            if (direct) {
+                let canonical = direct;
+                let unnotedItemId: number | undefined = direct.noted ? undefined : direct.id;
+                if (direct.noted && direct.noteId > 0 && direct.noteId !== direct.id) {
+                    const candidate = getItemDefinition(direct.noteId);
+                    if (candidate && !candidate.noted) {
+                        canonical = candidate;
+                        unnotedItemId = candidate.id;
+                    }
+                }
+                const metadata = {
+                    name:
+                        typeof canonical.name === "string" && canonical.name.length > 0
+                            ? canonical.name
+                            : `Item ${itemId}`,
+                    value: itemId === 995 ? 1 : asNonNegativeInt(canonical.value),
+                    highAlch: asNonNegativeInt(canonical.highAlch),
+                    tradeable: canonical.tradeable === true,
+                    stackable: direct.stackable === true,
+                    noted: direct.noted === true,
+                    unnotedItemId,
+                };
+                this.itemMetadata.set(itemId, metadata);
+                return metadata;
+            }
+        } catch {
+            // A cache-backed definition below still gives legacy/custom worlds
+            // useful labels and item traits without fabricating alchemy values.
+        }
+
+        const obj = this.svc.dataLoaderService.getObjType(itemId);
+        const noted = !!obj && Number.isFinite(obj.noteTemplate) && obj.noteTemplate !== -1;
+        const linkedUnnotedId =
+            noted && obj && Number.isFinite(obj.note) && obj.note > 0 ? Math.trunc(obj.note) : undefined;
+        const canonicalObj =
+            linkedUnnotedId !== undefined
+                ? this.svc.dataLoaderService.getObjType(linkedUnnotedId)
+                : obj;
+        const metadata = {
+            name:
+                typeof canonicalObj?.name === "string" && canonicalObj.name.length > 0
+                    ? canonicalObj.name
+                    : `Item ${itemId}`,
+            value: itemId === 995 ? 1 : asNonNegativeInt(canonicalObj?.price),
+            highAlch: 0,
+            tradeable: canonicalObj?.isTradable === true,
+            stackable:
+                noted ||
+                obj?.stackability === ObjStackability.ALWAYS,
+            noted,
+            unnotedItemId: linkedUnnotedId ?? (noted ? undefined : itemId),
+        };
+        this.itemMetadata.set(itemId, metadata);
+        return metadata;
+    }
+
     private toPayloadStack(
         stack: {
             id: number;
@@ -123,6 +193,7 @@ export class GroundItemHandler {
             quantity: number;
             tile: { x: number; y: number; level: number };
             createdTick?: number;
+            privateForever?: boolean;
             privateUntilTick?: number;
             expiresTick?: number;
             ownerId?: number;
@@ -130,6 +201,7 @@ export class GroundItemHandler {
         currentTick: number,
         playerId: number,
     ): GroundItemStackPayload {
+        const metadata = this.getItemMetadata(stack.itemId);
         return {
             id: stack.id,
             itemId: stack.itemId,
@@ -139,6 +211,7 @@ export class GroundItemHandler {
                 y: stack.tile.y,
                 level: stack.tile.level,
             },
+            ...metadata,
             createdTick: Number.isFinite(stack.createdTick) ? (stack.createdTick as number) : 0,
             privateUntilTick:
                 stack.privateUntilTick && stack.privateUntilTick > 0
@@ -150,8 +223,8 @@ export class GroundItemHandler {
                     ? (stack.ownerId as number)
                     : undefined,
             isPrivate:
-                !!stack.privateUntilTick &&
-                stack.privateUntilTick > currentTick &&
+                (stack.privateForever === true ||
+                    (!!stack.privateUntilTick && stack.privateUntilTick > currentTick)) &&
                 stack.ownerId !== undefined &&
                 stack.ownerId === playerId,
             ownership:
@@ -172,6 +245,13 @@ export class GroundItemHandler {
             a.tile.y === b.tile.y &&
             a.tile.level === b.tile.level &&
             (a.createdTick ?? -1) === (b.createdTick ?? -1) &&
+            (a.name ?? "") === (b.name ?? "") &&
+            (a.value ?? -1) === (b.value ?? -1) &&
+            (a.highAlch ?? -1) === (b.highAlch ?? -1) &&
+            a.tradeable === b.tradeable &&
+            a.stackable === b.stackable &&
+            a.noted === b.noted &&
+            (a.unnotedItemId ?? -1) === (b.unnotedItemId ?? -1) &&
             (a.privateUntilTick ?? 0) === (b.privateUntilTick ?? 0) &&
             (a.expiresTick ?? 0) === (b.expiresTick ?? 0) &&
             (a.ownerId ?? -1) === (b.ownerId ?? -1) &&
@@ -698,7 +778,7 @@ export class GroundItemHandler {
         this.svc.playerGroundSerial.delete(player.id);
 
         try {
-            logger.info(
+            logger.debug(
                 `[ground] pickup player=${player.id} item=${itemId} qty=${added} tile=(${tile.x},${tile.y},${tile.level})`,
             );
         } catch (err) {

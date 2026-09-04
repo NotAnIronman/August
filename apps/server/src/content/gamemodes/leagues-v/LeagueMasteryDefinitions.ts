@@ -1,6 +1,7 @@
 import type { TypeLoader } from "@august/osrs-engine/config/TypeLoader";
 import { EnumType } from "@august/osrs-engine/config/enumtype/EnumType";
 import { StructType } from "@august/osrs-engine/config/structtype/StructType";
+import { logger } from "@server/observability/logger";
 
 export type LeagueMasteryDefinition = {
     masteryId: number;
@@ -127,12 +128,12 @@ export class LeagueMasteryDefinitions {
             ENUM_LEAGUE_TYPE_TO_MASTERY,
         );
         if (!leagueTypeEnum) {
-            console.log("[mastery] Could not load league type enum");
+            logger.warn("[mastery] could not load league type enum");
             return defs;
         }
 
         const leagueStructIds = leagueTypeEnum?.intValues ?? [];
-        console.log(`[mastery] Found ${leagueStructIds.length} league structs to explore`);
+        logger.debug(`[mastery] found ${leagueStructIds.length} league structs to explore`);
 
         // Explore each league struct to find mastery-related params
         for (const leagueStructId of leagueStructIds) {
@@ -140,7 +141,7 @@ export class LeagueMasteryDefinitions {
             const leagueStruct: StructType | undefined = structTypeLoader?.load?.(leagueStructId);
             if (!leagueStruct?.params) continue;
 
-            console.log(`[mastery] Exploring league struct ${leagueStructId}`);
+            logger.debug(`[mastery] exploring league struct ${leagueStructId}`);
 
             // Log all params in the struct to help identify mastery-related ones
             for (const [paramId, value] of leagueStruct.params.entries()) {
@@ -150,14 +151,14 @@ export class LeagueMasteryDefinitions {
                     (value as number) < 100000
                 ) {
                     // This might be an enum or struct reference
-                    console.log(`  param_${paramId} = ${value} (potential enum/struct ref)`);
+                    logger.debug(`[mastery] param_${paramId}=${value} (potential enum/struct ref)`);
                 }
             }
         }
 
         // Also try exploring structs directly in a range that might contain masteries
         // Based on the relic system, mastery structs might be in a similar range
-        console.log("[mastery] Exploring struct range for mastery data...");
+        logger.debug("[mastery] exploring struct range for mastery data");
 
         let masteryId = 0;
         // Search for structs that have both a name and description param (tooltip pattern)
@@ -177,7 +178,7 @@ export class LeagueMasteryDefinitions {
                     name.toLowerCase().includes("magic") ||
                     name.toLowerCase().includes("combat"))
             ) {
-                console.log(`[mastery] Potential mastery struct ${structId}: "${name}"`);
+                logger.debug(`[mastery] potential mastery struct ${structId}: "${name}"`);
 
                 const tier = getIntParam(struct, PARAM_MASTERY_TIER, 0);
                 const category = getIntParam(struct, PARAM_MASTERY_CATEGORY, 0);
@@ -196,7 +197,7 @@ export class LeagueMasteryDefinitions {
             }
         }
 
-        console.log(`[mastery] Found ${defs.size()} potential mastery definitions`);
+        logger.debug(`[mastery] found ${defs.size()} potential mastery definitions`);
         return defs;
     }
 }

@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { logger } from "@server/observability/logger";
 
 import {
     PROJECTILE_ARCHETYPES,
@@ -135,7 +136,7 @@ try {
         }
     }
 } catch (err) {
-    console.log("[projectiles] failed to load projectile params from cache", err);
+    logger.warn("[projectiles] failed to load projectile params from cache", err);
 }
 
 export function createProjectileParamsProvider(): ProjectileParamsProvider {

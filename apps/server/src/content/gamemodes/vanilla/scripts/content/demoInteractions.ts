@@ -1,4 +1,5 @@
 import { type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
+import { logger } from "@server/observability/logger";
 
 export function registerDemoInteractionHandlers(
     registry: IScriptRegistry,
@@ -10,7 +11,7 @@ export function registerDemoInteractionHandlers(
         npcId: 0,
         option: undefined,
         handler: ({ tick, player, npc, option }) => {
-            console.log(
+            logger.debug(
                 `[demo-script] tick=${tick} player=${player.id} interacted with npc=${
                     npc.id
                 } option=${option ?? "default"}`,
@@ -22,7 +23,7 @@ export function registerDemoInteractionHandlers(
         locId: 0,
         action: undefined,
         handler: ({ tick, player, locId, action, tile }) => {
-            console.log(
+            logger.debug(
                 `[demo-script] tick=${tick} player=${
                     player.id
                 } interacted with loc=${locId} action=${action ?? "default"} at (${tile.x},${

@@ -6,6 +6,8 @@ export interface MechanicHandle {
     readonly id: string;
     readonly isActive: boolean;
     cancel(): void;
+    /** Optional lifecycle observation used by registries to release tracking promptly. */
+    onCancelled?(listener: () => void): () => void;
 }
 
 export function createMechanicHandle(
@@ -13,6 +15,7 @@ export function createMechanicHandle(
     onCancel: () => void,
 ): MechanicHandle {
     let active = true;
+    const cancellationListeners = new Set<() => void>();
     return Object.freeze({
         id,
         get isActive(): boolean {
@@ -21,7 +24,26 @@ export function createMechanicHandle(
         cancel(): void {
             if (!active) return;
             active = false;
-            onCancel();
+            try {
+                onCancel();
+            } finally {
+                for (const listener of [...cancellationListeners]) {
+                    try {
+                        listener();
+                    } catch {
+                        // Observers release bookkeeping only and must not block cleanup.
+                    }
+                }
+                cancellationListeners.clear();
+            }
+        },
+        onCancelled(listener: () => void): () => void {
+            if (!active) {
+                listener();
+                return () => undefined;
+            }
+            cancellationListeners.add(listener);
+            return () => cancellationListeners.delete(listener);
         },
     });
 }
@@ -32,5 +54,9 @@ export function createInactiveMechanicHandle(id: string): MechanicHandle {
         id,
         isActive: false,
         cancel(): void {},
+        onCancelled(listener: () => void): () => void {
+            listener();
+            return () => undefined;
+        },
     });
 }

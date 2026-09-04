@@ -6,7 +6,8 @@ import type {
     ScriptActionHandlerContext,
     ScriptServices,
 } from "@server/game/scripts/types";
-import { ResourceNodeTracker, buildTileKey } from "@server/content/gamemodes/vanilla/systems/ResourceNodeTracker";
+import { defineGatheringSkill, pickWeighted } from "@server/game/skilling/GatheringSkill";
+import { ResourceNodeTracker, buildTileKey } from "@server/game/skilling/ResourceNodeTracker";
 import {
     SKILL_ERROR_SOUND,
     buildMessageEffect,
@@ -15,6 +16,7 @@ import {
 } from "@server/content/gamemodes/vanilla/skills/gatheringPrecheck";
 import {
     type MiningRockDefinition,
+    type MiningResourceResult,
     type PickaxeDefinition,
     buildMiningLocMap,
     getMiningRockById,
@@ -37,12 +39,31 @@ interface MiningActionData {
     echoMinedCount: number;
 }
 
-function rollMiningSuccess(level: number, rockLevel: number, pickaxe: PickaxeDefinition): boolean {
-    const effective = Math.max(1, level);
-    const difficulty = Math.max(1, rockLevel);
-    const ratio = effective / difficulty;
-    const baseChance = Math.min(0.85, Math.max(0.05, ratio * 0.3));
-    return Math.random() < baseChance * pickaxe.accuracy;
+const MINING_SKILL = defineGatheringSkill<
+    MiningRockDefinition,
+    PickaxeDefinition,
+    { canDeplete: boolean }
+>({
+    name: "mine",
+    timing: { delayTicks: 1 },
+    success: {
+        kind: "linear-255",
+        // Pickaxe tier controls roll timing, not the established success curve.
+        low: (rock) => rock.mineChance,
+        ratio: (rock) => rock.mineRatio,
+    },
+    depletion: {
+        chance: (rock, state) => (state.canDeplete ? rock.depleteChance : 0),
+    },
+    respawn: { duration: (rock) => rock.respawnTicks },
+});
+
+function rollMiningResource(rock: MiningRockDefinition): MiningResourceResult {
+    const results = rock.resourceResults;
+    if (!results || results.length === 0) {
+        return { itemId: rock.oreItemId, xp: rock.xp, weight: 1 };
+    }
+    return pickWeighted(results) ?? { itemId: rock.oreItemId, xp: rock.xp, weight: 1 };
 }
 
 function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
@@ -103,33 +124,31 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
         );
     }
 
-    const swingTicks = Math.max(rock.swingTicks, pickaxe.swingTicks);
+    // The pickaxe, not the rock, determines roll frequency.  This is why a
+    // rune pickaxe reaches a mining roll every three ticks even on coal.
+    const swingTicks = Math.max(1, pickaxe.swingTicks);
     const effects: ActionEffect[] = [];
 
     if (!data.started) {
         effects.push(buildMessageEffect(player, "You swing your pickaxe at the rock."));
         services.location.faceTile(player, tile);
         services.animation.playPlayerSeq(player, pickaxe.animation);
-        const initialSchedule = services.combat.scheduleAction(
-            player.id,
+        const initialSchedule = MINING_SKILL.repeat(
+            services,
+            player,
             {
-                kind: "skill.mine",
-                data: {
-                    rockId: rock.id,
-                    rockLocId: locId,
-                    depletedLocId: actionDepletedLocId,
-                    tile: { x: tile.x, y: tile.y },
-                    level: plane,
-                    started: true,
-                    echoMinedCount: data.echoMinedCount,
-                },
-                delayTicks: swingTicks,
-                cooldownTicks: swingTicks,
-                groups: ["skill.mine"],
+                rockId: rock.id,
+                rockLocId: locId,
+                depletedLocId: actionDepletedLocId,
+                tile: { x: tile.x, y: tile.y },
+                level: plane,
+                started: true,
+                echoMinedCount: data.echoMinedCount,
             },
             tick,
+            { delayTicks: swingTicks, cooldownTicks: swingTicks },
         );
-        if (!initialSchedule?.ok) {
+        if (!initialSchedule) {
             effects.push(buildMessageEffect(player, "You stop mining the rock."));
         }
         return { ok: true, cooldownTicks: 0, groups: ["skill.mine"], effects };
@@ -143,14 +162,15 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     const echoMinedCount = data.echoMinedCount;
     let nextEchoMinedCount = echoMinedCount;
 
-    let success = rollMiningSuccess(effectiveLevel, rock.level, pickaxe);
+    let success = MINING_SKILL.rollSuccess(effectiveLevel, rock, pickaxe);
     if (!success && hasEchoPickaxePerk && Math.random() < 0.5) {
         success = true;
     }
 
     if (success) {
+        const resource = rollMiningResource(rock);
         if (hasEchoPickaxePerk) {
-            const banked = services.banking?.addItemToBank?.(player, rock.oreItemId, 1);
+            const banked = services.banking?.addItemToBank?.(player, resource.itemId, 1);
             if (!banked) {
                 return failGatheringPrecheck(
                     player,
@@ -160,7 +180,7 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
             }
             bankSnapshot = true;
         } else {
-            const result = services.inventory.addItemToInventory(player, rock.oreItemId, 1);
+            const result = services.inventory.addItemToInventory(player, resource.itemId, 1);
             if (result.added <= 0) {
                 return failGatheringPrecheck(
                     player,
@@ -171,7 +191,7 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
             inventorySnapshot = true;
         }
 
-        const oreName = describeItem(services, rock.oreItemId);
+        const oreName = describeItem(services, resource.itemId);
         effects.push(buildMessageEffect(player, `You manage to mine some ${oreName}.`));
         if (hasEchoPickaxePerk) {
             const capitalizedOreName = oreName.charAt(0).toUpperCase() + oreName.slice(1);
@@ -182,12 +202,13 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
                 ),
             );
         }
-        services.skills.addSkillXp(player, SkillId.Mining, rock.xp);
+        services.skills.addSkillXp(player, SkillId.Mining, resource.xp);
 
         if (locId > 0) {
             nextEchoMinedCount = hasEchoPickaxePerk ? echoMinedCount + 1 : 0;
             const canDeplete = !hasEchoPickaxePerk || nextEchoMinedCount >= 4;
-            if (canDeplete) {
+            const shouldDeplete = MINING_SKILL.rollDepletion(rock, { canDeplete });
+            if (shouldDeplete) {
                 const depletedLocId =
                     typeof actionDepletedLocId === "number" && actionDepletedLocId > 0
                         ? actionDepletedLocId
@@ -195,11 +216,14 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
 
                 services.gathering
                     ?.getTracker<any>("mining")
-                    ?.addWithRandomDuration(nodeKey, tile, plane, tick, rock.respawnTicks, {
-                        locId,
-                        depletedLocId,
-                        rockId: rock.id,
-                    });
+                    ?.addWithRandomDuration(
+                        nodeKey,
+                        tile,
+                        plane,
+                        tick,
+                        MINING_SKILL.respawnDuration(rock) ?? rock.respawnTicks,
+                        { locId, depletedLocId, rockId: rock.id },
+                    );
 
                 if (depletedLocId !== undefined) {
                     services.location.emitLocChange(locId, depletedLocId, tile, plane);
@@ -230,26 +254,22 @@ function executeMineAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     }
 
     if (continueMining) {
-        const reschedule = services.combat.scheduleAction(
-            player.id,
+        const reschedule = MINING_SKILL.repeat(
+            services,
+            player,
             {
-                kind: "skill.mine",
-                data: {
-                    rockId: rock.id,
-                    rockLocId: locId,
-                    depletedLocId: actionDepletedLocId,
-                    tile: { x: tile.x, y: tile.y },
-                    level: plane,
-                    started: true,
-                    echoMinedCount: nextEchoMinedCount,
-                },
-                delayTicks: swingTicks,
-                cooldownTicks: swingTicks,
-                groups: ["skill.mine"],
+                rockId: rock.id,
+                rockLocId: locId,
+                depletedLocId: actionDepletedLocId,
+                tile: { x: tile.x, y: tile.y },
+                level: plane,
+                started: true,
+                echoMinedCount: nextEchoMinedCount,
             },
             tick,
+            { delayTicks: swingTicks, cooldownTicks: swingTicks },
         );
-        if (!reschedule?.ok) {
+        if (!reschedule) {
             effects.push(buildMessageEffect(player, "You stop mining the rock."));
         }
     }
@@ -265,7 +285,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
         depletedLocId?: number;
         rockId: string;
     }>();
-    services.gathering?.registerTracker("mining", miningTracker, (node, gatheringSvc) => {
+    const disposeTracker = services.gathering?.registerTracker("mining", miningTracker, (node, gatheringSvc) => {
         if (node.data.depletedLocId && node.data.locId > 0) {
             gatheringSvc.emitLocChange(
                 node.data.depletedLocId,
@@ -275,42 +295,41 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
             );
         }
     });
+    if (disposeTracker) registry.registerCleanup(disposeTracker);
 
     const locTypeLoader = services.data.getLocTypeLoader();
     const miningLocMap = buildMiningLocMap(locTypeLoader);
-    services.getMiningRock = (locId) => getMiningRockFromMap(locId, miningLocMap);
+    const previousRockProvider = services.getMiningRock;
+    const rockProvider = (locId: number) => getMiningRockFromMap(locId, miningLocMap);
+    services.getMiningRock = rockProvider;
+    registry.registerCleanup(() => {
+        if (services.getMiningRock === rockProvider) {
+            services.getMiningRock = previousRockProvider;
+        }
+    });
 
-    if (!services.getMiningRock) {
-        console.log("[script:mining] rock lookup unavailable; module disabled");
-        return;
-    }
     for (const action of MINING_ACTIONS) {
         registry.registerLocAction(action, (event) => {
             const rock = services.getMiningRock?.(event.locId) as
                 | MiningRockDefinition
                 | undefined;
             if (!rock) return;
-            const delay = 0;
-            const result = services.combat.requestAction(
+            const result = MINING_SKILL.request(
+                services,
                 event.player,
                 {
-                    kind: "skill.mine",
-                    data: {
-                        rockId: rock.id,
-                        rockLocId: event.locId,
-                        depletedLocId: rock.depletedLocId,
-                        tile: { x: event.tile.x, y: event.tile.y },
-                        level: event.level,
-                        started: false,
-                        echoMinedCount: 0,
-                    },
-                    delayTicks: delay,
-                    cooldownTicks: delay,
-                    groups: ["skill.mine"],
+                    rockId: rock.id,
+                    rockLocId: event.locId,
+                    depletedLocId: rock.depletedLocId,
+                    tile: { x: event.tile.x, y: event.tile.y },
+                    level: event.level,
+                    started: false,
+                    echoMinedCount: 0,
                 },
                 event.tick,
+                { delayTicks: 0, cooldownTicks: 0 },
             );
-            if (!result.ok) {
+            if (!result) {
                 services.messaging.sendGameMessage(
                     event.player,
                     "You're too busy to do that right now.",

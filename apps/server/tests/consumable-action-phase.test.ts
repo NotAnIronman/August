@@ -1,7 +1,7 @@
 /**
  * End-to-end regression coverage for scripted food crossing the action phase.
  *
- * Run with: npx tsx tests/consumable-action-phase.test.ts
+ * Run with: pnpm exec tsx tests/consumable-action-phase.test.ts
  */
 import assert from "node:assert/strict";
 

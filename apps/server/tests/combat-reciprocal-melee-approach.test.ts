@@ -1,7 +1,7 @@
 /**
  * Regression coverage for mutually engaged melee actors approaching one another.
  *
- * Run with: npx tsx tests/combat-reciprocal-melee-approach.test.ts
+ * Run with: pnpm exec tsx tests/combat-reciprocal-melee-approach.test.ts
  */
 import assert from "node:assert/strict";
 

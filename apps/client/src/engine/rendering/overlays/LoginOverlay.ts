@@ -11,6 +11,7 @@ import {
 import type { OsrsClient } from "@client/engine/game/OsrsClient";
 import { GameState } from "@client/features/login/index";
 import { getCanvasCssSize } from "@client/core/platform/device/DeviceUtil";
+import type { CanvasSurface } from "@client/core/platform/browser/CanvasSurface";
 import { Overlay, OverlayInitArgs, OverlayUpdateArgs, RenderPhase } from "@client/engine/rendering/overlays/Overlay";
 
 /**
@@ -389,7 +390,7 @@ export class LoginOverlay implements Overlay {
         }
     }
 
-    private updateFireTexture(canvas: OffscreenCanvas): void {
+    private updateFireTexture(canvas: CanvasSurface): void {
         if (!this.fireTexture) {
             this.fireTexture = this.app.createTexture2D(canvas as unknown as HTMLImageElement, {
                 flipY: false,

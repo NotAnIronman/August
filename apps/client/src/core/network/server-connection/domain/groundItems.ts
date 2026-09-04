@@ -1,7 +1,60 @@
 import type { GroundItemStackMessage, GroundItemsServerPayload } from "@client/core/network/server-connection/types/index";
 import type { GroundItemsSnapshotPayload } from "@client/core/network/server-connection/state";
 
+export type GroundItemQuantityIncrease = {
+    stackId: number;
+    quantity: number;
+};
+
+/**
+ * Compare one delta payload with the pre-update client store. Stackable drops
+ * reuse their server stack id, so presence alone is not a reliable spawn signal.
+ */
+export function collectGroundItemQuantityIncreases(
+    upserts: readonly GroundItemStackMessage[],
+    getExisting: (stackId: number) => Pick<GroundItemStackMessage, "quantity"> | undefined,
+): GroundItemQuantityIncrease[] {
+    const finalQuantityById = new Map<number, number>();
+    for (const stack of upserts) {
+        const stackId = Number(stack?.id) | 0;
+        if (stackId <= 0) continue;
+        const quantity = Number.isFinite(stack.quantity)
+            ? Math.max(1, Math.min(2_147_483_647, Math.trunc(stack.quantity)))
+            : 1;
+        // A malformed duplicate record should describe one final state, not
+        // manufacture multiple notifications for the same authoritative stack.
+        finalQuantityById.set(stackId, quantity);
+    }
+
+    const increases: GroundItemQuantityIncrease[] = [];
+    for (const [stackId, quantity] of finalQuantityById) {
+        const existing = getExisting(stackId);
+        const previousQuantity =
+            existing && Number.isFinite(existing.quantity)
+                ? Math.max(0, Math.min(2_147_483_647, Math.trunc(existing.quantity)))
+                : 0;
+        if (quantity > previousQuantity) {
+            increases.push({ stackId, quantity: quantity - previousQuantity });
+        }
+    }
+    return increases;
+}
+
 export function cloneGroundItemStack(stack: GroundItemStackMessage): GroundItemStackMessage {
+    const name =
+        typeof stack.name === "string" && stack.name.length > 0 ? stack.name : undefined;
+    const value =
+        Number.isFinite(stack.value) && (stack.value as number) >= 0
+            ? Math.min(2_147_483_647, Math.trunc(stack.value as number))
+            : undefined;
+    const highAlch =
+        Number.isFinite(stack.highAlch) && (stack.highAlch as number) >= 0
+            ? Math.min(2_147_483_647, Math.trunc(stack.highAlch as number))
+            : undefined;
+    const unnotedItemId =
+        Number.isFinite(stack.unnotedItemId) && (stack.unnotedItemId as number) > 0
+            ? Math.trunc(stack.unnotedItemId as number)
+            : undefined;
     return {
         id: stack.id | 0,
         itemId: stack.itemId | 0,
@@ -11,6 +64,13 @@ export function cloneGroundItemStack(stack: GroundItemStackMessage): GroundItemS
             y: stack.tile?.y ?? 0,
             level: stack.tile?.level ?? 0,
         },
+        name,
+        value,
+        highAlch,
+        tradeable: typeof stack.tradeable === "boolean" ? stack.tradeable : undefined,
+        stackable: typeof stack.stackable === "boolean" ? stack.stackable : undefined,
+        noted: typeof stack.noted === "boolean" ? stack.noted : undefined,
+        unnotedItemId,
         createdTick:
             Number.isFinite(stack.createdTick) && (stack.createdTick as number) >= 0
                 ? (stack.createdTick as number) | 0

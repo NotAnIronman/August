@@ -14,25 +14,27 @@ export interface NormalizedSelectedSpellPayload extends SelectedSpellPayloadFiel
     selectedSpellItemId: number;
 }
 
+function normalizeNonNegativeInt(value: unknown): number | undefined {
+    return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 0x7fffffff
+        ? value
+        : undefined;
+}
+
 export function buildSelectedSpellPayload(
     selectedSpellWidgetIdRaw: number,
     selectedSpellChildIndexRaw?: number,
     selectedSpellItemIdRaw?: number,
 ): NormalizedSelectedSpellPayload | undefined {
-    const selectedSpellWidgetId = selectedSpellWidgetIdRaw | 0;
-    if (!(selectedSpellWidgetId > 0)) {
+    const selectedSpellWidgetId = normalizeNonNegativeInt(selectedSpellWidgetIdRaw);
+    if (selectedSpellWidgetId === undefined || selectedSpellWidgetId === 0) {
         return undefined;
     }
 
     const fallbackChildIndex = selectedSpellWidgetId & 0xffff;
     const selectedSpellChildIndex =
-        Number.isFinite(selectedSpellChildIndexRaw) && (selectedSpellChildIndexRaw as number) >= 0
-            ? (selectedSpellChildIndexRaw as number) | 0
-            : fallbackChildIndex;
+        normalizeNonNegativeInt(selectedSpellChildIndexRaw) ?? fallbackChildIndex;
     const selectedSpellItemId =
-        Number.isFinite(selectedSpellItemIdRaw) && (selectedSpellItemIdRaw as number) >= 0
-            ? (selectedSpellItemIdRaw as number) | 0
-            : -1;
+        normalizeNonNegativeInt(selectedSpellItemIdRaw) ?? -1;
 
     return {
         selectedSpellWidgetId,
@@ -46,33 +48,20 @@ export function buildSelectedSpellPayload(
 export function resolveSelectedSpellPayload(
     payload: SelectedSpellPayloadFields,
 ): SelectedSpellPayloadFields {
+    const normalizedWidgetId = normalizeNonNegativeInt(payload.selectedSpellWidgetId);
     const selectedSpellWidgetId =
-        Number.isFinite(payload.selectedSpellWidgetId) &&
-        (payload.selectedSpellWidgetId as number) > 0
-            ? (payload.selectedSpellWidgetId as number) | 0
-            : undefined;
+        normalizedWidgetId !== undefined && normalizedWidgetId > 0 ? normalizedWidgetId : undefined;
     const fallbackChildIndex =
         selectedSpellWidgetId !== undefined ? selectedSpellWidgetId & 0xffff : undefined;
     const selectedSpellChildIndex =
-        Number.isFinite(payload.selectedSpellChildIndex) &&
-        (payload.selectedSpellChildIndex as number) >= 0
-            ? (payload.selectedSpellChildIndex as number) | 0
-            : fallbackChildIndex;
+        normalizeNonNegativeInt(payload.selectedSpellChildIndex) ?? fallbackChildIndex;
     const widgetChildId =
-        selectedSpellChildIndex ??
-        (Number.isFinite(payload.widgetChildId) && (payload.widgetChildId as number) >= 0
-            ? (payload.widgetChildId as number) | 0
-            : undefined);
+        selectedSpellChildIndex ?? normalizeNonNegativeInt(payload.widgetChildId);
     const spellbookGroupId =
         selectedSpellWidgetId !== undefined
             ? (selectedSpellWidgetId >>> 16) & 0xffff
-            : Number.isFinite(payload.spellbookGroupId) && (payload.spellbookGroupId as number) >= 0
-              ? (payload.spellbookGroupId as number) | 0
-              : undefined;
-    const selectedSpellItemId =
-        Number.isFinite(payload.selectedSpellItemId) && (payload.selectedSpellItemId as number) >= 0
-            ? (payload.selectedSpellItemId as number) | 0
-            : undefined;
+            : normalizeNonNegativeInt(payload.spellbookGroupId);
+    const selectedSpellItemId = normalizeNonNegativeInt(payload.selectedSpellItemId);
 
     return {
         selectedSpellWidgetId,

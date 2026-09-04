@@ -4,7 +4,9 @@ import { DEV_TRANSPORT_OBJECT_PANEL_GROUP_ID } from "@august/protocol/ui/widgets
 import { ComponentIds, type UiTextRow } from "@august/protocol/uikit/contracts";
 import type { CommandHandler, IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
 import type { PlayerState } from "@server/game/player";
+import { writeJsonFileAtomicallySync } from "@server/io/AtomicFile";
 import { serverCatalogPath } from "@server/paths";
+import { registerPlayerScopedCollections } from "@server/game/scripts/ScriptLifecycle";
 import { reloadDevObjectTransitions } from "@server/content/gamemodes/vanilla/scripts/content/devObjectTransitions";
 import { registerUiPanelActions } from "@server/content/gamemodes/vanilla/uikit/actions";
 import { openUiPanel, sendUiActivateSignal, sendUiControls, sendUiRowActions, sendUiRowClickZones, sendUiSearchLabel, sendUiTextRows } from "@server/content/gamemodes/vanilla/uikit/panelData";
@@ -25,7 +27,7 @@ function catalog(): Catalog {
     } catch { return { version: 1, transitions: [] }; }
 }
 function save(value: Catalog): void {
-    fs.writeFileSync(CATALOG_PATH, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+    writeJsonFileAtomicallySync(CATALOG_PATH, value);
     reloadDevObjectTransitions();
 }
 function state(player: PlayerState): State { const current = states.get(player.id) ?? { rowIds: [] }; states.set(player.id, current); return current; }
@@ -110,6 +112,8 @@ function acceptInput(player: PlayerState, services: ScriptServices, text: string
 }
 
 export function registerTransportObjectEditor(registry: IScriptRegistry, services: ScriptServices): void {
+    registerPlayerScopedCollections(registry, services, states);
+
     const command: CommandHandler = ({ player, args }) => {
         const action = args[0]?.toLowerCase();
         if (!action || action === "open" || action === "list") { open(player, services); return; }

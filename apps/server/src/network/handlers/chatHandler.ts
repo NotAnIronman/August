@@ -314,7 +314,6 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
         try {
             const payload = ctx.payload;
             const text = payload.text.trim();
-            logger.info(`[chat] Received chat message: "${text}"`);
             if (!text) return;
 
             const sender = ctx.player;
@@ -322,6 +321,11 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                 logger.warn("[chat] No sender found for chat message");
                 return;
             }
+            // Chat is frequent and may contain private player text. Record only
+            // routing metadata at debug level unless a command is audited below.
+            logger.debug(
+                `[chat] received player=${sender.id} type=${payload.messageType ?? "public"} length=${text.length}`,
+            );
 
             if (payload.messageType === "friends_chat") {
                 services.handleFriendsChatMessage(sender, text);

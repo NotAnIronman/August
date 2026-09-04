@@ -11,7 +11,9 @@ import {
     type NpcCombatAnimationRole,
 } from "@server/game/npc/NpcCombatAnimationData";
 import type { PlayerState } from "@server/game/player";
+import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
 import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
+import { writeTextFileAtomicallySync } from "@server/io/AtomicFile";
 import { generatedReportPath, serverGeneratedDataPath } from "@server/paths";
 import { registerUiPanelActions } from "@server/content/gamemodes/vanilla/uikit/actions";
 import { openUiPanel, sendUiFooterButton, sendUiMenuButtons } from "@server/content/gamemodes/vanilla/uikit/panelData";
@@ -327,7 +329,7 @@ function saveConfirmedAnimation(
     }
 
     const formatted = `${JSON.stringify(definitions, null, 2)}\n`.replace(/\n/g, lineEnding);
-    fs.writeFileSync(combatDefsPath, formatted, "utf8");
+    writeTextFileAtomicallySync(combatDefsPath, formatted);
 }
 
 function isRole(value: string | undefined): value is ReviewAnimationRole {
@@ -360,6 +362,18 @@ export function registerNpcAnimationReviewCommands(
     registry: IScriptRegistry,
     services: ScriptServices,
 ): void {
+    const clearSession = (playerId: number): void => {
+        const session = sessionsByPlayerId.get(playerId);
+        if (session) services.npc.removeNpc(session.previewNpcId);
+        sessionsByPlayerId.delete(playerId);
+    };
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: clearSession,
+        reset: () => {
+            for (const playerId of [...sessionsByPlayerId.keys()]) clearSession(playerId);
+        },
+    });
+
     registry.registerCommand("npcreview", ({ player, args }) => {
         const action = args[0]?.toLowerCase();
 

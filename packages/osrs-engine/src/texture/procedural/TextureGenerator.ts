@@ -5,6 +5,7 @@ import { CacheIndex } from "@august/osrs-engine/cache/CacheIndex";
 import { IndexedSprite } from "@august/osrs-engine/sprite/IndexedSprite";
 import { SpriteLoader } from "@august/osrs-engine/sprite/SpriteLoader";
 import { TextureLoader } from "@august/osrs-engine/texture/TextureLoader";
+import { BoundedLruCache } from "@august/osrs-engine/cache/BoundedLruCache";
 
 export class TextureGenerator {
     static SINE: Int32Array;
@@ -12,7 +13,7 @@ export class TextureGenerator {
 
     static INVERSE_SQUARE_ROOT: Int8Array;
 
-    static permutationCache: Map<number, Int8Array> = new Map();
+    static permutationCache: Map<number, Int8Array> = new BoundedLruCache(256);
 
     spriteIndex: CacheIndex;
     textureLoader: TextureLoader;

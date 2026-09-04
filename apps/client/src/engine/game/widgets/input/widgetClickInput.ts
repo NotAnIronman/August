@@ -1,4 +1,5 @@
 import { sendWidgetAction } from "@client/core/network/ServerConnection";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { OsrsClientPacketId, createPacket, queuePacket } from "@client/core/network/packet/index";
 import type { ScriptEvent } from "@client/engine/cs2/Cs2Vm";
 import { shouldTransmitAction } from "@client/ui/widgets/WidgetFlags";
@@ -140,7 +141,7 @@ export function processWidgetClickInput(
                             (w.name || w.opBase || w.spriteId >= 0)
                         ) {
                             // No-target spell (e.g., teleport) - send directly to server
-                            console.log(
+                            clientDebugLog(
                                 `[OsrsClient] No-target spell clicked: widget=${w.uid}, name="${
                                     w.name || w.opBase
                                 }", group=${clickGroupId}, child=${clickChildId}`,
@@ -174,7 +175,7 @@ export function processWidgetClickInput(
                                 ClientState.isSpellSelected &&
                                 ClientState.selectedSpellWidget === spellSelection.widgetId
                             ) {
-                                console.log(
+                                clientDebugLog(
                                     `[OsrsClient] Spell widget re-clicked while active, clearing selection: widget=${spellSelection.widgetId}`,
                                 );
                                 deps.getSpellSelection().clearSelectedSpell();
@@ -196,7 +197,7 @@ export function processWidgetClickInput(
                             ClientState.selectedSpellTargetMask = targetMask;
 
                             const clickGroupId = (spellSelection.widgetId >> 16) & 0xffff;
-                            console.log(
+                            clientDebugLog(
                                 `[OsrsClient] Spell targeting mode entered: widget=${
                                     spellSelection.widgetId
                                 }, verb="${targetVerb}", name="${
@@ -268,6 +269,17 @@ export function processWidgetClickInput(
                     // Handlers can mutate widget ops (e.g., Mute -> Unmute), but the transmitted action
                     // should reflect what was clicked pre-mutation.
                     const primaryAction = getPrimaryWidgetAction(w);
+                    const preparedClientSettingAction = deps.prepareClientSettingAction({
+                        widget: w,
+                        option: primaryAction.option,
+                        target: primaryAction.target,
+                        source: "primary",
+                        cursorX: widgetInteraction.clickedWidgetX,
+                        cursorY: widgetInteraction.clickedWidgetY,
+                        slot: primaryAction.slot,
+                        itemId: primaryAction.itemId,
+                        opIndex: primaryAction.opIndex,
+                    });
 
                     // Trade item slots are draggable and reach handleWidgetAction on mouse-up,
                     // but the native Accept/Decline buttons are not. Route these primary button
@@ -337,6 +349,14 @@ export function processWidgetClickInput(
                     // This matches the behavior we already do for server-driven run_script events.
                     if (invokedAnyHandler && widgetManager) {
                         widgetManager.invalidateAll();
+                    }
+
+                    // Commit cache-created setting dropdowns after their CS2 handler has updated
+                    // the interface. The commit owns the action and transmits its varp, avoiding a
+                    // second generic widget packet for the transient dropdown child.
+                    if (preparedClientSettingAction?.()) {
+                        widgetInteraction.clickedWidgetHandled = true;
+                        break;
                     }
 
                     // If click handlers resumed a pause button, skip generic IF_BUTTON send.

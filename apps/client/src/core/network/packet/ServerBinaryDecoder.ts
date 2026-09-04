@@ -13,7 +13,22 @@ import {
 import { SERVER_MESSAGE_LENGTHS, ServerMessageId } from "@august/protocol/transport/messages/ServerMessage";
 import type { ProjectileLaunch } from "@august/protocol/projectiles/ProjectileLaunch";
 import type { FriendsChatSnapshot } from "@august/protocol/social/FriendsChat";
+import {
+    bossHealthBarMarkerStyleFromId,
+    type BossHealthBarMarker,
+} from "@august/protocol/ui/bossHealthBar";
 import type { WorldEntityBuildArea } from "@august/protocol/worldentity/WorldEntityTypes";
+
+const GROUND_ITEM_METADATA_MAGIC = 0x4749; // "GI"
+const GROUND_ITEM_METADATA_VERSION = 1;
+const GROUND_ITEM_META_NAME = 1 << 0;
+const GROUND_ITEM_META_VALUE = 1 << 1;
+const GROUND_ITEM_META_HIGH_ALCH = 1 << 2;
+const GROUND_ITEM_META_BOOLS = 1 << 3;
+const GROUND_ITEM_META_TRADEABLE = 1 << 4;
+const GROUND_ITEM_META_STACKABLE = 1 << 5;
+const GROUND_ITEM_META_NOTED = 1 << 6;
+const GROUND_ITEM_META_UNNOTED_ID = 1 << 7;
 
 /**
  * Binary packet buffer for client decoding
@@ -22,13 +37,27 @@ export class ServerPacketReader {
     readonly data: Uint8Array;
     offset: number = 0;
     private bitPos: number = 0;
+    private limit: number;
 
     constructor(data: Uint8Array | ArrayBuffer) {
         this.data = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+        this.limit = this.data.length;
     }
 
     get remaining(): number {
-        return this.data.length - this.offset;
+        return this.limit - this.offset;
+    }
+
+    /** Restrict reads to one declared packet, even when its frame has trailing packets. */
+    setLimit(endExclusive: number): void {
+        if (
+            !Number.isSafeInteger(endExclusive) ||
+            endExclusive < this.offset ||
+            endExclusive > this.data.length
+        ) {
+            throw new RangeError("Invalid server packet boundary");
+        }
+        this.limit = endExclusive;
     }
 
     initBitAccess(): void {
@@ -36,6 +65,14 @@ export class ServerPacketReader {
     }
 
     readBits(count: number): number {
+        if (
+            !Number.isSafeInteger(count) ||
+            count < 0 ||
+            count > 32 ||
+            this.bitPos + count > this.limit * 8
+        ) {
+            throw new RangeError("Server packet ended during bit access");
+        }
         let bytePos = this.bitPos >> 3;
         let bitOffset = 8 - (this.bitPos & 7);
         let value = 0;
@@ -58,7 +95,7 @@ export class ServerPacketReader {
     }
 
     private ensureRemaining(bytes: number, op: string): void {
-        if ((this.remaining | 0) < (bytes | 0)) {
+        if (!Number.isSafeInteger(bytes) || bytes < 0 || this.remaining < bytes) {
             throw new RangeError(
                 `Buffer exhausted (${op} need=${bytes} offset=${this.offset} len=${this.data.length})`,
             );
@@ -137,7 +174,7 @@ export class ServerPacketReader {
     }
 
     readBytes(length: number): Uint8Array {
-        this.ensureRemaining(length | 0, "readBytes");
+        this.ensureRemaining(length, "readBytes");
         const result = this.data.slice(this.offset, this.offset + length);
         this.offset += length;
         return result;
@@ -145,42 +182,50 @@ export class ServerPacketReader {
 
     /** Read unsigned byte with ADD decoding: (value - 128) & 0xFF */
     readByteAdd(): number {
+        this.ensureRemaining(1, "readByteAdd");
         return (this.data[this.offset++] - 128) & 0xff;
     }
 
     /** Read unsigned byte with NEG decoding: (0 - value) & 0xFF */
     readByteNeg(): number {
+        this.ensureRemaining(1, "readByteNeg");
         return (0 - this.data[this.offset++]) & 0xff;
     }
 
     /** Read unsigned byte with SUB decoding: (128 - value) & 0xFF */
     readByteSub(): number {
+        this.ensureRemaining(1, "readByteSub");
         return (128 - this.data[this.offset++]) & 0xff;
     }
 
     /** Read signed byte with ADD decoding */
     readSignedByteAdd(): number {
+        this.ensureRemaining(1, "readSignedByteAdd");
         return ((this.data[this.offset++] - 128) << 24) >> 24;
     }
 
     /** Read signed byte with NEG decoding */
     readSignedByteNeg(): number {
+        this.ensureRemaining(1, "readSignedByteNeg");
         return ((0 - this.data[this.offset++]) << 24) >> 24;
     }
 
     /** Read signed byte with SUB decoding */
     readSignedByteSub(): number {
+        this.ensureRemaining(1, "readSignedByteSub");
         return ((128 - this.data[this.offset++]) << 24) >> 24;
     }
 
     /** Read unsigned short little-endian: [low, high] */
     readShortLE(): number {
+        this.ensureRemaining(2, "readShortLE");
         this.offset += 2;
         return (this.data[this.offset - 2] & 0xff) | ((this.data[this.offset - 1] & 0xff) << 8);
     }
 
     /** Read unsigned short with ADD decoding: [high, low+128] -> big-endian */
     readShortAdd(): number {
+        this.ensureRemaining(2, "readShortAdd");
         this.offset += 2;
         return (
             ((this.data[this.offset - 2] & 0xff) << 8) | ((this.data[this.offset - 1] - 128) & 0xff)
@@ -189,6 +234,7 @@ export class ServerPacketReader {
 
     /** Read unsigned short with ADD LE decoding: [low+128, high] -> little-endian */
     readShortAddLE(): number {
+        this.ensureRemaining(2, "readShortAddLE");
         this.offset += 2;
         return (
             ((this.data[this.offset - 2] - 128) & 0xff) | ((this.data[this.offset - 1] & 0xff) << 8)
@@ -203,6 +249,7 @@ export class ServerPacketReader {
 
     /** Read unsigned int little-endian: [b0, b1, b2, b3] */
     readIntLE(): number {
+        this.ensureRemaining(4, "readIntLE");
         this.offset += 4;
         return (
             ((this.data[this.offset - 4] & 0xff) |
@@ -215,6 +262,7 @@ export class ServerPacketReader {
 
     /** Read unsigned int middle-endian: [b1, b0, b3, b2] */
     readIntME(): number {
+        this.ensureRemaining(4, "readIntME");
         this.offset += 4;
         return (
             (((this.data[this.offset - 2] & 0xff) << 24) |
@@ -227,6 +275,7 @@ export class ServerPacketReader {
 
     /** Read unsigned int inverse middle-endian: [b2, b3, b0, b1] */
     readIntIME(): number {
+        this.ensureRemaining(4, "readIntIME");
         this.offset += 4;
         return (
             (((this.data[this.offset - 3] & 0xff) << 24) |
@@ -246,16 +295,78 @@ export type DecodedServerMessage = {
     payload: any;
 };
 
+export const MAX_GAMEMODE_DATA_JSON_BYTES = 32 * 1024 * 1024;
+export const MAX_BATCHED_SERVER_PACKETS = 4_096;
+export const MAX_BATCHED_SERVER_BYTES = 64 * 1024 * 1024;
+
+function inflateGamemodeData(
+    compressedBytes: Uint8Array,
+    declaredLength: number,
+): Uint8Array {
+    if (
+        !Number.isSafeInteger(declaredLength) ||
+        declaredLength < 0 ||
+        declaredLength > MAX_GAMEMODE_DATA_JSON_BYTES
+    ) {
+        throw new RangeError("Gamemode data declares an unsupported JSON size");
+    }
+
+    type PakoInflate = {
+        err: number;
+        msg: string;
+        onData: (chunk: Uint8Array) => void;
+        push(data: Uint8Array, final: boolean): boolean;
+    };
+    const pako = require("pako") as {
+        Inflate: new (options?: { chunkSize?: number }) => PakoInflate;
+    };
+    const inflater = new pako.Inflate({ chunkSize: 64 * 1024 });
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    inflater.onData = (chunk) => {
+        total += chunk.byteLength;
+        if (total > declaredLength || total > MAX_GAMEMODE_DATA_JSON_BYTES) {
+            throw new RangeError("Gamemode data expands beyond its declared JSON size");
+        }
+        chunks.push(chunk);
+    };
+    if (!inflater.push(compressedBytes, true) || inflater.err !== 0 || total !== declaredLength) {
+        throw new Error(inflater.msg || "Invalid compressed gamemode data");
+    }
+
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+    }
+    return bytes;
+}
+
 /**
  * Decode a single binary packet
  */
 export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServerMessage | null {
+    try {
+        return decodeServerPacketUnchecked(data);
+    } catch {
+        // A configured community server is an external input boundary. Bad
+        // counts, truncated fields, and compressed payloads must not crash or
+        // corrupt the browser client.
+        return null;
+    }
+}
+
+function decodeServerPacketUnchecked(
+    data: Uint8Array | ArrayBuffer,
+): DecodedServerMessage | null {
     const reader = new ServerPacketReader(data);
 
     if (reader.remaining < 1) return null;
 
     const opcode = reader.readByte() as ServerMessageId;
     const fixedLength = SERVER_MESSAGE_LENGTHS[opcode];
+    if (fixedLength === undefined) return null;
 
     // Read length for variable packets
     let packetLength: number;
@@ -269,7 +380,10 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
         packetLength = fixedLength;
     }
 
-    if (reader.remaining < packetLength) return null;
+    if (!Number.isSafeInteger(packetLength) || packetLength < 0 || reader.remaining < packetLength) {
+        return null;
+    }
+    reader.setLimit(reader.offset + packetLength);
 
     const readGroundItemStack = (): any => {
         const id = reader.readInt();
@@ -309,6 +423,63 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
             isPrivate,
             ownership,
         };
+    };
+
+    const readGroundItemMetadata = (stacks: any[]): void => {
+        // Legacy servers end the packet after the base stack records. Metadata
+        // is therefore optional, but a present trailer must be complete.
+        if (reader.remaining === 0) return;
+        if (reader.readShort() !== GROUND_ITEM_METADATA_MAGIC) {
+            throw new RangeError("Invalid ground-item metadata marker");
+        }
+        if (reader.readByte() !== GROUND_ITEM_METADATA_VERSION) {
+            throw new RangeError("Unsupported ground-item metadata version");
+        }
+        const count = reader.readShort();
+        if (count > stacks.length) {
+            throw new RangeError("Invalid ground-item metadata count");
+        }
+        const stacksById = new Map<number, any>();
+        for (const stack of stacks) stacksById.set(stack.id | 0, stack);
+        const seen = new Set<number>();
+        for (let i = 0; i < count; i++) {
+            const stackId = reader.readInt();
+            if (seen.has(stackId)) {
+                throw new RangeError("Duplicate ground-item metadata entry");
+            }
+            seen.add(stackId);
+            const stack = stacksById.get(stackId);
+            if (!stack) {
+                throw new RangeError("Ground-item metadata references an unknown stack");
+            }
+            const flags = reader.readByte();
+            if ((flags & GROUND_ITEM_META_NAME) !== 0) stack.name = reader.readString();
+            if ((flags & GROUND_ITEM_META_VALUE) !== 0) {
+                const value = reader.readInt();
+                if (value < 0) throw new RangeError("Invalid ground-item value");
+                stack.value = value;
+            }
+            if ((flags & GROUND_ITEM_META_HIGH_ALCH) !== 0) {
+                const highAlch = reader.readInt();
+                if (highAlch < 0) throw new RangeError("Invalid ground-item high-alch value");
+                stack.highAlch = highAlch;
+            }
+            if ((flags & GROUND_ITEM_META_BOOLS) !== 0) {
+                stack.tradeable = (flags & GROUND_ITEM_META_TRADEABLE) !== 0;
+                stack.stackable = (flags & GROUND_ITEM_META_STACKABLE) !== 0;
+                stack.noted = (flags & GROUND_ITEM_META_NOTED) !== 0;
+            }
+            if ((flags & GROUND_ITEM_META_UNNOTED_ID) !== 0) {
+                const unnotedItemId = reader.readInt();
+                if (unnotedItemId <= 0) {
+                    throw new RangeError("Invalid canonical ground-item id");
+                }
+                stack.unnotedItemId = unnotedItemId;
+            }
+        }
+        if (reader.remaining !== 0) {
+            throw new RangeError("Trailing ground-item metadata bytes");
+        }
     };
 
     switch (opcode) {
@@ -911,6 +1082,44 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
                 },
             };
 
+        case ServerMessageId.WIDGET_SET_BOSS_HEALTH_BAR: {
+            const active = reader.readBoolean();
+            if (!active) {
+                return {
+                    type: "widget",
+                    payload: { action: "set_boss_health_bar", active: false },
+                };
+            }
+            const npcTypeId = reader.readInt();
+            const current = reader.readInt();
+            const maximum = reader.readInt();
+            const name = reader.readString();
+            const markerCount = reader.readByte();
+            const markers: BossHealthBarMarker[] = [];
+            for (let index = 0; index < markerCount; index++) {
+                const percent = reader.readShort() / 100;
+                const style = bossHealthBarMarkerStyleFromId(reader.readByte());
+                const label = reader.readString() || undefined;
+                markers.push({
+                    percent,
+                    ...(label ? { label } : {}),
+                    ...(style ? { style } : {}),
+                });
+            }
+            return {
+                type: "widget",
+                payload: {
+                    action: "set_boss_health_bar",
+                    active: true,
+                    npcTypeId,
+                    name,
+                    current,
+                    maximum,
+                    markers,
+                },
+            };
+        }
+
         case ServerMessageId.WIDGET_SET_NPC_HEAD:
             return {
                 type: "widget",
@@ -1215,6 +1424,7 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
             for (let i = 0; i < count; i++) {
                 stacks.push(readGroundItemStack());
             }
+            readGroundItemMetadata(stacks);
             return {
                 type: "ground_items",
                 payload: { kind: "snapshot", serial, stacks },
@@ -1233,6 +1443,7 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
             for (let i = 0; i < removeCount; i++) {
                 removes.push(reader.readInt());
             }
+            readGroundItemMetadata(upserts);
             return {
                 type: "ground_items",
                 payload: { kind: "delta", serial, upserts, removes },
@@ -1845,7 +2056,7 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
 
         case ServerMessageId.COLLECTION_LOG_CATEGORY_COMPLETION: {
             // Mirrors encodeCollectionLogCategoryCompletion in
-            // server/src/network/packet/ServerBinaryEncoder.ts exactly:
+            // apps/server/src/network/packet/ServerBinaryEncoder.ts exactly:
             // [tabCount:byte] then per tab [tabIndex:byte, categoryCount:short, ...categoryCount x isComplete:byte]
             const tabCount = reader.readByte();
             const completionByTab: Record<number, boolean[]> = {};
@@ -1920,17 +2131,15 @@ export function decodeServerPacket(data: Uint8Array | ArrayBuffer): DecodedServe
 
         case ServerMessageId.GAMEMODE_DATA: {
             const flags = reader.readByte();
-            reader.readInt(); // jsonLength (reserved for pre-allocation)
+            const jsonLength = reader.readInt() >>> 0;
+            if (jsonLength > MAX_GAMEMODE_DATA_JSON_BYTES) return null;
             const compressed = (flags & 1) !== 0;
             const rawBytes = reader.readBytes(reader.remaining);
-            let jsonStr: string;
-            if (compressed) {
-                const pako = require("pako");
-                const inflated = pako.inflate(rawBytes);
-                jsonStr = new TextDecoder().decode(inflated);
-            } else {
-                jsonStr = new TextDecoder().decode(rawBytes);
-            }
+            const jsonBytes = compressed
+                ? inflateGamemodeData(rawBytes, jsonLength)
+                : rawBytes;
+            if (jsonBytes.byteLength !== jsonLength) return null;
+            const jsonStr = new TextDecoder().decode(jsonBytes);
             try {
                 const payload = JSON.parse(jsonStr);
                 return {
@@ -1969,9 +2178,12 @@ export function isBinaryPacket(data: ArrayBuffer | string): boolean {
 export function decodeBatchedServerPackets(data: Uint8Array | ArrayBuffer): DecodedServerMessage[] {
     const messages: DecodedServerMessage[] = [];
     const buffer = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+    if (buffer.byteLength > MAX_BATCHED_SERVER_BYTES) return messages;
     let offset = 0;
+    let packetCount = 0;
 
     while (offset < buffer.length) {
+        if (++packetCount > MAX_BATCHED_SERVER_PACKETS) return [];
         const remaining = buffer.length - offset;
         if (remaining < 1) break;
 

@@ -68,6 +68,17 @@ export type GroundItemStackMessage = {
     itemId: number;
     quantity: number;
     tile: { x: number; y: number; level: number };
+    /** Authoritative item-definition metadata used by client loot filters. */
+    name?: string;
+    /** Display/guide value from the server item definition (coins each). */
+    value?: number;
+    /** Exact high-alchemy value from the server item definition (coins each). */
+    highAlch?: number;
+    tradeable?: boolean;
+    stackable?: boolean;
+    noted?: boolean;
+    /** Canonical unnoted item id when the relationship is known safely. */
+    unnotedItemId?: number;
     createdTick?: number;
     privateUntilTick?: number;
     expiresTick?: number;
@@ -400,7 +411,7 @@ export type CollectionLogServerPayload =
       }
     | {
           /** Per-category "all items obtained" state, by tab index. See
-           *  getCategoryCompletionByTab in server/src/game/collectionlog.ts -
+           *  getCategoryCompletionByTab in apps/server/src/game/collectionlog.ts -
            *  the compiled cache script that draws the sidebar category list
            *  doesn't color-code completed categories itself, so the client
            *  applies this after the list is drawn (see the run_script hook
@@ -1147,6 +1158,8 @@ function encodeWidgetToBinary(payload: WidgetServerPayload): Uint8Array {
             );
         case "set_transparency":
             return serverEncoder.encodeWidgetSetTransparency(payload.uid, payload.transparency);
+        case "set_boss_health_bar":
+            return serverEncoder.encodeWidgetSetBossHealthBar(payload);
         case "set_npc_head":
             return serverEncoder.encodeWidgetSetNpcHead(payload.uid, payload.npcId);
         case "set_flags_range":

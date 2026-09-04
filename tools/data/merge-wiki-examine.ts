@@ -2,7 +2,7 @@
  * Regenerates data/generated/server/{npcs,locs}.json as complete,
  * static, git-committable files — id, name, examine, actions — the same
  * pattern items.json already uses, loaded the same simple way (see
- * server/src/data/items.ts). No SQLite, no runtime wiring, no override
+ * apps/server/src/data/items.ts). No SQLite, no runtime wiring, no override
  * store. This is the file the server actually reads at runtime; the
  * examine_overrides SQLite table (::setexamine) is no longer part of the
  * bulk-data path — this file IS the data now.

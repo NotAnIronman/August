@@ -931,6 +931,8 @@ export class InputManager {
 
     private onKeyDown = (event: KeyboardEvent) => {
         event.preventDefault();
+        // A held F-key must not repeatedly collapse/reopen its assigned tab.
+        if (event.repeat && /^F(?:[1-9]|1[0-2])$/.test(event.code)) return;
         this.idleTime = 0;
         this.lastInputTimeMs = this.nowMs();
 
@@ -953,7 +955,7 @@ export class InputManager {
             }
             this.osrsKeyState[osrsKeyCode] = 1;
             this.osrsKeyPressedThisFrame.add(osrsKeyCode);
-            if (osrsKeyCode === 81 || osrsKeyCode === 82) {
+            if (osrsKeyCode === 81 || osrsKeyCode === 82 || osrsKeyCode === 86) {
                 ClientState.setKeybindState(osrsKeyCode, true);
             }
         }
@@ -1011,7 +1013,7 @@ export class InputManager {
                 this.keyArray[osrsKeyCode] = 0;
             }
             this.osrsKeyState[osrsKeyCode] = 0;
-            if (osrsKeyCode === 81 || osrsKeyCode === 82) {
+            if (osrsKeyCode === 81 || osrsKeyCode === 82 || osrsKeyCode === 86) {
                 ClientState.setKeybindState(osrsKeyCode, false);
             }
         }
@@ -1033,6 +1035,7 @@ export class InputManager {
         this.keys.clear();
         ClientState.setKeybindState(81, false);
         ClientState.setKeybindState(82, false);
+        ClientState.setKeybindState(86, false);
         this.resetMouse();
     };
 

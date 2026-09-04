@@ -35,6 +35,8 @@ rules live in [Architecture](architecture.md) and
 | Shared model or rule | **packages/game-model/** | no app dependencies |
 | Packet/message contract | **packages/protocol/** | client encoder and server handler |
 | Tick/action/combat system | **apps/server/src/game/** | gamemode providers for world-specific rules |
+| Reusable boss/encounter behavior | **apps/server/src/game/encounters/** | content modules provide encounter data and exceptional choreography |
+| Reusable skilling behavior | **apps/server/src/game/skilling/** | skill content provides recipes, node data, and world interactions |
 | Collision, routes, or instances | **apps/server/src/{world,pathfinding}/** | generated map data |
 | Authentication or synchronization | **apps/server/src/network/** | protocol package |
 | Gamemode progression/content | `apps/server/src/content/gamemodes/<id>/` | stable ID and state migration |

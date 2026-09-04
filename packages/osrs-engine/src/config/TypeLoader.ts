@@ -4,6 +4,7 @@ import { CacheIndex } from "@august/osrs-engine/cache/CacheIndex";
 import { CacheInfo } from "@august/osrs-engine/cache/CacheInfo";
 import { ByteBuffer } from "@august/osrs-engine/io/ByteBuffer";
 import { Type } from "@august/osrs-engine/config/Type";
+import { isGroupMissingError } from "@august/osrs-engine/cache/js5/GroupMissingError";
 
 export interface TypeLoader<T> {
     load(id: number): T;
@@ -61,6 +62,11 @@ export abstract class BaseTypeLoader<T extends Type> implements TypeLoader<T> {
                 type.post();
             }
         } catch (e) {
+            // A sparse-cache miss is temporary. Let the caller retry after
+            // the range fetch instead of permanently caching an empty type.
+            if (isGroupMissingError(e)) {
+                throw e;
+            }
             console.error("Failed loading type " + id, e);
         }
         this.cache.set(id, type);
@@ -251,5 +257,7 @@ export class IndexedDatTypeLoader<T extends Type> extends BaseTypeLoader<T> {
         return this.count;
     }
 
-    clearCache(): void {}
+    override clearCache(): void {
+        super.clearCache();
+    }
 }

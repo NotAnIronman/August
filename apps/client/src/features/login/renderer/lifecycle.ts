@@ -2,6 +2,17 @@ import type { LoginRendererHost } from "@client/features/login/renderer/host";
 
 export function dispose(host: LoginRendererHost): void {
 
+        // Abort title assets and world/server probes before releasing their host.
+        // These requests can otherwise finish after HMR/unmount and repopulate
+        // ImageBitmap/DOM/WebSocket resources on an already-disposed client.
+        host.lifecycleAbortController.abort();
+        host.probing = false;
+
+        if (host.logoImage) {
+            host.logoImage.onload = null;
+            host.logoImage.onerror = null;
+        }
+
         // Clear sprite references
         host.logoSprite = undefined;
         host.logoImage = undefined;
@@ -27,7 +38,9 @@ export function dispose(host: LoginRendererHost): void {
 
         // Clear title background
         if (host.titleBackgroundImage) {
-            host.titleBackgroundImage.close();
+            if ("close" in host.titleBackgroundImage) {
+                host.titleBackgroundImage.close();
+            }
             host.titleBackgroundImage = undefined;
         }
 

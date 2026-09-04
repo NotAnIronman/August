@@ -26,6 +26,21 @@ const webpackConfig = cracoConfig.webpack.configure({
     plugins: [],
     resolve: { alias: {}, extensions: [], fallback: {}, plugins: [] },
 });
+const productionWebpackConfig = cracoConfig.webpack.configure({
+    mode: "production",
+    devtool: "source-map",
+    module: { rules: [] },
+    optimization: { minimizer: [] },
+    plugins: [],
+    resolve: { alias: {}, extensions: [], fallback: {}, plugins: [] },
+});
+assert.equal(
+    productionWebpackConfig.devtool,
+    String(process.env.GENERATE_SOURCEMAP ?? "").trim().toLowerCase() === "true"
+        ? "source-map"
+        : false,
+    "production source maps must be disabled unless explicitly requested",
+);
 const spriteCatalogPlugin = webpackConfig.plugins.find(
     (plugin: { constructor?: { name?: string } }) =>
         plugin?.constructor?.name === "SpriteNamesCatalogPlugin",

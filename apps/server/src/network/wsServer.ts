@@ -19,7 +19,12 @@ import { MusicCatalogService } from "@server/audio/MusicCatalogService";
 import { MusicRegionService } from "@server/audio/MusicRegionService";
 import { MusicUnlockService } from "@server/audio/MusicUnlockService";
 import { NpcSoundLookup } from "@server/audio/NpcSoundLookup";
-import { config } from "@server/config";
+import { activeWorld, config } from "@server/config";
+import {
+    readBooleanEnv,
+    readNonNegativeEnvInteger,
+    readPositiveEnvInteger,
+} from "@server/config/environment";
 import { getItemDefinition } from "@server/data/items";
 import { populateLocEffectsFromLoader } from "@server/data/locEffects";
 import { serverVarPath } from "@server/paths";
@@ -50,6 +55,7 @@ import { GameEventBus } from "@server/game/events/GameEventBus";
 import { EncounterManager } from "@server/game/encounters/EncounterManager";
 import { FollowerCombatManager } from "@server/game/followers/FollowerCombatManager";
 import { FollowerManager } from "@server/game/followers/FollowerManager";
+import { getFollowerDefinitionByItemId } from "@server/game/followers/followerDefinitions";
 import type {
     GamemodeDefinition,
     GamemodeUiController,
@@ -68,7 +74,12 @@ import { NpcManager } from "@server/game/npcManager";
 import { PlayerManager, PlayerState } from "@server/game/player";
 import { PrayerSystem } from "@server/game/prayer/PrayerSystem";
 import { SailingInstanceManager } from "@server/game/sailing/SailingInstanceManager";
-import { ScriptRegistry, ScriptRuntime, bootstrapScripts } from "@server/game/scripts";
+import {
+    ScriptRegistry,
+    ScriptRuntime,
+    bootstrapScripts,
+    type ScriptBootstrapHandle,
+} from "@server/game/scripts";
 import { ActionDispatchService } from "@server/game/services/ActionDispatchService";
 import { AppearanceService } from "@server/game/services/AppearanceService";
 import { ClientInputService } from "@server/game/services/ClientInputService";
@@ -98,12 +109,16 @@ import {
 import { SkillService } from "@server/game/services/SkillService";
 import { SoundService } from "@server/game/services/SoundService";
 import { SpellCastingService } from "@server/game/services/SpellCastingService";
-import { TickFrameService } from "@server/game/services/TickFrameService";
+import {
+    DEFAULT_AUTOSAVE_BATCH_SIZE,
+    TickFrameService,
+} from "@server/game/services/TickFrameService";
 import { TickPhaseService } from "@server/game/services/TickPhaseService";
 import { VariableService } from "@server/game/services/VariableService";
 import { VarpSyncService } from "@server/game/services/VarpSyncService";
 import { WorldEntityService } from "@server/game/services/WorldEntityService";
 import { PlayerPersistence } from "@server/game/state/PlayerPersistence";
+import { resolvePublicGameEndpoint } from "@server/network/PublicGameEndpoint";
 import {
     BroadcastScheduler,
     EquipmentHandler,
@@ -116,7 +131,7 @@ import {
 } from "@server/game/systems";
 import { TEST_HIT_FORCE, testRandFloat } from "@server/game/testing/TestRng";
 import { TickPhaseOrchestrator } from "@server/game/tick";
-import { GameTicker } from "@server/game/ticker";
+import { GameTicker, type TickEvent } from "@server/game/ticker";
 import { TradeManager } from "@server/game/trade/TradeManager";
 import { PathService } from "@server/pathfinding/PathService";
 import { logger } from "@server/observability/logger";
@@ -139,10 +154,21 @@ import { AccountStore } from "@server/network/AccountStore";
 import { AuthenticationService } from "@server/network/AuthenticationService";
 import { BroadcastService } from "@server/network/BroadcastService";
 import { LoginHandshakeService } from "@server/network/LoginHandshakeService";
+import { serveHostedClient } from "@server/network/ClientHosting";
+import {
+    getHostingSnapshot,
+    isLocalHostingRequest,
+    renderHostingPortal,
+} from "@server/network/HostingPortal";
 import { MessageRouter, type MessageRouterServices } from "@server/network/MessageRouter";
 import { buildTeleportNpcUpdateDelta, upsertNpcUpdateDelta } from "@server/network/NpcExternalSync";
 import { NpcSyncSession } from "@server/network/NpcSyncSession";
 import { PlayerNetworkLayer } from "@server/network/PlayerNetworkLayer";
+import {
+    resolveWebSocketTransportConfig,
+    type ResolvedWebSocketTransportConfig,
+    type WebSocketTransportOverrides,
+} from "@server/network/WebSocketTransportConfig";
 import { PlayerSyncSession } from "@server/network/PlayerSyncSession";
 import * as ServiceWiring from "@server/network/ServiceWiring";
 import { AccountSummaryTracker } from "@server/network/accountSummary";
@@ -187,10 +213,13 @@ export interface WSServerOptions {
     serverName?: string;
     maxPlayers?: number;
     gamemode: GamemodeDefinition;
+    /** Optional transport overrides; environment-backed defaults are used otherwise. */
+    webSocketTransport?: WebSocketTransportOverrides;
 }
 
 export class WSServer {
     private wss!: WebSocketServer;
+    private webSocketTransport!: ResolvedWebSocketTransportConfig;
     private options: WSServerOptions;
     private players?: PlayerManager;
     private npcManager?: NpcManager;
@@ -199,6 +228,9 @@ export class WSServer {
         {
             removeNpc: (npcRuntimeId) => {
                 this.npcManager?.removeNpc(npcRuntimeId);
+            },
+            cancelTask: (taskId) => {
+                if (typeof taskId === "number") this.scriptScheduler.cancel(taskId);
             },
         },
         (npcTypeId, animation, selector) =>
@@ -230,6 +262,7 @@ export class WSServer {
     private readonly scriptScheduler = new ScriptScheduler();
     private readonly scriptRegistry = new ScriptRegistry();
     private scriptRuntime!: ScriptRuntime;
+    private scriptBootstrap?: ScriptBootstrapHandle;
     private playerPersistence!: PlayerPersistence;
     private movementSystem?: MovementSystem;
     private followerManager?: FollowerManager;
@@ -283,6 +316,8 @@ export class WSServer {
     private broadcastService!: BroadcastService;
     private tickFrameService!: TickFrameService;
     private clientInputService!: ClientInputService;
+    private readonly handleTick = (data: TickEvent) => this.tickFrameService.handleTick(data);
+    private closePromise?: Promise<void>;
 
     // Extracted services (Phase 8)
     private combatEffectService!: CombatEffectService;
@@ -327,6 +362,7 @@ export class WSServer {
     private musicRegionService?: MusicRegionService;
     private musicUnlockService?: MusicUnlockService;
     private autosaveIntervalTicks!: number;
+    private autosaveBatchSize!: number;
     private groundItems!: GroundItemManager;
     private readonly playerDynamicLocSceneKeys = new Map<number, string>();
     private readonly dynamicLocState = new DynamicLocStateStore();
@@ -386,8 +422,14 @@ export class WSServer {
         this.initServiceWiring(opts);
         this.initDeferredDeps(opts);
         this.broadcastService = new BroadcastService(this.svc);
-        this.tickFrameService = new TickFrameService(this.svc, this.autosaveIntervalTicks);
-        this.clientInputService = new ClientInputService(this.svc);
+        this.tickFrameService = new TickFrameService(this.svc, this.autosaveIntervalTicks, {
+            autosaveBatchSize: this.autosaveBatchSize,
+        });
+        this.clientInputService = new ClientInputService(
+            this.svc,
+            Date.now,
+            this.webSocketTransport.inputQueueHighWaterBytes,
+        );
         this.loginHandshakeService = new LoginHandshakeService(this.svc);
         this.tickPhaseService = new TickPhaseService(this.svc);
         this.populateServiceContext();
@@ -396,8 +438,10 @@ export class WSServer {
         this.initGamemode(opts);
         this.initPlayerAnimations();
         this.initTestBots();
-        this.wss.on("connection", (ws) => this.loginHandshakeService.onConnection(ws));
-        opts.ticker.on("tick", (data) => this.tickFrameService.handleTick(data));
+        this.wss.on("connection", (ws, request) =>
+            this.loginHandshakeService.onConnection(ws, request),
+        );
+        opts.ticker.on("tick", this.handleTick);
     }
 
     /**
@@ -433,7 +477,63 @@ export class WSServer {
      * progress since the last autosave is not lost.
      */
     async flushPlayerSaves(): Promise<void> {
-        await this.tickFrameService.runAutosave(this.options.ticker.currentTick());
+        await this.tickFrameService.shutdownAndFlush(this.options.ticker.currentTick());
+    }
+
+    /** Stop accepting connections and drain/terminate remaining client sockets. */
+    close(timeoutMs: number = 5_000): Promise<void> {
+        this.closePromise ??= this.closeInternal(timeoutMs);
+        return this.closePromise;
+    }
+
+    private async closeInternal(timeoutMs: number): Promise<void> {
+        const server = this.wss;
+        if (!server) return;
+
+        for (const client of server.clients) {
+            try {
+                client.close(1001, "server_shutdown");
+            } catch {
+                try {
+                    client.terminate();
+                } catch {
+                    // Socket may already be gone.
+                }
+            }
+        }
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                let settled = false;
+                let timeout: NodeJS.Timeout;
+                const finish = (error?: Error) => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timeout);
+                    if (error) reject(error);
+                    else resolve();
+                };
+                timeout = setTimeout(() => {
+                    for (const client of server.clients) {
+                        try {
+                            client.terminate();
+                        } catch {
+                            // Continue terminating the remaining sockets.
+                        }
+                    }
+                    finish();
+                }, Math.max(100, Math.trunc(timeoutMs)));
+                server.close((error) => finish(error));
+            });
+        } finally {
+            this.options.ticker.off("tick", this.handleTick);
+            try {
+                this.scriptBootstrap?.dispose();
+            } finally {
+                this.scriptBootstrap = undefined;
+                this.doorManager?.dispose();
+            }
+        }
     }
 
     /**
@@ -648,19 +748,38 @@ export class WSServer {
         });
     }
     private initWebSocketServer(opts: WSServerOptions): void {
+        const transport = resolveWebSocketTransportConfig(opts.webSocketTransport);
+        this.webSocketTransport = transport;
         this.wss = new WebSocketServer({
             host: opts.host,
             port: opts.port,
-            perMessageDeflate: {
-                zlibDeflateOptions: { level: 6 },
-                zlibInflateOptions: { chunkSize: 10 * 1024 },
-                threshold: 128, // Only compress messages larger than 128 bytes
-                concurrencyLimit: 10,
-            },
+            maxPayload: transport.maxPayloadBytes,
+            perMessageDeflate: transport.perMessageDeflate,
         });
         this.wss.on("listening", () => {
             const displayHost = opts.host.includes(":") ? `[${opts.host}]` : opts.host;
             logger.info(`WS listening on ws://${displayHost}:${opts.port}`);
+            logger.info(
+                `[ws] max payload=${transport.maxPayloadBytes} bytes; input queue high-water=${transport.inputQueueHighWaterBytes} bytes; outbound high-water=${transport.outboundHighWaterBytes} bytes; compression=${
+                    transport.compressionEnabled
+                        ? `on (threshold=${transport.compressionThresholdBytes} bytes)`
+                        : "off"
+                }`,
+            );
+            const publicEndpoint = resolvePublicGameEndpoint(opts.port, undefined);
+            if (publicEndpoint.explicitlyConfigured) {
+                const scheme = publicEndpoint.secure ? "wss" : "ws";
+                logger.info(`[hosting] advertising ${scheme}://${publicEndpoint.address}`);
+                if (!publicEndpoint.secure) {
+                    logger.warn(
+                        "[hosting] public WebSocket transport is unencrypted; use a TLS reverse proxy and PUBLIC_WS_URL=wss://host before accepting internet credentials",
+                    );
+                } else if (!readBooleanEnv("TRUST_PROXY")) {
+                    logger.warn(
+                        "[hosting] TRUST_PROXY is disabled; clients behind a same-host reverse proxy share its login-rate-limit address",
+                    );
+                }
+            }
 
             const httpServer = (this.wss as unknown as { _server?: import("http").Server })._server;
             if (httpServer) {
@@ -668,7 +787,31 @@ export class WSServer {
                 httpServer.on(
                     "request",
                     (req: import("http").IncomingMessage, res: import("http").ServerResponse) => {
-                        if (req.url === "/status") {
+                        const portalOptions = {
+                            serverName: opts.serverName ?? config.serverName,
+                            gamePort: opts.port,
+                            maxPlayers: opts.maxPlayers ?? config.maxPlayers,
+                            players: () => this.players,
+                        };
+                        const clientHostingOptions = {
+                            worldId: activeWorld.id,
+                            serverName: opts.serverName ?? config.serverName,
+                            gamePort: opts.port,
+                            maxPlayers: opts.maxPlayers ?? config.maxPlayers,
+                        };
+                        if (
+                            req.url === "/hosting" &&
+                            isLocalHostingRequest(req.socket.remoteAddress, req.headers)
+                        ) {
+                            res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+                            res.end(renderHostingPortal(portalOptions));
+                        } else if (
+                            req.url === "/hosting.json" &&
+                            isLocalHostingRequest(req.socket.remoteAddress, req.headers)
+                        ) {
+                            res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+                            res.end(JSON.stringify(getHostingSnapshot(portalOptions)));
+                        } else if (req.url === "/status") {
                             const count = this.players?.getRealPlayerCount() ?? 0;
                             res.writeHead(200, {
                                 "Content-Type": "application/json",
@@ -682,8 +825,15 @@ export class WSServer {
                                 }),
                             );
                         } else {
-                            res.writeHead(426);
-                            res.end();
+                            void serveHostedClient(req, res, clientHostingOptions).catch((err) => {
+                                logger.warn("[hosting] failed to serve client request", err);
+                                if (!res.headersSent) {
+                                    res.writeHead(500, {
+                                        "Content-Type": "text/plain; charset=utf-8",
+                                    });
+                                }
+                                if (!res.writableEnded) res.end("Internal server error");
+                            });
                         }
                     },
                 );
@@ -692,22 +842,24 @@ export class WSServer {
     }
 
     private initAutosave(): void {
-        const autosaveEnvRaw = process.env.PLAYER_AUTOSAVE_TICKS;
-        const autosaveEnv = autosaveEnvRaw?.trim()
-            ? parseInt(autosaveEnvRaw.trim(), 10)
-            : undefined;
+        const autosaveEnv = readNonNegativeEnvInteger("PLAYER_AUTOSAVE_TICKS");
         const defaultAutosaveTicks = Math.max(
             0,
             Math.round((DEFAULT_AUTOSAVE_SECONDS * 1000) / Math.max(1, this.options.tickMs)),
         );
-        this.autosaveIntervalTicks =
-            autosaveEnv !== undefined && Number.isFinite(autosaveEnv) && autosaveEnv > 0
-                ? Math.max(1, autosaveEnv)
-                : defaultAutosaveTicks;
+        this.autosaveIntervalTicks = autosaveEnv ?? defaultAutosaveTicks;
+        this.autosaveBatchSize = Math.max(
+            1,
+            Math.min(
+                256,
+                readPositiveEnvInteger("PLAYER_AUTOSAVE_BATCH_SIZE") ??
+                    DEFAULT_AUTOSAVE_BATCH_SIZE,
+            ),
+        );
         if (this.autosaveIntervalTicks > 0) {
             const seconds = ((this.autosaveIntervalTicks * this.options.tickMs) / 1000).toFixed(1);
             logger.info(
-                `[autosave] enabled interval=${this.autosaveIntervalTicks} ticks (~${seconds}s)`,
+                `[autosave] enabled interval=${this.autosaveIntervalTicks} ticks (~${seconds}s), batch=${this.autosaveBatchSize}`,
             );
         } else {
             logger.info("[autosave] disabled (interval <= 0)");
@@ -719,7 +871,9 @@ export class WSServer {
         this.cacheEnv = env;
 
         this.dataLoaderService = new DataLoaderService(env);
-        this.networkLayer = new PlayerNetworkLayer();
+        this.networkLayer = new PlayerNetworkLayer({
+            outboundHighWaterBytes: this.webSocketTransport.outboundHighWaterBytes,
+        });
         // AuthService created below after we know players is set up
         // Phase 1 services are initialized below after core dependencies are ready.
 
@@ -864,6 +1018,8 @@ export class WSServer {
             scriptScheduler: this.scriptScheduler,
             instancedAreaManager: this.instancedAreaManager!,
             getCurrentTick: () => this.options.ticker.currentTick(),
+            getTickMs: () => this.options.tickMs,
+            isDeveloper: (player) => this.authService?.getPlayerPermission(player) === "developer",
             getPathService: () => this.options.pathService!,
             doorManager: this.doorManager!,
             npcManager: this.npcManager!,
@@ -883,6 +1039,7 @@ export class WSServer {
             effectDispatcher: undefined!, // Deferred: wired after creation
             combatActionHandler: undefined, // Deferred: wired after creation
             combatEffectApplicator: combatEffectApplicator,
+            combatEffectService: undefined, // Deferred: wired after creation
             damageTracker: damageTracker,
             multiCombatSystem: multiCombatSystem,
             getPlayers: () => this.players,
@@ -939,6 +1096,9 @@ export class WSServer {
                 this.locTypeLoader,
                 this.doorManager,
                 this.scriptRuntime,
+                {
+                    debugHumanPathfinding: readBooleanEnv("DEBUG_PLAYER_PATHFINDING"),
+                },
             );
             if (this.npcManager) {
                 this.npcManager.setLethalStatusHitInterceptor((event) => {
@@ -1147,10 +1307,16 @@ export class WSServer {
         }
         if (this.npcManager) {
             this.npcManager.setLifecycleHooks({
-                onRemove: (npcId) => this.encounterManager.removeNpc(npcId),
+                onRemove: (npcId) => {
+                    this.instancedAreaManager?.detachNpc(npcId);
+                    this.encounterManager.removeNpc(npcId);
+                },
                 onReset: (npcId, context) => {
                     const npc = this.npcManager?.getById(npcId);
                     if (!npc) return;
+                    if (context.kind === "respawn") {
+                        this.instancedAreaManager?.attachNpcByWorldView(npc);
+                    }
                     this.encounterManager.ensureForNpc(npc);
                     const spawnAnimation = this.combatDataService?.getNpcSpawnAnimation(
                         npc.typeId,
@@ -1181,7 +1347,8 @@ export class WSServer {
                 );
                 // Collection-log credit belongs to the assigned monster-drop
                 // owner at creation time, never to whoever eventually picks it up.
-                if (spawned && opts?.isMonsterDrop && opts.ownerId !== undefined) {
+                if (spawned && opts?.isMonsterDrop && opts.ownerId !== undefined &&
+                    !getFollowerDefinitionByItemId(itemId)) {
                     const owner = this.players?.getById(opts.ownerId);
                     if (owner) this.collectionLogService?.trackCollectionLogItem(owner, itemId);
                 }
@@ -1201,10 +1368,9 @@ export class WSServer {
             this.gamemode,
             {
                 accountStore: new AccountStore({ dataDir: gamemodeDataDir }),
-                allowAccountRegistration:
-                    (process.env.ALLOW_ACCOUNT_REGISTRATION ?? "true").toLowerCase() !== "false",
-                allowLegacyAccountClaim:
-                    (process.env.ALLOW_LEGACY_ACCOUNT_CLAIM ?? "false").toLowerCase() === "true",
+                maxPlayers: opts.maxPlayers ?? config.maxPlayers,
+                allowAccountRegistration: readBooleanEnv("ALLOW_ACCOUNT_REGISTRATION", true),
+                allowLegacyAccountClaim: readBooleanEnv("ALLOW_LEGACY_ACCOUNT_CLAIM"),
             },
         );
         logger.info("[services] Phase 1 services initialized (DataLoaders, Auth, Network)");
@@ -1263,9 +1429,10 @@ export class WSServer {
         this.scriptAdapterDeps.followerCombatManager = this.followerCombatManager;
         this.scriptAdapterDeps.inventoryActionHandler = this.inventoryActionHandler;
         this.scriptAdapterDeps.effectDispatcher = this.effectDispatcher;
+        this.scriptAdapterDeps.combatEffectService = this.combatEffectService;
 
         // Register gamemode/content modules after deferred services (gathering, etc.) exist.
-        bootstrapScripts(this.scriptRuntime, this.gamemode);
+        this.scriptBootstrap = bootstrapScripts(this.scriptRuntime, this.gamemode);
 
         this.inventoryMessageService = new InventoryMessageService({
             getPlayer: (ws) => this.players?.get(ws),

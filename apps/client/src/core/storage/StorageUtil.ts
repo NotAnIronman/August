@@ -6,7 +6,11 @@ export type StorageBudget = {
 
 function getNavigatorStorage(): StorageManager | undefined {
     if (typeof navigator === "undefined") return undefined;
-    return navigator.storage;
+    try {
+        return navigator.storage;
+    } catch {
+        return undefined;
+    }
 }
 
 export async function getStorageBudget(): Promise<StorageBudget | undefined> {
@@ -46,6 +50,13 @@ export async function ensurePersistentStorage(): Promise<boolean | "unsupported"
     } catch {
         return false;
     }
+}
+
+export function describePersistentStorageUnavailable(secureContext: boolean): string {
+    if (!secureContext) {
+        return "This HTTP connection cannot protect cached assets from browser cleanup or save encrypted passwords. HTTPS is required. This does not affect server-side character saves.";
+    }
+    return "Persistent cache storage is unavailable in this browser or browsing mode. Cached assets may be cleared and downloaded again. This does not mean character progress failed to save.";
 }
 
 export async function hasEnoughStorage(bytesNeeded: number): Promise<boolean> {

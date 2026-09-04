@@ -2,7 +2,7 @@
  * Regression coverage for typed combat targets surviving neither death nor
  * registry-slot reuse after an NPC respawn.
  *
- * Run with: npx tsx tests/combat-engagement-lifecycle.test.ts
+ * Run with: pnpm exec tsx tests/combat-engagement-lifecycle.test.ts
  */
 import assert from "node:assert/strict";
 

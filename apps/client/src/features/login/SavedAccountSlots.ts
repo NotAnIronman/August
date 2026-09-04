@@ -97,24 +97,39 @@ async function readSlots(database: IDBDatabase): Promise<StoredAccountSlot[]> {
 async function passwordKey(database: IDBDatabase): Promise<CryptoKey | undefined> {
     if (!cryptoAvailable()) return undefined;
     try {
-        const transaction = database.transaction(KEY_STORE, "readwrite");
+        const transaction = database.transaction(KEY_STORE, "readonly");
         const done = transactionDone(transaction);
         const store = transaction.objectStore(KEY_STORE);
         const stored = await requestResult(
             store.get(PASSWORD_KEY_ID) as IDBRequest<StoredKey | undefined>,
         );
-        if (stored?.key) {
-            await done;
-            return stored.key;
-        }
+        await done;
+        if (stored?.key) return stored.key;
+
+        // Crypto work may outlive an IndexedDB transaction. Generate the key
+        // before opening the write transaction, then recheck for another tab's key.
         const key = await crypto.subtle.generateKey(
             { name: "AES-GCM", length: 256 },
             false,
             ["encrypt", "decrypt"],
         );
-        store.put({ id: PASSWORD_KEY_ID, key } satisfies StoredKey);
-        await done;
-        return key;
+        return await new Promise<CryptoKey>((resolve, reject) => {
+            const write = database.transaction(KEY_STORE, "readwrite");
+            const keyStore = write.objectStore(KEY_STORE);
+            let selectedKey = key;
+            write.oncomplete = () => resolve(selectedKey);
+            write.onerror = write.onabort = () => reject(write.error);
+            const current = keyStore.get(PASSWORD_KEY_ID) as IDBRequest<StoredKey | undefined>;
+            current.onsuccess = () => {
+                try {
+                    if (current.result?.key) selectedKey = current.result.key;
+                    else keyStore.put({ id: PASSWORD_KEY_ID, key } satisfies StoredKey);
+                } catch (error) {
+                    write.abort();
+                    reject(error);
+                }
+            };
+        });
     } catch {
         return undefined;
     }

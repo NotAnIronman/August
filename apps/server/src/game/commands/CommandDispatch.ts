@@ -32,7 +32,7 @@ export function resolveCommand<THandler>(
     };
 }
 
-/** Discoverable, permission-filtered command catalog used by ::help. */
+/** Discoverable, permission-filtered command catalog used by ::commands. */
 export function listAvailableCommands(
     permission: PlayerPermission,
     registered: readonly CommandMetadata[],

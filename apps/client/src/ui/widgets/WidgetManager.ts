@@ -1,4 +1,5 @@
 import type { CacheSystem } from "@august/osrs-engine/cache/CacheSystem";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import type { SeqTypeLoader } from "@august/osrs-engine/config/seqtype/SeqTypeLoader";
 import { WidgetLoader } from "@client/ui/widgets/WidgetLoader";
 import type { WidgetNode } from "@client/ui/widgets/WidgetNode";
@@ -481,7 +482,7 @@ export class WidgetManager {
         this.canvasWidth = width;
         this.canvasHeight = height;
         if (changed) {
-            console.log(`[WidgetManager] Screen size: ${width}x${height}`);
+            clientDebugLog(`[WidgetManager] Screen size: ${width}x${height}`);
             // Invalidate all widgets so they get re-laid out with new dimensions
             for (const group of this.groups.values()) {
                 if (group.root) {
@@ -1384,7 +1385,7 @@ export class WidgetManager {
             // Track special widgets by contentType (like OSRS client does in alignWidgetSize)
             const contentType = typeof node.contentType === "number" ? node.contentType : 0;
             if (contentType === ContentType.VIEWPORT) {
-                console.log(
+                clientDebugLog(
                     `[WidgetManager] Found Viewport Widget: ${node.uid} (Group ${groupId})`,
                 );
                 this.viewportWidget = node;
@@ -1576,7 +1577,7 @@ export class WidgetManager {
         // the REAL container size a UIKit panel gets laid out against, so we
         // stop guessing panel dimensions and use the actual number.
         if (groupId === 30024 || groupId === 30028 || groupId === 30029) {
-            console.log(
+            clientDebugLog(
                 `[UIKit debug] group ${groupId} mounted into container uid ${targetUid} ` +
                     `(${targetUid >> 16}:${targetUid & 0xffff}): ` +
                     `container.width=${targetWidget.width} container.height=${targetWidget.height} ` +

@@ -1,5 +1,5 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
-import type { ActionEffect, ActionExecutionResult } from "@server/game/actions/types";
+import type { ActionExecutionResult } from "@server/game/actions/types";
 import type { PlayerState } from "@server/game/player";
 import {
     ANY_LOC_ID,
@@ -8,160 +8,84 @@ import {
     type ScriptServices,
 } from "@server/game/scripts/types";
 import {
-    buildMessageEffect,
-    buildSkillFailure,
-    getInventory,
-    hasItem,
-} from "@server/content/gamemodes/vanilla/skills/production/productionActions";
-import { HAMMER_ITEM_ID, SMITHING_RECIPES, getSmithingRecipeById } from "@server/content/gamemodes/vanilla/skills/smithing/smithingData";
+    type ProductionRecipePolicy,
+    defineProductionSkill,
+} from "@server/game/skilling/ProductionSkill";
+import { hasTool } from "@server/game/skilling/Requirements";
+import { getInventory, hasItem } from "@server/content/gamemodes/vanilla/skills/production/productionActions";
+import {
+    HAMMER_ITEM_ID,
+    IMCANDO_HAMMER_ITEM_IDS,
+    SMITHING_RECIPES,
+    type SmithingRecipe,
+} from "@server/content/gamemodes/vanilla/skills/smithing/smithingData";
 
-interface SkillSmithActionData {
-    recipeId: string;
-    count: number;
-}
+const SMITHING_HAMMERS = [HAMMER_ITEM_ID, ...IMCANDO_HAMMER_ITEM_IDS];
+const SMITHING_RECIPES_CORE: ProductionRecipePolicy<SmithingRecipe>[] = SMITHING_RECIPES.map(
+    (recipe) => ({
+        id: recipe.id,
+        source: recipe,
+        level: recipe.level,
+        levelSource: "effective" as const,
+        inputs: [{ itemId: recipe.barItemId, quantity: Math.max(1, recipe.barCount) }],
+        outputs: [
+            { itemId: recipe.outputItemId, quantity: Math.max(1, recipe.outputQuantity) },
+        ],
+        tools:
+            recipe.requireHammer === false
+                ? undefined
+                : [{ itemIds: SMITHING_HAMMERS, source: "carried" as const }],
+        xp: recipe.xp,
+        animationId: recipe.animation ?? 898,
+        ticks: recipe.delayTicks ?? 4,
+        outputPlacement: "first-consumed-slot",
+    }),
+);
 
-function buildSmithingInterfaceFailure(
-    player: PlayerState,
-    message: string,
-    reason: string,
-    services: ScriptServices,
-): ActionExecutionResult {
-    const result = buildSkillFailure(player, message, reason);
-    services.production?.updateSmithingInterface?.(player);
-    return result;
+const SMITHING = defineProductionSkill({
+    name: "smith",
+    skillId: SkillId.Smithing,
+    recipes: SMITHING_RECIPES_CORE,
+    messages: {
+        unknownRecipe: "You can't smith that.",
+        missingLevel: (recipe) => `You need Smithing level ${recipe.level} to smith that.`,
+        missingInputs: () => "You need more bars.",
+        missingTools: () => "You need a hammer to smith items.",
+        inventoryFull: () => "You need more inventory space to smith that.",
+        success: (recipe) => {
+            const source = recipe.source;
+            return `You smith ${
+                source.outputQuantity > 1
+                    ? `${source.outputQuantity} ${source.name}`
+                    : `a ${source.name}`
+            }.`;
+        },
+        interrupted: "You stop smithing because you're already busy.",
+    },
+});
+
+function hasSmithingHammer(player: PlayerState, services: ScriptServices): boolean {
+    return hasTool(services, player, { itemIds: SMITHING_HAMMERS, source: "carried" });
 }
 
 export function executeSmithAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
-    const { player, tick, services } = ctx;
-    const data = ctx.data as SkillSmithActionData;
-    const recipe = getSmithingRecipeById(data.recipeId);
-    if (!recipe) {
-        return buildSmithingInterfaceFailure(
-            player,
-            "You can't smith that.",
-            "unknown_recipe",
-            services,
-        );
+    const result = SMITHING.execute(ctx);
+    if (!result.ok) {
+        if (result.reason === "level") result.reason = "smith_level";
+        else if (result.reason === "tool") result.reason = "hammer";
+        else if (result.reason === "materials") result.reason = "missing_bars";
     }
-
-    const skill = services.skills.getSkill(player, SkillId.Smithing);
-    if ((skill?.baseLevel ?? 1) < recipe.level) {
-        return buildSmithingInterfaceFailure(
-            player,
-            `You need Smithing level ${recipe.level} to smith that.`,
-            "smith_level",
-            services,
-        );
-    }
-
-    if (
-        recipe.requireHammer !== false &&
-        !services.inventory.playerHasItem(player, HAMMER_ITEM_ID)
-    ) {
-        return buildSmithingInterfaceFailure(
-            player,
-            "You need a hammer to smith items.",
-            "hammer",
-            services,
-        );
-    }
-
-    const targetCount = Math.max(1, data.count);
-    const removed = new Map<number, number>();
-    const requiredBars = Math.max(1, recipe.barCount);
-
-    for (let i = 0; i < requiredBars; i++) {
-        const slot = services.inventory.findInventorySlotWithItem(player, recipe.barItemId);
-        if (slot === undefined || !services.inventory.consumeItem(player, slot)) {
-            services.production?.restoreInventoryItems(player, recipe.barItemId, removed);
-            return buildSmithingInterfaceFailure(
-                player,
-                "You need more bars.",
-                "missing_bars",
-                services,
-            );
-        }
-        removed.set(slot, (removed.get(slot) ?? 0) + 1);
-    }
-
-    const firstSlot = removed.keys().next()?.value;
-    if (firstSlot !== undefined) {
-        services.inventory.setInventorySlot(
-            player,
-            firstSlot,
-            recipe.outputItemId,
-            Math.max(1, recipe.outputQuantity),
-        );
-    } else {
-        const dest = services.inventory.addItemToInventory(
-            player,
-            recipe.outputItemId,
-            Math.max(1, recipe.outputQuantity),
-        );
-        if (dest.added <= 0) {
-            services.production?.restoreInventoryItems(player, recipe.barItemId, removed);
-            return buildSmithingInterfaceFailure(
-                player,
-                "You need more inventory space to smith that.",
-                "inventory_full",
-                services,
-            );
-        }
-    }
-
-    services.animation.playPlayerSeq(player, recipe.animation ?? 898);
-    services.skills.addSkillXp(player, SkillId.Smithing, recipe.xp);
-    services.system.eventBus?.emit("item:craft", {
-        playerId: player.id,
-        itemId: recipe.outputItemId,
-        count: Math.max(1, recipe.outputQuantity),
-    });
-
-    const effects: ActionEffect[] = [
-        { type: "inventorySnapshot", playerId: player.id },
-        buildMessageEffect(
-            player,
-            `You smith ${
-                recipe.outputQuantity > 1
-                    ? `${recipe.outputQuantity} ${recipe.name}`
-                    : `a ${recipe.name}`
-            }.`,
-        ),
-    ];
-
-    const remaining = Math.max(0, targetCount - 1);
-    if (remaining > 0) {
-        const reschedule = services.combat.scheduleAction(
-            player.id,
-            {
-                kind: "skill.smith",
-                data: { recipeId: recipe.id, count: remaining },
-                delayTicks: recipe.delayTicks ?? 4,
-                cooldownTicks: recipe.delayTicks ?? 4,
-                groups: ["skill.smith"],
-            },
-            tick,
-        );
-        if (!reschedule?.ok) {
-            effects.push(
-                buildMessageEffect(player, "You stop smithing because you're already busy."),
-            );
-        }
-    }
-
-    services.production?.updateSmithingInterface?.(player);
-    return {
-        ok: true,
-        cooldownTicks: recipe.delayTicks !== undefined ? Math.max(1, recipe.delayTicks) : 4,
-        groups: ["skill.smith"],
-        effects,
-    };
+    ctx.services.production?.updateSmithingInterface?.(ctx.player);
+    return result;
 }
 
-export function registerSmithingInteractions(registry: IScriptRegistry, services: ScriptServices) {
+export function registerSmithingInteractions(
+    registry: IScriptRegistry,
+    services: ScriptServices,
+) {
     const openForge = (player: PlayerState, barItemId?: number) => {
         const inventory = getInventory(services, player);
-        if (!hasItem(inventory, HAMMER_ITEM_ID)) {
+        if (!hasSmithingHammer(player, services)) {
             services.messaging.sendGameMessage(player, "You need a hammer to smith.");
             return;
         }
@@ -181,17 +105,15 @@ export function registerSmithingInteractions(registry: IScriptRegistry, services
         services.production?.openForgeInterface?.(player, barItemId);
     };
 
-    registry.registerLocAction("smith", (event) => {
-        openForge(event.player);
-    });
+    registry.registerLocAction("smith", (event) => openForge(event.player));
 
-    const barItemIds = new Set(SMITHING_RECIPES.map((r) => r.barItemId));
+    const barItemIds = new Set(SMITHING_RECIPES.map((recipe) => recipe.barItemId));
     for (const barItemId of barItemIds) {
         registry.registerItemOnLoc(barItemId, ANY_LOC_ID, (event) => {
             const locDef = services.data.getLocDefinition(event.target.locId);
             if (!locDef) return;
             const actions = locDef.actions ?? [];
-            if (!actions.some((a: string) => a?.toLowerCase() === "smith")) return;
+            if (!actions.some((action: string) => action?.toLowerCase() === "smith")) return;
             openForge(event.player, event.source.itemId);
         });
     }

@@ -6,8 +6,6 @@ import type { CookingHeatSource } from "@server/content/gamemodes/vanilla/skills
 export type SkillSurfaceKind = "smith" | "cook" | "tan" | "smelt";
 
 export type InventoryEntry = ScriptInventoryEntry;
-export type RequestActionFn = ScriptServices["combat"]["requestAction"];
-export type SendMessageFn = (player: PlayerState, text: string) => void;
 export type SkillDialogChoice<T> = {
     recipe: T;
     label: string;
@@ -23,13 +21,6 @@ export const SKILL_DIALOG_META: Record<SkillSurfaceKind, { id: string; title: st
     cook: { id: "skill.cook", title: "What would you like to cook?" },
     tan: { id: "skill.tan", title: "Which hide would you like to tan?" },
     smelt: { id: "skill.smelt", title: "Which bar would you like to smelt?" },
-};
-
-export const ACTION_FAILURE_MESSAGES: Record<SkillSurfaceKind, string> = {
-    smith: "You can't smith right now.",
-    cook: "You can't cook that right now.",
-    tan: "You can't tan that right now.",
-    smelt: "You can't smelt that right now.",
 };
 
 export function buildMessageEffect(player: PlayerState, message: string): ActionEffect {
@@ -83,54 +74,4 @@ export const resolveCookingHeatSource = (
     const name = definition?.name?.toLowerCase() ?? "";
     if (supportItems <= 0 || name === "fire") return "fire";
     return "range";
-};
-
-export const enqueueSkillAction = (
-    requestAction: RequestActionFn,
-    kind: SkillSurfaceKind,
-    player: PlayerState,
-    recipeId: string,
-    count: number,
-    delayTicks: number,
-    tick: number | undefined,
-    sendMessage: SendMessageFn,
-    extraData?: { heatSource?: CookingHeatSource },
-): boolean => {
-    const normalizedCount = Math.max(1, count);
-    const delay = Math.max(1, delayTicks);
-    if (!(normalizedCount > 0)) {
-        sendMessage(player, ACTION_FAILURE_MESSAGES[kind]);
-        return false;
-    }
-    const resolvedTick = Number.isFinite(tick) ? (tick as number) : 0;
-
-    const kindToAction: Record<SkillSurfaceKind, string> = {
-        smith: "skill.smith",
-        cook: "skill.cook",
-        tan: "skill.tan",
-        smelt: "skill.smelt",
-    };
-    const actionKind = kindToAction[kind];
-    const data: Record<string, unknown> = { recipeId, count: normalizedCount };
-    if (kind === "cook" && extraData?.heatSource) {
-        data.heatSource = extraData.heatSource;
-    }
-
-    const result = requestAction(
-        player,
-        {
-            kind: actionKind,
-            data,
-            delayTicks: delay,
-            cooldownTicks: delay,
-            groups: ["skill.surface", actionKind],
-        },
-        resolvedTick,
-    );
-
-    if (!result.ok) {
-        sendMessage(player, ACTION_FAILURE_MESSAGES[kind]);
-        return false;
-    }
-    return true;
 };

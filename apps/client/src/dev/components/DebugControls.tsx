@@ -1,7 +1,7 @@
 import FileSaver from "file-saver";
 import { vec3 } from "gl-matrix";
 import { Leva, button, buttonGroup, folder, useControls } from "leva";
-import { ButtonGroupOpts, Schema } from "leva/dist/declarations/src/types";
+import type { ButtonGroupOpts, Schema } from "leva/dist/declarations/src/types";
 import { memo, useCallback, useEffect, useState } from "react";
 
 import { DownloadProgress } from "@august/osrs-engine/cache/CacheFiles";
@@ -19,6 +19,8 @@ import {
 } from "@client/engine/rendering/core/GameRenderers";
 import { OsrsClient } from "@client/engine/game/OsrsClient";
 import { profiler } from "@client/engine/rendering/PerformanceProfiler";
+import { getControls as getRendererControls } from "@client/engine/rendering/render/controls";
+import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
 import { getClientPreference, setClientPreference } from "@client/features/preferences/ClientPreferences";
 
 interface OsrsClientControlsProps {
@@ -92,29 +94,6 @@ export const DebugControls = memo(
         const removeLastPoint = useCallback(() => {
             setCameraPoints((pts) => pts.slice(0, pts.length - 1));
         }, []);
-
-        useEffect(() => {
-            function handleKeyDown(e: KeyboardEvent) {
-                if (e.repeat) {
-                    return;
-                }
-
-                switch (e.key) {
-                    case "F1":
-                        setHideUi((v) => !v);
-                        break;
-                    case "F4":
-                        removeLastPoint();
-                        break;
-                }
-            }
-
-            document.addEventListener("keydown", handleKeyDown);
-
-            return () => {
-                document.removeEventListener("keydown", handleKeyDown);
-            };
-        }, [removeLastPoint, setHideUi]);
 
         useEffect(() => {
             setPointControls(
@@ -200,7 +179,7 @@ export const DebugControls = memo(
 
         const recordSchema: Schema = {
             "Add camera point": button(() => addPoint()),
-            "Delete last point (F4)": button(() => removeLastPoint()),
+            "Delete last point": button(() => removeLastPoint()),
             Length: {
                 value: animationDuration,
                 onChange: (v: number) => {
@@ -221,7 +200,9 @@ export const DebugControls = memo(
         }
 
         // Extract Player folder from renderer schema so we can render it top-level
-        const rendererSchema: any = renderer.getControls();
+        const rendererSchema: any = getRendererControls(
+            renderer as unknown as WebGLOsrsRendererHost,
+        );
         const playerFolder = rendererSchema?.Player;
         if (playerFolder) {
             delete rendererSchema.Player;

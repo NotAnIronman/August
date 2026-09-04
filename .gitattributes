@@ -1,4 +1,6 @@
-* text=auto
+# Keep source/data diffs identical across Windows, Linux, and macOS. Native
+# Windows launchers are the only text files that require CRLF below.
+* text=auto eol=lf
 
 # Windows command files require CRLF when invoked directly.
 *.bat text eol=crlf

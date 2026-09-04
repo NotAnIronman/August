@@ -217,6 +217,30 @@ export class InventoryMessageService {
         }
 
         const nowTick = this.deps.getCurrentTick();
+        const disposalAction = obj?.inventoryActions?.find((action) =>
+            action?.toLowerCase() === "destroy" || action?.toLowerCase() === "discard",
+        );
+        if (!optionLower && payload.op === 5) optionLower = disposalAction?.toLowerCase() ?? "drop";
+        // The cache's disposal action is authoritative, even if a client forges "Drop".
+        if (optionLower === "drop" && disposalAction) optionLower = disposalAction.toLowerCase();
+        if (optionLower === "destroy" || optionLower === "discard") {
+            if (!hasItemInInventory || !disposalAction) return;
+            this.deps.closeInterruptibleInterfaces(p);
+            const quantity = slotEntry.quantity;
+            this.deps.openDialogOptions(p, {
+                id: "confirm_destroy_item",
+                title: `Destroy ${itemDef?.name ?? "this item"}? This cannot be undone.`,
+                options: ["Yes", "No"],
+                onSelect: (choice) => {
+                    if (choice !== 0) return;
+                    const current = this.deps.getInventory(p)[slotIndex];
+                    if (current?.itemId !== itemId || current.quantity !== quantity) return;
+                    this.deps.setInventorySlot(p, slotIndex, -1, 0);
+                    this.deps.checkAndSendSnapshots(p);
+                },
+            });
+            return;
+        }
         if (
             optionLower === "drop" &&
             hasItemInInventory &&
@@ -244,14 +268,8 @@ export class InventoryMessageService {
         if (optionLower === "drop") {
             if (!hasItemInInventory) return;
             this.deps.closeInterruptibleInterfaces(p);
-            if (itemDef && !itemDef.dropable) {
-                this.deps.queueChatMessage({
-                    messageType: "game",
-                    text: "You can't drop that.",
-                    targetPlayerIds: [p.id],
-                });
-                return;
-            }
+            // Legacy dropable flags also label many ordinary untradeables. Only
+            // explicit Destroy/Discard actions above require destructive disposal.
 
             const doDrop = () => {
                 const currentInv = this.deps.getInventory(p);
@@ -260,10 +278,9 @@ export class InventoryMessageService {
                     return;
                 }
                 const destroyedQty = currentSlot.quantity;
-                this.deps.setInventorySlot(p, slotIndex, -1, 0);
                 const dropTile = { x: p.tileX, y: p.tileY, level: p.level };
                 const inWilderness = isInWilderness(dropTile.x, dropTile.y);
-                this.deps.spawnGroundItem(
+                const dropped = this.deps.spawnGroundItem(
                     itemId,
                     destroyedQty,
                     dropTile,
@@ -271,6 +288,15 @@ export class InventoryMessageService {
                     { ownerId: p.id, privateTicks: inWilderness ? 0 : undefined },
                     p.worldViewId,
                 );
+                if (!dropped) {
+                    this.deps.queueChatMessage({
+                        messageType: "game",
+                        text: "There is no room to drop that here. Try another tile.",
+                        targetPlayerIds: [p.id],
+                    });
+                    return;
+                }
+                this.deps.setInventorySlot(p, slotIndex, -1, 0);
                 this.deps.withDirectSendBypass("drop_sound", () =>
                     this.deps.sendSound(p, ITEM_DROP_SOUND),
                 );
@@ -353,7 +379,7 @@ export class InventoryMessageService {
                 nowTick,
             );
             if (!res.ok) {
-                logger.info(
+                logger.debug(
                     `[action] equip request rejected player=${p.id} reason=${
                         res.reason ?? "unknown"
                     }`,
@@ -379,7 +405,7 @@ export class InventoryMessageService {
                 nowTick,
             );
             if (!res.ok) {
-                logger.info(
+                logger.debug(
                     `[action] consume request rejected player=${p.id} reason=${
                         res.reason ?? "unknown"
                     }`,

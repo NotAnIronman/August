@@ -99,9 +99,9 @@ function openWithKey(
     services.messaging.sendGameMessage(player, "You find some treasure in the chest!");
 
     services.location.emitLocChange(CHEST_CLOSED, CHEST_OPEN, tile, level);
-    setTimeout(() => {
+    services.scheduler.after(2, () => {
         services.location.emitLocChange(CHEST_OPEN, CHEST_CLOSED, tile, level);
-    }, 1200);
+    });
 
     rollLoot(player);
     services.inventory.snapshotInventory(player);

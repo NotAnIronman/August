@@ -2,7 +2,7 @@
  * Regression coverage for ten-tile manual/autocast approach routing and
  * same-tick attack preparation after the movement phase reaches range.
  *
- * Run with: npx tsx tests/combat-magic-farcast.test.ts
+ * Run with: pnpm exec tsx tests/combat-magic-farcast.test.ts
  */
 import assert from "node:assert/strict";
 

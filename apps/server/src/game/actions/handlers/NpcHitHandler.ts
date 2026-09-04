@@ -65,8 +65,16 @@ export class NpcHitHandler {
      */
     private readonly onNpcKilled = new Set<(killer: PlayerState, npc: NpcState, tick: number) => void>();
 
-    registerOnNpcKilled(fn: (killer: PlayerState, npc: NpcState, tick: number) => void): void {
+    registerOnNpcKilled(
+        fn: (killer: PlayerState, npc: NpcState, tick: number) => void,
+    ): () => void {
         this.onNpcKilled.add(fn);
+        let registered = true;
+        return () => {
+            if (!registered) return;
+            registered = false;
+            this.onNpcKilled.delete(fn);
+        };
     }
 
     constructor(
@@ -314,7 +322,16 @@ export class NpcHitHandler {
         if (this.onNpcKilled.size > 0) {
             const killerPlayer = this.services.getPlayer(killerPlayerId);
             if (killerPlayer) {
-                for (const callback of this.onNpcKilled) callback(killerPlayer, npc, tick);
+                for (const callback of [...this.onNpcKilled]) {
+                    try {
+                        callback(killerPlayer, npc, tick);
+                    } catch (error) {
+                        logger.warn(
+                            `[combat] NPC-killed listener failed (npc=${npc.id}, type=${npc.typeId})`,
+                            error,
+                        );
+                    }
+                }
             }
         }
 

@@ -1,4 +1,5 @@
 import { App as PicoApp, Program } from "picogl";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 
 import { CacheIndex } from "@august/osrs-engine/cache/CacheIndex";
 import { CacheSystem } from "@august/osrs-engine/cache/CacheSystem";
@@ -190,7 +191,9 @@ export class WidgetsOverlay implements Overlay {
             this.glRenderer.resize(overlaySize.width, overlaySize.height);
             this.hasPresentedFrame = false;
             this.rootSetChanged = true;
-            console.log(`WidgetsOverlay: Resized to ${overlaySize.width}x${overlaySize.height}`);
+            clientDebugLog(
+                `WidgetsOverlay: Resized to ${overlaySize.width}x${overlaySize.height}`,
+            );
         }
 
         // PERF: Reuse cached array instead of allocating new one each frame

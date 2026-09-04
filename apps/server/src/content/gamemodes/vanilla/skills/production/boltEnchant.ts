@@ -1,16 +1,17 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { ActionEffect, ActionExecutionResult } from "@server/game/actions/types";
 import type { PlayerState } from "@server/game/player";
-import type {
-    ScriptActionHandlerContext,
-    ScriptServices,
-} from "@server/game/scripts/types";
+import type { ScriptActionHandlerContext } from "@server/game/scripts/types";
+import { applyInventoryTransform } from "@server/game/skilling/InventoryTransform";
+import { defineSkillAction, repeatSkillAction } from "@server/game/skilling/SkillAction";
 import { buildMessageEffect, buildSkillFailure } from "@server/content/gamemodes/vanilla/skills/production/productionActions";
 
 const BOLT_ENCHANT_BOLTS_PER_SET = 10;
 const BOLT_ENCHANT_DELAY_TICKS = 3;
-const BOLT_ENCHANT_ACTION_GROUP = "skill.bolt_enchant";
 const BOLT_ENCHANT_DEFAULT_ANIMATION = 4462;
+const BOLT_ENCHANT_CYCLE_ACTION = defineSkillAction("bolt_enchant", {
+    delayTicks: BOLT_ENCHANT_DELAY_TICKS,
+});
 
 interface SkillBoltEnchantActionData {
     sourceItemId: number;
@@ -80,48 +81,35 @@ export function executeBoltEnchantAction(ctx: ScriptActionHandlerContext): Actio
         ? runeValidation.runesConsumed
         : [];
 
-    const boltRemoval = services.production?.takeInventoryItems(player, [
-        { itemId: sourceItemId, quantity: BOLT_ENCHANT_BOLTS_PER_SET },
-    ]);
-    if (!boltRemoval?.ok) {
-        return buildSkillFailure(
-            player,
-            "You don't have enough bolts to enchant.",
-            "bolt_enchant_missing_bolts",
-        );
-    }
-
-    let runeRemoval:
-        | { ok: boolean; removed: Map<number, { itemId: number; quantity: number }> }
-        | undefined;
-    if (consumedRunes.length > 0) {
-        runeRemoval = services.production?.takeInventoryItems(
-            player,
-            consumedRunes.map((e) => ({ itemId: e.runeId, quantity: Math.max(1, e.quantity) })),
-        );
-        if (!runeRemoval?.ok) {
-            services.production?.restoreInventoryRemovals(player, boltRemoval.removed);
+    const exchange = applyInventoryTransform(services.inventory, player, {
+        inputs: [
+            { itemId: sourceItemId, quantity: BOLT_ENCHANT_BOLTS_PER_SET },
+            ...consumedRunes.map((entry) => ({
+                itemId: entry.runeId,
+                quantity: Math.max(1, entry.quantity),
+            })),
+        ],
+        outputs: [{ itemId: enchantedItemId, quantity: BOLT_ENCHANT_BOLTS_PER_SET }],
+    });
+    if (!exchange.ok) {
+        if (exchange.reason === "inventory-full") {
             return buildSkillFailure(
                 player,
-                "You do not have the runes to cast this spell.",
-                "bolt_enchant_missing_runes",
+                "You don't have enough inventory space.",
+                "bolt_enchant_inventory_full",
             );
         }
-    }
-
-    const addResult = services.inventory.addItemToInventory(
-        player,
-        enchantedItemId,
-        BOLT_ENCHANT_BOLTS_PER_SET,
-    );
-    if (addResult.added <= 0) {
-        services.production?.restoreInventoryRemovals(player, boltRemoval.removed);
-        if (runeRemoval?.ok)
-            services.production?.restoreInventoryRemovals(player, runeRemoval.removed);
+        const remainingBolts = services.inventory
+            .getInventoryItems(player)
+            .filter((entry) => entry.itemId === sourceItemId)
+            .reduce((total, entry) => total + Math.max(0, entry.quantity), 0);
+        const stillHasBolts = remainingBolts >= BOLT_ENCHANT_BOLTS_PER_SET;
         return buildSkillFailure(
             player,
-            "You don't have enough inventory space.",
-            "bolt_enchant_inventory_full",
+            stillHasBolts
+                ? "You do not have the runes to cast this spell."
+                : "You don't have enough bolts to enchant.",
+            stillHasBolts ? "bolt_enchant_missing_runes" : "bolt_enchant_missing_bolts",
         );
     }
 
@@ -140,26 +128,22 @@ export function executeBoltEnchantAction(ctx: ScriptActionHandlerContext): Actio
 
     const remaining = Math.max(0, requestedCount - 1);
     if (remaining > 0) {
-        const reschedule = services.combat.scheduleAction(
-            player.id,
+        const rescheduled = repeatSkillAction(
+            services,
+            player,
+            BOLT_ENCHANT_CYCLE_ACTION,
             {
-                kind: "skill.bolt_enchant",
-                data: {
-                    sourceItemId,
-                    enchantedItemId,
-                    enchantedName,
-                    runeCosts,
-                    xp: xpPerSet,
-                    count: remaining,
-                    animationId,
-                },
-                delayTicks: BOLT_ENCHANT_DELAY_TICKS,
-                cooldownTicks: BOLT_ENCHANT_DELAY_TICKS,
-                groups: [BOLT_ENCHANT_ACTION_GROUP],
+                sourceItemId,
+                enchantedItemId,
+                enchantedName,
+                runeCosts,
+                xp: xpPerSet,
+                count: remaining,
+                animationId,
             },
             tick,
         );
-        if (!reschedule?.ok) {
+        if (!rescheduled) {
             effects.push(
                 buildMessageEffect(player, "You stop enchanting because you're already busy."),
             );
@@ -169,7 +153,7 @@ export function executeBoltEnchantAction(ctx: ScriptActionHandlerContext): Actio
     return {
         ok: true,
         cooldownTicks: BOLT_ENCHANT_DELAY_TICKS,
-        groups: [BOLT_ENCHANT_ACTION_GROUP],
+        groups: [...BOLT_ENCHANT_CYCLE_ACTION.groups],
         effects,
     };
 }

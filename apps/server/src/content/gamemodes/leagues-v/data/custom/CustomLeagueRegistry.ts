@@ -23,6 +23,7 @@ import {
 } from "@server/content/gamemodes/leagues-v/data/custom/CustomContentTypes";
 import { CUSTOM_CHALLENGES } from "@server/content/gamemodes/leagues-v/data/custom/definitions/challenges";
 import { CUSTOM_TASKS } from "@server/content/gamemodes/leagues-v/data/custom/definitions/tasks";
+import { logger } from "@server/observability/logger";
 
 // =============================================================================
 // INITIALIZATION - Auto-assign IDs to custom content
@@ -67,7 +68,7 @@ const SYNTHETIC_TASK_ID_BASE = 1856;
 
     for (const task of CUSTOM_TASKS) {
         if (nextTaskStructId > CUSTOM_STRUCT_RANGES.TASKS.end) {
-            console.error(
+            logger.error(
                 `[CustomLeagueRegistry] Exceeded max custom task struct IDs (${CUSTOM_STRUCT_RANGES.TASKS.end})`,
             );
             break;
@@ -104,7 +105,7 @@ const SYNTHETIC_TASK_ID_BASE = 1856;
 
     for (const challenge of CUSTOM_CHALLENGES) {
         if (nextChallengeStructId > CUSTOM_STRUCT_RANGES.CHALLENGES.end) {
-            console.error(
+            logger.error(
                 `[CustomLeagueRegistry] Exceeded max custom challenge struct IDs (${CUSTOM_STRUCT_RANGES.CHALLENGES.end})`,
             );
             break;

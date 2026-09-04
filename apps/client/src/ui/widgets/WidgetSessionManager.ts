@@ -1,3 +1,5 @@
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
+
 export type WidgetCloseReason = "user" | "manager" | "server";
 
 export type WidgetSessionEntry = {
@@ -58,7 +60,7 @@ export class WidgetSessionManager {
         if (record.modal) {
             this.trackModal(gid);
         }
-        console.log("[widget-session] open", { groupId: gid, modal: record.modal });
+        clientDebugLog("[widget-session] open", { groupId: gid, modal: record.modal });
     }
 
     needsInit(groupId: number): boolean {
@@ -77,7 +79,7 @@ export class WidgetSessionManager {
         if (!entry) return;
         this._entries.delete(gid);
         this.untrackModal(gid);
-        console.log("[widget-session] close", { groupId: gid, reason });
+        clientDebugLog("[widget-session] close", { groupId: gid, reason });
         try {
             entry.close(reason);
         } catch (err) {
@@ -95,7 +97,7 @@ export class WidgetSessionManager {
             const gid = this.getTopModalGroupId();
             if (gid === undefined) break;
             closed.push(gid);
-            console.log("[widget-session] closeModal", { groupId: gid, reason });
+            clientDebugLog("[widget-session] closeModal", { groupId: gid, reason });
             this.close(gid, reason);
         }
         return closed;
@@ -116,7 +118,7 @@ export class WidgetSessionManager {
         if (gid === undefined) {
             return undefined;
         }
-        console.log("[widget-session] closeTopModal", { groupId: gid, reason });
+        clientDebugLog("[widget-session] closeTopModal", { groupId: gid, reason });
         this.close(gid, reason);
         return gid;
     }
@@ -128,7 +130,7 @@ export class WidgetSessionManager {
         this._entries.delete(gid);
         this.suppressNetworkFor.add(gid);
         this.untrackModal(gid);
-        console.log("[widget-session] forceClose", { groupId: gid });
+        clientDebugLog("[widget-session] forceClose", { groupId: gid });
         try {
             entry.close("server");
         } catch (err) {

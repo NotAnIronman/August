@@ -361,9 +361,10 @@ export function registerDiaryJournalWidgetHandlers(
     // any NPC, any player - checkKillTrigger internally scans for any
     // filled-in kill-trigger task matching this NPC (and its area bounds
     // if one is set) and does nothing if none match.
-    services.combat.registerOnNpcKilled?.((killer, npc, _tick) => {
+    const unregisterKillListener = services.combat.registerOnNpcKilled?.((killer, npc, _tick) => {
         achievementTaskTracker.checkKillTrigger(killer, npc, services);
     });
+    if (unregisterKillListener) registry.registerCleanup(unregisterKillListener);
 
     // Handle diary list clicks (259:2). Dynamic child index = area id.
     registry.onButton(DIARY_LIST_GROUP_ID, DIARY_LIST_TASKBOX_COMPONENT, (event) => {

@@ -12,7 +12,7 @@
  * (examine) field, the same technique export-items.ts already uses
  * successfully for items. Whatever this script finds gets written to
  * npcs.json — copy that to data/generated/server/npcs.json and it becomes another
- * fallback source examineHandler.ts can consult (see server/src/data/npcs.ts,
+ * fallback source examineHandler.ts can consult (see apps/server/src/data/npcs.ts,
  * mirroring items.ts).
  *
  * To be clear about what this experiment tells us either way:

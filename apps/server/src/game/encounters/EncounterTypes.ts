@@ -1,3 +1,4 @@
+import type { BossHealthBarMarker } from "@august/protocol/ui/bossHealthBar";
 import type { AttackType } from "@server/game/combat/AttackType";
 import type { CombatAttackEffects, CombatAttackStyle, CombatAttackTraits } from "@server/game/combat/model/CombatAttack";
 import type { NpcEffectImmunityProfile } from "@server/game/combat/NpcEffectImmunity";
@@ -90,12 +91,17 @@ export interface EncounterThresholdDefinition {
 }
 
 /**
- * Native cache boss-HUD metadata shared by every instance that contains this
- * encounter. The displayed NPC type defaults to the encounter's first form.
+ * Boss-HUD metadata shared by every instance that contains this encounter.
+ * The displayed NPC type defaults to the encounter's first form.
  */
 export interface EncounterBossHealthBarDefinition {
     readonly name: string;
     readonly npcTypeId?: number;
+    /**
+     * Explicit HUD notches. An empty list intentionally disables notches; when
+     * omitted, encounter phases and health thresholds are derived automatically.
+     */
+    readonly markers?: readonly BossHealthBarMarker[];
 }
 
 /**
@@ -114,7 +120,7 @@ export interface EncounterDefinition {
     /** Every NPC type used by this encounter, including alternate forms. */
     readonly npcTypeIds: readonly number[];
     readonly maxHealth?: number;
-    /** Opts this encounter into the reusable native boss-health-bar lifecycle. */
+    /** Opts this encounter into the reusable boss-health-bar lifecycle. */
     readonly bossHealthBar?: EncounterBossHealthBarDefinition;
     /** Opts this encounter into shared boss killcount and collection-log tracking. */
     readonly killcount?: EncounterKillcountDefinition;
@@ -145,7 +151,8 @@ export interface EncounterThresholdEvent {
 
 export interface EncounterOwnedResources {
     readonly npcRuntimeIds: ReadonlySet<number>;
-    readonly taskIds: ReadonlySet<string>;
+    /** Scheduler-native task handles. Core schedulers use numbers; named adapters may use strings. */
+    readonly taskIds: ReadonlySet<string | number>;
     readonly hazardIds: ReadonlySet<string>;
     readonly locationIds: ReadonlySet<string>;
 }

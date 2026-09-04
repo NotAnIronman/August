@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { logger } from "@server/observability/logger";
 
 import type { CacheInfo } from "@august/osrs-engine/cache/CacheInfo";
 import { CacheSystem } from "@august/osrs-engine/cache/CacheSystem";
@@ -1222,7 +1223,7 @@ export function createSpellDataProvider(): SpellDataProvider {
             }
         }
     } catch (err) {
-        console.log("[spells] failed to load spell data from cache", err);
+        logger.warn("[spells] failed to load spell data from cache", err);
     }
 
     const provider: SpellDataProvider = {
@@ -1253,14 +1254,14 @@ export function createSpellDataProvider(): SpellDataProvider {
 
         initSpellWidgetMapping(cacheInfo: CacheInfo, cache: CacheSystem): void {
             if (spellWidgetMappingInitialized) {
-                console.log("[Spells] Spell-widget mapping already initialized");
+                logger.debug("[spells] spell-widget mapping already initialized");
                 return;
             }
 
-            console.log("[Spells] Initializing spell-widget mapping from cache...");
+            logger.debug("[spells] initializing spell-widget mapping from cache");
 
             const nameToWidget = buildSpellNameToWidgetMap(cacheInfo, cache);
-            console.log(`[Spells] Found ${nameToWidget.size} spell widgets in cache`);
+            logger.debug(`[spells] found ${nameToWidget.size} spell widgets in cache`);
 
             let matched = 0;
             let unmatched = 0;
@@ -1298,16 +1299,16 @@ export function createSpellDataProvider(): SpellDataProvider {
                                 entry.category === "utility" ||
                                 entry.category === "binding")
                         ) {
-                            console.log(
-                                `[Spells] No widget found for spell: ${entry.name} (${entry.spellbook})`,
+                            logger.debug(
+                                `[spells] no widget found for spell: ${entry.name} (${entry.spellbook})`,
                             );
                         }
                     }
                 }
             }
 
-            console.log(
-                `[Spells] Spell-widget mapping complete: ${matched} matched, ${unmatched} unmatched`,
+            logger.info(
+                `[spells] spell-widget mapping complete: ${matched} matched, ${unmatched} unmatched`,
             );
 
             for (const alias of SPELL_WIDGET_ALIASES) {

@@ -1,4 +1,5 @@
 import { MapFileIndex, getMapSquareId } from "@august/osrs-engine/map/MapFileIndex";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { Scene } from "@august/osrs-engine/scene/Scene";
 import { Camera } from "@client/engine/rendering/camera/Camera";
 import { ClientState } from "@client/engine/game/ClientState";
@@ -51,6 +52,8 @@ export class MapManager<T extends MapSquare> {
 
     invalidMapIds: Set<number> = new Set();
     loadingMapIds: Set<number> = new Set();
+    private loadAttempts = new Map<number, symbol>();
+    private loadFailures = new Map<number, { count: number; retryAt: number }>();
     /** Map IDs that belong to world entity overlays — always included in visible set. */
     worldEntityMapIds: Set<number> = new Set();
 
@@ -144,7 +147,7 @@ export class MapManager<T extends MapSquare> {
                 this.invalidMapIds.add(getMapSquareId(x, y));
             }
         }
-        console.log("Invalid map count", this.invalidMapIds.size);
+        clientDebugLog("Invalid map count", this.invalidMapIds.size);
     }
 
     isMapVisible(camera: Camera, mapX: number, mapY: number): boolean {
@@ -165,6 +168,8 @@ export class MapManager<T extends MapSquare> {
     clearMaps(): void {
         this.invalidMapIds.clear();
         this.loadingMapIds.clear();
+        this.loadAttempts.clear();
+        this.loadFailures.clear();
         this._lastUsed.clear();
         // Force the next non-instance frame to rebuild and queue its complete
         // streaming grid, even when the destination shares the same map square.
@@ -199,7 +204,7 @@ export class MapManager<T extends MapSquare> {
             try {
                 this.onMapRemoved?.(map.mapX | 0, map.mapY | 0);
             } catch (error) {
-                console.log("[MapManager] onMapRemoved callback failed", {
+                console.warn("[MapManager] onMapRemoved callback failed", {
                     mapX: map.mapX | 0,
                     mapY: map.mapY | 0,
                     error,
@@ -292,6 +297,8 @@ export class MapManager<T extends MapSquare> {
 
     addMap(mapX: number, mapY: number, mapSquare: T): void {
         const mapId = getMapSquareId(mapX, mapY);
+        this.loadAttempts.delete(mapId);
+        this.loadFailures.delete(mapId);
         this.loadingMapIds.delete(mapId);
         this.invalidMapIds.delete(mapId);
         const prev = this.mapSquares.get(mapId);
@@ -316,7 +323,7 @@ export class MapManager<T extends MapSquare> {
                     prev.delete();
                 }
             } catch (error) {
-                console.log("[MapManager] Failed to delete replaced map", {
+                console.warn("[MapManager] Failed to delete replaced map", {
                     mapX: mapX | 0,
                     mapY: mapY | 0,
                     error,
@@ -326,7 +333,7 @@ export class MapManager<T extends MapSquare> {
         try {
             this.onMapAdded?.(mapX | 0, mapY | 0);
         } catch (error) {
-            console.log("[MapManager] onMapAdded callback failed", {
+            console.warn("[MapManager] onMapAdded callback failed", {
                 mapX: mapX | 0,
                 mapY: mapY | 0,
                 error,
@@ -344,7 +351,7 @@ export class MapManager<T extends MapSquare> {
             try {
                 this.onMapRemoved?.(map.mapX | 0, map.mapY | 0);
             } catch (error) {
-                console.log("[MapManager] onMapRemoved callback failed", {
+                console.warn("[MapManager] onMapRemoved callback failed", {
                     mapX: map.mapX | 0,
                     mapY: map.mapY | 0,
                     error,
@@ -355,8 +362,26 @@ export class MapManager<T extends MapSquare> {
 
     addInvalidMap(mapX: number, mapY: number): void {
         const mapId = getMapSquareId(mapX, mapY);
+        this.loadAttempts.delete(mapId);
+        this.loadFailures.delete(mapId);
         this.invalidMapIds.add(mapId);
         this.loadingMapIds.delete(mapId);
+    }
+
+    /** Captures this request so a late failure cannot clear a newer scene's load. */
+    createLoadFailureHandler(mapX: number, mapY: number): (error: unknown) => void {
+        const mapId = getMapSquareId(mapX, mapY);
+        const attempt = Symbol();
+        this.loadAttempts.set(mapId, attempt);
+        return (error) => {
+            if (this.loadAttempts.get(mapId) !== attempt) return;
+            this.loadAttempts.delete(mapId);
+            this.loadingMapIds.delete(mapId);
+            const count = Math.min((this.loadFailures.get(mapId)?.count ?? 0) + 1, 6);
+            const delayMs = Math.min(1_000 * 2 ** (count - 1), 30_000);
+            this.loadFailures.set(mapId, { count, retryAt: Date.now() + delayMs });
+            console.warn("[MapManager] Map load failed; retry scheduled", { mapX, mapY, delayMs, error });
+        };
     }
 
     loadMap(
@@ -369,7 +394,8 @@ export class MapManager<T extends MapSquare> {
         if (
             (!forceReload && this.mapSquares.has(mapId)) ||
             this.invalidMapIds.has(mapId) ||
-            this.loadingMapIds.has(mapId)
+            this.loadingMapIds.has(mapId) ||
+            (this.loadFailures.get(mapId)?.retryAt ?? 0) > Date.now()
         ) {
             return;
         }
@@ -394,7 +420,7 @@ export class MapManager<T extends MapSquare> {
             try {
                 map.delete();
             } catch (error) {
-                console.log("[MapManager] Failed to delete pruned map", {
+                console.warn("[MapManager] Failed to delete pruned map", {
                     mapX: map.mapX | 0,
                     mapY: map.mapY | 0,
                     error,
@@ -405,7 +431,7 @@ export class MapManager<T extends MapSquare> {
             try {
                 this.onMapRemoved?.(map.mapX | 0, map.mapY | 0);
             } catch (error) {
-                console.log("[MapManager] onMapRemoved callback failed", {
+                console.warn("[MapManager] onMapRemoved callback failed", {
                     mapX: map.mapX | 0,
                     mapY: map.mapY | 0,
                     error,
@@ -421,6 +447,10 @@ export class MapManager<T extends MapSquare> {
         }
         for (const mapId of staleLoadingIds) {
             this.loadingMapIds.delete(mapId);
+            this.loadAttempts.delete(mapId);
+        }
+        for (const mapId of this.loadFailures.keys()) {
+            if (!gridSet.has(mapId)) this.loadFailures.delete(mapId);
         }
     }
 
@@ -589,7 +619,7 @@ export class MapManager<T extends MapSquare> {
                     this.currentMapRadius | 0,
                 );
             } catch (error) {
-                console.log("[MapManager] onCurrentMapChanged callback failed", {
+                console.warn("[MapManager] onCurrentMapChanged callback failed", {
                     mapX: this.currentMapX | 0,
                     mapY: this.currentMapY | 0,
                     mapRadius: this.currentMapRadius | 0,

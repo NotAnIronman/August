@@ -119,6 +119,7 @@ export class DoorRuntimeTileMappingStore {
             },
             Math.max(50, this.flushDelayMs),
         );
+        this.flushTimer.unref();
     }
 
     private flushToDisk(): void {

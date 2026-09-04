@@ -1,5 +1,10 @@
 import type { CacheInfo } from "@august/osrs-engine/cache/CacheInfo";
 import type { PersistedVarcsState } from "@august/osrs-engine/config/vartype/VarManager";
+import {
+    canUseLocalStorage,
+    readLocalStorageJson,
+    writeLocalStorageJson,
+} from "@client/core/storage/localStorage";
 
 const STORAGE_KEY_PREFIX = "osrs.varcs";
 const STORAGE_VERSION = 1;
@@ -57,37 +62,20 @@ export function getBrowserVarcsStorageKey(cacheInfo: CacheInfo): string {
 }
 
 export function loadBrowserVarcs(storageKey: string): PersistedVarcsState | undefined {
-    if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
-        return undefined;
-    }
-
-    try {
-        const raw = window.localStorage.getItem(storageKey);
-        if (!raw) {
-            return undefined;
-        }
-
-        const parsed = JSON.parse(raw) as Partial<BrowserVarcsPayload>;
-        return {
-            ints: sanitizeIntPairs(parsed.ints),
-            strings: sanitizeStringPairs(parsed.strings),
-        };
-    } catch {
-        return undefined;
-    }
+    const parsed = readLocalStorageJson<Partial<BrowserVarcsPayload>>(storageKey);
+    if (!parsed) return undefined;
+    return {
+        ints: sanitizeIntPairs(parsed.ints),
+        strings: sanitizeStringPairs(parsed.strings),
+    };
 }
 
 export function saveBrowserVarcs(storageKey: string, state: PersistedVarcsState): void {
-    if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
-        return;
-    }
-
-    try {
-        const payload: BrowserVarcsPayload = {
-            version: STORAGE_VERSION,
-            ints: state.ints,
-            strings: state.strings,
-        };
-        window.localStorage.setItem(storageKey, JSON.stringify(payload));
-    } catch {}
+    if (!canUseLocalStorage()) return;
+    const payload: BrowserVarcsPayload = {
+        version: STORAGE_VERSION,
+        ints: state.ints,
+        strings: state.strings,
+    };
+    writeLocalStorageJson(storageKey, payload);
 }

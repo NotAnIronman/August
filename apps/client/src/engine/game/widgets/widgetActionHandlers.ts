@@ -4,6 +4,7 @@ import {
     sendInventoryUseOn,
     sendWidgetAction,
 } from "@client/core/network/ServerConnection";
+import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { OsrsClientPacketId, createPacket, queuePacket } from "@client/core/network/packet/index";
 import type { Cs2Vm } from "@client/engine/cs2/Cs2Vm";
 import type { VarManager } from "@august/osrs-engine/config/vartype/VarManager";
@@ -79,18 +80,18 @@ export function handleWidgetActionTargeting(
             const script = (cs2Vm as any).context?.loadScript?.(914);
             if (script) {
                 (cs2Vm as any).run(script, [1, displayEnumId, 11], []);
-                console.log(
+                clientDebugLog(
                     `[OsrsClient] Settings cog clicked - invoked script 914 to switch to Settings tab (enum=${displayEnumId})`,
                 );
             } else {
                 varManager?.setVarcInt(171, 11);
-                console.log(
+                clientDebugLog(
                     `[OsrsClient] Settings cog clicked (group=${groupId}, child=${childId}), set varcint171=11 (fallback)`,
                 );
             }
         } else {
             varManager?.setVarcInt(171, 11);
-            console.log(`[OsrsClient] Settings cog clicked - no VM, set varcint171=11 directly`);
+            clientDebugLog(`[OsrsClient] Settings cog clicked - no VM, set varcint171=11 directly`);
         }
     }
 
@@ -153,7 +154,7 @@ export function handleWidgetActionTargeting(
     if (ClientState.isSpellSelected) {
         const timeSinceTargeting = Date.now() - ClientState.spellTargetEnteredFrame;
         if (timeSinceTargeting < 50) {
-            console.log(
+            clientDebugLog(
                 `[OsrsClient] Ignoring spell-on-item in same click as targeting entry (${timeSinceTargeting}ms)`,
             );
             return true;
@@ -187,7 +188,7 @@ export function handleWidgetActionTargeting(
             const spellCanTargetWidgets = (ClientState.selectedSpellTargetMask & 0x20) !== 0;
 
             if (spellCanTargetWidgets && !targetHasWidgetUseTarget) {
-                console.log(
+                clientDebugLog(
                     `[OsrsClient] Widget targeting rejected: target widget lacks WIDGET_USE_TARGET flag (targetFlags=0x${targetFlags.toString(
                         16,
                     )}, spellTargetMask=0x${ClientState.selectedSpellTargetMask.toString(16)})`,
@@ -209,7 +210,7 @@ export function handleWidgetActionTargeting(
                 return true;
             }
 
-            console.log(
+            clientDebugLog(
                 `[OsrsClient] Spell-on-item: spell="${ClientState.selectedSpellName}" (group=${selection.spellbookGroupId}, child=${selection.widgetChildId}) -> item=${targetItemId}, slot=${targetSlot}`,
             );
 
@@ -244,6 +245,7 @@ export function handleWidgetActionTargeting(
         "open-all",
         "empty",
         "destroy",
+        "discard",
         "rub",
         "commune",
         "fill",
@@ -254,7 +256,7 @@ export function handleWidgetActionTargeting(
     if (isInventoryItem && inventoryItemActions.includes(optionLower)) {
         const targetSlot = event.slot ?? event.widget.childIndex ?? childId;
         const quantity = event.widget.itemQuantity ?? 1;
-        console.log(
+        clientDebugLog(
             `[OsrsClient] Inventory action: ${event.option} on slot=${targetSlot}, itemId=${targetItemId}`,
         );
         sendInventoryUse(targetSlot, targetItemId, quantity, event.option);
@@ -304,7 +306,7 @@ export function handleWidgetActionTargeting(
             ClientState.isSpellSelected &&
             ClientState.selectedSpellWidget === spellSelection.widgetId
         ) {
-            console.log(
+            clientDebugLog(
                 `[OsrsClient] Spell widget re-clicked while active, clearing selection: widget=${spellSelection.widgetId}`,
             );
             deps.clearSelectedSpell();
@@ -329,7 +331,7 @@ export function handleWidgetActionTargeting(
         ClientState.spellTargetEnteredFrame = Date.now();
         ClientState.selectedSpellTargetMask = targetMask;
 
-        console.log(
+        clientDebugLog(
             `[OsrsClient] Entered spell targeting mode: widget=${
                 spellSelection.widgetId
             }, verb="${targetVerb}", name="${
@@ -396,7 +398,7 @@ export function handleWidgetActionPauseButton(
             widgetManager.meslayerContinueWidget = event.widget;
             widgetManager.invalidateWidgetRender(event.widget);
         }
-        console.log(
+        clientDebugLog(
             `[OsrsClient] Pause button clicked: widget=${widgetUid}, childIndex=${childIndex}, buttonText=${isContinueButtonText}, textMatch=${hasClickToContinue}`,
         );
     }

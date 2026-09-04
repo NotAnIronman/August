@@ -1,5 +1,6 @@
 import { ANY_LOC_ID, type IScriptRegistry, type ItemOnLocEvent, type ScriptServices } from "@server/game/scripts/types";
 import { LockState } from "@server/game/model/LockState";
+import { applyInventoryTransform } from "@server/game/skilling/InventoryTransform";
 
 const HAMMER = 2347;
 const SHARD_ONE = 11818;
@@ -36,28 +37,29 @@ function combine(event: ItemOnLocEvent): void {
     const recipe = RECIPES.find((candidate) => candidate.source === event.source.itemId && player.items.hasItem(candidate.partner));
     if (!recipe) return;
 
-    // Snapshot first, preflight the result, then synchronously remove and add.
-    // If an unexpected inventory failure occurs, every slot is restored before the
-    // player can perform another action or disconnect.
-    const before = player.items.getInventoryEntries().map((entry) => ({ ...entry }));
-    const restore = (): void => before.forEach((entry, slot) => player.items.setInventorySlot(slot, entry.itemId, entry.quantity));
-    try {
-        const first = player.items.removeItem(recipe.source, 1, { assureFullRemoval: true });
-        const second = player.items.removeItem(recipe.partner, 1, { assureFullRemoval: true });
-        if (first.completed !== 1 || second.completed !== 1) { restore(); return; }
-        const made = player.items.addItem(recipe.result, 1, { assureFullInsertion: true });
-        if (made.completed !== 1) { restore(); services.messaging.sendGameMessage(player, "You need an empty inventory space to make that."); return; }
-        const previousLock = player.lock;
-        player.lock = LockState.FULL;
-        services.animation.playPlayerSeq(player, 898);
-        services.scheduler.after(3, () => { if (player.lock === LockState.FULL) player.lock = previousLock; }, { kind: "player", id: player.id });
-        services.inventory.snapshotInventoryImmediate(player);
-        services.messaging.sendGameMessage(player, "You carefully smith the godsword shards together.");
-    } catch {
-        restore();
-        services.inventory.snapshotInventoryImmediate(player);
-        services.messaging.sendGameMessage(player, "The shards could not be combined.");
+    const exchange = applyInventoryTransform(services.inventory, player, {
+        inputs: [
+            { itemId: recipe.source, quantity: 1 },
+            { itemId: recipe.partner, quantity: 1 },
+        ],
+        outputs: [{ itemId: recipe.result, quantity: 1 }],
+        outputPlacement: "first-consumed-slot",
+    });
+    if (!exchange.ok) {
+        if (exchange.reason === "inventory-full") {
+            services.messaging.sendGameMessage(player, "You need an empty inventory space to make that.");
+        } else if (exchange.reason === "mutation-failed") {
+            services.inventory.snapshotInventoryImmediate(player);
+            services.messaging.sendGameMessage(player, "The shards could not be combined.");
+        }
+        return;
     }
+    const previousLock = player.lock;
+    player.lock = LockState.FULL;
+    services.animation.playPlayerSeq(player, 898);
+    services.scheduler.after(3, () => { if (player.lock === LockState.FULL) player.lock = previousLock; }, { kind: "player", id: player.id });
+    services.inventory.snapshotInventoryImmediate(player);
+    services.messaging.sendGameMessage(player, "You carefully smith the godsword shards together.");
 }
 
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {

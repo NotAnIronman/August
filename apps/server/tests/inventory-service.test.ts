@@ -1,7 +1,7 @@
 /**
  * Regression coverage for inventory consumption dirty-state synchronization.
  *
- * Run with: npx tsx tests/inventory-service.test.ts
+ * Run with: pnpm exec tsx tests/inventory-service.test.ts
  */
 import assert from "node:assert/strict";
 

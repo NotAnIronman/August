@@ -10,6 +10,41 @@ export interface HatchetDefinition {
 }
 
 export const HATCHETS: HatchetDefinition[] = [
+    // Felling axe variants.  Their Forestry effect is handled separately by
+    // the Forestry content; as Woodcutting tools they use their base axe's
+    // requirement, swing and success tier.
+    { itemId: 28220, level: 71, animation: 10072, accuracy: 13, swingTicks: 3 }, // Crystal felling
+    { itemId: 28222, level: 71, animation: 10072, accuracy: 13, swingTicks: 3 }, // Crystal felling (variant)
+    { itemId: 28223, level: 71, animation: 10073, accuracy: 13, swingTicks: 3 }, // Crystal felling (inactive)
+    { itemId: 28225, level: 71, animation: 10073, accuracy: 13, swingTicks: 3 }, // Crystal felling (inactive variant)
+    { itemId: 28217, level: 61, animation: 10071, accuracy: 13, swingTicks: 3 }, // Dragon felling
+    { itemId: 28218, level: 61, animation: 10071, accuracy: 13, swingTicks: 3 }, // Dragon felling (variant)
+    { itemId: 28219, level: 61, animation: 10071, accuracy: 13, swingTicks: 3 }, // Dragon felling (variant)
+    { itemId: 28226, level: 61, animation: 10074, accuracy: 13, swingTicks: 3 }, // 3rd age felling
+    { itemId: 28227, level: 61, animation: 10074, accuracy: 13, swingTicks: 3 }, // 3rd age felling (variant)
+    { itemId: 28228, level: 61, animation: 10074, accuracy: 13, swingTicks: 3 }, // 3rd age felling (variant)
+    { itemId: 28214, level: 41, animation: 10070, accuracy: 11, swingTicks: 3 }, // Rune felling
+    { itemId: 28215, level: 41, animation: 10070, accuracy: 11, swingTicks: 3 }, // Rune felling (variant)
+    { itemId: 28216, level: 41, animation: 10070, accuracy: 11, swingTicks: 3 }, // Rune felling (variant)
+    { itemId: 28211, level: 31, animation: 10069, accuracy: 9, swingTicks: 3 }, // Adamant felling
+    { itemId: 28212, level: 31, animation: 10069, accuracy: 9, swingTicks: 3 }, // Adamant felling (variant)
+    { itemId: 28213, level: 31, animation: 10069, accuracy: 9, swingTicks: 3 }, // Adamant felling (variant)
+    { itemId: 28208, level: 21, animation: 10068, accuracy: 7, swingTicks: 3 }, // Mithril felling
+    { itemId: 28209, level: 21, animation: 10068, accuracy: 7, swingTicks: 3 }, // Mithril felling (variant)
+    { itemId: 28210, level: 21, animation: 10068, accuracy: 7, swingTicks: 3 }, // Mithril felling (variant)
+    { itemId: 28205, level: 11, animation: 10067, accuracy: 5, swingTicks: 3 }, // Black felling
+    { itemId: 28206, level: 11, animation: 10067, accuracy: 5, swingTicks: 3 }, // Black felling (variant)
+    { itemId: 28207, level: 11, animation: 10067, accuracy: 5, swingTicks: 3 }, // Black felling (variant)
+    { itemId: 28202, level: 6, animation: 10066, accuracy: 4, swingTicks: 3 }, // Steel felling
+    { itemId: 28203, level: 6, animation: 10066, accuracy: 4, swingTicks: 3 }, // Steel felling (variant)
+    { itemId: 28204, level: 6, animation: 10066, accuracy: 4, swingTicks: 3 }, // Steel felling (variant)
+    { itemId: 28199, level: 1, animation: 10065, accuracy: 2, swingTicks: 3 }, // Iron felling
+    { itemId: 28200, level: 1, animation: 10065, accuracy: 2, swingTicks: 3 }, // Iron felling (variant)
+    { itemId: 28201, level: 1, animation: 10065, accuracy: 2, swingTicks: 3 }, // Iron felling (variant)
+    { itemId: 28196, level: 1, animation: 10064, accuracy: 1, swingTicks: 3 }, // Bronze felling
+    { itemId: 28197, level: 1, animation: 10064, accuracy: 1, swingTicks: 3 }, // Bronze felling (variant)
+    { itemId: 28198, level: 1, animation: 10064, accuracy: 1, swingTicks: 3 }, // Bronze felling (variant)
+
     // Infernal axe + variants (includes "empty"/uncharged variants)
     { itemId: 13241, level: 61, animation: 2117, accuracy: 13, swingTicks: 3 }, // Infernal
     { itemId: 13242, level: 61, animation: 2117, accuracy: 13, swingTicks: 3 }, // Infernal (empty)
@@ -60,6 +95,14 @@ export interface WoodcuttingTreeDefinition {
     respawnTicks: { min: number; max: number };
     depleteRoll: number; // 1 => always deplete, N => 1 in N chance per success
     swingTicks: number;
+    /**
+     * The tree's base roll numerator.  Woodcutting uses a level-interpolated
+     * 0..255 roll rather than a level/tree ratio.  These values deliberately
+     * live with the tree data so uncommon trees can supply their own curve.
+     */
+    chopChance: number;
+    /** The level-99 multiplier for the tree's base chance. */
+    chopRatio: number;
 }
 
 const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
@@ -74,6 +117,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 120, max: 199 },
         depleteRoll: 1,
         swingTicks: 4, // OSRS: all trees roll every 4 ticks
+        chopChance: 32,
+        chopRatio: 3.125,
     },
     {
         id: "oak",
@@ -85,6 +130,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 30, max: 30 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 16,
+        chopRatio: 3.125,
     },
     {
         id: "willow",
@@ -96,6 +143,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 30, max: 30 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 12,
+        chopRatio: 3.125,
     },
     {
         id: "maple",
@@ -107,6 +156,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 120, max: 120 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 8,
+        chopRatio: 3.125,
     },
     {
         id: "yew",
@@ -118,6 +169,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 200, max: 200 },
         depleteRoll: 8,
         swingTicks: 4, // OSRS: all trees roll every 4 ticks
+        chopChance: 6,
+        chopRatio: 3.125,
     },
     {
         id: "magic",
@@ -129,6 +182,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 400, max: 400 },
         depleteRoll: 8,
         swingTicks: 4, // OSRS: all trees roll every 4 ticks
+        chopChance: 4,
+        chopRatio: 3.125,
     },
     {
         id: "teak",
@@ -140,6 +195,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 55, max: 110 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 10,
+        chopRatio: 3.125,
     },
     {
         id: "mahogany",
@@ -151,6 +208,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 70, max: 140 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 8,
+        chopRatio: 3.125,
     },
     {
         id: "achey",
@@ -162,17 +221,21 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 15, max: 30 },
         depleteRoll: 1,
         swingTicks: 4, // OSRS: all trees roll every 4 ticks
+        chopChance: 32,
+        chopRatio: 3.125,
     },
     {
         id: "hollow",
         name: "Hollow tree",
         level: 45,
-        xp: 82,
+        xp: 82.5,
         logItemId: 3239,
         stumpId: 8445,
         respawnTicks: { min: 45, max: 90 },
         depleteRoll: 8,
         swingTicks: 4,
+        chopChance: 8,
+        chopRatio: 3.125,
     },
     {
         id: "redwood",
@@ -184,6 +247,8 @@ const TREE_DEFINITIONS: WoodcuttingTreeDefinition[] = [
         respawnTicks: { min: 150, max: 250 },
         depleteRoll: 20,
         swingTicks: 4, // OSRS: all trees roll every 4 ticks
+        chopChance: 2,
+        chopRatio: 3.125,
     },
 ];
 
@@ -194,6 +259,7 @@ const TREE_BY_ID = new Map<string, WoodcuttingTreeDefinition>(
 const TREE_NAME_ALIASES: Record<string, string> = {
     tree: "normal",
     evergreen: "normal",
+    "evergreen tree": "normal",
     "dead tree": "normal",
     "jungle tree": "normal",
     oak: "oak",
@@ -215,6 +281,20 @@ const TREE_NAME_ALIASES: Record<string, string> = {
     redwood: "redwood",
     "redwood tree": "redwood",
 };
+
+/**
+ * Valid cache actions for the ordinary tree definitions above.  The name
+ * still has to be an exact tree alias, so accepting e.g. "Chop" cannot turn
+ * arbitrary scenery into a woodcutting resource.
+ */
+export const WOODCUTTING_ACTION_NAMES = new Set([
+    "chop",
+    "chop down",
+    "chop-down",
+    "cut",
+    "cut down",
+    "cut-down",
+]);
 
 export function getWoodcuttingTreeById(id: string): WoodcuttingTreeDefinition | undefined {
     return TREE_BY_ID.get(id);
@@ -258,15 +338,14 @@ export function buildWoodcuttingLocMap(loader?: LocTypeLoader): WoodcuttingLocMa
         } catch {
             continue;
         }
-        // Only map locs that actually offer the Chop down action.
-        // This avoids matching decorative "Tree" locs that share the same name.
+        // Require both a known ordinary-tree name and one of the cache's
+        // woodcutting action labels. This admits objects such as Achey trees
+        // (whose action is simply "Chop") without treating generic scenery as
+        // harvestable.
         const actions: unknown = loc?.actions;
         if (Array.isArray(actions)) {
             const hasChop = actions.some(
-                (a) =>
-                    !!a &&
-                    (a.trim().toLowerCase() === "chop down" ||
-                        a.trim().toLowerCase() === "chop-down"),
+                (a) => !!a && WOODCUTTING_ACTION_NAMES.has(a.trim().toLowerCase()),
             );
             if (!hasChop) continue;
         }

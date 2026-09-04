@@ -194,6 +194,17 @@ export class ScriptRegistry implements IScriptRegistry {
     private readonly clientMessageHandlers = new Map<string, ClientMessageHandler>();
     private readonly actionHandlers = new Map<string, ScriptActionHandler>();
 
+    registerCleanup(cleanup: () => void): ScriptRegistrationResult {
+        let registered = true;
+        return {
+            unregister: () => {
+                if (!registered) return;
+                registered = false;
+                cleanup();
+            },
+        };
+    }
+
     registerNpcInteraction(
         npcId: number,
         handler: NpcInteractionHandler,

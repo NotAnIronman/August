@@ -321,19 +321,26 @@ export class PlayerDeathService {
 
         // Wait for animation to complete (fallback for async usage)
         return new Promise((resolve) => {
-            const checkInterval = setInterval(() => {
+            let settled = false;
+            let checkInterval: ReturnType<typeof setInterval> | undefined;
+            let safetyTimeout: ReturnType<typeof setTimeout> | undefined;
+            const finish = (force: boolean): void => {
+                if (settled) return;
+                settled = true;
+                if (checkInterval) clearInterval(checkInterval);
+                if (safetyTimeout) clearTimeout(safetyTimeout);
+                if (force) this.forceCompleteDeath(player.id);
+                resolve(true);
+            };
+
+            checkInterval = setInterval(() => {
                 if (!this.pendingDeaths.has(player.id)) {
-                    clearInterval(checkInterval);
-                    resolve(true);
+                    finish(false);
                 }
             }, 100);
 
             // Safety timeout - force complete after 10 seconds
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                this.forceCompleteDeath(player.id);
-                resolve(true);
-            }, 10000);
+            safetyTimeout = setTimeout(() => finish(true), 10000);
         });
     }
 

@@ -426,6 +426,14 @@ export type ScriptDialogRequest =
 
 // Narrow interface to avoid circular imports in consumers.
 export interface IScriptRegistry {
+    /**
+     * Attach a non-handler resource to this script provider's lifetime.
+     *
+     * Use this for event subscriptions, module-local state, timers, and other
+     * resources that must be released when the provider is rolled back,
+     * hot-reloaded, or the script runtime is reset.
+     */
+    registerCleanup(cleanup: () => void): ScriptRegistrationResult;
     registerNpcInteraction(
         npcId: number,
         handler: NpcInteractionHandler,
@@ -590,7 +598,6 @@ export interface IScriptRegistry {
      * RSMod-style button lookup by (interfaceId, componentId) hash.
      */
     findButton(interfaceId: number, component: number): WidgetActionHandler | undefined;
-    findNpcAction(option?: string): NpcInteractionHandler | undefined;
     registerClientMessageHandler(
         messageType: string,
         handler: ClientMessageHandler,

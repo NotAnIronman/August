@@ -2,15 +2,22 @@ import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { PlayerState } from "@server/game/player";
 import type { SmithingOptionMessage } from "@server/game/scripts/types";
 import type { ScriptServices } from "@server/game/scripts/types";
+import {
+    type SkillActionPolicy,
+    defineSkillAction,
+    requestSkillAction,
+} from "@server/game/skilling/SkillAction";
 import { shouldGuaranteeIronSmelt } from "@server/content/gamemodes/vanilla/skills/smithing/smithingBonuses";
 import {
     HAMMER_ITEM_ID,
+    IMCANDO_HAMMER_ITEM_IDS,
     SMELTING_RECIPES,
     SMITHING_RECIPES,
     type SmeltingRecipe,
     calculateIronSmeltChance,
     computeSmeltingBatchCount,
     getSmeltingRecipeById,
+    hasRequiredSmeltingTools,
     getSmithingRecipeByBarAndSlot,
     getSmithingRecipeById,
     type SmithingProductSlot,
@@ -28,11 +35,10 @@ const SMITHING_BAR_TYPE_FALLBACK: ReadonlyArray<readonly [number, number]> = [
     [1, 2349],
     [2, 2351],
     [3, 2353],
-    [4, 2355],
-    [5, 2357],
-    [6, 2359],
-    [7, 2361],
-    [8, 2363],
+    [4, 2359],
+    [5, 2361],
+    [6, 2363],
+    [9, 9467],
 ];
 const SMITHING_BAR_MIN_LEVEL_BY_TYPE: Readonly<Record<number, number>> = {
     1: 1,
@@ -41,9 +47,26 @@ const SMITHING_BAR_MIN_LEVEL_BY_TYPE: Readonly<Record<number, number>> = {
     4: 50,
     5: 70,
     6: 85,
-    7: 40,
-    8: 20,
+    9: 8,
 };
+
+const SMELT_ACTIONS = new Map<string, SkillActionPolicy>(
+    SMELTING_RECIPES.map((recipe) => [
+        recipe.id,
+        defineSkillAction("smelt", { delayTicks: recipe.delayTicks ?? 4 }),
+    ]),
+);
+const SMITH_ACTIONS = new Map<string, SkillActionPolicy>(
+    SMITHING_RECIPES.map((recipe) => [
+        recipe.id,
+        defineSkillAction("smith", {
+            // The anvil interface closes before the first hammer swing, which
+            // begins next tick; later repetitions retain the recipe cadence.
+            delayTicks: 1,
+            cooldownTicks: recipe.delayTicks ?? 4,
+        }),
+    ]),
+);
 
 function countInventoryItem(services: ScriptServices, player: PlayerState, itemId: number): number {
     const inv = services.inventory.getInventoryItems(player);
@@ -59,6 +82,19 @@ function describeItem(services: ScriptServices, itemId: number): string {
     return def?.name ? def.name.toLowerCase() : "item";
 }
 
+function getEffectiveSmithingLevel(player: PlayerState): number {
+    const skill = player.skillSystem.getSkill(SkillId.Smithing);
+    return Math.max(1, (skill?.baseLevel ?? 1) + (skill?.boost ?? 0));
+}
+
+function hasSmithingHammer(player: PlayerState, services: ScriptServices): boolean {
+    if (services.inventory.playerHasItem(player, HAMMER_ITEM_ID)) return true;
+    if (IMCANDO_HAMMER_ITEM_IDS.some((itemId) => services.inventory.playerHasItem(player, itemId))) {
+        return true;
+    }
+    return IMCANDO_HAMMER_ITEM_IDS.some((itemId) => player.appearance.equip.includes(itemId));
+}
+
 export class SmithingUI {
     private barTypeToItemId = new Map<number, number>();
     private barItemIdToType = new Map<number, number>();
@@ -68,7 +104,7 @@ export class SmithingUI {
 
     buildSmeltingOptions(player: PlayerState): SmithingOptionMessage[] {
         const inventory = this.services.inventory.getInventoryItems(player);
-        const smithLevel = player.skillSystem.getSkill(SkillId.Smithing).baseLevel;
+        const smithLevel = getEffectiveSmithingLevel(player);
         return SMELTING_RECIPES.map((recipe) => {
             const available = Math.max(
                 0,
@@ -81,7 +117,10 @@ export class SmithingUI {
                 itemId: recipe.outputItemId,
                 outputQuantity: Math.max(1, recipe.outputQuantity),
                 available,
-                canMake: available > 0 && smithLevel >= recipe.level,
+                canMake:
+                    available > 0 &&
+                    smithLevel >= recipe.level &&
+                    hasRequiredSmeltingTools(inventory, recipe),
                 xp: recipe.xp,
                 ingredientsLabel: recipe.ingredientsLabel,
                 mode: "smelt",
@@ -91,8 +130,8 @@ export class SmithingUI {
 
     buildForgingOptions(player: PlayerState): SmithingOptionMessage[] {
         const inventory = this.services.inventory.getInventoryItems(player);
-        const smithLevel = player.skillSystem.getSkill(SkillId.Smithing).baseLevel;
-        const hammerAvailable = !!this.services.inventory.playerHasItem(player, HAMMER_ITEM_ID);
+        const smithLevel = getEffectiveSmithingLevel(player);
+        const hammerAvailable = hasSmithingHammer(player, this.services);
         return SMITHING_RECIPES.map((recipe) => {
             const available = Math.max(
                 0,
@@ -214,9 +253,13 @@ export class SmithingUI {
             }
         } catch {}
 
-        if (this.barTypeToItemId.size === 0) {
-            for (const [barType, itemId] of SMITHING_BAR_TYPE_FALLBACK) {
+        // The cache enum covers the regular panel metals. Keep explicit
+        // fallbacks for cache variants that omit the blurite panel entry.
+        for (const [barType, itemId] of SMITHING_BAR_TYPE_FALLBACK) {
+            if (!this.barTypeToItemId.has(barType)) {
                 this.barTypeToItemId.set(barType, itemId);
+            }
+            if (!this.barItemIdToType.has(itemId)) {
                 this.barItemIdToType.set(itemId, barType);
             }
         }
@@ -224,7 +267,7 @@ export class SmithingUI {
 
     findBarTypeForOpen(player: PlayerState): number | undefined {
         this.initializeBarEnumCache();
-        const smithLevel = player.skillSystem.getSkill(SkillId.Smithing).baseLevel;
+        const smithLevel = getEffectiveSmithingLevel(player);
         const unlockedTypes: number[] = [];
         const inventoryTypes: number[] = [];
 
@@ -327,7 +370,7 @@ export class SmithingUI {
             this.services.messaging.sendGameMessage(player, "You can't smelt that.");
             return;
         }
-        const smithLevel = player.skillSystem.getSkill(SkillId.Smithing).baseLevel;
+        const smithLevel = getEffectiveSmithingLevel(player);
         if (smithLevel < recipe.level) {
             this.services.messaging.sendGameMessage(
                 player,
@@ -352,20 +395,17 @@ export class SmithingUI {
                 ? requestedCount
                 : this.resolveQuantity(currentMode, available, customAmount);
         const desired = Math.max(1, Math.min(available, desiredRaw));
-        const delay = recipe.delayTicks !== undefined ? Math.max(1, recipe.delayTicks) : 4;
-        const tick = this.services.system.getCurrentTick() ?? 0;
-        const result = this.services.combat.requestAction(
-            player,
-            {
-                kind: "skill.smelt",
-                data: { recipeId: recipe.id, count: desired },
-                delayTicks: delay,
-                cooldownTicks: delay,
-                groups: ["skill.smelt"],
-            },
-            tick,
-        );
-        if (!result.ok) {
+        const action = SMELT_ACTIONS.get(recipe.id);
+        const requested =
+            action !== undefined &&
+            requestSkillAction(
+                this.services,
+                player,
+                action,
+                { recipeId: recipe.id, count: desired },
+                this.services.system.getCurrentTick() ?? 0,
+            );
+        if (!requested) {
             this.services.messaging.sendGameMessage(
                 player,
                 "You're too busy to do that right now.",
@@ -381,12 +421,12 @@ export class SmithingUI {
         }
         if (
             recipe.requireHammer !== false &&
-            !this.services.inventory.playerHasItem(player, HAMMER_ITEM_ID)
+            !hasSmithingHammer(player, this.services)
         ) {
             this.services.messaging.sendGameMessage(player, "You need a hammer to smith.");
             return;
         }
-        const smithLevel = player.skillSystem.getSkill(SkillId.Smithing).baseLevel;
+        const smithLevel = getEffectiveSmithingLevel(player);
         if (smithLevel < recipe.level) {
             this.services.messaging.sendGameMessage(
                 player,
@@ -415,20 +455,17 @@ export class SmithingUI {
         // while any modal is open, so IF 312 must close first or the action stalls.
         this.closeInterface(player);
 
-        const tick = this.services.system.getCurrentTick() ?? 0;
-        const result = this.services.combat.requestAction(
-            player,
-            {
-                kind: "skill.smith",
-                data: { recipeId: recipe.id, count: desired },
-                // First hammer swing starts next tick (OpenRune/OSRS anvil parity).
-                delayTicks: 1,
-                cooldownTicks: Math.max(1, recipe.delayTicks ?? 4),
-                groups: ["skill.smith"],
-            },
-            tick,
-        );
-        if (!result.ok) {
+        const action = SMITH_ACTIONS.get(recipe.id);
+        const requested =
+            action !== undefined &&
+            requestSkillAction(
+                this.services,
+                player,
+                action,
+                { recipeId: recipe.id, count: desired },
+                this.services.system.getCurrentTick() ?? 0,
+            );
+        if (!requested) {
             this.services.messaging.sendGameMessage(
                 player,
                 "You're too busy to do that right now.",

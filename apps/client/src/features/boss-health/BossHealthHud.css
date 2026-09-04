@@ -1,0 +1,460 @@
+.boss-health-hud-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: clamp(8px, 1.5vh, 16px) 18px 0;
+    pointer-events: none;
+}
+
+.boss-health-hud {
+    width: clamp(240px, 39vw, 465px);
+    max-width: 100%;
+    color: #f7f1df;
+    font-family: "OSRS Bold", "Trebuchet MS", sans-serif;
+    filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.58));
+    animation: boss-health-hud-enter 180ms ease-out both;
+}
+
+.boss-health-hud__plate {
+    position: relative;
+    box-sizing: border-box;
+    padding: 5px 8px 6px;
+    overflow: visible;
+    border: 1px solid rgba(218, 182, 103, 0.74);
+    border-radius: 5px;
+    background:
+        linear-gradient(180deg, rgba(50, 43, 32, 0.97), rgba(18, 17, 15, 0.96)),
+        #161512;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 241, 194, 0.19),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.66),
+        0 0 0 1px rgba(0, 0, 0, 0.76),
+        0 3px 12px rgba(0, 0, 0, 0.5);
+}
+
+.boss-health-hud__header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 9px;
+    min-width: 0;
+    margin: 0 1px 4px;
+    text-shadow: 1px 1px 0 #000, 0 1px 2px #000;
+}
+
+.boss-health-hud__identity,
+.boss-health-hud__numbers {
+    display: flex;
+    min-width: 0;
+}
+
+.boss-health-hud__identity {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.boss-health-hud__kicker {
+    margin-bottom: 1px;
+    color: #cdbb92;
+    font-family: "OSRS Small", sans-serif;
+    font-size: 8px;
+    line-height: 1;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.boss-health-hud__name {
+    max-width: 100%;
+    overflow: hidden;
+    color: #fff4ce;
+    font-size: clamp(12px, 1.16vw, 14px);
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.boss-health-hud__numbers {
+    flex: 0 0 auto;
+    align-items: baseline;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.boss-health-hud__exact {
+    color: #eee9dc;
+    font-family: "OSRS Small", sans-serif;
+    font-size: clamp(9px, 0.9vw, 11px);
+}
+
+.boss-health-hud__percent {
+    min-width: 34px;
+    color: hsl(var(--boss-health-hue) 88% 70%);
+    font-size: clamp(11px, 1.1vw, 13px);
+    text-align: right;
+    transition: color 220ms linear;
+}
+
+.boss-health-hud__bar-wrap {
+    position: relative;
+    padding-bottom: 12px;
+}
+
+.boss-health-hud__track {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    height: clamp(14px, 1.7vh, 17px);
+    overflow: hidden;
+    border: 2px solid #080807;
+    border-radius: 4px;
+    outline: 1px solid rgba(203, 174, 107, 0.48);
+    background:
+        repeating-linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.018) 0,
+            rgba(255, 255, 255, 0.018) 5px,
+            transparent 5px,
+            transparent 10px
+        ),
+        #211512;
+    box-shadow:
+        inset 0 2px 5px rgba(0, 0, 0, 0.95),
+        0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.boss-health-hud__trail,
+.boss-health-hud__fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    display: block;
+    transform-origin: left center;
+}
+
+.boss-health-hud__trail {
+    width: var(--boss-health-trail);
+    background: linear-gradient(180deg, #ffd16a, #bf641d 64%, #68280f);
+    box-shadow: 0 0 7px rgba(255, 157, 42, 0.48);
+    transition: width 520ms cubic-bezier(0.22, 0.72, 0.2, 1);
+}
+
+.boss-health-hud__fill {
+    width: var(--boss-health-fill);
+    overflow: hidden;
+    background: linear-gradient(
+        180deg,
+        hsl(var(--boss-health-hue) 82% 51%) 0%,
+        hsl(var(--boss-health-hue) 77% 38%) 57%,
+        hsl(var(--boss-health-hue) 84% 25%) 100%
+    );
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.34),
+        inset -1px 0 0 rgba(255, 255, 255, 0.36),
+        0 0 8px hsl(var(--boss-health-hue) 85% 42% / 0.34);
+    transition:
+        width 240ms cubic-bezier(0.22, 0.72, 0.2, 1),
+        background 220ms linear,
+        box-shadow 220ms linear;
+}
+
+.boss-health-hud__shine {
+    position: absolute;
+    inset: 1px 0 auto;
+    height: 34%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.28));
+}
+
+.boss-health-hud__track-gloss {
+    position: absolute;
+    inset: 0;
+    border-radius: 2px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 48%, rgba(0, 0, 0, 0.2));
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.boss-health-hud__oldschool-readout {
+    display: none;
+}
+
+.boss-health-hud__markers {
+    position: absolute;
+    inset: 0;
+}
+
+.boss-health-hud__marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--boss-marker-position);
+    width: 0;
+    color: #f5dc86;
+    transition: opacity 180ms ease, filter 180ms ease;
+}
+
+.boss-health-hud__marker--phase {
+    color: #8bc9ff;
+}
+
+.boss-health-hud__marker--danger {
+    color: #ff8a72;
+}
+
+.boss-health-hud__marker--reached {
+    opacity: 0.45;
+    filter: saturate(0.45);
+}
+
+.boss-health-hud__marker--next {
+    opacity: 1;
+    filter: drop-shadow(0 0 3px currentColor);
+}
+
+.boss-health-hud__marker-line {
+    position: absolute;
+    top: 0;
+    left: -1px;
+    width: 2px;
+    height: calc(100% - 16px);
+    background: currentColor;
+    box-shadow: 1px 0 0 rgba(0, 0, 0, 0.82);
+}
+
+.boss-health-hud__marker-cap {
+    position: absolute;
+    top: -3px;
+    left: -4px;
+    width: 0;
+    height: 0;
+    border-top: 5px solid currentColor;
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+    filter: drop-shadow(0 1px 0 #000);
+}
+
+.boss-health-hud__marker-percent {
+    position: absolute;
+    top: calc(100% - 12px);
+    left: 0;
+    transform: translateX(-50%);
+    color: currentColor;
+    font-family: "OSRS Small", sans-serif;
+    font-size: 9px;
+    line-height: 1;
+    text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
+    white-space: nowrap;
+}
+
+.boss-health-hud__next-gate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 8px;
+    margin-top: -2px;
+    color: #d9cba9;
+    font-family: "OSRS Small", sans-serif;
+    font-size: 9px;
+    line-height: 1.1;
+    text-align: center;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.boss-health-hud__next-gate-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #f5dc86;
+    box-shadow: 0 0 4px rgba(245, 220, 134, 0.8);
+}
+
+.boss-health-hud--oldschool {
+    width: clamp(220px, 28vw, 320px);
+    color: #fff7dc;
+    filter: drop-shadow(2px 3px 2px rgba(0, 0, 0, 0.78));
+}
+
+.boss-health-hud--oldschool .boss-health-hud__plate {
+    padding: 4px 5px 5px;
+    border: 1px solid #17100a;
+    border-radius: 0;
+    outline: 1px solid #9c7b4d;
+    background: #453824;
+    box-shadow:
+        inset 1px 1px 0 rgba(255, 231, 170, 0.18),
+        inset -1px -1px 0 rgba(0, 0, 0, 0.72),
+        0 2px 0 rgba(0, 0, 0, 0.65);
+}
+
+.boss-health-hud--oldschool .boss-health-hud__header {
+    align-items: center;
+    justify-content: center;
+    margin: 0 0 3px;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__identity {
+    flex: 1 1 100%;
+    align-items: center;
+    overflow: hidden;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__kicker {
+    display: none;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__name {
+    width: 100%;
+    color: #ffd37a;
+    font-size: clamp(11px, 0.9vw, 13px);
+    line-height: 1;
+    text-align: center;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__numbers {
+    display: none;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__bar-wrap {
+    padding-bottom: 0;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__track {
+    height: 16px;
+    border: 2px solid #090604;
+    border-radius: 0;
+    outline: 1px solid #96754b;
+    background: #9f2424;
+    box-shadow: none;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__trail,
+.boss-health-hud--oldschool .boss-health-hud__shine,
+.boss-health-hud--oldschool .boss-health-hud__track-gloss {
+    display: none;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__fill {
+    background: #35a842;
+    box-shadow: none;
+    transition: none;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__oldschool-readout {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-family: "OSRS Small", sans-serif;
+    font-size: 9px;
+    line-height: 1;
+    text-shadow: 1px 1px 0 #000, -1px 0 0 #000;
+    white-space: nowrap;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__markers {
+    z-index: 3;
+}
+
+.boss-health-hud--oldschool .boss-health-hud__marker-line {
+    top: 2px;
+    height: calc(100% - 4px);
+}
+
+.boss-health-hud--oldschool .boss-health-hud__marker-cap,
+.boss-health-hud--oldschool .boss-health-hud__marker-percent,
+.boss-health-hud--oldschool .boss-health-hud__next-gate {
+    display: none;
+}
+
+@keyframes boss-health-hud-enter {
+    from {
+        transform: translateY(-7px) scale(0.985);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 764px), (max-height: 502px) {
+    .boss-health-hud-layer {
+        padding-top: calc(var(--mobile-safe-top, 6px) + 2px);
+        padding-right: max(10px, var(--mobile-safe-right, 0px));
+        padding-left: max(10px, var(--mobile-safe-left, 0px));
+    }
+
+    .boss-health-hud--modern {
+        width: min(54vw, 375px);
+        min-width: 240px;
+    }
+
+    .boss-health-hud--oldschool {
+        width: min(52vw, 320px);
+        min-width: 220px;
+    }
+
+    .boss-health-hud__plate {
+        padding: 5px 8px 6px;
+    }
+
+    .boss-health-hud__kicker {
+        display: none;
+    }
+
+    .boss-health-hud__header {
+        margin-bottom: 4px;
+    }
+
+    .boss-health-hud--modern .boss-health-hud__bar-wrap {
+        padding-bottom: 11px;
+    }
+
+    .boss-health-hud__next-gate {
+        display: none;
+    }
+}
+
+@media (max-width: 440px) {
+    .boss-health-hud {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .boss-health-hud--oldschool {
+        width: min(100%, 320px);
+    }
+
+    .boss-health-hud__header {
+        align-items: center;
+        gap: 6px;
+    }
+
+    .boss-health-hud__name {
+        font-size: 12px;
+    }
+
+    .boss-health-hud__exact {
+        font-size: 9px;
+    }
+
+    .boss-health-hud__percent {
+        min-width: 30px;
+        font-size: 11px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .boss-health-hud,
+    .boss-health-hud__trail,
+    .boss-health-hud__fill {
+        animation: none;
+        transition: none;
+    }
+}

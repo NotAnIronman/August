@@ -1,7 +1,7 @@
 /**
  * Regression coverage for ordinary healing and explicitly permitted overheal.
  *
- * Run with: npx tsx tests/hitpoints-healing-cap.test.ts
+ * Run with: pnpm exec tsx tests/hitpoints-healing-cap.test.ts
  */
 import assert from "node:assert/strict";
 

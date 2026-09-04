@@ -8,9 +8,15 @@ import type {
     ScriptInventoryEntry,
     ScriptServices,
 } from "@server/game/scripts/types";
+import { countInventoryItem } from "@server/game/skilling/InventoryTransform";
+import {
+    type ProductionRecipePolicy,
+    defineProductionSkill,
+} from "@server/game/skilling/ProductionSkill";
 import {
     FLETCHING_COMBINE_RECIPES,
     FLETCHING_LOG_IDS,
+    FLETCHING_RECIPES,
     FLETCHING_STRING_IDS,
     type FletchingProductDefinition,
     KNIFE_ITEM_ID,
@@ -24,14 +30,13 @@ const FLETCHING_GROUP = "skill.fletch";
 
 type InventoryEntry = ScriptInventoryEntry;
 
+const getEffectiveFletchingLevel = (services: ScriptServices, player: PlayerState): number => {
+    const skill = services.skills.getSkill(player, SkillId.Fletching);
+    return Math.max(1, (skill?.baseLevel ?? 1) + (skill?.boost ?? 0));
+};
+
 const countItemQuantity = (entries: InventoryEntry[], itemId: number): number => {
-    let total = 0;
-    for (const entry of entries) {
-        if (entry.itemId === itemId) {
-            total += Math.max(0, entry.quantity);
-        }
-    }
-    return total;
+    return countInventoryItem(entries, itemId);
 };
 
 const formatProductLabel = (
@@ -68,20 +73,8 @@ const enqueueFletchingAction = (
     desiredCount: number,
     tick?: number,
 ): boolean => {
-    const delay = recipe.delayTicks !== undefined ? Math.max(1, recipe.delayTicks) : 3;
-    const currentTick = Number.isFinite(tick) ? (tick as number) : 0;
-    const result = services.combat.requestAction(
-        player,
-        {
-            kind: "skill.fletch",
-            data: { recipeId: recipe.id, count: desiredCount },
-            delayTicks: delay,
-            cooldownTicks: delay,
-            groups: [FLETCHING_GROUP],
-        },
-        currentTick,
-    );
-    return result.ok;
+    const policy = FLETCHING.getRecipe(recipe.id);
+    return !!policy && FLETCHING.request(services, player, policy, desiredCount, tick);
 };
 
 // ---------------------------------------------------------------------------
@@ -187,18 +180,62 @@ function getFletchingSuccessMessage(recipe: FletchingProductDefinition): string 
     return `You fletch the logs into ${recipe.productName}.`;
 }
 
+const FLETCHING_RECIPES_CORE: ProductionRecipePolicy<FletchingProductDefinition>[] =
+    FLETCHING_RECIPES.map((recipe) => {
+        const consumeSecondary = recipe.consumeSecondary !== false;
+        return {
+            id: recipe.id,
+            source: recipe,
+            level: recipe.level,
+            levelSource: "effective" as const,
+            inputs: [
+                { itemId: recipe.inputItemId, quantity: 1 },
+                ...(recipe.secondaryItemId !== undefined && consumeSecondary
+                    ? [{ itemId: recipe.secondaryItemId, quantity: 1 }]
+                    : []),
+            ],
+            outputs: [
+                { itemId: recipe.productItemId, quantity: Math.max(1, recipe.outputQuantity) },
+            ],
+            tools:
+                recipe.secondaryItemId !== undefined && !consumeSecondary
+                    ? [{ itemIds: [recipe.secondaryItemId], source: "inventory" as const }]
+                    : undefined,
+            xp: recipe.xp,
+            animationId: recipe.animation ?? 1248,
+            ticks: recipe.delayTicks ?? 3,
+            outputPlacement:
+                recipe.outputMode === "add" ? ("add" as const) : ("first-consumed-slot" as const),
+        };
+    });
+
+const FLETCHING = defineProductionSkill({
+    name: "fletch",
+    skillId: SkillId.Fletching,
+    recipes: FLETCHING_RECIPES_CORE,
+    handledFailureIsOk: true,
+    messages: {
+        unknownRecipe: "You can't fletch that.",
+        missingLevel: (recipe) =>
+            `You need Fletching level ${recipe.level} to make that.`,
+        missingInputs: (recipe) => getFletchingMissingInputMessage(recipe.source).message,
+        missingTools: (recipe) => getFletchingMissingSecondaryMessage(recipe.source).message,
+        inventoryFull: () => "You need more inventory space to keep fletching.",
+        success: (recipe) => getFletchingSuccessMessage(recipe.source),
+        interrupted: "You stop fletching because you're already busy.",
+    },
+});
+
 function executeFletchAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
     const { player, tick, services } = ctx;
     const data = ctx.data as FletchActionData;
-    const inventory = services.inventory.getInventoryItems(player);
     const recipeId = data.recipeId;
     const recipe = getFletchingRecipeById(recipeId);
     if (!recipe) {
         return { ok: true, effects: [buildMessageEffect(player, "You can't fletch that.")] };
     }
 
-    const skill = services.skills.getSkill(player, SkillId.Fletching);
-    if ((skill?.baseLevel ?? 1) < recipe.level) {
+    if (getEffectiveFletchingLevel(services, player) < recipe.level) {
         return {
             ok: true,
             effects: [
@@ -226,111 +263,11 @@ function executeFletchAction(ctx: ScriptActionHandlerContext): ActionExecutionRe
         }
     }
 
-    if (!services.inventory.consumeItem(player, inputSlot)) {
-        return {
-            ok: true,
-            effects: [buildMessageEffect(player, "You can't use that item right now.")],
-        };
-    }
-
-    const consumeSecondary = recipe.consumeSecondary !== false;
-    let secondaryConsumed = false;
-    const restoreConsumedItem = (slotIndex: number, itemId: number) => {
-        const entry = inventory[slotIndex];
-        if (!entry) return;
-        if (entry.itemId <= 0 || entry.quantity <= 0) {
-            entry.itemId = itemId;
-            entry.quantity = 1;
-        } else {
-            entry.quantity += 1;
-        }
-    };
-
-    if (secondarySlot !== undefined && consumeSecondary) {
-        if (!services.inventory.consumeItem(player, secondarySlot)) {
-            restoreConsumedItem(inputSlot, recipe.inputItemId);
-            const { message } = getFletchingMissingSecondaryMessage(recipe);
-            return { ok: true, effects: [buildMessageEffect(player, message)] };
-        }
-        secondaryConsumed = true;
-    }
-
-    const productQuantity = Math.max(1, recipe.outputQuantity);
-    const outputMode = recipe.outputMode ?? "replace";
-
-    if (outputMode === "add") {
-        const dest = services.inventory.addItemToInventory(
-            player,
-            recipe.productItemId,
-            productQuantity,
-        );
-        if (dest.added <= 0) {
-            restoreConsumedItem(inputSlot, recipe.inputItemId);
-            if (secondaryConsumed && secondarySlot !== undefined && secondaryId !== undefined) {
-                restoreConsumedItem(secondarySlot, secondaryId);
-            }
-            return {
-                ok: true,
-                effects: [
-                    buildMessageEffect(player, "You need more inventory space to keep fletching."),
-                ],
-            };
-        }
-    } else {
-        services.inventory.setInventorySlot(
-            player,
-            inputSlot,
-            recipe.productItemId,
-            productQuantity,
-        );
-    }
-
-    services.animation.playPlayerSeq(player, recipe.animation ?? 1248);
-    services.skills.addSkillXp(player, SkillId.Fletching, recipe.xp);
-    services.system.eventBus?.emit("item:craft", {
-        playerId: player.id,
-        itemId: recipe.productItemId,
-        count: productQuantity,
-    });
-
-    const description = getFletchingSuccessMessage(recipe);
-    const effects: ActionEffect[] = [
-        { type: "inventorySnapshot", playerId: player.id },
-        buildMessageEffect(player, description),
-    ];
-
-    const totalCount = Math.max(1, data.count);
-    const remaining = Math.max(0, totalCount - 1);
-
-    if (remaining > 0) {
-        const reschedule = services.combat.scheduleAction(
-            player.id,
-            {
-                kind: "skill.fletch",
-                data: { recipeId: recipe.id, count: remaining },
-                delayTicks: recipe.delayTicks ?? 3,
-                cooldownTicks: recipe.delayTicks ?? 3,
-                groups: ["skill.fletch"],
-            },
-            tick,
-        );
-        if (!reschedule?.ok) {
-            effects.push(
-                buildMessageEffect(player, "You stop fletching because you're already busy."),
-            );
-        }
-    }
-
-    return {
-        ok: true,
-        cooldownTicks: recipe.delayTicks !== undefined ? Math.max(1, recipe.delayTicks) : 3,
-        groups: ["skill.fletch"],
-        effects,
-    };
+    return FLETCHING.execute(ctx);
 }
 
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
-    registry.registerActionHandler("skill.fletch", executeFletchAction);
+    registry.registerActionHandler(FLETCHING.actionKind, executeFletchAction);
 
     const getInventoryItems = services.inventory.getInventoryItems;
     const openDialogOptions = services.dialog.openDialogOptions;
@@ -357,7 +294,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                 );
                 return;
             }
-            const level = services.skills.getSkill(player, SkillId.Fletching)?.baseLevel ?? 1;
+            const level = getEffectiveFletchingLevel(services, player);
             const choices = products.map((def) => {
                 const ready = Math.max(1, Math.min(MAX_BATCH, availableLogs));
                 const levelMet = level >= def.level;
@@ -370,63 +307,37 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                 };
             });
             const craftableChoices = choices.filter((choice) => choice.craftable);
-            const ordered = craftableChoices.concat(choices.filter((choice) => !choice.craftable));
-            const dialogId = `fletch_${logId}`;
-            if (openDialogOptions && ordered.length > 0) {
-                openDialogOptions(player, {
-                    id: dialogId,
-                    modal: true,
+            if (craftableChoices.length > 0) {
+                const maxQuantity = Math.max(...craftableChoices.map((choice) => choice.batch));
+                services.dialog.openSkillMulti(player, {
+                    id: `fletch_${logId}_${player.id}`,
                     title: "What would you like to make?",
-                    options: ordered.map((choice) => choice.label),
-                    disabledOptions: ordered.map((choice) => !choice.craftable),
-                    onSelect: (idx) => {
-                        const selected = ordered[idx];
+                    products: craftableChoices.map((choice) => ({
+                        itemId: choice.definition.productItemId,
+                        label: choice.definition.productName,
+                        maxQuantity: choice.batch,
+                    })),
+                    maxQuantity,
+                    defaultQuantity: 1,
+                    onSelect: (index, quantity) => {
+                        const selected = craftableChoices[index];
                         if (!selected) {
-                            services.messaging.sendGameMessage(
-                                player,
-                                "You decide not to carve the logs.",
-                            );
+                            services.messaging.sendGameMessage(player, "You decide not to carve the logs.");
                             return;
                         }
-                        if (!selected.craftable) {
-                            services.messaging.sendGameMessage(
-                                player,
-                                `You need Fletching level ${selected.definition.level} for that.`,
-                            );
-                            return;
-                        }
-                        closeDialog?.(player, dialogId);
-                        const desired = Math.max(1, Math.min(selected.batch, availableLogs));
-                        const ok = enqueueFletchingAction(
-                            services,
-                            player,
-                            selected.definition,
-                            desired,
-                            tick,
-                        );
-                        if (!ok) {
-                            services.messaging.sendGameMessage(
-                                player,
-                                "You're too busy to fletch right now.",
-                            );
+                        const desired = Math.max(1, Math.min(selected.batch, quantity | 0));
+                        if (!enqueueFletchingAction(services, player, selected.definition, desired)) {
+                            services.messaging.sendGameMessage(player, "You're too busy to fletch right now.");
                         }
                     },
                 });
                 return;
             }
-            const fallback = craftableChoices[0];
-            if (!fallback) {
-                services.messaging.sendGameMessage(
-                    player,
-                    "You need a higher Fletching level before working these logs.",
-                );
-                return;
-            }
-            const desired = Math.max(1, Math.min(fallback.batch, availableLogs));
-            const ok = enqueueFletchingAction(services, player, fallback.definition, desired, tick);
-            if (!ok) {
-                services.messaging.sendGameMessage(player, "You're too busy to fletch right now.");
-            }
+            const lowestRequiredLevel = Math.min(...products.map((product) => product.level));
+            services.messaging.sendGameMessage(
+                player,
+                `You need Fletching level ${lowestRequiredLevel} before working these logs.`,
+            );
         };
         registry.registerItemOnItem(KNIFE_ITEM_ID, logId, handler);
     };
@@ -455,7 +366,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                 services.messaging.sendGameMessage(player, "You need bowstrings to string bows.");
                 return;
             }
-            const level = services.skills.getSkill(player, SkillId.Fletching)?.baseLevel ?? 1;
+            const level = getEffectiveFletchingLevel(services, player);
             if (level < recipe.level) {
                 services.messaging.sendGameMessage(
                     player,
@@ -494,7 +405,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                             player,
                             recipe,
                             Math.max(1, Math.min(selected.count, maxBatch)),
-                            tick,
+                            undefined,
                         );
                         if (!ok) {
                             services.messaging.sendGameMessage(
@@ -557,7 +468,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                     }
                     closeDialog?.(player, dialogId);
                     const desired = Math.max(1, Math.min(selected.count, maxBatch));
-                    if (!enqueueFletchingAction(services, player, recipe, desired, tick)) {
+                    if (!enqueueFletchingAction(services, player, recipe, desired)) {
                         services.messaging.sendGameMessage(player, "You're too busy to fletch right now.");
                     }
                 },
@@ -593,7 +504,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                 services.messaging.sendGameMessage(player, `You need ${label} to keep fletching.`);
                 return;
             }
-            const level = services.skills.getSkill(player, SkillId.Fletching)?.baseLevel ?? 1;
+            const level = getEffectiveFletchingLevel(services, player);
             const choices = recipes.map((recipe) => {
                 const secondaryCap = recipe.secondaryIsTool === true
                     ? Number.MAX_SAFE_INTEGER

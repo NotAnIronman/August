@@ -1,4 +1,8 @@
 import type { NpcState } from "@server/game/npc";
+import {
+    registerPlayerLifecycleCleanup,
+    removeTrackedPlayerNpc,
+} from "@server/game/scripts/ScriptLifecycle";
 import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
 import { completeQuest, getQuestStage, setQuestStage } from "@server/content/gamemodes/vanilla/quests/QuestService";
 import type { QuestDefinition } from "@server/content/gamemodes/vanilla/quests/types";
@@ -49,6 +53,30 @@ export function registerRestlessGhostInteractions(
     registerTalk(registry, NPC.restlessGhost, createRestlessGhostTalkHandler(quest));
 
     const spawnedGhostByPlayer = new Map<number, number>();
+    const spawnedSkeletonByPlayer = new Map<number, number>();
+
+    const removeTrackedNpc = (tracked: Map<number, number>, playerId: number): void => {
+        const npcId = tracked.get(playerId);
+        removeTrackedPlayerNpc(services, playerId, npcId);
+        tracked.delete(playerId);
+    };
+
+    registerPlayerLifecycleCleanup(registry, services, {
+        player: (playerId) => {
+            removeTrackedNpc(spawnedGhostByPlayer, playerId);
+            removeTrackedNpc(spawnedSkeletonByPlayer, playerId);
+        },
+        reset: () => {
+            const playerIds = new Set([
+                ...spawnedGhostByPlayer.keys(),
+                ...spawnedSkeletonByPlayer.keys(),
+            ]);
+            for (const playerId of playerIds) {
+                removeTrackedNpc(spawnedGhostByPlayer, playerId);
+                removeTrackedNpc(spawnedSkeletonByPlayer, playerId);
+            }
+        },
+    });
 
     const getTrackedGhost = (playerId: number): NpcState | undefined => {
         const npcId = spawnedGhostByPlayer.get(playerId);
@@ -67,6 +95,7 @@ export function registerRestlessGhostInteractions(
             y: TILE.ghost.y,
             level: TILE.ghost.level,
             wanderRadius: 2,
+            ownerPlayerId: playerId,
         });
         if (ghost) spawnedGhostByPlayer.set(playerId, ghost.id);
     };
@@ -155,8 +184,10 @@ export function registerRestlessGhostInteractions(
                 y: TILE.skullSkeleton.y,
                 level: TILE.skullSkeleton.level,
                 wanderRadius: 0,
+                ownerPlayerId: event.player.id,
             });
             if (skeleton) {
+                spawnedSkeletonByPlayer.set(event.player.id, skeleton.id);
                 skeleton.engageCombat(event.player.id, event.tick, {
                     tileX: event.player.tileX,
                     tileY: event.player.tileY,

@@ -1,7 +1,12 @@
 import { MAX_REAL_LEVEL, SkillId, getSkillName } from "@august/osrs-engine/skill/skills";
 import type { GameEventBus } from "@server/game/events/GameEventBus";
 import type { PlayerState } from "@server/game/player";
-import type { ScriptServices } from "@server/game/scripts/types";
+import {
+    registerEventSubscription,
+    registerPlayerScopedCollections,
+} from "@server/game/scripts/ScriptLifecycle";
+import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types";
+import { logger } from "@server/observability/logger";
 import { resolveSpriteRefByName } from "@server/world/SpriteNameCatalogFile";
 import {
     LEVELUP_COMBAT_COMPONENT,
@@ -159,7 +164,7 @@ function showSkillLevelUp(
             });
         }
     } catch (err) {
-        console.error(`[levelup] set_sprite lookup/send failed for skill ${skillName}:`, err);
+        logger.error(`[levelup] set_sprite lookup/send failed for skill ${skillName}:`, err);
     }
     queueWidget(services, playerId, {
         action: "set_text",
@@ -336,27 +341,39 @@ export function getPopupQueue(playerId: number): readonly LevelUpPopup[] | undef
     return popupQueues.get(playerId);
 }
 
-export function registerLevelUpHandlers(services: ScriptServices, eventBus: GameEventBus): void {
-    eventBus.on("skill:levelUp", ({ player, skillId, oldLevel, newLevel }) => {
-        enqueuePopup(services, player, {
-            kind: "skill",
-            skillId,
-            newLevel,
-            levelIncrement: Math.max(1, newLevel - oldLevel),
-        });
-    });
-
-    eventBus.on("combat:levelUp", ({ player, oldLevel, newLevel }) => {
-        enqueuePopup(services, player, {
-            kind: "combat",
-            newLevel,
-            levelIncrement: Math.max(1, newLevel - oldLevel),
-        });
-    });
-
-    eventBus.on("interfaces:closeInterruptible", ({ player }) => {
-        dismissQueue(services, player.id);
-    });
+export function registerLevelUpHandlers(
+    registry: IScriptRegistry,
+    services: ScriptServices,
+    eventBus: GameEventBus,
+): void {
+    registerPlayerScopedCollections(registry, services, popupQueues);
+    registerEventSubscription(
+        registry,
+        eventBus.on("skill:levelUp", ({ player, skillId, oldLevel, newLevel }) => {
+            enqueuePopup(services, player, {
+                kind: "skill",
+                skillId,
+                newLevel,
+                levelIncrement: Math.max(1, newLevel - oldLevel),
+            });
+        }),
+    );
+    registerEventSubscription(
+        registry,
+        eventBus.on("combat:levelUp", ({ player, oldLevel, newLevel }) => {
+            enqueuePopup(services, player, {
+                kind: "combat",
+                newLevel,
+                levelIncrement: Math.max(1, newLevel - oldLevel),
+            });
+        }),
+    );
+    registerEventSubscription(
+        registry,
+        eventBus.on("interfaces:closeInterruptible", ({ player }) => {
+            dismissQueue(services, player.id);
+        }),
+    );
 }
 
 export function handleResumePauseButton(

@@ -1252,7 +1252,7 @@ export class CombatActionHandler {
         }
 
         const scheduleTick = Number.isFinite(tick) ? tick : this.svc.ticker.currentTick();
-        logger.info(
+        logger.debug(
             `[combat] player ${player.id} attack NPC ${npc.id} - tick ${scheduleTick}, animation ${
                 attackSeq ?? "none"
             }`,
@@ -1519,8 +1519,10 @@ export class CombatActionHandler {
      * this just passes through to the sub-handler that actually owns
      * the death-confirmation code path).
      */
-    registerOnNpcKilled(fn: (killer: PlayerState, npc: NpcState, tick: number) => void): void {
-        this.npcHitHandler.registerOnNpcKilled(fn);
+    registerOnNpcKilled(
+        fn: (killer: PlayerState, npc: NpcState, tick: number) => void,
+    ): () => void {
+        return this.npcHitHandler.registerOnNpcKilled(fn);
     }
 
     // ========================================================================

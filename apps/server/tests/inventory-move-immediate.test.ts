@@ -1,7 +1,7 @@
 /**
  * Regression coverage for immediate authoritative inventory slot swaps.
  *
- * Run with: npx tsx tests/inventory-move-immediate.test.ts
+ * Run with: pnpm exec tsx tests/inventory-move-immediate.test.ts
  */
 import assert from "node:assert/strict";
 import type { WebSocket } from "ws";

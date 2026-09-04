@@ -1,3 +1,6 @@
+export * from "@server/game/encounters/BossDefinition";
+export * from "@server/game/encounters/BossMechanics";
+export * from "@server/game/encounters/BossRoom";
 export * from "@server/game/encounters/EncounterManager";
 export * from "@server/game/encounters/EncounterRandom";
 export * from "@server/game/encounters/EncounterRegistry";
@@ -5,4 +8,5 @@ export * from "@server/game/encounters/EncounterRuntime";
 export * from "@server/game/encounters/EncounterTargetSelector";
 export * from "@server/game/encounters/EncounterTimeline";
 export * from "@server/game/encounters/EncounterTypes";
+export * from "@server/game/encounters/GwdAltar";
 export * from "@server/game/encounters/mechanics";

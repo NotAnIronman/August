@@ -125,8 +125,8 @@ export class CustomItemBuilder {
      * @param to - New color values
      */
     recolor(from: number[], to: number[]): this {
-        this._objType.recolorFrom = from;
-        this._objType.recolorTo = to;
+        this._objType.recolorFrom = [...from];
+        this._objType.recolorTo = [...to];
         return this;
     }
 
@@ -134,8 +134,8 @@ export class CustomItemBuilder {
      * Retexture the item model by swapping texture IDs.
      */
     retexture(from: number[], to: number[]): this {
-        this._objType.retextureFrom = from;
-        this._objType.retextureTo = to;
+        this._objType.retextureFrom = [...from];
+        this._objType.retextureTo = [...to];
         return this;
     }
 
@@ -218,12 +218,12 @@ export class CustomItemBuilder {
     // === Combat Stats ===
 
     bonuses(bonuses: ItemBonuses): this {
-        this._itemDef.bonuses = bonuses;
+        this._itemDef.bonuses = [...bonuses] as unknown as ItemBonuses;
         return this;
     }
 
     requirements(requirements: ItemRequirements): this {
-        this._itemDef.requirements = requirements;
+        this._itemDef.requirements = [...requirements] as unknown as ItemRequirements;
         return this;
     }
 
@@ -256,11 +256,31 @@ export class CustomItemBuilder {
      * Build the final custom item definition.
      */
     build(): CustomItemDefinition {
+        const objType: CustomObjTypeProps = {
+            ...this._objType,
+            recolorFrom: this._objType.recolorFrom ? [...this._objType.recolorFrom] : undefined,
+            recolorTo: this._objType.recolorTo ? [...this._objType.recolorTo] : undefined,
+            retextureFrom: this._objType.retextureFrom ? [...this._objType.retextureFrom] : undefined,
+            retextureTo: this._objType.retextureTo ? [...this._objType.retextureTo] : undefined,
+            groundActions: this._objType.groundActions ? [...this._objType.groundActions] : undefined,
+            inventoryActions: this._objType.inventoryActions
+                ? [...this._objType.inventoryActions]
+                : undefined,
+        };
+        const itemDef: CustomItemDefProps = {
+            ...this._itemDef,
+            bonuses: this._itemDef.bonuses
+                ? ([...this._itemDef.bonuses] as unknown as ItemBonuses)
+                : undefined,
+            requirements: this._itemDef.requirements
+                ? ([...this._itemDef.requirements] as unknown as ItemRequirements)
+                : undefined,
+        };
         return {
             id: this._id,
             baseItemId: this._baseItemId,
-            objType: { ...this._objType },
-            itemDef: { ...this._itemDef },
+            objType,
+            itemDef,
         };
     }
 }

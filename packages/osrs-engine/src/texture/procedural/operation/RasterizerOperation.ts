@@ -3,8 +3,8 @@ import { ByteBuffer } from "@august/osrs-engine/io/ByteBuffer";
 import { RasterSpanFill } from "@august/osrs-engine/texture/procedural/RasterSpanFill";
 import { TextureGenerator } from "@august/osrs-engine/texture/procedural/TextureGenerator";
 import { TextureOperation } from "@august/osrs-engine/texture/procedural/operation/TextureOperation";
+import { UnsupportedOperationError } from "@august/osrs-engine/util/UnsupportedOperationError";
 
-// TODO: actually render
 export class RasterizerOperation extends TextureOperation {
     ops?: RasterizerOperationShape[];
 
@@ -26,6 +26,10 @@ export class RasterizerOperation extends TextureOperation {
                     this.ops[i] = RasterizerOperationRectangle.create(buffer);
                 } else if (type === 3) {
                     this.ops[i] = RasterizerOperationEllipse.create(buffer);
+                } else {
+                    throw new UnsupportedOperationError(
+                        `Unsupported procedural rasterizer shape type: ${type}`,
+                    );
                 }
             }
         } else if (field === 1) {
@@ -1496,11 +1500,23 @@ export abstract class RasterizerOperationShape {
         readonly outlineWidth: number,
     ) {}
 
-    abstract render(width: number, height: number): void;
+    render(_width: number, _height: number): void {
+        throw new UnsupportedOperationError(
+            `${this.constructor.name} does not support combined fill and outline rendering`,
+        );
+    }
 
-    abstract renderFill(width: number, height: number): void;
+    renderFill(_width: number, _height: number): void {
+        throw new UnsupportedOperationError(
+            `${this.constructor.name} does not support fill rendering`,
+        );
+    }
 
-    abstract renderOutline(width: number, height: number): void;
+    renderOutline(_width: number, _height: number): void {
+        throw new UnsupportedOperationError(
+            `${this.constructor.name} does not support outline-only rendering`,
+        );
+    }
 }
 
 export class RasterizerOperationLine extends RasterizerOperationShape {
@@ -1524,10 +1540,6 @@ export class RasterizerOperationLine extends RasterizerOperationShape {
     ) {
         super(-1, color, outlineWidth);
     }
-
-    override render(width: number, height: number): void {}
-
-    override renderFill(width: number, height: number): void {}
 
     override renderOutline(width: number, height: number): void {
         const x0 = (this.x0 * width) >> 12;
@@ -1578,10 +1590,6 @@ export class RasterizerOperationBezierCurve extends RasterizerOperationShape {
     ) {
         super(-1, color, outlineWidth);
     }
-
-    override render(width: number, height: number): void {}
-
-    override renderFill(width: number, height: number): void {}
 
     override renderOutline(width: number, height: number): void {
         const x0 = (width * this.x0) >> 12;
@@ -1716,6 +1724,4 @@ export class RasterizerOperationEllipse extends RasterizerOperationShape {
         const sizeY = (this.sizeY * height) >> 12;
         Rasterizer.rasterEllipseFill(x, y, sizeX, sizeY, this.fillColor);
     }
-
-    override renderOutline(width: number, height: number): void {}
 }

@@ -19,8 +19,12 @@ export interface CombatAttackEffects {
     /** Absolute minimum damage for a landed hit; unlike a bonus it does not raise its maximum. */
     readonly minimumHit?: number;
     readonly poisonDamage?: number;
+    /** Applies escalating venom to a player after a successful hit. */
+    readonly venomDamage?: number;
     /** Fraction of the target's current Prayer points removed after a hit. */
     readonly prayerDrainFraction?: number;
+    /** Fraction of the target's current Defence level removed after a hit. */
+    readonly defenceDrainFraction?: number;
     /** Use this combat type for the target's defence roll while retaining the attack's hit type. */
     readonly defenceRollAttackType?: AttackType;
 }

@@ -1,6 +1,8 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { ActionEffect, ActionExecutionResult } from "@server/game/actions/types";
-import type { PlayerState } from "@server/game/player";
+import { defineGatheringSkill } from "@server/game/skilling/GatheringSkill";
+import { countInventoryItem, applyInventoryTransform } from "@server/game/skilling/InventoryTransform";
+import { logger } from "@server/observability/logger";
 import {
     type IScriptRegistry,
     type NpcInteractionEvent,
@@ -19,6 +21,12 @@ import {
     pickFishingCatch,
     selectFishingTool,
 } from "@server/content/gamemodes/vanilla/skills/fishing/fishingData";
+import {
+    buildMessageEffect,
+    describeItem,
+    failGatheringPrecheck,
+    hasAnyCarriedItem,
+} from "@server/content/gamemodes/vanilla/skills/gatheringPrecheck";
 
 const FISHING_ACTIONS = [
     "small net",
@@ -58,41 +66,19 @@ interface FishingActionData {
     started: boolean;
 }
 
-function buildMessageEffect(player: PlayerState, message: string): ActionEffect {
-    return { type: "message", playerId: player.id, message };
-}
-
-function hasAnyCarriedItem(carriedItemIds: number[], candidateItemIds: number[]): boolean {
-    if (carriedItemIds.length === 0 || candidateItemIds.length === 0) return false;
-    const carried = new Set(carriedItemIds);
-    return candidateItemIds.some((id) => carried.has(id));
-}
-
-function rollFishingSuccess(
-    level: number,
-    catchLevel: number,
-    tool: FishingToolDefinition,
-): boolean {
-    const effective = Math.max(1, level);
-    const difficulty = Math.max(1, catchLevel);
-    const ratio = effective / difficulty;
-    const baseChance = Math.min(0.85, Math.max(0.05, ratio * 0.3));
-    return Math.random() < baseChance * tool.accuracy;
-}
-
-function describeItem(services: ScriptServices, itemId: number): string {
-    return services.data.getObjType(itemId)?.name?.toLowerCase() ?? "item";
-}
-
-function failFishingPrecheck(
-    player: PlayerState,
-    services: ScriptServices,
-    message: string,
-): ActionExecutionResult {
-    services.stopGatheringInteraction?.(player);
-    const effects: ActionEffect[] = message ? [buildMessageEffect(player, message)] : [];
-    return { ok: true, effects };
-}
+type FishingRollResource = { catchLevel: number };
+const FISHING_SKILL = defineGatheringSkill<FishingRollResource, FishingToolDefinition>({
+    name: "fish",
+    timing: { delayTicks: 1 },
+    success: {
+        kind: "custom",
+        roll: (level, resource, tool, random) => {
+            const ratio = Math.max(1, level) / Math.max(1, resource.catchLevel);
+            const baseChance = Math.min(0.85, Math.max(0.05, ratio * 0.3));
+            return random() < baseChance * tool.accuracy;
+        },
+    },
+});
 
 function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
     const { player, tick, services } = ctx;
@@ -103,35 +89,35 @@ function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     const priorSpotId = data.spotId;
 
     if (!(npcId > 0) || !(npcTypeId > 0) || !methodId) {
-        return failFishingPrecheck(player, services, "You stop fishing.");
+        return failGatheringPrecheck(player, services, "You stop fishing.");
     }
 
     const npc = services.combat.getNpc(npcId);
     if (!npc || npc.typeId !== npcTypeId) {
-        return failFishingPrecheck(player, services, "The fishing spot drifts out of reach.");
+        return failGatheringPrecheck(player, services, "The fishing spot drifts out of reach.");
     }
 
     const spot =
         (priorSpotId ? getFishingSpotById(priorSpotId) : undefined) ??
         (services.getFishingSpot?.(npc.typeId) as FishingSpotDefinition | undefined);
     if (!spot) {
-        return failFishingPrecheck(player, services, "You can't fish here.");
+        return failGatheringPrecheck(player, services, "You can't fish here.");
     }
 
     const method = getFishingMethodById(spot, methodId);
     if (!method) {
-        return failFishingPrecheck(player, services, "You can't fish here.");
+        return failGatheringPrecheck(player, services, "You can't fish here.");
     }
 
     const tile = { x: npc.tileX, y: npc.tileY };
     const plane = npc.level;
 
     if (player.level !== plane) {
-        return failFishingPrecheck(player, services, "You stop fishing.");
+        return failGatheringPrecheck(player, services, "You stop fishing.");
     }
 
     if (!services.location.isAdjacentToNpc(player, npc)) {
-        return failFishingPrecheck(player, services, "You stop fishing.");
+        return failGatheringPrecheck(player, services, "You stop fishing.");
     }
 
     const skill = services.skills.getSkill(player, SkillId.Fishing);
@@ -143,7 +129,7 @@ function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
             (min, entry) => Math.min(min, entry.level),
             Number.MAX_SAFE_INTEGER,
         );
-        return failFishingPrecheck(
+        return failGatheringPrecheck(
             player,
             services,
             `You need Fishing level ${minLevel} to fish here.`,
@@ -161,7 +147,7 @@ function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     }
     if (!tool) {
         const requiredTool = getFishingToolDefinition(method.toolId);
-        return failFishingPrecheck(
+        return failGatheringPrecheck(
             player,
             services,
             `You need a ${requiredTool?.name ?? "fishing tool"} to fish here.`,
@@ -169,23 +155,25 @@ function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     }
 
     let baitSlot: number | undefined;
+    let baitItemId: number | undefined;
     if (Array.isArray(method.baitItemIds) && method.baitItemIds.length > 0) {
         for (const baitId of method.baitItemIds) {
             const slot = services.inventory.findInventorySlotWithItem(player, baitId);
             if (slot !== undefined) {
                 baitSlot = slot;
+                baitItemId = baitId;
                 break;
             }
         }
         if (baitSlot === undefined) {
             const baitLabel = method.baitName ?? "bait";
-            return failFishingPrecheck(player, services, `You don't have any ${baitLabel}.`);
+            return failGatheringPrecheck(player, services, `You don't have any ${baitLabel}.`);
         }
     }
 
     const catchItemId = catchDef.itemId;
     if (!hasEchoHarpoonPerk && !services.inventory.canStoreItem(player, catchItemId)) {
-        return failFishingPrecheck(
+        return failGatheringPrecheck(
             player,
             services,
             "Your inventory is too full to hold any more fish.",
@@ -203,7 +191,11 @@ function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
 
     let inventorySnapshot = false;
     let bankSnapshot = false;
-    let success = rollFishingSuccess(effectiveLevel, catchDef.level, tool);
+    let success = FISHING_SKILL.rollSuccess(
+        effectiveLevel,
+        { catchLevel: catchDef.level },
+        tool,
+    );
     if (!success && hasEchoHarpoonPerk && Math.random() < 0.5) {
         success = true;
     }
@@ -224,7 +216,7 @@ function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
         if (hasEchoHarpoonPerk) {
             const banked = services.banking?.addItemToBank?.(player, rewardItemId, quantity);
             if (!banked) {
-                return failFishingPrecheck(
+                return failGatheringPrecheck(
                     player,
                     services,
                     "Your bank is too full to hold any more fish.",
@@ -232,13 +224,31 @@ function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
             }
             bankSnapshot = true;
         } else {
-            const result = services.inventory.addItemToInventory(player, rewardItemId, quantity);
-            if (result.added <= 0) {
-                return failFishingPrecheck(
-                    player,
-                    services,
-                    "Your inventory is too full to hold any more fish.",
-                );
+            if (baitItemId === undefined) {
+                const stored =
+                    services.inventory.addItemToInventory(player, rewardItemId, quantity).added ===
+                    quantity;
+                if (!stored) {
+                    return failGatheringPrecheck(
+                        player,
+                        services,
+                        "Your inventory is too full to hold any more fish.",
+                    );
+                }
+            } else {
+                const exchange = applyInventoryTransform(services.inventory, player, {
+                    inputs: [{ itemId: baitItemId, quantity: 1 }],
+                    outputs: [{ itemId: rewardItemId, quantity }],
+                });
+                if (!exchange.ok) {
+                    return failGatheringPrecheck(
+                        player,
+                        services,
+                        exchange.reason === "missing-inputs"
+                            ? "You fumble your bait and stop fishing."
+                            : "Your inventory is too full to hold any more fish.",
+                    );
+                }
             }
             inventorySnapshot = true;
         }
@@ -263,9 +273,13 @@ function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
         }
         services.skills.addSkillXp(player, SkillId.Fishing, catchDef.xp);
 
-        if (baitSlot !== undefined && Array.isArray(method.baitItemIds)) {
+        if (
+            hasEchoHarpoonPerk &&
+            baitSlot !== undefined &&
+            Array.isArray(method.baitItemIds)
+        ) {
             if (!services.inventory.consumeItem(player, baitSlot)) {
-                return failFishingPrecheck(
+                return failGatheringPrecheck(
                     player,
                     services,
                     "You fumble your bait and stop fishing.",
@@ -308,26 +322,22 @@ function executeFishAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
         hasEchoHarpoonPerk && baseSwingTicks > 1 ? baseSwingTicks - 1 : baseSwingTicks;
     if (continueFishing) {
         const npcSize = npc.size;
-        const reschedule = services.combat.scheduleAction(
-            player.id,
+        const reschedule = FISHING_SKILL.repeat(
+            services,
+            player,
             {
-                kind: "skill.fish",
-                data: {
-                    npcId: npc.id,
-                    npcTypeId: npc.typeId,
-                    npcSize,
-                    spotId: spot.id,
-                    methodId: method.id,
-                    level: plane,
-                    started: true,
-                },
-                delayTicks: swingTicks,
-                cooldownTicks: swingTicks,
-                groups: ["skill.fish"],
+                npcId: npc.id,
+                npcTypeId: npc.typeId,
+                npcSize,
+                spotId: spot.id,
+                methodId: method.id,
+                level: plane,
+                started: true,
             },
             tick,
+            { delayTicks: swingTicks, cooldownTicks: swingTicks },
         );
-        if (!reschedule?.ok) {
+        if (!reschedule) {
             effects.push(buildMessageEffect(player, "You stop fishing."));
         }
     }
@@ -341,15 +351,22 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     const npcTypeLoader = services.data.getNpcTypeLoader();
     if (npcTypeLoader) {
         const fishingMap = buildFishingSpotMap(npcTypeLoader);
-        services.getFishingSpot = (npcTypeId) => {
+        const previousFishingSpotProvider = services.getFishingSpot;
+        const fishingSpotProvider = (npcTypeId: number) => {
             const spotId = fishingMap.map.get(npcTypeId);
             if (!spotId) return undefined;
             return getFishingSpotById(spotId);
         };
+        services.getFishingSpot = fishingSpotProvider;
+        registry.registerCleanup(() => {
+            if (services.getFishingSpot === fishingSpotProvider) {
+                services.getFishingSpot = previousFishingSpotProvider;
+            }
+        });
     }
 
     if (!services.getFishingSpot) {
-        console.log("[script:fishing] fishing spot lookup unavailable");
+        logger.warn("[script:fishing] fishing spot lookup unavailable; module disabled");
         return;
     }
     for (const action of FISHING_ACTIONS) {
@@ -377,38 +394,30 @@ function handleFishingAction(option: string, event: NpcInteractionEvent, service
         return;
     }
     const delay = method.swingTicks;
-    const result = services.combat.requestAction(
+    const result = FISHING_SKILL.request(
+        services,
         event.player,
         {
-            kind: "skill.fish",
-            data: {
-                npcId: event.npc.id,
-                npcTypeId: event.npc.typeId,
-                npcSize: event.npc.size,
-                spotId: spot.id,
-                methodId: method.id,
-                level: event.npc.level,
-                started: false,
-            },
-            delayTicks: delay,
-            cooldownTicks: delay,
-            groups: ["skill.fish"],
+            npcId: event.npc.id,
+            npcTypeId: event.npc.typeId,
+            npcSize: event.npc.size,
+            spotId: spot.id,
+            methodId: method.id,
+            level: event.npc.level,
+            started: false,
         },
         event.tick,
+        { delayTicks: delay, cooldownTicks: delay },
     );
-    if (!result.ok) {
+    if (!result) {
         services.messaging.sendGameMessage(event.player, "You're too busy to do that right now.");
     }
 }
 
 function handleMinnowExchange(event: NpcInteractionEvent, services: ScriptServices): void {
     const getInventory = services.inventory.getInventoryItems;
-    const setSlot = services.inventory.setInventorySlot;
-    const addItem = services.inventory.addItemToInventory;
     const inventory = getInventory(event.player);
-    const minnowCount = inventory
-        .filter((entry) => entry.itemId === MINNOW_ITEM_ID)
-        .reduce((sum, entry) => sum + Math.max(0, entry.quantity), 0);
+    const minnowCount = countInventoryItem(inventory, MINNOW_ITEM_ID);
     if (minnowCount < MINNOWS_PER_SHARK) {
         services.messaging.sendGameMessage(
             event.player,
@@ -428,18 +437,11 @@ function handleMinnowExchange(event: NpcInteractionEvent, services: ScriptServic
 
     let converted = 0;
     for (let i = 0; i < maxConversions; i++) {
-        const removed = removeItemQuantity(
-            event.player,
-            MINNOW_ITEM_ID,
-            MINNOWS_PER_SHARK,
-            services,
-        );
-        if (!removed) break;
-        const added = addItem(event.player, RAW_SHARK_ITEM_ID, 1);
-        if (added.added < 1) {
-            addItem(event.player, MINNOW_ITEM_ID, MINNOWS_PER_SHARK);
-            break;
-        }
+        const exchange = applyInventoryTransform(services.inventory, event.player, {
+            inputs: [{ itemId: MINNOW_ITEM_ID, quantity: MINNOWS_PER_SHARK }],
+            outputs: [{ itemId: RAW_SHARK_ITEM_ID, quantity: 1 }],
+        });
+        if (!exchange.ok) break;
         converted++;
     }
 
@@ -454,27 +456,4 @@ function handleMinnowExchange(event: NpcInteractionEvent, services: ScriptServic
     } else {
         services.messaging.sendGameMessage(event.player, "No exchange occurred.");
     }
-}
-
-function removeItemQuantity(
-    player: NpcInteractionEvent["player"],
-    itemId: number,
-    amount: number,
-    services: ScriptServices,
-): boolean {
-    let remaining = amount;
-    const inv = services.inventory.getInventoryItems(player);
-    for (const entry of inv) {
-        if (entry.itemId !== itemId) continue;
-        if (remaining <= 0) break;
-        const removeQty = Math.min(entry.quantity, remaining);
-        const nextQty = Math.max(0, entry.quantity - removeQty);
-        if (nextQty > 0) {
-            services.inventory.setInventorySlot(player, entry.slot, itemId, nextQty);
-        } else {
-            services.inventory.setInventorySlot(player, entry.slot, -1, 0);
-        }
-        remaining -= removeQty;
-    }
-    return remaining <= 0;
 }

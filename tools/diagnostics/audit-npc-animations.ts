@@ -19,6 +19,7 @@ import fs from "fs";
 import path from "path";
 import { execFileSync } from "child_process";
 import {
+    REPOSITORY_ROOT,
     generatedReportPath,
     serverGeneratedDataPath,
     serverVarPath,
@@ -60,6 +61,14 @@ const PUBLIC_REFERENCE_URL =
     OPENRUNE_REFERENCE_SPEC.split(":")[1];
 const GENERIC_ANIMATIONS: Required<Animations> = { attack: 422, block: 424, death: 836 };
 
+function portableLocalSource(filePath: string): string {
+    const relative = path.relative(REPOSITORY_ROOT, filePath);
+    if (relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))) {
+        return relative.split(path.sep).join("/");
+    }
+    return `local:${path.basename(filePath)}`;
+}
+
 function usage(): never {
     throw new Error(
         "Usage: pnpm --filter @august/server audit-npc-animations -- [--reference <npc-combat-defs.json>] " +
@@ -86,7 +95,7 @@ async function loadReference(referencePath: string | undefined, referenceGit: st
 }> {
     if (referencePath) {
         const resolved = path.resolve(referencePath);
-        return { source: resolved, data: readJson(resolved) };
+        return { source: portableLocalSource(resolved), data: readJson(resolved) };
     }
 
     if (referenceGit) {
@@ -99,7 +108,7 @@ async function loadReference(referencePath: string | undefined, referenceGit: st
             maxBuffer: 64 * 1024 * 1024,
         });
         return {
-            source: `${repository}@${OPENRUNE_REFERENCE_SPEC}`,
+            source: `git:${OPENRUNE_REFERENCE_SPEC}`,
             data: JSON.parse(raw) as CombatDefinitionFile,
         };
     }
@@ -268,7 +277,7 @@ async function main(): Promise<void> {
 
     const report = {
         generatedAt: new Date().toISOString(),
-        augustDefinitions: DEFAULT_AUGUST_DEFINITIONS,
+        augustDefinitions: portableLocalSource(DEFAULT_AUGUST_DEFINITIONS),
         referenceDefinitions: referenceSource.source,
         cache: { enabled: cache.enabled, revision: cache.revision, error: cache.error },
         filters: { ids: [...onlyIds], includeGeneric },
