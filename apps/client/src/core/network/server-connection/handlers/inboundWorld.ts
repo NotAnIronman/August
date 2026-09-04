@@ -252,7 +252,7 @@ export function handleInboundWorld(msg: any): boolean {
 
                 // Apply attack option varps to ClientState for menu building
                 if (varpId === VARP_OPTION_ATTACK_PRIORITY_PLAYER) {
-                    ClientState.playerAttackOption = Math.max(0, Math.min(4, value | 0));
+                    ClientState.playerAttackOption = Math.max(0, Math.min(3, value | 0));
                     clientDebugLog(
                         `[varp] Player attack option set to ${ClientState.playerAttackOption}`,
                     );

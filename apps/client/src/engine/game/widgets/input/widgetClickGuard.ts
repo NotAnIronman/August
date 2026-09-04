@@ -1,8 +1,7 @@
-import type { WidgetInputControllerDeps, WidgetInputFrame, WidgetInputState } from "@client/engine/game/widgets/input/widgetInputTypes";
+import type { WidgetInputControllerDeps } from "@client/engine/game/widgets/input/widgetInputTypes";
 
-export function shouldSkipWidgetClickInput(
+export function shouldSkipWidgetPointerInput(
     deps: WidgetInputControllerDeps,
-    frame: WidgetInputFrame,
 ): boolean {
     // Click/Hold/Release handling (widget-level, not menu-level)
     // IMPORTANT: Skip widget click handling when the right-click menu is open.
@@ -18,7 +17,7 @@ export function shouldSkipWidgetClickInput(
     // the menu-selecting click from being processed as a widget click
     if (deps.getMenuJustClosed()) {
         deps.setMenuJustClosed(false);
-        return false;
+        return true;
     }
     return false;
 }

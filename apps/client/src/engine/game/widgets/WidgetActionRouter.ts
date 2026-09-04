@@ -25,6 +25,7 @@ import {
     type WidgetActionEvent,
 } from "@client/engine/game/widgets/widgetActionPayload";
 import { handleTradeWidgetAction, type WidgetActionTradeDeps } from "@client/engine/game/widgets/widgetActionTrade";
+import { AttackOptionSettingsController } from "@client/engine/game/widgets/AttackOptionSettingsController";
 
 export type { WidgetActionEvent } from "@client/engine/game/widgets/widgetActionPayload";
 
@@ -92,6 +93,8 @@ function resolveDynamicChildForAction(
  * Routes widget menu/click actions through CS2 handlers and server packets.
  */
 export class WidgetActionRouter {
+    private readonly attackOptionSettings = new AttackOptionSettingsController();
+
     constructor(private readonly deps: WidgetActionRouterDeps) {}
 
     handleWidgetAction(event: WidgetActionEvent): void {
@@ -107,6 +110,10 @@ export class WidgetActionRouter {
                 : typeof w?.childIndex === "number"
                   ? w.childIndex
                   : w?.uid & 0xffff;
+        const attackOptionSelection = this.attackOptionSettings.observeAction(
+            widgetManager,
+            event,
+        );
 
         if (this.deps.getItemSpawnerUi().handleWidgetClick(groupId | 0, childId | 0)) {
             return;
@@ -232,6 +239,16 @@ export class WidgetActionRouter {
                 if (handler) {
                     this.deps.executeScriptListener(event.widget, handler, eventContext);
                 }
+            }
+        }
+
+        if (attackOptionSelection) {
+            const varManager = this.deps.getVarManager();
+            if (varManager) {
+                // setVarp updates menu policy immediately and the existing TRANSMIT_VARPS hook
+                // persists the setting on the server. Do not also send the dynamic widget op.
+                varManager.setVarp(attackOptionSelection.varpId, attackOptionSelection.value);
+                return;
             }
         }
 

@@ -12,6 +12,11 @@ import {
 } from "@client/core/platform/device/DeviceUtil";
 import { ClientState } from "@client/engine/game/ClientState";
 import {
+    ATTACK_OPTION_HIDDEN,
+    normalizeAttackOptionMode,
+    shouldDeprioritizeAttack,
+} from "@client/engine/game/menu/AttackOptionPolicy";
+import {
     resolveGroundItemStackPlane
 } from "@client/engine/game/scene/PlaneResolver";
 import { InteractType } from "@client/engine/rendering/InteractType";
@@ -251,38 +256,6 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
 
             const npcEcs = host.osrsClient.npcEcs;
             const playerEcs = host.osrsClient.playerEcs;
-            const normalizePlayerName = (name: string | undefined): string => {
-                return String(name ?? "")
-                    .replace(/<[^>]*>/g, "")
-                    .trim()
-                    .toLowerCase();
-            };
-            const clanMemberNames = new Set<string>();
-            try {
-                const cs2Ctx: any = host.osrsClient.cs2Vm?.context;
-                const addName = (raw: unknown): void => {
-                    if (typeof raw !== "string") return;
-                    const normalized = normalizePlayerName(raw);
-                    if (normalized.length > 0) clanMemberNames.add(normalized);
-                };
-                const addListByField = (list: unknown, fieldName: string): void => {
-                    if (!Array.isArray(list)) return;
-                    for (const entry of list) {
-                        addName((entry as any)?.[fieldName]);
-                    }
-                };
-                const addNameList = (list: unknown): void => {
-                    if (!Array.isArray(list)) return;
-                    for (const entry of list) addName(entry);
-                };
-                addListByField(cs2Ctx?.clanMembers, "name");
-                addNameList(cs2Ctx?.clanSettings?.memberNames);
-                addNameList(cs2Ctx?.clanChannel?.userNames);
-            } catch {}
-            const isClanMemberName = (name: string | undefined): boolean => {
-                const normalized = normalizePlayerName(name);
-                return normalized.length > 0 && clanMemberNames.has(normalized);
-            };
 
             const addPlayerMenuEntries = (
                 ecsIndex: number,
@@ -336,8 +309,6 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                         ? playerEcs.getY(localEcsIndex | 0) >> 7
                         : 0;
                 const canAttackPlayers = isInWilderness(localWorldX, localWorldY);
-                const targetIsClanMember = isClanMemberName(playerLabel);
-
                 // When hovering a player, Walk here target becomes the player's label.
                 if (walkHereEntry) {
                     walkHereEntry.targetName = `<col=ffffff>${playerWalkLabel}`;
@@ -442,17 +413,16 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                     } else if (actionIdx === 0) {
                         // Player combat is a Wilderness-only menu action.
                         if (!canAttackPlayers) continue;
-                        const attackOption = ClientState.playerAttackOption | 0;
-                        if (attackOption === 3) continue;
+                        const attackOption = normalizeAttackOptionMode(
+                            ClientState.playerAttackOption,
+                        );
+                        if (attackOption === ATTACK_OPTION_HIDDEN) continue;
 
-                        let deprioritized = false;
-                        if (attackOption === 1) {
-                            deprioritized = true;
-                        } else if (attackOption === 0) {
-                            deprioritized = targetCombatLevel > localCombatLevel;
-                        } else if (attackOption === 4) {
-                            deprioritized = targetIsClanMember;
-                        }
+                        let deprioritized = shouldDeprioritizeAttack(
+                            attackOption,
+                            localCombatLevel,
+                            targetCombatLevel,
+                        );
 
                         // Team logic overrides attack option priority when both players have teams.
                         if (localTeam !== 0 && targetTeam !== 0) {
@@ -627,17 +597,18 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                     const option = actions[actionIdx];
                     if (!option) continue;
                     if (option.toLowerCase() !== "attack") continue;
-                    if (ClientState.npcAttackOption === 3) continue;
+                    const attackOption = normalizeAttackOptionMode(
+                        ClientState.npcAttackOption,
+                    );
+                    if (attackOption === ATTACK_OPTION_HIDDEN) continue;
 
-                    let deprioritized = false;
-                    const attackOption = ClientState.npcAttackOption | 0;
-                    if (attackOption === 1) {
-                        deprioritized = true;
-                    } else if (attackOption === 0) {
-                        const npcLevel = (npcType.combatLevel ?? 0) | 0;
-                        const playerLevel = ClientState.localPlayerCombatLevel | 0 | 0;
-                        if (npcLevel > playerLevel) deprioritized = true;
-                    }
+                    const npcLevel = (npcType.combatLevel ?? 0) | 0;
+                    const playerLevel = ClientState.localPlayerCombatLevel | 0;
+                    const deprioritized = shouldDeprioritizeAttack(
+                        attackOption,
+                        playerLevel,
+                        npcLevel,
+                    );
 
                     menuEntries.push({
                         option,

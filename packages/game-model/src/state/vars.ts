@@ -341,7 +341,7 @@ export const TRANSMIT_VARPS: ReadonlySet<number> = new Set([
     VARP_MASTER_VOLUME, // Master volume (0-100)
     VARP_MUSICPLAY, // Music play mode (0=Area, 1=Shuffle, 2=Single)
     // Attack option settings - transmit so server can persist them
-    VARP_OPTION_ATTACK_PRIORITY_PLAYER, // Player attack options (0-4)
+    VARP_OPTION_ATTACK_PRIORITY_PLAYER, // Player attack options (0-3)
     VARP_OPTION_ATTACK_PRIORITY_NPC, // NPC attack options (0-3)
 ]);
 

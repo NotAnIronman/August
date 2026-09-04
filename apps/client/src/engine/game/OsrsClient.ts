@@ -6534,7 +6534,7 @@ export class OsrsClient {
                     if (this.runMode !== runOn) this.runMode = runOn;
                 }
                 if (varpId === VARP_OPTION_ATTACK_PRIORITY_PLAYER) {
-                    ClientState.playerAttackOption = clamp(newValue | 0, 0, 4);
+                    ClientState.playerAttackOption = clamp(newValue | 0, 0, 3);
                 } else if (varpId === VARP_OPTION_ATTACK_PRIORITY_NPC) {
                     ClientState.npcAttackOption = clamp(newValue | 0, 0, 3);
                 }
@@ -6559,7 +6559,7 @@ export class OsrsClient {
             ClientState.playerAttackOption = clamp(
                 (this.varManager.getVarp(VARP_OPTION_ATTACK_PRIORITY_PLAYER) ?? 0) | 0,
                 0,
-                4,
+                3,
             );
             ClientState.npcAttackOption = clamp(
                 (this.varManager.getVarp(VARP_OPTION_ATTACK_PRIORITY_NPC) ?? 0) | 0,

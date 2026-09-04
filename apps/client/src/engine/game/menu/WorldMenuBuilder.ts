@@ -23,6 +23,11 @@ import {
     canTargetPlayer,
 } from "@client/ui/widgets/WidgetFlags";
 import { resolveLocActions } from "@august/game-model/world/LocActionOverrides";
+import {
+    ATTACK_OPTION_HIDDEN,
+    normalizeAttackOptionMode,
+    shouldDeprioritizeAttack,
+} from "@client/engine/game/menu/AttackOptionPolicy";
 
 /**
  * Active spell state for menu building
@@ -381,24 +386,20 @@ export function buildNpcMenuEntries(
 
         // OSRS Attack option handling
         // 0 = Depends on combat level, 1 = Always right-click, 2 = Left-click, 3 = Hidden
-        if (isAttack && ctx.npcAttackOption === 3) {
+        const attackOptionMode = normalizeAttackOptionMode(ctx.npcAttackOption);
+        if (isAttack && attackOptionMode === ATTACK_OPTION_HIDDEN) {
             continue; // Hidden: don't show attack at all
         }
 
         // Check if attack should be deprioritized
         let deprioritized = false;
         if (isAttack) {
-            if (ctx.npcAttackOption === 1) {
-                // Always right-click: always deprioritize
-                deprioritized = true;
-            } else if (ctx.npcAttackOption === 0) {
-                // Depends on combat level: deprioritize if NPC level > player level
-                const npcLevel = typeof npcType.combatLevel === "number" ? npcType.combatLevel : 0;
-                if (npcLevel > ctx.localPlayerCombatLevel) {
-                    deprioritized = true;
-                }
-            }
-            // npcAttackOption === 2: Left-click where available, never deprioritize
+            const npcLevel = typeof npcType.combatLevel === "number" ? npcType.combatLevel : 0;
+            deprioritized = shouldDeprioritizeAttack(
+                attackOptionMode,
+                ctx.localPlayerCombatLevel,
+                npcLevel,
+            );
         }
         // Follower low priority: deprioritize ALL options on followers
         if (npcType.isFollower && ctx.followerOpsLowPriority) {
