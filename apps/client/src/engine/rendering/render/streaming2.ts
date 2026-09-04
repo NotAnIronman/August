@@ -1,4 +1,3 @@
-
 import { getMapSquareId } from "@august/osrs-engine/map/MapFileIndex";
 import { Scene } from "@august/osrs-engine/scene/Scene";
 import { SdMapData } from "@client/engine/rendering/loader/SdMapData";
@@ -6,22 +5,24 @@ import { SdMapDataLoader } from "@client/engine/rendering/loader/SdMapDataLoader
 import { SdMapLoaderInput } from "@client/engine/rendering/loader/SdMapLoaderInput";
 import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
 
-export async function queueLoadMap(host: WebGLOsrsRendererHost, 
-        mapX: number,
-        mapY: number,
-        streamGeneration?: number,
-        locReloadBatchId?: number,
-    ): Promise<void> {
+export async function queueLoadMap(
+    host: WebGLOsrsRendererHost,
+    mapX: number,
+    mapY: number,
+    streamGeneration?: number,
+    locReloadBatchId?: number,
+): Promise<void> {
+    const mapId = getMapSquareId(mapX, mapY);
+    // Suppressed requests must release their slot so streaming can resume later.
+    if (!host.osrsClient.loadedCache ||
+        (host.instanceActive && typeof locReloadBatchId !== "number")) {
+        host.mapManager.loadingMapIds.delete(mapId);
+        return;
+    }
 
-        // Don't try to load maps before cache is initialized
-        if (!host.osrsClient.loadedCache) return;
-
-        // Suppress normal map streaming while an instance scene is active
-        if (host.instanceActive && typeof locReloadBatchId !== "number") return;
-
+    const failLoad = host.mapManager.createLoadFailureHandler(mapX, mapY);
+    try {
         host.applyGamemodeWorldLocs();
-
-        const mapId = getMapSquareId(mapX, mapY);
         const doorOnly =
             typeof locReloadBatchId === "number" &&
             !host.pendingLocUpdates.has(mapId) &&
@@ -64,7 +65,7 @@ export async function queueLoadMap(host: WebGLOsrsRendererHost,
             if (!mapData) {
                 host.mapManager.addInvalidMap(mapX, mapY);
             } else {
-                host.mapManager.loadingMapIds.delete(mapId);
+                failLoad(new Error("Map worker returned invalid terrain data"));
             }
             host.pendingLocUpdates.delete(mapId);
             host.pendingLocGeometryUpdates.delete(mapId);
@@ -74,5 +75,11 @@ export async function queueLoadMap(host: WebGLOsrsRendererHost,
                 host.resolveLocReloadBatchMap(locReloadBatchId, mapId, undefined);
             }
         }
-    
+    } catch (error) {
+        failLoad(error);
+        if (typeof locReloadBatchId === "number") {
+            // A rejected worker must not leave the rest of this batch waiting forever.
+            host.resolveLocReloadBatchMap(locReloadBatchId, mapId, undefined);
+        }
+    }
 }

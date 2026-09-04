@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { serveHostedClient } from "@server/network/ClientHosting";
+const fixtureDirectory = mkdtempSync(join(tmpdir(), "august-hosting-"));
+const previousBuildDirectory = process.env.CLIENT_BUILD_DIR;
+process.env.CLIENT_BUILD_DIR = fixtureDirectory;
+const { serveHostedClient } = require("@server/network/ClientHosting") as typeof import("@server/network/ClientHosting");
 
 async function request(method: string, url: string) {
     let status = 0;
@@ -34,6 +40,11 @@ async function request(method: string, url: string) {
 }
 
 async function main(): Promise<void> {
+    writeFileSync(join(fixtureDirectory, "codec.wasm"), new Uint8Array([0, 97, 115, 109]));
+    const wasm = await request("HEAD", "/codec.wasm?url");
+    assert.equal(wasm.status, 200);
+    assert.equal(wasm.headers["Content-Type"], "application/wasm");
+    assert.equal(wasm.headers["Content-Length"], 4);
     const unsupportedMethod = await request("POST", "/");
     assert.equal(unsupportedMethod.status, 405);
     assert.equal(unsupportedMethod.headers.Allow, "GET, HEAD");
@@ -57,4 +68,8 @@ async function main(): Promise<void> {
 void main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
+}).finally(() => {
+    rmSync(fixtureDirectory, { recursive: true, force: true });
+    if (previousBuildDirectory === undefined) delete process.env.CLIENT_BUILD_DIR;
+    else process.env.CLIENT_BUILD_DIR = previousBuildDirectory;
 });

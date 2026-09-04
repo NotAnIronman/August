@@ -1,16 +1,18 @@
+/// <reference path="../types/wasm-url.d.ts" />
+
 import pako from "pako";
 import init, { decompress } from "wasm-gzip";
-
-declare const require: (specifier: string) => string;
-
-const wasmGzipUrl = require("wasm-gzip/wasm_gzip.wasm");
+import wasmGzipUrl from "wasm-gzip/wasm_gzip.wasm?url";
+import { initOptionalWasm } from "./initOptionalWasm";
 
 export class Gzip {
     static wasmLoaded = false;
 
     static async initWasm(): Promise<void> {
-        await init(wasmGzipUrl);
-        Gzip.wasmLoaded = true;
+        await initOptionalWasm("Gzip", async () => {
+            await init(wasmGzipUrl);
+            Gzip.wasmLoaded = true;
+        });
     }
 
     static decompress(compressed: Uint8Array): Int8Array {

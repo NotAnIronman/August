@@ -65,6 +65,24 @@ after measuring a real need.
 
 ## Sharing the browser client
 
+The game server serves **apps/client/build/** on the game port, alongside its WebSocket
+endpoint. Build the client before sharing that address, and rebuild after client or
+shared-engine changes:
+
+```powershell
+pnpm --filter @august/client build
+```
+
+Players then open `http://<host>:43594/` for a controlled HTTP test. A working development
+client on port 3000 does not verify this production build. Restart the game server after
+server-code updates; players should reload the page to receive the new hashed assets.
+
+If the HUD loads but the world stays black, inspect the browser console for map-worker
+or cache errors. The browser gzip codec imports its WASM asset as a URL; gzip, bzip2, and
+hashing accelerators in map workers can fall back to JavaScript if initialization fails
+or stalls. Hosted `.wasm` responses must use `application/wasm`. Failed map requests release
+their loading slots and retry with a capped backoff instead of becoming permanently stuck.
+
 For temporary development hosting, expose the client on an appropriate interface and
 allow its TCP port (normally 3000) through the same firewall path:
 

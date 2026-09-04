@@ -52,6 +52,8 @@ export class MapManager<T extends MapSquare> {
 
     invalidMapIds: Set<number> = new Set();
     loadingMapIds: Set<number> = new Set();
+    private loadAttempts = new Map<number, symbol>();
+    private loadFailures = new Map<number, { count: number; retryAt: number }>();
     /** Map IDs that belong to world entity overlays — always included in visible set. */
     worldEntityMapIds: Set<number> = new Set();
 
@@ -166,6 +168,8 @@ export class MapManager<T extends MapSquare> {
     clearMaps(): void {
         this.invalidMapIds.clear();
         this.loadingMapIds.clear();
+        this.loadAttempts.clear();
+        this.loadFailures.clear();
         this._lastUsed.clear();
         // Force the next non-instance frame to rebuild and queue its complete
         // streaming grid, even when the destination shares the same map square.
@@ -293,6 +297,8 @@ export class MapManager<T extends MapSquare> {
 
     addMap(mapX: number, mapY: number, mapSquare: T): void {
         const mapId = getMapSquareId(mapX, mapY);
+        this.loadAttempts.delete(mapId);
+        this.loadFailures.delete(mapId);
         this.loadingMapIds.delete(mapId);
         this.invalidMapIds.delete(mapId);
         const prev = this.mapSquares.get(mapId);
@@ -356,8 +362,26 @@ export class MapManager<T extends MapSquare> {
 
     addInvalidMap(mapX: number, mapY: number): void {
         const mapId = getMapSquareId(mapX, mapY);
+        this.loadAttempts.delete(mapId);
+        this.loadFailures.delete(mapId);
         this.invalidMapIds.add(mapId);
         this.loadingMapIds.delete(mapId);
+    }
+
+    /** Captures this request so a late failure cannot clear a newer scene's load. */
+    createLoadFailureHandler(mapX: number, mapY: number): (error: unknown) => void {
+        const mapId = getMapSquareId(mapX, mapY);
+        const attempt = Symbol();
+        this.loadAttempts.set(mapId, attempt);
+        return (error) => {
+            if (this.loadAttempts.get(mapId) !== attempt) return;
+            this.loadAttempts.delete(mapId);
+            this.loadingMapIds.delete(mapId);
+            const count = Math.min((this.loadFailures.get(mapId)?.count ?? 0) + 1, 6);
+            const delayMs = Math.min(1_000 * 2 ** (count - 1), 30_000);
+            this.loadFailures.set(mapId, { count, retryAt: Date.now() + delayMs });
+            console.warn("[MapManager] Map load failed; retry scheduled", { mapX, mapY, delayMs, error });
+        };
     }
 
     loadMap(
@@ -370,7 +394,8 @@ export class MapManager<T extends MapSquare> {
         if (
             (!forceReload && this.mapSquares.has(mapId)) ||
             this.invalidMapIds.has(mapId) ||
-            this.loadingMapIds.has(mapId)
+            this.loadingMapIds.has(mapId) ||
+            (this.loadFailures.get(mapId)?.retryAt ?? 0) > Date.now()
         ) {
             return;
         }
@@ -422,6 +447,10 @@ export class MapManager<T extends MapSquare> {
         }
         for (const mapId of staleLoadingIds) {
             this.loadingMapIds.delete(mapId);
+            this.loadAttempts.delete(mapId);
+        }
+        for (const mapId of this.loadFailures.keys()) {
+            if (!gridSet.has(mapId)) this.loadFailures.delete(mapId);
         }
     }
 
