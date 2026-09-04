@@ -130,14 +130,16 @@ export class Dat2CacheLoaderFactory implements CacheLoaderFactory {
     }
 
     getLocTypeLoader(): LocTypeLoader {
+        let baseLoader: LocTypeLoader;
         if (this.isIndexConfigs()) {
             const locsIndex = this.cacheSystem.getIndex(IndexType.RS2.locs);
-            return new IndexLocTypeLoader(this.cacheInfo, locsIndex);
+            baseLoader = new IndexLocTypeLoader(this.cacheInfo, locsIndex);
         } else {
             const configIndex = this.cacheSystem.getIndex(IndexType.DAT2.configs);
             const locsArchive = configIndex.getArchive(ConfigType.DAT2.locs);
-            return new ArchiveLocTypeLoader(this.cacheInfo, locsArchive);
+            baseLoader = new ArchiveLocTypeLoader(this.cacheInfo, locsArchive);
         }
+        return this.options.decorateLocTypeLoader?.(baseLoader, this.cacheInfo) ?? baseLoader;
     }
 
     getNpcTypeLoader(): NpcTypeLoader {

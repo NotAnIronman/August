@@ -1,0 +1,36 @@
+import assert from "node:assert/strict";
+import { PICKLOCK_CHEST_OPTION_IDS, ThievingLocTypeLoader } from "@august/custom-content/locs/ThievingLocTypeLoader";
+import { PICKLOCK_CHESTS } from "@server/content/gamemodes/vanilla/skills/thieving/picklockDefinitions";
+import type { CacheInfo } from "@august/osrs-engine/cache/CacheInfo";
+import { LocType } from "@august/osrs-engine/config/loctype/LocType";
+
+const info: CacheInfo = { name: "fixture", game: "oldschool", environment: "live", revision: 237, timestamp: "", size: 0 };
+assert.deepEqual([...PICKLOCK_CHEST_OPTION_IDS].sort(), PICKLOCK_CHESTS.map(chest => chest.locId).sort(),
+    "every supported chest must expose the same option on client and server");
+const chest = new LocType(11735, info);
+chest.name = "Chest";
+chest.actions = ["Open", "Search for traps", "", "", ""];
+const rawActions = [...chest.actions];
+let clears = 0;
+const base = { load: () => chest, getCount: () => 60_000, clearCache: () => { clears++; } };
+const loader = new ThievingLocTypeLoader(base, info);
+const decorated = loader.load(11735);
+assert.notEqual(decorated, chest, "menu additions must not mutate the raw cache definition");
+assert.deepEqual(chest.actions, rawActions);
+assert.deepEqual(decorated.actions, ["Open", "Search for traps", "Pick-lock", "", ""]);
+assert.equal(loader.load(11735), decorated);
+assert.equal(loader.getCount(), 60_000);
+assert.equal(loader.load(999), chest, "an unrelated chest ID must remain untouched");
+loader.clearCache();
+assert.equal(clears, 1);
+assert.notEqual(loader.load(11735), decorated);
+const rsLoader = new ThievingLocTypeLoader(base, { ...info, game: "runescape" });
+assert.equal(rsLoader.load(11735), chest);
+chest.name = "Quest relic";
+assert.equal(new ThievingLocTypeLoader(base, info).load(11735), chest, "unexpected cache identity must not gain an option");
+chest.name = "Chest";
+chest.actions = ["Open", "Pick-lock", "", "", ""];
+assert.equal(new ThievingLocTypeLoader(base, info).load(11735), chest, "do not duplicate a native pick-lock option");
+chest.actions = ["Open", "Search", "Take", "Inspect", "Check"];
+assert.equal(new ThievingLocTypeLoader(base, info).load(11735), chest, "do not replace any existing menu option");
+console.log("thieving-options.test.ts: all assertions passed");

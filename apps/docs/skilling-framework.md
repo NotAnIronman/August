@@ -121,7 +121,7 @@ Replacing a named tracker with a different tracker, or disposing its current reg
 | Runecrafting | Air rune batches use an atomic whole-inventory essence exchange | altar access, essence choice, pouch state and multi-rune scaling |
 | Sailing | Shared action scheduler remains underneath | vehicle/world-entity simulation, boarding, collision and route state |
 | Smithing | Anvil recipes and furnace recipes use production policies and atomic exchanges; stochastic iron and ring charges use outcome hooks | forge/smelting interfaces and facility restrictions |
-| Thieving | Pickpocket and picklock phases use shared action policies; coin-pouch conversion is atomic | NPC ownership, stun/combat response, pouch limits, door state and loot rolls |
+| Thieving | Shared effective-level checks, pickpocket/picklock action phases, evidence-based success curves, bundled atomic rewards and pouch conversion | NPC identity/lifecycle, repeated detection, target consequences, chest depletion and door traversal; see [Thieving framework](thieving-framework.md) |
 | Woodcutting | Declarative exact success/depletion/respawn policies, cached shared action loop, owned tracker/provider lifecycle | guild invisible boost and echo-axe bank routing |
 
 ## Embedded skilling outside `skills/`

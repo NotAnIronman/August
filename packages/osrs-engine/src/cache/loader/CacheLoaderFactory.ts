@@ -69,6 +69,7 @@ export interface CacheLoaderFactory {
 export interface CacheLoaderFactoryOptions {
     /** Application-owned extension point. Cache code must never import an application feature. */
     decorateObjTypeLoader?: (base: ObjTypeLoader, cacheInfo: CacheInfo) => ObjTypeLoader;
+    decorateLocTypeLoader?: (base: LocTypeLoader, cacheInfo: CacheInfo) => LocTypeLoader;
 }
 
 export function getCacheLoaderFactory(

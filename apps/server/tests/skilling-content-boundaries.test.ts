@@ -7,6 +7,7 @@ import { register as registerRunecrafting } from "@server/content/gamemodes/vani
 import { register as registerPicklock } from "@server/content/gamemodes/vanilla/skills/thieving/picklock";
 import { register as registerPickpocket } from "@server/content/gamemodes/vanilla/skills/thieving/pickpocket";
 import { LockState } from "@server/game/model/LockState";
+import { NpcState } from "@server/game/npc";
 import type { PlayerState } from "@server/game/player";
 import type { InventoryFacade } from "@server/game/scripts/serviceInterfaces";
 import { applyInventoryTransform } from "@server/game/skilling/InventoryTransform";
@@ -14,6 +15,7 @@ import type {
     IScriptRegistry,
     ItemOnItemHandler,
     LocInteractionHandler,
+    NpcInteractionHandler,
     ScriptActionHandler,
     ScriptInventoryEntry,
     ScriptServices,
@@ -25,6 +27,7 @@ type CapturedRegistry = {
     itemActions: Map<string, ItemOnItemHandler>;
     itemOnItems: Map<string, ItemOnItemHandler>;
     locInteractions: Map<string, LocInteractionHandler>;
+    npcInteractions: Map<string, NpcInteractionHandler>;
 };
 
 function registryKey(id: number, action?: string): string {
@@ -40,6 +43,7 @@ function captureRegistry(): CapturedRegistry {
     const itemActions = new Map<string, ItemOnItemHandler>();
     const itemOnItems = new Map<string, ItemOnItemHandler>();
     const locInteractions = new Map<string, LocInteractionHandler>();
+    const npcInteractions = new Map<string, NpcInteractionHandler>();
     const registry = new Proxy(
         {},
         {
@@ -56,6 +60,11 @@ function captureRegistry(): CapturedRegistry {
                         itemPairKey(args[0] as number, args[1] as number),
                         args[2] as ItemOnItemHandler,
                     );
+                } else if (property === "registerNpcInteraction") {
+                    npcInteractions.set(
+                        registryKey(args[0] as number, args[2] as string | undefined),
+                        args[1] as NpcInteractionHandler,
+                    );
                 } else if (property === "registerLocInteraction") {
                     locInteractions.set(
                         registryKey(args[0] as number, args[2] as string | undefined),
@@ -66,7 +75,7 @@ function captureRegistry(): CapturedRegistry {
             },
         },
     ) as unknown as IScriptRegistry;
-    return { registry, actionHandlers, itemActions, itemOnItems, locInteractions };
+    return { registry, actionHandlers, itemActions, itemOnItems, locInteractions, npcInteractions };
 }
 
 function createInventory(
@@ -226,39 +235,41 @@ function playerWithInventory(id: number, facade: InventoryFacade): PlayerState {
     registerPickpocket(captured.registry, {} as ScriptServices);
     const handler = captured.actionHandlers.get("skill.pickpocket");
     assert(handler, "pickpocket action handler should be registered");
-    const player = { id: 2, lock: LockState.NONE } as PlayerState;
+    const npc = new NpcState(999, 3297, 1, -1, -1, 32, { x: 3201, y: 3200, level: 0 });
+    const player = {
+        id: 2, lock: LockState.NONE, level: 0, worldViewId: -1,
+        skillSystem: { getHitpointsCurrent: () => 10 },
+    } as unknown as PlayerState;
     let faceClears = 0;
+    let requestedData: unknown;
+    let enqueues = 0;
     const varbits: Array<[number, number]> = [];
     const services = {
         skills: { getSkill: () => ({ baseLevel: 99, boost: 0 }) },
         inventory: { hasInventorySlot: () => true, getInventoryItems: () => [] },
         combat: {
-            getNpc: () => undefined,
+            getNpc: (id: number) => id === npc.id ? npc : undefined,
             isPlayerStunned: () => false,
             isPlayerInCombat: () => false,
-            scheduleAction: () => ({ ok: false }),
+            requestAction: (_player: PlayerState, request: { data: unknown }) => {
+                requestedData = request.data;
+                return { ok: true };
+            },
+            scheduleAction: () => { enqueues += 1; return { ok: false }; },
             clearPlayerFaceTarget: () => { faceClears += 1; },
         },
         animation: { playPlayerSeq: () => undefined },
+        location: { isAdjacentToNpc: () => true },
+        npc: { stopNpcMovement: () => undefined },
         variables: { sendVarbit: (_player: PlayerState, id: number, value: number) => { varbits.push([id, value]); } },
     } as unknown as ScriptServices;
 
-    handler({
-        player,
-        services,
-        tick: 20,
-        data: {
-            npcId: 999,
-            npcTypeId: 999,
-            reqLevel: 1,
-            xp: 1,
-            lootTable: [],
-            minDamage: 1,
-            maxDamage: 1,
-            stunTicks: 1,
-            phase: 0,
-        },
-    });
+    const interact = captured.npcInteractions.get(registryKey(npc.typeId, "pickpocket"));
+    assert(interact, "pickpocket NPC interaction should be registered");
+    interact({ player, npc, services, tick: 20 });
+    assert.deepEqual(requestedData, { npcId: npc.id, npcTypeId: npc.typeId, phase: 0 });
+    handler({ player, services, tick: 20, data: requestedData });
+    assert.equal(enqueues, 1);
     assert.equal(player.lock, LockState.NONE);
     assert.equal(faceClears, 1);
     assert.deepEqual(varbits.at(-1), [12393, 0]);
@@ -307,7 +318,9 @@ function playerWithInventory(id: number, facade: InventoryFacade): PlayerState {
     assert(interaction && handler, "picklock interaction and action handler should be registered");
     const requests: Array<Record<string, unknown>> = [];
     const repeats: Array<Record<string, unknown>> = [];
-    const player = { id: 4 } as PlayerState;
+    const player = { id: 4, tileX:1, tileY:2, level:0, worldViewId:-1,
+        canInteract: () => true, status:{hitpointsCurrent:10}, skillSystem:{getHitpointsCurrent:()=>10},
+        varps:{getVarbitValue:()=>0} } as unknown as PlayerState;
     const services = {
         combat: {
             requestAction: (_player: PlayerState, request: Record<string, unknown>) => {
@@ -319,6 +332,9 @@ function playerWithInventory(id: number, facade: InventoryFacade): PlayerState {
                 return { ok: true };
             },
         },
+        data: { getLocDefinition: () => ({ id:5492, actions:["Pick-lock"] }) },
+        location: { isAdjacentToLoc: () => true, resolveLocTransformId: () => 5492 },
+        messaging: { sendGameMessage: () => undefined },
         skills: { getSkill: () => ({ baseLevel: 1, boost: 0 }) },
         sound: { sendSound: () => undefined },
     } as unknown as ScriptServices;

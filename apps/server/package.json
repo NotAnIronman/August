@@ -43,9 +43,9 @@
     "scrape-loc-examine": "tsx ../../tools/data/scrape-loc-examine.ts",
     "diagnose-loc-html": "tsx ../../tools/diagnostics/diagnose-loc-html.ts",
     "fill-blank-examine": "tsx ../../tools/data/fill-blank-examine.ts",
-    "test": "node ../../tools/testing/run-typescript-tests.mjs tests --exclude=modern-preservation-cache-ids.test.ts --exclude=trade-inventory-widget.test.ts",
+    "test": "node ../../tools/testing/run-typescript-tests.mjs tests --exclude=modern-preservation-cache-ids.test.ts --exclude=trade-inventory-widget.test.ts --exclude=thieving-cache-geometry.test.ts",
     "test:all": "node ../../tools/testing/run-typescript-tests.mjs tests",
-    "test:cache": "node ../../tools/testing/run-typescript-tests.mjs tests --only=modern-preservation-cache-ids.test.ts --only=trade-inventory-widget.test.ts",
+    "test:cache": "node ../../tools/testing/run-typescript-tests.mjs tests --only=modern-preservation-cache-ids.test.ts --only=trade-inventory-widget.test.ts --only=thieving-cache-geometry.test.ts",
     "test:smoke": "tsx tests/authentication.test.ts && tsx tests/friends-chat.test.ts && tsx tests/achievement-diary-persistence.test.ts && tsx tests/dialogue-editor.test.ts && tsx tests/dialogue-system.test.ts"
   },
   "devDependencies": {

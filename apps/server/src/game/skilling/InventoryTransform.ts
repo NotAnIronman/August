@@ -91,7 +91,7 @@ export function applyInventoryTransform(
     transform: InventoryTransform,
 ): InventoryTransformResult {
     if (
-        transform.inputs.length === 0 ||
+        (transform.inputs.length === 0 && transform.outputs.length === 0) ||
         !areValidInputs(transform.inputs) ||
         !areValidAmounts(transform.outputs)
     ) {

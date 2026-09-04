@@ -169,6 +169,18 @@ export class DoorStateManager {
             }
         }
 
+        // A content-owned pair may share its open model with a generic catalog
+        // pair. Preserve the actual closed ID when anybody closes that tile.
+        const trackedSingle = this.stateByTile.get(key);
+        const trackedOpen = this.openDoors.get(key);
+        if (trackedSingle?.currentId === currentId && trackedOpen && !trackedOpen.partnerKey) {
+            return this.handleSingleDoorExplicit(fullParams, {
+                closed: trackedSingle.closedId,
+                opened: trackedSingle.openedId,
+                openDir: trackedOpen?.openCw === false ? "ccw" : "cw",
+            }, key);
+        }
+
         // Try explicit single door definition
         if (this.doorDefLoader) {
             const singleDef = this.doorDefLoader.getSingleDoorPair(currentId);
@@ -188,6 +200,23 @@ export class DoorStateManager {
         }
 
         return undefined;
+    }
+
+    /** Content-owned, reviewed pairs without ambiguous global catalog aliases. */
+    toggleExplicitSingleDoor(
+        params: DoorToggleParams & {
+            singleDef: { closed: number; opened: number; openDir?: "cw" | "ccw" };
+        },
+    ): DoorToggleResult | undefined {
+        const { singleDef, ...toggleParams } = params;
+        if (params.currentId !== singleDef.closed && params.currentId !== singleDef.opened) return undefined;
+        const key = this.makeKey(params.x, params.y, params.level);
+        return this.handleSingleDoorExplicit({
+            ...toggleParams,
+            rotation: this.resolveDoorRotation(params.x, params.y, params.level, params.currentId, key, params.rotation),
+            locType: this.resolveDoorLocType(params.x, params.y, params.level, params.currentId, key, params.locType),
+            currentTick: params.currentTick ?? 0,
+        }, singleDef, key);
     }
 
     toggleExplicitGate(
