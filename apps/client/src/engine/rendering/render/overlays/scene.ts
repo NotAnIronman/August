@@ -4,6 +4,7 @@ import {
     getTileRenderFlagAt as lookupTileRenderFlagAt
 } from "@client/engine/game/scene/TileRenderFlags";
 import type { WebGLOsrsRenderer } from "@client/engine/rendering/WebGLOsrsRenderer";
+import { resolveGroundItemStackPlane } from "@client/engine/game/scene/PlaneResolver";
 import {
     RenderPhase,
     type OverlayUpdateArgs
@@ -160,7 +161,7 @@ export function populateTileMarkerOverlayState(host: WebGLOsrsRendererHost,
 
 export function drawSceneTileOverlays(host: WebGLOsrsRendererHost, time: number, deltaTime: number): void {
 
-        if (host.uiHidden || !host.overlayManager || !host.tileMarkerOverlay) {
+        if (host.uiHidden || !host.overlayManager) {
             return;
         }
 
@@ -189,6 +190,28 @@ export function drawSceneTileOverlays(host: WebGLOsrsRendererHost, time: number,
         args.state.overheadTexts = undefined;
         args.state.overheadPrayers = undefined;
         args.state.groundItems = undefined;
+        let groundItemEffects: NonNullable<OverlayUpdateArgs["state"]["groundItemEffects"]> = [];
+        try {
+            const playerEcs = host.osrsClient.playerEcs;
+            const playerIndex = playerEcs.getIndexForServerId(
+                host.osrsClient.controlledPlayerServerId | 0,
+            );
+            if (playerIndex !== undefined) {
+                const playerX = Math.floor((playerEcs.getX(playerIndex) | 0) / 128);
+                const playerY = Math.floor((playerEcs.getY(playerIndex) | 0) / 128);
+                const stackPlane = resolveGroundItemStackPlane(playerEcs.getLevel(playerIndex) | 0);
+                groundItemEffects = host.osrsClient.getGroundItemEffectEntries(
+                    playerX,
+                    playerY,
+                    stackPlane,
+                    {
+                        radius: host.getFrameGroundItemOverlayRadius(),
+                        maxEntries: host.getFrameGroundItemOverlayMaxEntries(),
+                    },
+                );
+            }
+        } catch {}
+        args.state.groundItemEffects = groundItemEffects;
         host.overlayManager.update(args);
         host.overlayManager.draw(RenderPhase.ToSceneFramebuffer);
     
@@ -207,6 +230,7 @@ export function getOverlayHelpers(host: WebGLOsrsRendererHost, ): NonNullable<We
                 getTileRenderFlagAt: host.getTileRenderFlagAt.bind(host),
                 isBridgeSurfaceTile: host.isBridgeSurfaceTile.bind(host),
                 worldToScreen: host.worldToScreen.bind(host),
+                getSceneViewportRect: host.getSceneViewportWidgetRect.bind(host),
                 getCollisionFlagAt: host.getCollisionFlagAt.bind(host),
             };
         }

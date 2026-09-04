@@ -17,7 +17,7 @@ import {
 import { InteractType } from "@client/engine/rendering/InteractType";
 import { formatPlayerCombatLabel } from "@client/engine/rendering/render/constants";
 import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
-import { MenuAction,menuAction } from "@client/ui/runtime/menu/MenuAction";
+import { MenuAction,inferMenuAction,menuAction } from "@client/ui/runtime/menu/MenuAction";
 import type { MenuClickContext,SimpleMenuEntry } from "@client/ui/runtime/menu/MenuEngine";
 import { chooseDefaultMenuEntry,shouldLeftClickOpenMenu } from "@client/ui/runtime/menu/MenuEngine";
 import { MenuOpcode } from "@client/ui/runtime/menu/MenuState";
@@ -813,13 +813,17 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
 
                     // Ground items stay indexed by the raw client plane; bridge promotion is render-only.
                     const plane = resolveGroundItemStackPlane(host.getPlayerRawPlane() | 0);
+                    const groundItemsPlugin = host.osrsClient.groundItemsPlugin;
                     const stacks = host.osrsClient.groundItems.getStacksAt(
                         worldTileX,
                         worldTileY,
                         plane,
+                        {
+                            aggregate:
+                                groundItemsPlugin.getConfig().collapseGroundItemMenu === true,
+                        },
                     );
                     if (!stacks || stacks.length === 0) continue;
-                    const groundItemsPlugin = host.osrsClient.groundItemsPlugin;
 
                     const tileKey = `${localX}:${localY}`;
                     if (objIds.has(tileKey)) continue;
@@ -891,15 +895,17 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                         continue;
                     }
 
-                    // No selection: insert ground actions 4..0 with Take fallback at index 2, then Examine.
-                    for (const stack of stacks) {
+                    // No selection: filter and order the complete pile through the shared evaluator.
+                    // The menu bridge displays entries in reverse insertion order, matching the
+                    // ordering contract of sortStacksForMenu.
+                    const menuStacks = groundItemsPlugin.sortStacksForMenu(
+                        stacks.filter((stack) =>
+                            groundItemsPlugin.shouldDisplayStackInMenu(stack),
+                        ),
+                    );
+                    for (const stack of menuStacks) {
                         const objType = host.osrsClient.objTypeLoader.load(stack.itemId);
                         if (!objType || objType.name === "null") continue;
-                        const menuName = groundItemsPlugin.getMenuTargetName(stack, objType.name);
-                        const menuTarget = groundItemsPlugin.getMenuTargetColorized(
-                            stack,
-                            menuName,
-                        );
                         const deprioritized = groundItemsPlugin.shouldDeprioritizeInMenu(stack);
 
                         const actions = objType.groundActions ?? [];
@@ -907,11 +913,16 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                             const option = actions[actionIdx];
                             if (option) {
                                 const capturedStack = stack;
-                                menuEntries.push({
+                                const style = groundItemsPlugin.getMenuStyle(
+                                    stack,
                                     option,
+                                    objType.name,
+                                );
+                                menuEntries.push({
+                                    option: style.option,
                                     targetId: stack.itemId,
                                     targetType: MenuTargetType.OBJ,
-                                    targetName: menuTarget,
+                                    targetName: style.targetName,
                                     targetLevel: -1,
                                     mapX: localX,
                                     mapY: localY,
@@ -920,15 +931,25 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                                     onClick:
                                         option.toLowerCase() === "take"
                                             ? () => host.osrsClient.takeGroundItem(capturedStack)
-                                            : () => host.osrsClient.closeMenu(),
+                                            : () =>
+                                                  host.osrsClient.interactGroundItem(
+                                                      capturedStack,
+                                                      option,
+                                                      actionIdx,
+                                                  ),
                                 });
                             } else if (actionIdx === 2) {
                                 const capturedStack = stack;
+                                const style = groundItemsPlugin.getMenuStyle(
+                                    stack,
+                                    "Take",
+                                    objType.name,
+                                );
                                 menuEntries.push({
-                                    option: "Take",
+                                    option: style.option,
                                     targetId: stack.itemId,
                                     targetType: MenuTargetType.OBJ,
-                                    targetName: menuTarget,
+                                    targetName: style.targetName,
                                     targetLevel: -1,
                                     mapX: localX,
                                     mapY: localY,
@@ -939,15 +960,65 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                             }
                         }
 
+                        const examineStyle = groundItemsPlugin.getMenuStyle(
+                            stack,
+                            "Examine",
+                            objType.name,
+                        );
                         menuEntries.push({
-                            option: "Examine",
+                            option: examineStyle.option,
                             targetId: stack.itemId,
                             targetType: MenuTargetType.OBJ,
-                            targetName: menuTarget,
+                            targetName: examineStyle.targetName,
                             targetLevel: -1,
                             mapX: localX,
                             mapY: localY,
+                            deprioritized: true,
                         });
+
+                        if (groundItemsPlugin.isHotkeyRevealActive()) {
+                            const menuName = groundItemsPlugin.getMenuTargetName(
+                                stack,
+                                objType.name,
+                            );
+                            menuEntries.push({
+                                option: groundItemsPlugin.hasExactItemListEntry(
+                                    stack.name,
+                                    "highlight",
+                                )
+                                    ? "Un-highlight"
+                                    : "Highlight",
+                                targetId: stack.itemId,
+                                targetType: MenuTargetType.OBJ,
+                                targetName: menuName,
+                                targetLevel: -1,
+                                mapX: localX,
+                                mapY: localY,
+                                opcode: MenuOpcode.Custom,
+                                deprioritized: true,
+                                onClick: () => {
+                                    groundItemsPlugin.toggleItemList(stack.name, "highlight");
+                                    host.osrsClient.closeMenu();
+                                },
+                            });
+                            menuEntries.push({
+                                option: groundItemsPlugin.hasExactItemListEntry(stack.name, "hide")
+                                    ? "Un-hide"
+                                    : "Hide",
+                                targetId: stack.itemId,
+                                targetType: MenuTargetType.OBJ,
+                                targetName: menuName,
+                                targetLevel: -1,
+                                mapX: localX,
+                                mapY: localY,
+                                opcode: MenuOpcode.Custom,
+                                deprioritized: true,
+                                onClick: () => {
+                                    groundItemsPlugin.toggleItemList(stack.name, "hide");
+                                    host.osrsClient.closeMenu();
+                                },
+                            });
+                        }
                     }
                 } else if (interactType === InteractType.NPC) {
                     // SceneRaycaster encodes players as InteractType.NPC with a high interactId offset.
@@ -1074,7 +1145,7 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                             e.targetType === MenuTargetType.LOC ||
                             e.targetType === MenuTargetType.PLAYER ||
                             e.targetType === MenuTargetType.OBJ) &&
-                        e.option !== "Examine"
+                        inferMenuAction(e.option, e.targetType) !== MenuAction.Examine
                     ) {
                         const orig = e.onClick;
                         e.onClick = (entry, evt?: MouseEvent, ctx?: unknown) =>

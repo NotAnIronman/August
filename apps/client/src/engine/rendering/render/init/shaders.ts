@@ -13,6 +13,7 @@ import { PlayerChatheadFactory } from "@client/engine/rendering/PlayerChatheadFa
 import { GfxManager } from "@client/engine/rendering/gfx/GfxManager";
 import { GfxRenderer } from "@client/engine/rendering/gfx/GfxRenderer";
 import { ClickCrossOverlay } from "@client/engine/rendering/overlays/ClickCrossOverlay";
+import { GroundItemEffectsOverlay } from "@client/engine/rendering/overlays/GroundItemEffectsOverlay";
 import { GroundItemOverlay } from "@client/engine/rendering/overlays/GroundItemOverlay";
 import { HealthBarOverlay } from "@client/engine/rendering/overlays/HealthBarOverlay";
 import { HitsplatOverlay } from "@client/engine/rendering/overlays/HitsplatOverlay";
@@ -335,6 +336,22 @@ export async function initShaders(host: WebGLOsrsRendererHost, ): Promise<Progra
                 // Init may fail if cache not ready - will be reinitialized in initOverlays()
                 try {
                     cross.init({ app: host.app, sceneUniforms: host.sceneUniformBuffer });
+                } catch {}
+            }
+        } catch {}
+
+        // Ground-item world effects are registered immediately before labels. Effects
+        // draw into the depth-aware scene pass; labels remain the final readable layer.
+        try {
+            if (host.overlayManager && host.sceneUniformBuffer) {
+                const groundEffects = new GroundItemEffectsOverlay();
+                const effectsHost = host as typeof host & {
+                    groundItemEffectsOverlay?: GroundItemEffectsOverlay;
+                };
+                effectsHost.groundItemEffectsOverlay = groundEffects;
+                host.overlayManager.add(groundEffects);
+                try {
+                    groundEffects.init({ app: host.app, sceneUniforms: host.sceneUniformBuffer });
                 } catch {}
             }
         } catch {}

@@ -50,6 +50,17 @@ export type GroundItemStackMessage = {
     itemId: number;
     quantity: number;
     tile: { x: number; y: number; level: number };
+    /** Authoritative item-definition metadata supplied by the world server. */
+    name?: string;
+    /** Display/guide value in coins for one item. */
+    value?: number;
+    /** Exact high-alchemy value in coins for one item. */
+    highAlch?: number;
+    tradeable?: boolean;
+    stackable?: boolean;
+    noted?: boolean;
+    /** Canonical unnoted item id when the server can resolve it safely. */
+    unnotedItemId?: number;
     createdTick?: number;
     privateUntilTick?: number;
     expiresTick?: number;
@@ -80,6 +91,8 @@ export type GroundItemActionPayload = {
     itemId: number;
     quantity?: number;
     option?: string;
+    opNum?: number;
+    modifierFlags?: number;
 };
 
 export type ShopServerPayload =

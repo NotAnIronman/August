@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 
+import { collectGroundItemQuantityIncreases } from "@client/core/network/server-connection/domain/groundItems";
 import { GroundItemStore } from "@client/engine/game/data/ground/GroundItemStore";
 import { GroundItemsPlugin } from "@client/features/plugins/grounditems/GroundItemsPlugin";
 
@@ -59,19 +60,112 @@ store.update({
             tile: { x: 3201, y: 3200, level: 0 },
             ownership: 0,
         },
+        {
+            id: 40,
+            itemId: 7,
+            quantity: 4,
+            tile: { x: 3202, y: 3200, level: 0 },
+            name: "Cannon base",
+            value: 183_327,
+            highAlch: 112_500,
+            tradeable: true,
+            stackable: true,
+            noted: true,
+            unnotedItemId: 6,
+            ownership: 0,
+        },
     ],
 });
 
 const tileStacks = store.getStacksAt(3200, 3200, 0);
 assert.equal(tileStacks.length, 2, "one client pile is exposed per item and ownership class");
+const expandedMenuStacks = store.getStacksAt(3200, 3200, 0, { aggregate: false });
+assert.equal(expandedMenuStacks.length, 4, "expanded menus preserve physical ground stacks");
+assert.equal(
+    expandedMenuStacks.filter((stack) => stack.itemId === 532).every((stack) => stack.quantity === 1),
+    true,
+);
 const bones = tileStacks.find((stack) => stack.itemId === 532);
 assert.ok(bones);
 assert.equal(bones.quantity, 3);
 assert.equal(bones.id, 12, "the soonest-despawning physical item is picked first");
 assert.deepEqual(bones.sourceStackIds, [12, 11, 13]);
 assert.equal(store.getStackById(12)?.quantity, 1, "authoritative records remain individual");
-assert.equal(store.getAllStacks().length, 3, "the same item on another tile is a separate pile");
-assert.equal(store.getStacksInRadius(3200, 3200, 0).length, 3);
+assert.equal(store.getAllStacks().length, 4, "the same item on another tile is a separate pile");
+assert.equal(store.getStacksInRadius(3200, 3200, 0).length, 4);
+
+assert.deepEqual(
+    collectGroundItemQuantityIncreases(
+        [
+            {
+                id: 40,
+                itemId: 7,
+                quantity: 9,
+                tile: { x: 3202, y: 3200, level: 0 },
+            },
+            {
+                id: 41,
+                itemId: 995,
+                quantity: 2,
+                tile: { x: 3202, y: 3200, level: 0 },
+            },
+        ],
+        (stackId) => store.getStackById(stackId),
+    ),
+    [
+        { stackId: 40, quantity: 5 },
+        { stackId: 41, quantity: 2 },
+    ],
+    "notifications use the positive quantity delta for reused stacks and the full quantity for new stacks",
+);
+assert.deepEqual(
+    collectGroundItemQuantityIncreases(
+        [
+            {
+                id: 40,
+                itemId: 7,
+                quantity: 4,
+                tile: { x: 3202, y: 3200, level: 0 },
+            },
+            {
+                id: 40,
+                itemId: 7,
+                quantity: 3,
+                tile: { x: 3202, y: 3200, level: 0 },
+            },
+        ],
+        (stackId) => store.getStackById(stackId),
+    ),
+    [],
+    "unchanged or reduced stack quantities never generate drop notifications",
+);
+
+const authoritative = store.getStacksAt(3202, 3200, 0)[0];
+assert.deepEqual(
+    {
+        name: authoritative.name,
+        value: authoritative.value,
+        highAlch: authoritative.highAlch,
+        gePrice: authoritative.gePrice,
+        haPrice: authoritative.haPrice,
+        tradeable: authoritative.tradeable,
+        stackable: authoritative.stackable,
+        noted: authoritative.noted,
+        unnotedItemId: authoritative.unnotedItemId,
+    },
+    {
+        name: "Cannon base",
+        value: 183_327,
+        highAlch: 112_500,
+        gePrice: 183_327,
+        haPrice: 112_500,
+        tradeable: true,
+        stackable: true,
+        noted: true,
+        unnotedItemId: 6,
+    },
+    "wire metadata must override the legacy cache resolver without approximating values",
+);
 
 const plugin = new GroundItemsPlugin();
 plugin.setConfig({ priceDisplayMode: "off" });

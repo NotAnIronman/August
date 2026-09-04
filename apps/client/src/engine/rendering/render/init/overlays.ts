@@ -1,5 +1,6 @@
 
 import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
+import type { GroundItemEffectsOverlay } from "@client/engine/rendering/overlays/GroundItemEffectsOverlay";
 
 export function initOverlays(host: WebGLOsrsRendererHost, ): void {
 
@@ -34,6 +35,14 @@ export function initOverlays(host: WebGLOsrsRendererHost, ): void {
             host.tileTextOverlay?.init(initArgs);
         } catch (e) {
             console.warn("Failed to init tile text overlay", e);
+        }
+        try {
+            const effectsHost = host as typeof host & {
+                groundItemEffectsOverlay?: GroundItemEffectsOverlay;
+            };
+            effectsHost.groundItemEffectsOverlay?.init(initArgs);
+        } catch (e) {
+            console.warn("Failed to init ground item effects overlay", e);
         }
         try {
             host.groundItemOverlay?.init(initArgs);

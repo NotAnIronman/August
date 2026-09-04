@@ -277,13 +277,19 @@ export function worldToScreen(host: WebGLOsrsRendererHost, x: number, y: number,
         const out = vec4.create();
         vec4.transformMat4(out, p, camera.viewMatrix);
         vec4.transformMat4(out, out, camera.projectionMatrix);
-        if (out[3] === 0) return undefined;
-        const ndcX = out[0] / out[3];
-        const ndcY = out[1] / out[3];
+        const clipW = out[3];
+        // Perspective projection mirrors points behind the camera unless we reject
+        // non-positive W before dividing. That previously allowed labels to appear on
+        // the opposite side of the viewport while their world tile was behind the view.
+        if (!Number.isFinite(clipW) || clipW <= 1e-6) return undefined;
+        const ndcX = out[0] / clipW;
+        const ndcY = out[1] / clipW;
+        if (!Number.isFinite(ndcX) || !Number.isFinite(ndcY)) return undefined;
         const screenWidth = camera.screenWidth || host.app.width;
         const screenHeight = camera.screenHeight || host.app.height;
         const sx = (ndcX + 1) * 0.5 * screenWidth;
         const sy = (1 - (ndcY + 1) * 0.5) * screenHeight;
+        if (!Number.isFinite(sx) || !Number.isFinite(sy)) return undefined;
         // Return as array instead of vec2
         return [sx, sy];
     

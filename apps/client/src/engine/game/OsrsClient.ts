@@ -103,6 +103,10 @@ import {
     subscribeWorldEntityInfo,
 } from "@client/core/network/ServerConnection";
 import type { WorldEntityInfoPayload } from "@client/core/network/ServerConnection";
+import {
+    collectGroundItemQuantityIncreases,
+    type GroundItemQuantityIncrease,
+} from "@client/core/network/server-connection/domain/groundItems";
 import type {
     CollectionLogServerPayload,
     HitsplatServerPayload,
@@ -249,6 +253,7 @@ import {
     GroundItemOverlayEntry,
     GroundItemStore,
 } from "@client/engine/game/data/ground/GroundItemStore";
+import type { GroundItemEffectEntry } from "@client/engine/rendering/overlays/GroundItemEffectsOverlay";
 import { NpcEcs } from "@client/engine/game/ecs/NpcEcs";
 import { PlayerEcs } from "@client/engine/game/ecs/PlayerEcs";
 import { TileHighlightManager } from "@client/engine/game/highlights/TileHighlightManager";
@@ -687,6 +692,7 @@ export class OsrsClient {
         | {
               key: string;
               entries: GroundItemOverlayEntry[];
+              effects: GroundItemEffectEntry[];
           }
         | undefined;
 
@@ -3624,8 +3630,16 @@ export class OsrsClient {
             );
             this.unsubscribeGroundItems = subscribeGroundItems((payload) => {
                 try {
+                    const quantityIncreases =
+                        payload?.kind === "delta"
+                            ? collectGroundItemQuantityIncreases(
+                                  payload.upserts,
+                                  (stackId) => this.groundItems.getStackById(stackId),
+                              )
+                            : [];
                     this.groundItems.update(payload);
                     this.refreshGroundItemMeshes();
+                    this.notifyNewGroundItems(quantityIncreases);
                 } catch (err) {
                     console.warn("ground item update failed", err);
                 }
@@ -4888,39 +4902,30 @@ export class OsrsClient {
         return Math.max(0, value | 0);
     }
 
-    getGroundItemOverlayEntries(
+    private getGroundItemPresentation(
         tileX: number,
         tileY: number,
         level: number,
         opts?: { radius?: number; maxEntries?: number },
-    ): GroundItemOverlayEntry[] {
+    ): { entries: GroundItemOverlayEntry[]; effects: GroundItemEffectEntry[] } {
         const plugin = this.groundItemsPlugin;
+        plugin.updateHotkeyState(
+            ClientState.isAltPressed(),
+            typeof performance !== "undefined" ? performance.now() : Date.now(),
+        );
         const config = plugin.getConfig();
         if (!config.enabled) {
-            return [];
+            return { entries: [], effects: [] };
         }
 
         const radius = Math.max(1, opts?.radius ?? 12);
         const maxEntries = Math.max(1, opts?.maxEntries ?? 40);
         const serverTiming = getServerTickPhaseNow();
         const accountType = this.getLocalAccountType();
-        const timerBucket =
-            config.despawnTimerMode === "seconds"
-                ? Math.max(
-                      0,
-                      Math.floor(
-                          (Math.max(
-                              0,
-                              Math.min(
-                                  0.999,
-                                  Number.isFinite(serverTiming.phase) ? serverTiming.phase : 0,
-                              ),
-                          ) *
-                              Math.max(1, serverTiming.tickMs | 0)) /
-                              100,
-                      ),
-                  )
-                : 0;
+        // Despawn time is authoritative in server ticks. Refreshing the label ten times per
+        // second only churned canvas/GL text textures without adding meaningful accuracy.
+        const timerBucket = 0;
+        const timerTick = config.despawnTimerMode === "off" ? 0 : serverTiming.tick | 0;
         const cacheKey = [
             tileX | 0,
             tileY | 0,
@@ -4928,32 +4933,41 @@ export class OsrsClient {
             radius | 0,
             maxEntries | 0,
             accountType | 0,
-            serverTiming.tick | 0,
+            timerTick,
             timerBucket | 0,
             this.groundItems.getVersion() | 0,
             plugin.getVersion() | 0,
         ].join("|");
         const cachedOverlay = this.groundItemOverlayCache;
         if (cachedOverlay?.key === cacheKey) {
-            return cachedOverlay.entries;
+            return { entries: cachedOverlay.entries, effects: cachedOverlay.effects };
         }
 
         const stacks = this.groundItems.getStacksInRadius(tileX | 0, tileY | 0, level | 0, {
             radius,
-            // Pull a bounded candidate set, then apply plugin filtering down to maxEntries.
-            maxEntries: Math.max(maxEntries * 4, 128),
+            // Item-list and advanced-rule priority cannot be inferred by the store. Collect the
+            // complete bounded-radius set, then apply the presentation cap after evaluation so
+            // insertion order can never hide a later highlighted or valuable drop.
+            maxEntries: Number.POSITIVE_INFINITY,
         });
         const centerX = tileX | 0;
         const centerY = tileY | 0;
+        const revealHidden = plugin.isHotkeyRevealActive();
+        const suppressEffects = plugin.isOverlayTemporarilyHidden() && !revealHidden;
 
         type OverlayCandidate = {
             stack: (typeof stacks)[number];
+            evaluation: ReturnType<GroundItemsPlugin["evaluateStack"]>;
             label: string;
-            color: number;
+            labelColor: number;
+            effectColor: number;
             timerLabel?: string;
             timerColor?: number;
             value: number;
             distance: number;
+            showLabel: boolean;
+            showTile: boolean;
+            showBeam: boolean;
         };
         const groups = new Map<
             string,
@@ -4976,14 +4990,15 @@ export class OsrsClient {
                 },
                 accountType,
             });
-            if (!evaluated.highlighted) {
-                if (evaluated.hidden) {
-                    continue;
-                }
-                if (config.showHighlightedOnly) {
-                    continue;
-                }
-            }
+            // An empty base label is the evaluator's ownership-filter sentinel. Alt must not
+            // reveal another account mode's ineligible private items.
+            if (evaluated.baseLabel.length === 0) continue;
+
+            const showLabel =
+                !suppressEffects && (revealHidden ? true : evaluated.showOverlay === true);
+            const showTile = !suppressEffects && evaluated.tileHighlight === true;
+            const showBeam = !suppressEffects && plugin.shouldCreateLootBeam(evaluated);
+            if (!showLabel && !showTile && !showBeam) continue;
 
             const stackTileX = stack.tile.x | 0;
             const stackTileY = stack.tile.y | 0;
@@ -5006,18 +5021,26 @@ export class OsrsClient {
             }
             group.candidates.push({
                 stack,
+                evaluation: evaluated,
                 label: evaluated.baseLabel,
-                color: evaluated.color,
+                labelColor:
+                    revealHidden && evaluated.hidden
+                        ? config.hiddenColor
+                        : plugin.getOverlayColor(evaluated),
+                effectColor: evaluated.color,
                 timerLabel: evaluated.timerLabel,
                 timerColor: evaluated.timerColor,
                 value: plugin.getValueForStack(stack),
                 distance,
+                showLabel,
+                showTile,
+                showBeam,
             });
         }
 
         if (groups.size === 0) {
-            this.groundItemOverlayCache = { key: cacheKey, entries: [] };
-            return [];
+            this.groundItemOverlayCache = { key: cacheKey, entries: [], effects: [] };
+            return { entries: [], effects: [] };
         }
 
         const sortedGroups = [...groups.values()].sort((a, b) => {
@@ -5025,7 +5048,99 @@ export class OsrsClient {
             if (a.tileY !== b.tileY) return a.tileY - b.tileY;
             return a.tileX - b.tileX;
         });
+        const tierRank = (tier: ReturnType<GroundItemsPlugin["evaluateStack"]>["tier"]): number => {
+            if (tier === "insane") return 4;
+            if (tier === "high") return 3;
+            if (tier === "medium") return 2;
+            if (tier === "low") return 1;
+            return 0;
+        };
+        const compareEffectCandidates = (a: OverlayCandidate, b: OverlayCandidate): number => {
+            // Explicit list highlights mirror RuneLite's per-tile beam precedence. A rule that
+            // explicitly requests a beam is equally intentional and wins before value tiers.
+            const aRuleBeam = a.evaluation.beam === true ? 1 : 0;
+            const bRuleBeam = b.evaluation.beam === true ? 1 : 0;
+            if (aRuleBeam !== bRuleBeam) return bRuleBeam - aRuleBeam;
+            const aExplicit = a.evaluation.explicitHighlight ? 1 : 0;
+            const bExplicit = b.evaluation.explicitHighlight ? 1 : 0;
+            if (aExplicit !== bExplicit) return bExplicit - aExplicit;
+            const tierDifference = tierRank(b.evaluation.tier) - tierRank(a.evaluation.tier);
+            if (tierDifference !== 0) return tierDifference;
+            if (a.value !== b.value) return b.value - a.value;
+            return (a.stack.itemId | 0) - (b.stack.itemId | 0);
+        };
+        const compareTileCandidates = (a: OverlayCandidate, b: OverlayCandidate): number => {
+            const aExplicit = a.evaluation.explicitHighlight ? 1 : 0;
+            const bExplicit = b.evaluation.explicitHighlight ? 1 : 0;
+            if (aExplicit !== bExplicit) return bExplicit - aExplicit;
+            const tierDifference = tierRank(b.evaluation.tier) - tierRank(a.evaluation.tier);
+            if (tierDifference !== 0) return tierDifference;
+            if (a.value !== b.value) return b.value - a.value;
+            return (a.stack.itemId | 0) - (b.stack.itemId | 0);
+        };
+        const compareLabelCandidates = (a: OverlayCandidate, b: OverlayCandidate): number => {
+            const aExplicit = a.evaluation.explicitHighlight ? 1 : 0;
+            const bExplicit = b.evaluation.explicitHighlight ? 1 : 0;
+            if (aExplicit !== bExplicit) return bExplicit - aExplicit;
+            const aRule = a.evaluation.matchedRules.length > 0 ? 1 : 0;
+            const bRule = b.evaluation.matchedRules.length > 0 ? 1 : 0;
+            if (aRule !== bRule) return bRule - aRule;
+            const tierDifference = tierRank(b.evaluation.tier) - tierRank(a.evaluation.tier);
+            if (tierDifference !== 0) return tierDifference;
+            if (a.value !== b.value) return b.value - a.value;
+            if (a.distance !== b.distance) return a.distance - b.distance;
+            return (a.stack.itemId | 0) - (b.stack.itemId | 0);
+        };
+
+        // Pick the globally most important labels before restoring stable tile/line order.
+        // This protects highlighted and high-tier drops from a nearby carpet of low-value items.
+        const selectedLabels = new Set(
+            sortedGroups
+                .flatMap((group) => group.candidates)
+                .filter((candidate) => candidate.showLabel)
+                .sort(compareLabelCandidates)
+                .slice(0, maxEntries),
+        );
+
+        type PendingEffect = {
+            group: (typeof sortedGroups)[number];
+            tileCandidate?: OverlayCandidate;
+            beamCandidate?: OverlayCandidate;
+            rankCandidate: OverlayCandidate;
+        };
+        const pendingEffects: PendingEffect[] = [];
+
+        for (const group of sortedGroups) {
+            const tileCandidate = group.candidates
+                .filter((candidate) => candidate.showTile)
+                .sort(compareTileCandidates)[0];
+            const beamCandidate = group.candidates
+                .filter((candidate) => candidate.showBeam)
+                .sort(compareEffectCandidates)[0];
+            const rankCandidate = [tileCandidate, beamCandidate]
+                .filter((candidate): candidate is OverlayCandidate => !!candidate)
+                .sort(compareLabelCandidates)[0];
+            if (rankCandidate) {
+                pendingEffects.push({ group, tileCandidate, beamCandidate, rankCandidate });
+            }
+        }
+
+        // World-space effects rebuild terrain-conforming geometry each frame. Bound that cost
+        // independently of source collection while retaining the strongest effects first.
+        const maxEffectTiles = Math.max(32, Math.min(128, maxEntries * 2));
+        const selectedEffectGroups = new Set(
+            pendingEffects
+                .sort((a, b) => compareLabelCandidates(a.rankCandidate, b.rankCandidate))
+                .slice(0, maxEffectTiles)
+                .map((effect) => effect.group),
+        );
+        const pendingEffectByGroup = new Map(
+            pendingEffects.map((effect) => [effect.group, effect] as const),
+        );
+
         const entries: GroundItemOverlayEntry[] = [];
+        const effects: GroundItemEffectEntry[] = [];
+
         for (const group of sortedGroups) {
             group.candidates.sort((a, b) => {
                 if (a.value !== b.value) return b.value - a.value;
@@ -5033,27 +5148,104 @@ export class OsrsClient {
                     return b.stack.quantity - a.stack.quantity;
                 return a.stack.itemId - b.stack.itemId;
             });
-            for (let line = 0; line < group.candidates.length; line++) {
-                const candidate = group.candidates[line];
+
+            let line = 0;
+            for (const candidate of group.candidates) {
+                if (!selectedLabels.has(candidate)) continue;
                 entries.push({
                     tileX: group.tileX,
                     tileY: group.tileY,
                     level: group.level,
                     label: candidate.label,
-                    color: candidate.color,
+                    color: candidate.labelColor,
                     timerLabel: candidate.timerLabel,
                     timerColor: candidate.timerColor,
-                    line,
+                    line: line++,
+                    textOutline: config.textOutline,
                 });
-                if (entries.length >= maxEntries) {
-                    this.groundItemOverlayCache = { key: cacheKey, entries };
-                    return entries;
-                }
+            }
+
+            if (!selectedEffectGroups.has(group)) continue;
+            const selectedEffect = pendingEffectByGroup.get(group);
+            const tileCandidate = selectedEffect?.tileCandidate;
+            const beamCandidate = selectedEffect?.beamCandidate;
+            if (tileCandidate || beamCandidate) {
+                effects.push({
+                    tileX: group.tileX,
+                    tileY: group.tileY,
+                    level: group.level,
+                    tileColor: tileCandidate?.effectColor,
+                    tileFillAlpha: tileCandidate ? config.tileHighlightFillAlpha : undefined,
+                    beamColor: beamCandidate?.effectColor,
+                    beamStyle: config.lootBeamStyle,
+                });
             }
         }
 
-        this.groundItemOverlayCache = { key: cacheKey, entries };
-        return entries;
+        this.groundItemOverlayCache = { key: cacheKey, entries, effects };
+        return { entries, effects };
+    }
+
+    getGroundItemOverlayEntries(
+        tileX: number,
+        tileY: number,
+        level: number,
+        opts?: { radius?: number; maxEntries?: number },
+    ): GroundItemOverlayEntry[] {
+        return this.getGroundItemPresentation(tileX, tileY, level, opts).entries;
+    }
+
+    getGroundItemEffectEntries(
+        tileX: number,
+        tileY: number,
+        level: number,
+        opts?: { radius?: number; maxEntries?: number },
+    ): GroundItemEffectEntry[] {
+        return this.getGroundItemPresentation(tileX, tileY, level, opts).effects;
+    }
+
+    private notifyNewGroundItems(increases: readonly GroundItemQuantityIncrease[]): void {
+        if (increases.length === 0) return;
+        const plugin = this.groundItemsPlugin;
+        const config = plugin.getConfig();
+        if (
+            !config.enabled ||
+            (!config.notifyHighlightedDrops && config.notifyMinimumTier === "off")
+        ) {
+            return;
+        }
+
+        const seen = new Set<number>();
+        for (const increase of increases) {
+            const stackId = increase.stackId | 0;
+            if (stackId <= 0 || seen.has(stackId)) continue;
+            seen.add(stackId);
+            const stack = this.groundItems.getStackById(stackId);
+            if (!stack) continue;
+
+            // Notifications describe newly received drops, not public items becoming visible
+            // or scenery/world spawns. RuneLite ownership 1=self and 3=group.
+            const ownership = Number.isFinite(stack.ownership) ? (stack.ownership as number) | 0 : 0;
+            if (ownership !== 1 && ownership !== 3) continue;
+            const quantity = Math.max(1, increase.quantity | 0);
+            // Rules and value tiers describe this drop event, not the total
+            // quantity already accumulated in its reused ground stack.
+            const notificationStack =
+                quantity === stack.quantity ? stack : { ...stack, quantity };
+            const evaluation = plugin.evaluateStack(notificationStack, {
+                accountType: this.getLocalAccountType(),
+            });
+            if (evaluation.hidden || !plugin.shouldNotify(evaluation)) continue;
+
+            const highlighted = evaluation.explicitHighlight && config.notifyHighlightedDrops;
+            const quantitySuffix = quantity > 1 ? ` (${quantity.toLocaleString("en-US")})` : "";
+            const description = highlighted ? "highlighted" : "valuable";
+            this.cs2Vm?.context?.onNotificationDisplay?.(
+                "Ground item",
+                `You received a ${description} drop: ${stack.name}${quantitySuffix}`,
+                evaluation.color & 0xffffff,
+            );
+        }
     }
 
     takeGroundItem(stack: ClientGroundItemStack, quantity?: number): void {
@@ -5064,6 +5256,24 @@ export class OsrsClient {
             tile: { ...stack.tile },
             quantity: quantity ?? stack.quantity,
             option: "take",
+        });
+        this.closeMenu();
+    }
+
+    interactGroundItem(stack: ClientGroundItemStack, option: string, actionIndex?: number): void {
+        if (!isServerConnected()) return;
+        const normalizedOption = String(option ?? "").trim();
+        if (!normalizedOption) return;
+        sendGroundItemAction({
+            stackId: stack.id | 0,
+            itemId: stack.itemId | 0,
+            tile: { ...stack.tile },
+            quantity: stack.quantity,
+            option: normalizedOption,
+            opNum:
+                typeof actionIndex === "number" && actionIndex >= 0
+                    ? Math.max(1, Math.min(5, (actionIndex | 0) + 1))
+                    : undefined,
         });
         this.closeMenu();
     }

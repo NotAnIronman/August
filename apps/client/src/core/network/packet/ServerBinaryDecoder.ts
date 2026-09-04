@@ -19,6 +19,17 @@ import {
 } from "@august/protocol/ui/bossHealthBar";
 import type { WorldEntityBuildArea } from "@august/protocol/worldentity/WorldEntityTypes";
 
+const GROUND_ITEM_METADATA_MAGIC = 0x4749; // "GI"
+const GROUND_ITEM_METADATA_VERSION = 1;
+const GROUND_ITEM_META_NAME = 1 << 0;
+const GROUND_ITEM_META_VALUE = 1 << 1;
+const GROUND_ITEM_META_HIGH_ALCH = 1 << 2;
+const GROUND_ITEM_META_BOOLS = 1 << 3;
+const GROUND_ITEM_META_TRADEABLE = 1 << 4;
+const GROUND_ITEM_META_STACKABLE = 1 << 5;
+const GROUND_ITEM_META_NOTED = 1 << 6;
+const GROUND_ITEM_META_UNNOTED_ID = 1 << 7;
+
 /**
  * Binary packet buffer for client decoding
  */
@@ -412,6 +423,63 @@ function decodeServerPacketUnchecked(
             isPrivate,
             ownership,
         };
+    };
+
+    const readGroundItemMetadata = (stacks: any[]): void => {
+        // Legacy servers end the packet after the base stack records. Metadata
+        // is therefore optional, but a present trailer must be complete.
+        if (reader.remaining === 0) return;
+        if (reader.readShort() !== GROUND_ITEM_METADATA_MAGIC) {
+            throw new RangeError("Invalid ground-item metadata marker");
+        }
+        if (reader.readByte() !== GROUND_ITEM_METADATA_VERSION) {
+            throw new RangeError("Unsupported ground-item metadata version");
+        }
+        const count = reader.readShort();
+        if (count > stacks.length) {
+            throw new RangeError("Invalid ground-item metadata count");
+        }
+        const stacksById = new Map<number, any>();
+        for (const stack of stacks) stacksById.set(stack.id | 0, stack);
+        const seen = new Set<number>();
+        for (let i = 0; i < count; i++) {
+            const stackId = reader.readInt();
+            if (seen.has(stackId)) {
+                throw new RangeError("Duplicate ground-item metadata entry");
+            }
+            seen.add(stackId);
+            const stack = stacksById.get(stackId);
+            if (!stack) {
+                throw new RangeError("Ground-item metadata references an unknown stack");
+            }
+            const flags = reader.readByte();
+            if ((flags & GROUND_ITEM_META_NAME) !== 0) stack.name = reader.readString();
+            if ((flags & GROUND_ITEM_META_VALUE) !== 0) {
+                const value = reader.readInt();
+                if (value < 0) throw new RangeError("Invalid ground-item value");
+                stack.value = value;
+            }
+            if ((flags & GROUND_ITEM_META_HIGH_ALCH) !== 0) {
+                const highAlch = reader.readInt();
+                if (highAlch < 0) throw new RangeError("Invalid ground-item high-alch value");
+                stack.highAlch = highAlch;
+            }
+            if ((flags & GROUND_ITEM_META_BOOLS) !== 0) {
+                stack.tradeable = (flags & GROUND_ITEM_META_TRADEABLE) !== 0;
+                stack.stackable = (flags & GROUND_ITEM_META_STACKABLE) !== 0;
+                stack.noted = (flags & GROUND_ITEM_META_NOTED) !== 0;
+            }
+            if ((flags & GROUND_ITEM_META_UNNOTED_ID) !== 0) {
+                const unnotedItemId = reader.readInt();
+                if (unnotedItemId <= 0) {
+                    throw new RangeError("Invalid canonical ground-item id");
+                }
+                stack.unnotedItemId = unnotedItemId;
+            }
+        }
+        if (reader.remaining !== 0) {
+            throw new RangeError("Trailing ground-item metadata bytes");
+        }
     };
 
     switch (opcode) {
@@ -1356,6 +1424,7 @@ function decodeServerPacketUnchecked(
             for (let i = 0; i < count; i++) {
                 stacks.push(readGroundItemStack());
             }
+            readGroundItemMetadata(stacks);
             return {
                 type: "ground_items",
                 payload: { kind: "snapshot", serial, stacks },
@@ -1374,6 +1443,7 @@ function decodeServerPacketUnchecked(
             for (let i = 0; i < removeCount; i++) {
                 removes.push(reader.readInt());
             }
+            readGroundItemMetadata(upserts);
             return {
                 type: "ground_items",
                 payload: { kind: "delta", serial, upserts, removes },

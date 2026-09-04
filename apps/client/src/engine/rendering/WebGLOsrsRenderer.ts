@@ -472,6 +472,7 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
         getTileRenderFlagAt: (level: number, tileX: number, tileY: number) => number;
         isBridgeSurfaceTile: (x: number, y: number, plane: number) => boolean;
         worldToScreen: (x: number, y: number, z: number) => Float32Array | number[] | undefined;
+        getSceneViewportRect: () => { x: number; y: number; width: number; height: number };
         getCollisionFlagAt: (plane: number, x: number, y: number) => number;
     } | null = null;
 

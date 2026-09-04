@@ -256,6 +256,11 @@ export class ClientState {
         return this.isKeybindPressed(81);
     }
 
+    /** Check if Alt is pressed (OSRS internal key code 86). */
+    static isAltPressed(): boolean {
+        return this.isKeybindPressed(86);
+    }
+
     // ========================================
     // UTILITY METHODS
     // ========================================

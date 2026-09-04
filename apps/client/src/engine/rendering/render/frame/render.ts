@@ -1099,21 +1099,6 @@ export function render(host: WebGLOsrsRendererHost, time: number, deltaTime: num
                 );
                 if (overlayEntries.length > 0) {
                     groundOverlayEntries = overlayEntries;
-                } else {
-                    try {
-                        const camX = Math.floor(host.osrsClient.camera.getPosX());
-                        const camY = Math.floor(host.osrsClient.camera.getPosZ());
-                        const camLevel = resolveGroundItemStackPlane(host.getPlayerRawPlane() | 0);
-                        const camEntries = host.withGroundItemOverlayHeights(
-                            host.osrsClient.getGroundItemOverlayEntries(camX, camY, camLevel, {
-                                radius: groundOverlayRadius,
-                                maxEntries: groundOverlayMaxEntries,
-                            }),
-                        );
-                        if (camEntries.length > 0) {
-                            groundOverlayEntries = camEntries;
-                        }
-                    } catch {}
                 }
             } else {
                 try {

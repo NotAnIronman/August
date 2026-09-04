@@ -1,14 +1,26 @@
 import type { ClientGroundItemStack } from "@client/engine/game/data/ground/GroundItemStore";
 import type {
     GroundItemEvaluation,
+    GroundItemRuleDiagnostic,
     GroundItemsDespawnTimerMode,
+    GroundItemsItemHighlightMode,
+    GroundItemsLootBeamStyle,
+    GroundItemsMenuHighlightMode,
+    GroundItemsMenuSortMode,
+    GroundItemsNotificationTier,
     GroundItemsOwnershipFilterMode,
     GroundItemsPluginConfig,
     GroundItemsPluginPersistence,
     GroundItemsPluginState,
     GroundItemsTimingContext,
+    GroundItemsValueTier,
     GroundItemsValueCalculationMode,
 } from "@client/features/plugins/grounditems/types";
+import {
+    compileGroundItemRules,
+    evaluateGroundItemRules,
+    type CompiledGroundItemRules,
+} from "@client/features/plugins/grounditems/GroundItemRuleEngine";
 
 type GroundItemsListener = () => void;
 
@@ -17,6 +29,7 @@ type QuantityMatchOp = "lt" | "gt";
 type CompiledPattern = {
     regex?: RegExp;
     exact?: string;
+    wildcard: boolean;
     quantityOp?: QuantityMatchOp;
     quantityValue?: number;
 };
@@ -46,6 +59,21 @@ const DEFAULT_CONFIG: GroundItemsPluginConfig = Object.freeze({
     insaneValuePrice: 10_000_000,
     ownershipFilterMode: "all",
     despawnTimerMode: "off",
+    itemHighlightMode: "both",
+    menuHighlightMode: "name",
+    highlightTiles: false,
+    tileHighlightFillAlpha: 0.18,
+    textOutline: true,
+    collapseGroundItemMenu: false,
+    menuSortMode: "off",
+    lootBeamEnabled: true,
+    lootBeamForHighlightedItems: true,
+    lootBeamStyle: "modern",
+    lootBeamMinimumTier: "high",
+    doubleTapDelayMs: 250,
+    notifyHighlightedDrops: false,
+    notifyMinimumTier: "off",
+    advancedFilterRules: "",
 });
 
 const COINS_ITEM_ID = 995;
@@ -63,6 +91,12 @@ function sanitizeNumber(value: unknown, fallback: number): number {
 function sanitizeColor(value: unknown, fallback: number): number {
     const numeric = sanitizeNumber(value, fallback);
     return numeric & 0xffffff;
+}
+
+function sanitizeAlpha(value: unknown, fallback: number): number {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return fallback;
+    return Math.max(0, Math.min(1, numeric));
 }
 
 function sanitizeMode(value: unknown, fallback: GroundItemsPluginConfig["priceDisplayMode"]) {
@@ -102,6 +136,58 @@ function sanitizeDespawnTimerMode(
     return fallback;
 }
 
+function sanitizeItemHighlightMode(
+    value: unknown,
+    fallback: GroundItemsItemHighlightMode,
+): GroundItemsItemHighlightMode {
+    return value === "both" || value === "overlay" || value === "menu" || value === "none"
+        ? value
+        : fallback;
+}
+
+function sanitizeMenuHighlightMode(
+    value: unknown,
+    fallback: GroundItemsMenuHighlightMode,
+): GroundItemsMenuHighlightMode {
+    return value === "name" || value === "option" || value === "both" ? value : fallback;
+}
+
+function sanitizeMenuSortMode(
+    value: unknown,
+    fallback: GroundItemsMenuSortMode,
+): GroundItemsMenuSortMode {
+    return value === "off" || value === "value" || value === "name" ? value : fallback;
+}
+
+function sanitizeLootBeamStyle(
+    value: unknown,
+    fallback: GroundItemsLootBeamStyle,
+): GroundItemsLootBeamStyle {
+    return value === "modern" || value === "light" ? value : fallback;
+}
+
+function sanitizeTier(
+    value: unknown,
+    fallback: Exclude<GroundItemsValueTier, "none">,
+): Exclude<GroundItemsValueTier, "none"> {
+    return value === "low" || value === "medium" || value === "high" || value === "insane"
+        ? value
+        : fallback;
+}
+
+function sanitizeNotificationTier(
+    value: unknown,
+    fallback: GroundItemsNotificationTier,
+): GroundItemsNotificationTier {
+    return value === "off" ||
+        value === "low" ||
+        value === "medium" ||
+        value === "high" ||
+        value === "insane"
+        ? value
+        : fallback;
+}
+
 function normalizeName(name: string): string {
     return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -136,14 +222,18 @@ function parseListToken(rawToken: string): CompiledPattern | undefined {
         const quotedName = quoted[1];
         const exact = normalizeName(typeof quotedName === "string" ? quotedName : "");
         if (exact.length === 0) return undefined;
-        return { exact, quantityOp, quantityValue };
+        return { exact, wildcard: false, quantityOp, quantityValue };
     }
 
     const normalized = normalizeName(base);
     if (normalized.length === 0) return undefined;
+    if (!normalized.includes("*")) {
+        return { exact: normalized, wildcard: false, quantityOp, quantityValue };
+    }
     const escaped = escapeRegex(normalized).replace(/\\\*/g, ".*");
     return {
         regex: new RegExp(`^${escaped}$`, "i"),
+        wildcard: true,
         quantityOp,
         quantityValue,
     };
@@ -321,15 +411,49 @@ function shouldDisplayByOwnership(
     return true;
 }
 
+function tierRank(tier: GroundItemsValueTier): number {
+    if (tier === "insane") return 4;
+    if (tier === "high") return 3;
+    if (tier === "medium") return 2;
+    if (tier === "low") return 1;
+    return 0;
+}
+
+function colorTag(value: number, text: string): string {
+    return `<col=${(value >>> 0).toString(16).padStart(6, "0")}>${text}</col>`;
+}
+
+function tokenizeItemList(raw: string): string[] {
+    return raw
+        .split(/,|\n/)
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0);
+}
+
+function exactListTokenName(rawToken: string): string | undefined {
+    const token = rawToken.trim();
+    const quantityMatch = /(.*?)([<>])\s*(\d+)$/.exec(token);
+    let base = quantityMatch ? quantityMatch[1].trim() : token;
+    const quoted = /^"(.*)"$/.exec(base);
+    if (quoted) base = quoted[1];
+    if (base.includes("*")) return undefined;
+    const normalized = normalizeName(base);
+    return normalized.length > 0 ? normalized : undefined;
+}
+
 export class GroundItemsPlugin {
     private readonly listeners: Set<GroundItemsListener> = new Set();
     private readonly persistence?: GroundItemsPluginPersistence;
 
     private highlightedPatterns: CompiledPattern[] = [];
     private hiddenPatterns: CompiledPattern[] = [];
+    private compiledRules: CompiledGroundItemRules = compileGroundItemRules("");
     private config: GroundItemsPluginConfig;
     private state: GroundItemsPluginState;
     private version = 0;
+    private hotkeyPressed = false;
+    private overlayTemporarilyHidden = false;
+    private previousHotkeyPressAt = Number.NEGATIVE_INFINITY;
 
     constructor(persistence?: GroundItemsPluginPersistence) {
         this.persistence = persistence;
@@ -337,9 +461,11 @@ export class GroundItemsPlugin {
         this.config = this.sanitizeConfig(loaded);
         this.highlightedPatterns = compileCsvList(this.config.highlightedItems);
         this.hiddenPatterns = compileCsvList(this.config.hiddenItems);
+        this.compiledRules = compileGroundItemRules(this.config.advancedFilterRules);
         this.state = {
             config: this.config,
             version: this.version,
+            ruleDiagnostics: this.compiledRules.diagnostics,
         };
     }
 
@@ -362,6 +488,10 @@ export class GroundItemsPlugin {
         return this.version | 0;
     }
 
+    getRuleDiagnostics(): readonly GroundItemRuleDiagnostic[] {
+        return this.compiledRules.diagnostics;
+    }
+
     setConfig(nextConfig: Partial<GroundItemsPluginConfig>): void {
         this.config = this.sanitizeConfig({
             ...this.config,
@@ -369,6 +499,7 @@ export class GroundItemsPlugin {
         });
         this.highlightedPatterns = compileCsvList(this.config.highlightedItems);
         this.hiddenPatterns = compileCsvList(this.config.hiddenItems);
+        this.compiledRules = compileGroundItemRules(this.config.advancedFilterRules);
         this.commit();
     }
 
@@ -401,15 +532,41 @@ export class GroundItemsPlugin {
                 color: config.hiddenColor,
                 hidden: true,
                 highlighted: false,
+                explicitHighlight: false,
+                tier: "none",
+                showOverlay: false,
+                showMenu: false,
+                tileHighlight: false,
+                menuPriority: 0,
+                matchedRules: [],
             };
         }
 
         const normalizedName = normalizeName(stack.name);
         const quantity = Math.max(1, stack.quantity | 0);
-        const explicitHighlight = this.matches(this.highlightedPatterns, normalizedName, quantity);
-        const explicitHidden = this.matches(this.hiddenPatterns, normalizedName, quantity);
+        const exactHighlight = this.matches(
+            this.highlightedPatterns,
+            normalizedName,
+            quantity,
+            false,
+        );
+        const exactHidden = this.matches(this.hiddenPatterns, normalizedName, quantity, false);
+        const wildcardHighlight = this.matches(
+            this.highlightedPatterns,
+            normalizedName,
+            quantity,
+            true,
+        );
+        const wildcardHidden = this.matches(this.hiddenPatterns, normalizedName, quantity, true);
+        // RuneLite's list manager resolves conflicts by specificity first, then
+        // highlight before hide at the same specificity.
+        const explicitHighlight = exactHighlight || (!exactHidden && wildcardHighlight);
+        const explicitHidden =
+            !exactHighlight && (exactHidden || (!wildcardHighlight && wildcardHidden));
         const geValue = Math.max(0, stack.gePrice | 0) * quantity;
         const haValue = Math.max(0, stack.haPrice | 0) * quantity;
+        const calculatedValue = valueByMode(geValue, haValue, config.valueCalculationMode);
+        const tier = this.getTier(geValue, haValue, config);
 
         const canBeHidden = geValue > 0 || stack.tradeable === true || !config.dontHideUntradeables;
         const implicitHidden =
@@ -417,7 +574,7 @@ export class GroundItemsPlugin {
             canBeHidden &&
             geValue < config.hideUnderValue &&
             haValue < config.hideUnderValue;
-        const hidden = explicitHidden || implicitHidden;
+        let hidden = explicitHidden || implicitHidden;
 
         let highlighted = false;
         let color = config.defaultColor;
@@ -425,8 +582,8 @@ export class GroundItemsPlugin {
             highlighted = true;
             color = config.highlightedColor;
         } else if (!explicitHidden) {
-            const tierColor = this.getTierColor(geValue, haValue, config);
-            if (tierColor !== undefined) {
+            const tierColor = this.getTierColor(tier, config);
+            if (tier !== "none" && tierColor !== undefined) {
                 highlighted = true;
                 color = tierColor;
             } else if (hidden) {
@@ -435,6 +592,41 @@ export class GroundItemsPlugin {
         } else {
             color = config.hiddenColor;
         }
+
+        const ruleResult = evaluateGroundItemRules(this.compiledRules, {
+            stack: stack as ClientGroundItemStack & { stackable?: boolean; noted?: boolean },
+            value: calculatedValue,
+            geValue,
+            haValue,
+        });
+        if (ruleResult.hidden !== undefined) hidden = ruleResult.hidden;
+        if (ruleResult.highlighted !== undefined) highlighted = ruleResult.highlighted;
+        if (hidden) highlighted = false;
+        if (ruleResult.color !== undefined) {
+            color = ruleResult.color;
+        } else if (hidden) {
+            color = config.hiddenColor;
+        } else if (ruleResult.highlighted === false) {
+            color = config.defaultColor;
+        } else if (ruleResult.highlighted === true && !explicitHighlight) {
+            color = config.highlightedColor;
+        }
+
+        const ordinaryItemVisible = !hidden && (!config.showHighlightedOnly || highlighted);
+        // Highlight mode chooses where category/value colours are applied; it
+        // must not hide otherwise-visible labels. This mirrors RuneLite, where
+        // menu-only/none falls back to the configured default overlay colour.
+        const showOverlay = ruleResult.showOverlay ?? ordinaryItemVisible;
+        const showMenu = ruleResult.showMenu ?? true;
+        // The global tile toggle follows RuneLite's highlighted-item semantics:
+        // ordinary visible clutter is not outlined. A rule may opt an otherwise
+        // ordinary item in, but a terminal hide must always win over earlier
+        // `apply | tile=true` styling.
+        const tileHighlight =
+            !hidden &&
+            (ruleResult.tileHighlight !== undefined
+                ? ruleResult.tileHighlight
+                : config.highlightTiles && highlighted);
 
         const baseLabel = buildLabel(stack, config);
         const ticksRemaining = getTicksRemaining(stack, options?.timing);
@@ -456,6 +648,15 @@ export class GroundItemsPlugin {
             color,
             hidden,
             highlighted,
+            explicitHighlight,
+            tier,
+            showOverlay,
+            showMenu,
+            beam: ruleResult.beam,
+            tileHighlight,
+            menuPriority: ruleResult.menuPriority ?? 0,
+            matchedRules: ruleResult.matchedRules,
+            terminalRule: ruleResult.terminalRule,
         };
     }
 
@@ -467,11 +668,30 @@ export class GroundItemsPlugin {
     ): boolean {
         if (!this.config.enabled) return false;
         const evalResult = this.evaluateStack(stack, { accountType: options?.accountType });
-        if (!evalResult.highlighted) {
-            if (evalResult.hidden) return false;
-            if (this.config.showHighlightedOnly) return false;
+        if (this.hotkeyPressed) {
+            // Empty labels identify entries excluded by the ownership filter.
+            return evalResult.baseLabel.length > 0;
         }
-        return true;
+        if (this.overlayTemporarilyHidden) return false;
+        return evalResult.showOverlay;
+    }
+
+    shouldDisplayStackInMenu(stack: ClientGroundItemStack): boolean {
+        if (!this.config.enabled) return true;
+        // Alt is the recovery path for filtered items: revealing an item must
+        // also restore its Take/examine and local Highlight/Hide actions.
+        if (this.hotkeyPressed) return true;
+        return this.evaluateStack(stack, { respectOwnershipFilter: false }).showMenu;
+    }
+
+    getOverlayColor(evaluation: GroundItemEvaluation): number {
+        if (
+            this.config.itemHighlightMode === "both" ||
+            this.config.itemHighlightMode === "overlay"
+        ) {
+            return evaluation.color;
+        }
+        return this.config.defaultColor;
     }
 
     getValueForStack(stack: ClientGroundItemStack): number {
@@ -479,6 +699,138 @@ export class GroundItemsPlugin {
         const geValue = Math.max(0, stack.gePrice | 0) * quantity;
         const haValue = Math.max(0, stack.haPrice | 0) * quantity;
         return valueByMode(geValue, haValue, this.config.valueCalculationMode);
+    }
+
+    /**
+     * Return stacks in insertion order. The menu renderer reverses that order,
+     * so low-priority stacks are returned first and explicit highlights last.
+     * `name` consequently sorts Z-A here to display A-Z in the open menu.
+     */
+    sortStacksForMenu(stacks: readonly ClientGroundItemStack[]): ClientGroundItemStack[] {
+        const decorated = stacks.map((stack, index) => {
+            const evaluation = this.evaluateStack(stack, { respectOwnershipFilter: false });
+            const category = evaluation.explicitHighlight
+                ? 3
+                : evaluation.highlighted
+                  ? 2
+                  : evaluation.hidden
+                    ? 0
+                    : 1;
+            return {
+                stack,
+                index,
+                evaluation,
+                category,
+                value: this.getValueForStack(stack),
+                name: normalizeName(stack.name),
+            };
+        });
+        const mode = this.config.menuSortMode;
+        decorated.sort((left, right) => {
+            if (left.evaluation.menuPriority !== right.evaluation.menuPriority) {
+                return left.evaluation.menuPriority - right.evaluation.menuPriority;
+            }
+            if (mode !== "off" && left.category !== right.category) {
+                return left.category - right.category;
+            }
+            if (mode === "value" && left.value !== right.value) {
+                return left.value - right.value;
+            }
+            if (mode === "name") {
+                const byName = right.name.localeCompare(left.name);
+                if (byName !== 0) return byName;
+            }
+            return left.index - right.index;
+        });
+        return decorated.map(({ stack }) => stack);
+    }
+
+    shouldCreateLootBeam(evaluation: GroundItemEvaluation): boolean {
+        if (!this.config.enabled || !this.config.lootBeamEnabled || evaluation.hidden) {
+            return false;
+        }
+        if (evaluation.beam !== undefined) return evaluation.beam;
+        if (evaluation.explicitHighlight && this.config.lootBeamForHighlightedItems) return true;
+        return tierRank(evaluation.tier) >= tierRank(this.config.lootBeamMinimumTier);
+    }
+
+    shouldNotify(evaluation: GroundItemEvaluation): boolean {
+        if (!this.config.enabled) return false;
+        if (evaluation.explicitHighlight && this.config.notifyHighlightedDrops) return true;
+        const minimum = this.config.notifyMinimumTier;
+        return minimum !== "off" && tierRank(evaluation.tier) >= tierRank(minimum);
+    }
+
+    updateHotkeyState(pressed: boolean, nowMs: number): void {
+        const nextPressed = pressed === true;
+        if (nextPressed === this.hotkeyPressed) return;
+        const timestamp = Number.isFinite(nowMs) ? Math.max(0, nowMs) : 0;
+        if (nextPressed) {
+            const delay = this.config.doubleTapDelayMs;
+            if (
+                delay > 0 &&
+                Number.isFinite(this.previousHotkeyPressAt) &&
+                timestamp >= this.previousHotkeyPressAt &&
+                timestamp - this.previousHotkeyPressAt <= delay
+            ) {
+                this.overlayTemporarilyHidden = !this.overlayTemporarilyHidden;
+                this.previousHotkeyPressAt = Number.NEGATIVE_INFINITY;
+            } else {
+                this.previousHotkeyPressAt = timestamp;
+            }
+        }
+        this.hotkeyPressed = nextPressed;
+        this.commit(false);
+    }
+
+    isHotkeyRevealActive(): boolean {
+        return this.hotkeyPressed;
+    }
+
+    isOverlayTemporarilyHidden(): boolean {
+        return this.overlayTemporarilyHidden;
+    }
+
+    hasExactItemListEntry(itemName: string, list: "highlight" | "hide"): boolean {
+        const normalized = normalizeName(itemName);
+        if (normalized.length === 0) return false;
+        const tokens = tokenizeItemList(
+            list === "highlight" ? this.config.highlightedItems : this.config.hiddenItems,
+        );
+        return tokens.some(
+            (token) =>
+                exactListTokenName(token) === normalized && !/[<>]\s*\d+$/.test(token.trim()),
+        );
+    }
+
+    /** Toggle an unconditional exact item name and remove exact conflicts. */
+    toggleItemList(itemName: string, list: "highlight" | "hide"): void {
+        const normalized = normalizeName(itemName);
+        if (normalized.length === 0) return;
+        const highlighted = tokenizeItemList(this.config.highlightedItems);
+        const hidden = tokenizeItemList(this.config.hiddenItems);
+        const selected = list === "highlight" ? highlighted : hidden;
+        const opposite = list === "highlight" ? hidden : highlighted;
+        const selectedHasName = selected.some((token) => {
+            if (exactListTokenName(token) !== normalized) return false;
+            return !/[<>]\s*\d+$/.test(token.trim());
+        });
+        const removeExactName = (tokens: string[]) =>
+            tokens.filter((token) => exactListTokenName(token) !== normalized);
+        const nextSelected = removeExactName(selected);
+        const nextOpposite = removeExactName(opposite);
+        if (!selectedHasName) nextSelected.push(itemName.trim());
+        this.setConfig(
+            list === "highlight"
+                ? {
+                      highlightedItems: nextSelected.join(", "),
+                      hiddenItems: nextOpposite.join(", "),
+                  }
+                : {
+                      hiddenItems: nextSelected.join(", "),
+                      highlightedItems: nextOpposite.join(", "),
+                  },
+        );
     }
 
     getMenuTargetName(stack: ClientGroundItemStack, baseName?: string): string {
@@ -499,14 +851,41 @@ export class GroundItemsPlugin {
         if (!this.config.enabled) {
             return targetName;
         }
-        if (!this.config.recolorMenuHiddenItems) {
-            return targetName;
-        }
         const evaluation = this.evaluateStack(stack, { respectOwnershipFilter: false });
-        if (!evaluation.hidden) {
-            return targetName;
+        if (!this.shouldColorMenuEvaluation(evaluation)) return targetName;
+        if (this.config.menuHighlightMode === "option") return targetName;
+        return colorTag(evaluation.color, targetName);
+    }
+
+    getMenuOptionColorized(stack: ClientGroundItemStack, option: string): string {
+        if (!this.config.enabled) return option;
+        const evaluation = this.evaluateStack(stack, { respectOwnershipFilter: false });
+        if (!this.shouldColorMenuEvaluation(evaluation)) return option;
+        if (this.config.menuHighlightMode === "name") return option;
+        return colorTag(evaluation.color, option);
+    }
+
+    getMenuStyle(
+        stack: ClientGroundItemStack,
+        option: string,
+        baseName?: string,
+    ): { option: string; targetName: string; evaluation: GroundItemEvaluation } {
+        const targetName = this.getMenuTargetName(stack, baseName);
+        const evaluation = this.evaluateStack(stack, { respectOwnershipFilter: false });
+        if (!this.config.enabled || !this.shouldColorMenuEvaluation(evaluation)) {
+            return { option, targetName, evaluation };
         }
-        return `<col=${(evaluation.color >>> 0).toString(16).padStart(6, "0")}>${targetName}</col>`;
+        return {
+            option:
+                this.config.menuHighlightMode === "name"
+                    ? option
+                    : colorTag(evaluation.color, option),
+            targetName:
+                this.config.menuHighlightMode === "option"
+                    ? targetName
+                    : colorTag(evaluation.color, targetName),
+            evaluation,
+        };
     }
 
     shouldDeprioritizeInMenu(stack: ClientGroundItemStack): boolean {
@@ -519,24 +898,38 @@ export class GroundItemsPlugin {
         return this.evaluateStack(stack, { respectOwnershipFilter: false }).hidden;
     }
 
-    private getTierColor(
+    private shouldColorMenuEvaluation(evaluation: GroundItemEvaluation): boolean {
+        if (evaluation.hidden) return this.config.recolorMenuHiddenItems;
+        if (this.config.itemHighlightMode !== "both" && this.config.itemHighlightMode !== "menu") {
+            return false;
+        }
+        return (
+            evaluation.highlighted ||
+            (evaluation.matchedRules.length > 0 && evaluation.color !== this.config.defaultColor)
+        );
+    }
+
+    private getTier(
         geValue: number,
         haValue: number,
         config: GroundItemsPluginConfig,
-    ): number | undefined {
+    ): GroundItemsValueTier {
         const value = valueByMode(geValue, haValue, config.valueCalculationMode);
-        if (config.insaneValuePrice > 0 && value >= config.insaneValuePrice) {
-            return config.insaneValueColor;
-        }
-        if (config.highValuePrice > 0 && value >= config.highValuePrice) {
-            return config.highValueColor;
-        }
-        if (config.mediumValuePrice > 0 && value >= config.mediumValuePrice) {
-            return config.mediumValueColor;
-        }
-        if (config.lowValuePrice > 0 && value >= config.lowValuePrice) {
-            return config.lowValueColor;
-        }
+        if (config.insaneValuePrice > 0 && value > config.insaneValuePrice) return "insane";
+        if (config.highValuePrice > 0 && value > config.highValuePrice) return "high";
+        if (config.mediumValuePrice > 0 && value > config.mediumValuePrice) return "medium";
+        if (config.lowValuePrice > 0 && value > config.lowValuePrice) return "low";
+        return "none";
+    }
+
+    private getTierColor(
+        tier: GroundItemsValueTier,
+        config: GroundItemsPluginConfig,
+    ): number | undefined {
+        if (tier === "insane") return config.insaneValueColor;
+        if (tier === "high") return config.highValueColor;
+        if (tier === "medium") return config.mediumValueColor;
+        if (tier === "low") return config.lowValueColor;
         return undefined;
     }
 
@@ -544,8 +937,10 @@ export class GroundItemsPlugin {
         patterns: CompiledPattern[],
         normalizedName: string,
         quantity: number,
+        wildcard: boolean,
     ): boolean {
         for (const pattern of patterns) {
+            if (pattern.wildcard !== wildcard) continue;
             const nameMatches =
                 pattern.exact !== undefined
                     ? pattern.exact === normalizedName
@@ -578,8 +973,7 @@ export class GroundItemsPlugin {
             recolorMenuHiddenItems:
                 src.recolorMenuHiddenItems === true ? true : DEFAULT_CONFIG.recolorMenuHiddenItems,
             showMenuItemQuantities: src.showMenuItemQuantities !== false,
-            dontHideUntradeables:
-                src.dontHideUntradeables !== false ? true : DEFAULT_CONFIG.dontHideUntradeables,
+            dontHideUntradeables: src.dontHideUntradeables !== false,
             hideUnderValue: sanitizeNumber(src.hideUnderValue, DEFAULT_CONFIG.hideUnderValue),
             priceDisplayMode: sanitizeMode(src.priceDisplayMode, DEFAULT_CONFIG.priceDisplayMode),
             valueCalculationMode: sanitizeValueMode(
@@ -605,16 +999,56 @@ export class GroundItemsPlugin {
                 src.despawnTimerMode,
                 DEFAULT_CONFIG.despawnTimerMode,
             ),
+            itemHighlightMode: sanitizeItemHighlightMode(
+                src.itemHighlightMode,
+                DEFAULT_CONFIG.itemHighlightMode,
+            ),
+            menuHighlightMode: sanitizeMenuHighlightMode(
+                src.menuHighlightMode,
+                DEFAULT_CONFIG.menuHighlightMode,
+            ),
+            highlightTiles: src.highlightTiles === true,
+            tileHighlightFillAlpha: sanitizeAlpha(
+                src.tileHighlightFillAlpha,
+                DEFAULT_CONFIG.tileHighlightFillAlpha,
+            ),
+            textOutline: src.textOutline !== false,
+            collapseGroundItemMenu: src.collapseGroundItemMenu === true,
+            menuSortMode: sanitizeMenuSortMode(src.menuSortMode, DEFAULT_CONFIG.menuSortMode),
+            lootBeamEnabled: src.lootBeamEnabled !== false,
+            lootBeamForHighlightedItems: src.lootBeamForHighlightedItems !== false,
+            lootBeamStyle: sanitizeLootBeamStyle(
+                src.lootBeamStyle,
+                DEFAULT_CONFIG.lootBeamStyle,
+            ),
+            lootBeamMinimumTier: sanitizeTier(
+                src.lootBeamMinimumTier,
+                DEFAULT_CONFIG.lootBeamMinimumTier,
+            ),
+            doubleTapDelayMs: Math.min(
+                5_000,
+                sanitizeNumber(src.doubleTapDelayMs, DEFAULT_CONFIG.doubleTapDelayMs),
+            ),
+            notifyHighlightedDrops: src.notifyHighlightedDrops === true,
+            notifyMinimumTier: sanitizeNotificationTier(
+                src.notifyMinimumTier,
+                DEFAULT_CONFIG.notifyMinimumTier,
+            ),
+            advancedFilterRules:
+                typeof src.advancedFilterRules === "string"
+                    ? src.advancedFilterRules
+                    : DEFAULT_CONFIG.advancedFilterRules,
         };
     }
 
-    private commit(): void {
+    private commit(persist = true): void {
         this.version++;
         this.state = {
             config: this.config,
             version: this.version,
+            ruleDiagnostics: this.compiledRules.diagnostics,
         };
-        this.persistence?.save(this.config);
+        if (persist) this.persistence?.save(this.config);
         for (const listener of this.listeners) {
             try {
                 listener();

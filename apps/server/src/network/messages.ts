@@ -68,6 +68,17 @@ export type GroundItemStackMessage = {
     itemId: number;
     quantity: number;
     tile: { x: number; y: number; level: number };
+    /** Authoritative item-definition metadata used by client loot filters. */
+    name?: string;
+    /** Display/guide value from the server item definition (coins each). */
+    value?: number;
+    /** Exact high-alchemy value from the server item definition (coins each). */
+    highAlch?: number;
+    tradeable?: boolean;
+    stackable?: boolean;
+    noted?: boolean;
+    /** Canonical unnoted item id when the relationship is known safely. */
+    unnotedItemId?: number;
     createdTick?: number;
     privateUntilTick?: number;
     expiresTick?: number;

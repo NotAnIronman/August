@@ -397,6 +397,9 @@ function decodeClientPacketUnchecked(
             const quantity = reader.readInt() || undefined;
             const option = reader.readString() || undefined;
             const opNum = reader.readByte() || undefined;
+            // Optional trailer keeps packets from clients predating modifier
+            // propagation valid while preserving it for current clients.
+            const modifierFlags = reader.remaining > 0 ? reader.readByte() || undefined : undefined;
             return {
                 type: "ground_item_action",
                 payload: {
@@ -406,6 +409,7 @@ function decodeClientPacketUnchecked(
                     quantity,
                     option,
                     opNum,
+                    modifierFlags,
                 },
             };
         }

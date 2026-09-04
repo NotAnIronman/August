@@ -2,6 +2,7 @@ import { App as PicoApp, UniformBuffer } from "picogl";
 
 import type { GroundItemOverlayEntry } from "@client/engine/game/data/ground/GroundItemStore";
 import type { TileHighlightRenderEntry } from "@client/engine/game/highlights/TileHighlightManager";
+import type { GroundItemEffectEntry } from "@client/engine/rendering/overlays/GroundItemEffectsOverlay";
 
 export enum RenderPhase {
     ToSceneFramebuffer = "toSceneFramebuffer",
@@ -158,6 +159,8 @@ export interface OverlayUpdateArgs {
         overheadTexts?: OverheadTextEntry[];
         overheadPrayers?: OverheadPrayerEntry[];
         groundItems?: GroundItemOverlayEntry[];
+        /** One pre-classified ground-item tile effect per world tile. */
+        groundItemEffects?: ReadonlyArray<GroundItemEffectEntry>;
         /** Current game cycle (20ms client ticks) used for health bar timing. */
         gameCycle?: number;
         /**
@@ -179,11 +182,19 @@ export interface OverlayUpdateArgs {
             radiusFine: number,
         ) => number;
         sampleHeightAtExactPlane: (worldX: number, worldZ: number, plane: number) => number;
+        /** Resolve the render-height plane without changing interaction or stack semantics. */
+        getHeightSamplePlaneForTile: (
+            tileX: number,
+            tileY: number,
+            basePlane: number,
+        ) => number;
         getEffectivePlaneForTile: (tileX: number, tileY: number, basePlane: number) => number;
         getOccupancyPlaneForTile?: (tileX: number, tileY: number, basePlane: number) => number;
         getTileRenderFlagAt: (level: number, tileX: number, tileY: number) => number;
         isBridgeSurfaceTile?: (tileX: number, tileY: number, plane: number) => boolean;
         worldToScreen?: (x: number, y: number, z: number) => Float32Array | number[] | undefined;
+        /** Screen-space game viewport in top-left-origin framebuffer pixels. */
+        getSceneViewportRect?: () => { x: number; y: number; width: number; height: number };
         getCollisionFlagAt?: (level: number, tileX: number, tileY: number) => number;
     };
 }

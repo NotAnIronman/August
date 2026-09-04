@@ -119,7 +119,10 @@ export function inferMenuAction(
     _targetType?: MenuTargetType,
 ): MenuAction | undefined {
     if (!option) return undefined;
-    const s = String(option).trim().toLowerCase();
+    // Plugin-facing menu entries may decorate the visible option with RuneScape
+    // markup. Classification must use the semantic text or colored Take/Examine
+    // entries are mistaken for custom actions.
+    const s = String(option).replace(/<[^>]*>/g, "").trim().toLowerCase();
     switch (s) {
         case "cast":
             return MenuAction.Cast;

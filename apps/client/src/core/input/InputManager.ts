@@ -953,7 +953,7 @@ export class InputManager {
             }
             this.osrsKeyState[osrsKeyCode] = 1;
             this.osrsKeyPressedThisFrame.add(osrsKeyCode);
-            if (osrsKeyCode === 81 || osrsKeyCode === 82) {
+            if (osrsKeyCode === 81 || osrsKeyCode === 82 || osrsKeyCode === 86) {
                 ClientState.setKeybindState(osrsKeyCode, true);
             }
         }
@@ -1011,7 +1011,7 @@ export class InputManager {
                 this.keyArray[osrsKeyCode] = 0;
             }
             this.osrsKeyState[osrsKeyCode] = 0;
-            if (osrsKeyCode === 81 || osrsKeyCode === 82) {
+            if (osrsKeyCode === 81 || osrsKeyCode === 82 || osrsKeyCode === 86) {
                 ClientState.setKeybindState(osrsKeyCode, false);
             }
         }
@@ -1033,6 +1033,7 @@ export class InputManager {
         this.keys.clear();
         ClientState.setKeybindState(81, false);
         ClientState.setKeybindState(82, false);
+        ClientState.setKeybindState(86, false);
         this.resetMouse();
     };
 
