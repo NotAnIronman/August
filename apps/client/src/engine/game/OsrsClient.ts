@@ -6,11 +6,6 @@ import type { ProjectileLaunch } from "@august/protocol/projectiles/ProjectileLa
 import { buildSelectedSpellPayload } from "@august/protocol/spells/selectedSpellPayload";
 import type { QuestListWidgetGroup } from "@august/protocol/ui/questList";
 import {
-    BOSS_HEALTH_BAR_GROUP_ID,
-    BossHealthBarComponent,
-    bossHealthBarUid,
-} from "@august/protocol/ui/bossHealthBar";
-import {
     INTERFACE_ACHIEVEMENT_DIARY_ID,
     INTERFACE_QUEST_LIST_ID,
     SIDE_JOURNAL_GROUP_ID,
@@ -246,6 +241,7 @@ import { ChatTextMetrics } from "@client/features/chat/ChatTextMetrics";
 import { EnterToTypeChat } from "@client/features/chat/EnterToTypeChat";
 import { MobileChatKeyboard } from "@client/features/chat/MobileChatKeyboard";
 import { CombatOptionsController } from "@client/features/combat/CombatOptionsController";
+import { BossHealthHudStore } from "@client/features/boss-health/BossHealthHudStore";
 import { HitsplatFlushController } from "@client/features/combat/HitsplatFlushController";
 import { ClientScriptLoader } from "@client/engine/cs2/ClientScriptLoader";
 import {
@@ -499,6 +495,8 @@ export class OsrsClient {
 
     /** Renderer-agnostic sidebar state/registry. */
     readonly sidebar: SidebarStore<ClientSidebarEntryData>;
+    /** Packet-driven DOM presentation for the active encounter. */
+    readonly bossHealthHud: BossHealthHudStore = new BossHealthHudStore();
     readonly groundItemsPlugin: GroundItemsPlugin;
     readonly interactHighlightPlugin: InteractHighlightPlugin;
     readonly notesPlugin: NotesPlugin;
@@ -2323,36 +2321,6 @@ export class OsrsClient {
                         payload.groupId,
                         payload.type,
                     );
-                    if ((payload.groupId | 0) === BOSS_HEALTH_BAR_GROUP_ID) {
-                        // The stock top-level script normally reveals these
-                        // cache widgets during its own bootstrap. Instances can
-                        // open after that bootstrap, so explicitly reveal every
-                        // known native component on every mount — not just the
-                        // container, or the bar renders as an empty shell with
-                        // no visible fill/value even though it's "open".
-                        for (const component of [
-                            BossHealthBarComponent.Root,
-                            BossHealthBarComponent.Health,
-                            BossHealthBarComponent.Name,
-                            BossHealthBarComponent.Empty,
-                            BossHealthBarComponent.FillDark,
-                            BossHealthBarComponent.FillLight,
-                            BossHealthBarComponent.Value,
-                        ]) {
-                            const widget = this.widgetManager.getWidgetByUid(bossHealthBarUid(component));
-                            if (!widget) {
-                                console.warn(
-                                    `[BossHealthBar] component ${component} not found at uid ${bossHealthBarUid(
-                                        component,
-                                    ).toString(16)} — cache tree may differ from expected layout`,
-                                );
-                                continue;
-                            }
-                            widget.hidden = false;
-                            widget.isHidden = false;
-                            this.widgetManager.invalidateWidget(widget, "boss-health-bar-open");
-                        }
-                    }
                     this.applyKnownMissingBackgroundFix(payload.groupId);
                     this.cs2Vm.clearHandlerCaches();
                     markWidgetsLoaded();
@@ -2887,6 +2855,8 @@ export class OsrsClient {
                         console.warn(`[OsrsClient] run_script: script ${scriptId} not found`);
                     }
                 }
+            } else if (payload?.action === "set_boss_health_bar") {
+                this.bossHealthHud.ingest(payload);
             } else if ((payload as any)?.action === "set_varbits") {
                 // Server-initiated varbit sync without running a script
                 // Used when server needs to update varbits but client handles UI via onVartransmit
@@ -3296,6 +3266,9 @@ export class OsrsClient {
             this.trackServerSubscription(
                 subscribeDisconnect(({ willReconnect }) => {
                     try {
+                        // A transport loss can strand the last encounter UI if
+                        // the server never gets a chance to send active:false.
+                        this.bossHealthHud.reset();
                         if (willReconnect) {
                             // Show "Connection lost - attempting to reestablish" message
                             this.updateGameState(GameState.CONNECTION_LOST);
@@ -7940,6 +7913,7 @@ export class OsrsClient {
         this._collectionLogCategoryCompletion = null;
         this._collectionLogLastCategoryDraw = undefined;
         this._collectionLogLayoutSnapshot = null;
+        this.bossHealthHud.reset();
 
         // Clear ground items
         try {

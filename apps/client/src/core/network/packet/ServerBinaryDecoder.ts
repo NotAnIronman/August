@@ -13,6 +13,10 @@ import {
 import { SERVER_MESSAGE_LENGTHS, ServerMessageId } from "@august/protocol/transport/messages/ServerMessage";
 import type { ProjectileLaunch } from "@august/protocol/projectiles/ProjectileLaunch";
 import type { FriendsChatSnapshot } from "@august/protocol/social/FriendsChat";
+import {
+    bossHealthBarMarkerStyleFromId,
+    type BossHealthBarMarker,
+} from "@august/protocol/ui/bossHealthBar";
 import type { WorldEntityBuildArea } from "@august/protocol/worldentity/WorldEntityTypes";
 
 /**
@@ -1009,6 +1013,44 @@ function decodeServerPacketUnchecked(
                     transparency: reader.readByte(),
                 },
             };
+
+        case ServerMessageId.WIDGET_SET_BOSS_HEALTH_BAR: {
+            const active = reader.readBoolean();
+            if (!active) {
+                return {
+                    type: "widget",
+                    payload: { action: "set_boss_health_bar", active: false },
+                };
+            }
+            const npcTypeId = reader.readInt();
+            const current = reader.readInt();
+            const maximum = reader.readInt();
+            const name = reader.readString();
+            const markerCount = reader.readByte();
+            const markers: BossHealthBarMarker[] = [];
+            for (let index = 0; index < markerCount; index++) {
+                const percent = reader.readShort() / 100;
+                const style = bossHealthBarMarkerStyleFromId(reader.readByte());
+                const label = reader.readString() || undefined;
+                markers.push({
+                    percent,
+                    ...(label ? { label } : {}),
+                    ...(style ? { style } : {}),
+                });
+            }
+            return {
+                type: "widget",
+                payload: {
+                    action: "set_boss_health_bar",
+                    active: true,
+                    npcTypeId,
+                    name,
+                    current,
+                    maximum,
+                    markers,
+                },
+            };
+        }
 
         case ServerMessageId.WIDGET_SET_NPC_HEAD:
             return {

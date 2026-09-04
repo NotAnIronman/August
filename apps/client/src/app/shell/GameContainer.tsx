@@ -12,6 +12,7 @@ import "@client/app/shell/GameContainer.css";
 import { GameRenderer } from "@client/engine/rendering/core/GameRenderer";
 import { OsrsClient } from "@client/engine/game/OsrsClient";
 import { SidebarShell } from "@client/features/sidebar/SidebarShell";
+import { BossHealthHud } from "@client/features/boss-health";
 
 const DebugControls = lazy(async () => {
     const module = await import("@client/dev/components/DebugControls");
@@ -360,6 +361,10 @@ export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
                 <div className="game-canvas-shell">
                     <div className="game-canvas-stage">
                         {loadingBarOverlay}
+
+                        {!hideUi && !osrsClient.isOnLoginScreen() && (
+                            <BossHealthHud store={osrsClient.bossHealthHud} />
+                        )}
 
                         <div className="hud right-top">
                             <div className="fps-counter content-text">

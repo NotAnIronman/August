@@ -5,11 +5,13 @@ import {
     BossHealthBarComponent,
     BossHealthBarVar,
     BossHealthBarVarbit,
-    bossHealthBarUid,
     formatBossHealthValue,
+    normalizeBossHealthBarMarkers,
+    type BossHealthBarMarker,
 } from "@august/protocol/ui/bossHealthBar";
 import { decodeServerPacket } from "@client/core/network/packet/ServerBinaryDecoder";
 import {
+    InstanceBossHealthBarLifecycle,
     closeBossHealthBar,
     openBossHealthBar,
     updateBossHealthBar,
@@ -17,10 +19,9 @@ import {
 import type { PlayerState } from "@server/game/player";
 import type { ScriptServices } from "@server/game/scripts/types";
 import { PlayerVarpState } from "@server/game/state/PlayerVarpState";
-import { DisplayMode } from "@server/widgets/viewport";
-import { ServerBinaryEncoder } from "@server/network/packet/ServerBinaryEncoder";
+import { encodeMessage } from "@server/network/messages";
 
-assert.equal(BOSS_HEALTH_BAR_GROUP_ID, 303, "the cache-native hpbar_hud group is used");
+assert.equal(BOSS_HEALTH_BAR_GROUP_ID, 303, "the legacy hpbar_hud identifier remains stable");
 assert.deepEqual(BossHealthBarComponent, {
     Root: 0,
     Health: 5,
@@ -32,6 +33,32 @@ assert.deepEqual(BossHealthBarComponent, {
 });
 assert.equal(formatBossHealthValue(200, 255), "200/255 | 78%");
 assert.equal(formatBossHealthValue(999, 255), "255/255 | 100%");
+assert.deepEqual(
+    normalizeBossHealthBarMarkers([
+        { percent: 25, label: "  Final stand  ", style: "danger" },
+        { percent: 75.126, label: "Adds", style: "mechanic" },
+        { percent: 75.127, label: "duplicate rounds to same basis point", style: "phase" },
+        { percent: 100, label: "not a useful notch" },
+        { percent: 0, label: "death" },
+    ]),
+    [
+        { percent: 75.13, label: "Adds", style: "mechanic" },
+        { percent: 25, label: "Final stand", style: "danger" },
+    ],
+);
+const cappedMarkers = normalizeBossHealthBarMarkers(
+    Array.from({ length: 40 }, (_, index) => ({
+        percent: 99 - index,
+        label: index === 0 ? `\0${"x".repeat(80)}` : `Gate ${index}`,
+    })),
+);
+assert.equal(cappedMarkers.length, 32, "the wire payload has a defensive marker cap");
+assert.equal(cappedMarkers[0]?.label?.length, 64, "marker labels are sanitized and capped");
+
+const markers = [
+    { percent: 75, label: "Summon reinforcements", style: "mechanic" as const },
+    { percent: 50, label: "Enraged phase", style: "phase" as const },
+];
 
 const persistedState = new PlayerVarpState();
 persistedState.setVarpValue(BossHealthBarVar.NpcType, 2215);
@@ -42,7 +69,7 @@ persistedState.setVarbitValue(BossHealthBarVarbit.Disabled, 1);
 assert.deepEqual(
     persistedState.serialize(),
     { varbits: { [BossHealthBarVarbit.Disabled]: 1 } },
-    "encounter HUD values stay transient without discarding the player's visibility preference",
+    "legacy cache HUD values stay transient without discarding the player's visibility preference",
 );
 persistedState.deserialize({
     varps: { [BossHealthBarVar.NpcType]: 2215 },
@@ -59,57 +86,29 @@ assert.equal(persistedState.getVarbitValue(BossHealthBarVarbit.Maximum), 0);
 assert.equal(persistedState.getVarbitValue(BossHealthBarVarbit.Boss), 0);
 assert.equal(persistedState.getVarbitValue(BossHealthBarVarbit.Disabled), 1);
 
-const storedVarps = new Map<number, number>();
-const storedVarbits = new Map<number, number>([[BossHealthBarVarbit.Disabled, 1]]);
-let widgetIsOpen = false;
 const player = {
     id: 42,
-    displayMode: DisplayMode.RESIZABLE_NORMAL,
-    varps: {
-        getVarbitValue: (id: number) => storedVarbits.get(id) ?? 0,
-        setVarpValue: (id: number, value: number) => storedVarps.set(id, value),
-        setVarbitValue: (id: number, value: number) => storedVarbits.set(id, value),
-    },
-    widgets: {
-        isOpen: (groupId: number) =>
-            groupId === BOSS_HEALTH_BAR_GROUP_ID && widgetIsOpen,
-    },
 } as unknown as PlayerState;
 
-const opens: Array<{
-    targetUid: number;
-    groupId: number;
-    type: number;
-    opts: Record<string, unknown>;
-}> = [];
-const closes: Array<{ targetUid: number; groupId?: number }> = [];
 const widgetEvents: Array<Record<string, unknown>> = [];
-const sentVarps: Array<[number, number]> = [];
-const sentVarbits: Array<[number, number]> = [];
 const services = {
     dialog: {
-        openSubInterface: (
-            _player: PlayerState,
-            targetUid: number,
-            groupId: number,
-            type: number,
-            opts: Record<string, unknown>,
-        ) => {
-            opens.push({ targetUid, groupId, type, opts });
-            if (groupId === BOSS_HEALTH_BAR_GROUP_ID) widgetIsOpen = true;
+        openSubInterface: () => {
+            throw new Error("the custom boss HUD must not mount a native interface");
         },
-        closeSubInterface: (_player: PlayerState, targetUid: number, groupId?: number) => {
-            closes.push({ targetUid, groupId });
-            if (groupId === BOSS_HEALTH_BAR_GROUP_ID) widgetIsOpen = false;
+        closeSubInterface: () => {
+            throw new Error("the custom boss HUD must not close a native interface");
         },
         queueWidgetEvent: (_playerId: number, event: Record<string, unknown>) =>
             widgetEvents.push(event),
     },
     variables: {
-        sendVarp: (_player: PlayerState, id: number, value: number) =>
-            sentVarps.push([id, value]),
-        sendVarbit: (_player: PlayerState, id: number, value: number) =>
-            sentVarbits.push([id, value]),
+        sendVarp: () => {
+            throw new Error("the custom boss HUD must not send legacy varps");
+        },
+        sendVarbit: () => {
+            throw new Error("the custom boss HUD must not send legacy varbits");
+        },
     },
 } as unknown as ScriptServices;
 
@@ -118,125 +117,100 @@ openBossHealthBar(player, services, {
     name: "General Graardor",
     current: 255,
     maximum: 255,
+    markers,
 });
 
-assert.deepEqual(opens, [
+assert.deepEqual(widgetEvents, [
     {
-        targetUid: (161 << 16) | 44,
-        groupId: 303,
-        type: 1,
-        opts: {
-            modal: false,
-            varps: { [BossHealthBarVar.NpcType]: 2215 },
-            varbits: {
-                [BossHealthBarVarbit.Current]: 255,
-                [BossHealthBarVarbit.Maximum]: 255,
-                [BossHealthBarVarbit.Boss]: 1,
-                [BossHealthBarVarbit.Disabled]: 0,
-            },
-        },
+        action: "set_boss_health_bar",
+        active: true,
+        npcTypeId: 2215,
+        name: "General Graardor",
+        current: 255,
+        maximum: 255,
+        markers,
     },
 ]);
-assert.equal(storedVarps.get(BossHealthBarVar.NpcType), 2215);
-assert.equal(storedVarbits.get(BossHealthBarVarbit.Current), 255);
-assert.equal(storedVarbits.get(BossHealthBarVarbit.Boss), 1);
 
-const decodedOpen = decodeServerPacket(
-    new ServerBinaryEncoder().encodeWidgetOpenSub(
-        (161 << 16) | 44,
-        BOSS_HEALTH_BAR_GROUP_ID,
-        1,
-        { [BossHealthBarVar.NpcType]: 2215 },
-        {
-            [BossHealthBarVarbit.Current]: 255,
-            [BossHealthBarVarbit.Maximum]: 255,
-            [BossHealthBarVarbit.Boss]: 1,
-            [BossHealthBarVarbit.Disabled]: 0,
+const decodedHud = decodeServerPacket(
+    encodeMessage({
+        type: "widget",
+        payload: {
+            action: "set_boss_health_bar",
+            active: true,
+            npcTypeId: 2215,
+            name: "General Graardor",
+            current: 200,
+            maximum: 255,
+            markers,
         },
-    ),
+    }),
 );
-assert.equal(decodedOpen?.type, "widget");
-assert.equal(decodedOpen?.payload?.action, "open_sub");
-assert.equal(decodedOpen?.payload?.groupId, BOSS_HEALTH_BAR_GROUP_ID);
-assert.equal(decodedOpen?.payload?.varbits?.[BossHealthBarVarbit.Boss], 1);
-assert.ok(
-    widgetEvents.some(
-        (event) =>
-            event.action === "set_text" &&
-            event.uid === bossHealthBarUid(BossHealthBarComponent.Name) &&
-            event.text === "General Graardor",
-    ),
-);
+assert.deepEqual(decodedHud, {
+    type: "widget",
+    payload: {
+        action: "set_boss_health_bar",
+        active: true,
+        npcTypeId: 2215,
+        name: "General Graardor",
+        current: 200,
+        maximum: 255,
+        markers,
+    },
+});
 
 updateBossHealthBar(player, services, {
     npcTypeId: 2215,
     name: "General Graardor",
     current: 200,
     maximum: 255,
+    markers,
 });
-assert.deepEqual(sentVarps.at(-1), [BossHealthBarVar.NpcType, 2215]);
-assert.deepEqual(sentVarbits.slice(-4), [
-    [BossHealthBarVarbit.Maximum, 255],
-    [BossHealthBarVarbit.Current, 200],
-    [BossHealthBarVarbit.Boss, 1],
-    [BossHealthBarVarbit.Disabled, 0],
-]);
-
-player.displayMode = DisplayMode.FIXED;
-updateBossHealthBar(player, services, {
-    npcTypeId: 2215,
-    name: "General Graardor",
-    current: 200,
-    maximum: 255,
-});
-assert.deepEqual(closes.at(-1), {
-    targetUid: (161 << 16) | 44,
-    groupId: BOSS_HEALTH_BAR_GROUP_ID,
-});
-assert.equal(opens.at(-1)?.targetUid, (548 << 16) | 44);
-
-const opensBeforeLedgerRepair = opens.length;
-widgetIsOpen = false;
-updateBossHealthBar(player, services, {
-    npcTypeId: 2215,
-    name: "General Graardor",
-    current: 200,
-    maximum: 255,
-});
-assert.equal(
-    opens.length,
-    opensBeforeLedgerRepair + 1,
-    "a replaced native sub-interface is repaired even when health is unchanged",
-);
+assert.equal(widgetEvents.length, 2, "one changed health snapshot emits one HUD packet");
+assert.equal(widgetEvents.at(-1)?.current, 200);
 
 closeBossHealthBar(player, services);
-assert.deepEqual(closes.at(-1), {
-    targetUid: (548 << 16) | 44,
-    groupId: BOSS_HEALTH_BAR_GROUP_ID,
+assert.deepEqual(widgetEvents.at(-1), {
+    action: "set_boss_health_bar",
+    active: false,
 });
-assert.equal(storedVarps.get(BossHealthBarVar.NpcType), -1);
-assert.equal(storedVarbits.get(BossHealthBarVarbit.Boss), 0);
-assert.ok(
-    sentVarbits.some(
-        ([id, value]) => id === BossHealthBarVarbit.Boss && value === 0,
+assert.deepEqual(
+    decodeServerPacket(
+        encodeMessage({
+            type: "widget",
+            payload: { action: "set_boss_health_bar", active: false },
+        }),
     ),
-    "closing the encounter deactivates the cache's boss HUD mode",
+    {
+        type: "widget",
+        payload: { action: "set_boss_health_bar", active: false },
+    },
 );
-assert.deepEqual(sentVarbits.at(-1), [BossHealthBarVarbit.Disabled, 1]);
+assert.equal(widgetEvents.length, 3, "closing emits exactly one inactive HUD packet");
+
+let lifecycleMarkers: readonly BossHealthBarMarker[] = markers;
+const lifecycle = new InstanceBossHealthBarLifecycle(() => services);
+const resolveLifecycleSnapshot = () => ({
+    npcTypeId: 2215,
+    name: "General Graardor",
+    current: 200,
+    maximum: 255,
+    markers: lifecycleMarkers,
+});
+const lifecycleStart = widgetEvents.length;
+lifecycle.enter(player, resolveLifecycleSnapshot);
+assert.equal(widgetEvents.length, lifecycleStart + 1);
+lifecycle.sync();
+assert.equal(widgetEvents.length, lifecycleStart + 1, "identical snapshots are deduplicated");
+lifecycleMarkers = [{ percent: 25, label: "Final stand", style: "danger" as const }];
+lifecycle.sync();
 assert.equal(
-    storedVarbits.get(BossHealthBarVarbit.Disabled),
-    1,
-    "an encounter must restore the player's pre-existing native HUD visibility preference",
+    widgetEvents.length,
+    lifecycleStart + 2,
+    "marker-only changes participate in lifecycle deduplication",
 );
-assert.equal(
-    widgetEvents.some(
-        (event) =>
-            event.action === "set_hidden" &&
-            event.uid === ((548 << 16) | 44) &&
-            event.hidden === true,
-    ),
-    false,
-    "closing the sub-interface must not leave the cache HUD mount hidden",
-);
+lifecycle.leave(player);
+assert.equal(widgetEvents.length, lifecycleStart + 3);
+assert.deepEqual(widgetEvents.at(-1), { action: "set_boss_health_bar", active: false });
 
 console.log("boss health bar lifecycle tests passed");

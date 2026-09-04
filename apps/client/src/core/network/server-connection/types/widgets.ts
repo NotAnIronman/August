@@ -1,3 +1,5 @@
+import type { BossHealthBarState } from "@august/protocol/ui/bossHealthBar";
+
 export type WidgetServerPayload =
     | {
           action: "close" | "open";
@@ -113,7 +115,8 @@ export type WidgetServerPayload =
               title: string;
               quests: Array<{ key: string; slot: number; displayName: string; status: number }>;
           }>;
-      };
+      }
+    | ({ action: "set_boss_health_bar" } & BossHealthBarState);
 
 export type WidgetActionClientPayload = {
     widgetId: number;

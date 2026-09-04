@@ -138,7 +138,11 @@ function registerEncounters(registry: IScriptRegistry): void {
             // inert, interactable corpse and must never inherit Araxxor's
             // combat target or attack plan.
             id: "araxxor", npcTypeIds: [ARAXXOR_ID], maxHealth: 1020,
-            bossHealthBar: { name: "Araxxor", npcTypeId: ARAXXOR_ID },
+            bossHealthBar: {
+                name: "Araxxor",
+                npcTypeId: ARAXXOR_ID,
+                markers: [{ percent: 25, label: "Enrage", style: "danger" }],
+            },
             // catalog collection-log.json: Araxxor is boss category struct 995.
             killcount: { name: "Araxxor", collectionLogStructId: 995 },
             movement: { wanderRadius: 5, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },

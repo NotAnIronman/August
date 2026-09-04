@@ -7,9 +7,11 @@ import {
 import type { ServerServices } from "@server/game/ServerServices";
 import {
     InstanceBossHealthBarLifecycle,
+    deriveBossHealthBarMarkers,
     type BossHealthBarSnapshot,
     type InstanceBossHealthBarLifecyclePort,
 } from "@server/game/encounters/BossHealthBar";
+import type { BossHealthBarMarker } from "@august/protocol/ui/bossHealthBar";
 import { EncounterRegistry } from "@server/game/encounters/EncounterRegistry";
 import type { EncounterDefinition } from "@server/game/encounters/EncounterTypes";
 import type { NpcSpawnConfig, NpcState } from "@server/game/npc";
@@ -101,6 +103,7 @@ interface InstanceRuntime {
         readonly definition: EncounterDefinition;
         readonly displayNpcTypeId: number;
         readonly name: string;
+        readonly markers: readonly BossHealthBarMarker[];
         lastMaximum: number;
     };
     started: boolean;
@@ -424,7 +427,7 @@ export class InstancedAreaManager {
         return this.dispose(player, destination);
     }
 
-    /** Refreshes health and repairs a displaced native HUD mount for every member. */
+    /** Sends a changed authoritative boss-HUD snapshot to every member. */
     syncBossHealthBars(): void {
         this.bossHealthBars.sync();
     }
@@ -458,6 +461,7 @@ export class InstancedAreaManager {
             definition,
             displayNpcTypeId: metadata.npcTypeId ?? definition.npcTypeIds[0] ?? npcTypeId,
             name: metadata.name,
+            markers: deriveBossHealthBarMarkers(definition),
             lastMaximum: maximum,
         };
         return true;
@@ -489,6 +493,7 @@ export class InstancedAreaManager {
             name: healthBar.name,
             current: Math.max(0, boss?.getHitpoints() ?? 0),
             maximum: healthBar.lastMaximum,
+            markers: healthBar.markers,
         };
     }
 

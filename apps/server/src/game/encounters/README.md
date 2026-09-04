@@ -111,8 +111,26 @@ share the provider lifetime. Stronghold traversal, access/killcount policy, enco
 rewards remain in content.
 
 Bosses spawned after room creation call `services.instances.attachNpc(instanceId, npc)`. The
-instance manager then owns their visibility and cleanup, mounts the native boss HUD for all members,
-and safely switches that HUD when a sequential encounter (such as the Moons) changes bosses.
+instance manager then owns their visibility and cleanup, mounts the boss HUD for all members, and
+safely switches that HUD when a sequential encounter (such as the Moons) changes bosses. The HUD
+always displays the configured name, exact and percentage health, and a green-to-red bar. Health
+gates are declared once beside the encounter:
+
+```ts
+bossHealthBar: {
+    name: "Example Boss",
+    markers: [
+        { percent: 75, label: "Reinforcements", style: "mechanic" },
+        { percent: 25, label: "Enrage", style: "danger" },
+    ],
+},
+```
+
+Omitting `markers` derives notches from the encounter's thresholds and sub-100% phases. Supplying
+an empty list intentionally renders no notches. The dedicated client presentation is independent of
+cache-interface layout and receives one deduplicated encounter snapshot whenever visible state changes.
+Developers can inspect it without starting a fight using `::bosshud demo`, exercise exact values with
+`::bosshud <current> [maximum] [name]`, and close the preview with `::bosshud hide`.
 
 Live `defineBoss` adopters are Araxxor, Scurrius, Kree'arra, General Graardor, Commander Zilyana,
 K'ril Tsutsaroth, Nex, all three Moons, their encounter minions/forms, Giant Mole, the Dagannoth

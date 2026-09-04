@@ -66,7 +66,16 @@ function registerNexEncounters(registry: IScriptRegistry): void {
             id: "nex",
             npcTypeIds: [11278],
             maxHealth: 3400,
-            bossHealthBar: { name: "Nex", npcTypeId: 11278 },
+            bossHealthBar: {
+                name: "Nex",
+                npcTypeId: 11278,
+                markers: [
+                    { percent: 80, label: "Fumus", style: "phase" },
+                    { percent: 60, label: "Umbra", style: "phase" },
+                    { percent: 40, label: "Cruor", style: "phase" },
+                    { percent: 20, label: "Glacies", style: "danger" },
+                ],
+            },
             killcount: { name: "Nex", collectionLogStructId: 3769 },
             movement: { wanderRadius: 10, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
             immunities: { poison: true, venom: true },

@@ -17,6 +17,23 @@ function isClosePhaseWidgetAction(action: WidgetAction | undefined): boolean {
 }
 
 /**
+ * The boss HUD is a player-scoped snapshot, not a cache interface open/close.
+ * Keep only its final value for the tick so a same-tick enter/leave or boss
+ * replacement cannot be reordered by the broadcaster's native close phase.
+ */
+function latestBossHealthBarEventIndexes(
+    events: readonly { readonly playerId: number; readonly action?: WidgetAction }[],
+): ReadonlyMap<number, number> {
+    const latest = new Map<number, number>();
+    for (let index = 0; index < events.length; index++) {
+        if (events[index]?.action?.action === "set_boss_health_bar") {
+            latest.set(events[index].playerId, index);
+        }
+    }
+    return latest;
+}
+
+/**
  * Broadcasts widget open/close events to players.
  *
  * close events are sent BEFORE varps/varbits to prevent
@@ -62,8 +79,12 @@ export class WidgetBroadcaster implements BroadcastDomain {
     flushOpenEvents(frame: TickFrame, ctx: BroadcastContext): void {
         if (!frame.widgetEvents || frame.widgetEvents.length === 0) return;
 
+        const latestBossHealthBars = latestBossHealthBarEventIndexes(frame.widgetEvents);
         const nonCloseEvents = frame.widgetEvents.filter(
-            (evt: { action?: WidgetAction }) => !isClosePhaseWidgetAction(evt.action),
+            (evt: { playerId: number; action?: WidgetAction }, index: number) =>
+                !isClosePhaseWidgetAction(evt.action) &&
+                (evt.action?.action !== "set_boss_health_bar" ||
+                    latestBossHealthBars.get(evt.playerId) === index),
         );
         for (const evt of nonCloseEvents) {
             try {

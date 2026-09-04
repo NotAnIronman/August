@@ -78,6 +78,7 @@ export const enum ServerMessageId {
     WIDGET_SET_PLAYER_HEAD = 115,
     WIDGET_SET_QUEST_LIST = 116,
     WIDGET_SET_SPRITE = 117,
+    WIDGET_SET_BOSS_HEALTH_BAR = 118,
 
     // ========================================
     // CHAT/MESSAGES (120-129)
@@ -208,6 +209,8 @@ export const SERVER_MESSAGE_LENGTHS: Record<ServerMessageId, number> = {
     [ServerMessageId.WIDGET_SET_PLAYER_HEAD]: 4, // uid(4)
     [ServerMessageId.WIDGET_SET_QUEST_LIST]: -2,
     [ServerMessageId.WIDGET_SET_SPRITE]: 28, // uid(4) + archiveId(4) + frame(4) + x(4) + y(4) + width(4) + height(4), -1 = unchanged
+    // active(1), then identity/health/name and marker[percent basis points/style/label].
+    [ServerMessageId.WIDGET_SET_BOSS_HEALTH_BAR]: -2,
 
     [ServerMessageId.CHAT_MESSAGE]: -1,
     [ServerMessageId.FRIENDS_CHAT_UPDATE]: -2,

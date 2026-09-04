@@ -114,6 +114,30 @@ function testRegistryValidation(): void {
             }),
         /preferred distance/,
     );
+    assert.throws(
+        () =>
+            new EncounterRegistry().register({
+                ...testDefinition(),
+                id: "invalid-hud-marker",
+                bossHealthBar: {
+                    name: "Invalid marker boss",
+                    markers: [{ percent: 100, label: "Not a gate" }],
+                },
+            }),
+        /marker percentage/,
+    );
+    assert.throws(
+        () =>
+            new EncounterRegistry().register({
+                ...testDefinition(),
+                id: "invalid-hud-marker-label",
+                bossHealthBar: {
+                    name: "Invalid marker label boss",
+                    markers: [{ percent: 50, label: "   " }],
+                },
+            }),
+        /marker label/,
+    );
     const namedSpecial = {
         ...testDefinition(),
         id: "named-special",

@@ -126,7 +126,13 @@ function freezeBossDefinition<
     if (definition.thresholds) Object.freeze(definition.thresholds);
     if (definition.movement) Object.freeze(definition.movement);
     if (definition.immunities) Object.freeze(definition.immunities);
-    if (definition.bossHealthBar) Object.freeze(definition.bossHealthBar);
+    if (definition.bossHealthBar) {
+        for (const marker of definition.bossHealthBar.markers ?? []) Object.freeze(marker);
+        if (definition.bossHealthBar.markers) {
+            Object.freeze(definition.bossHealthBar.markers);
+        }
+        Object.freeze(definition.bossHealthBar);
+    }
     if (definition.killcount) Object.freeze(definition.killcount);
     if (definition.mechanics) {
         for (const binding of Object.values(definition.mechanics)) {

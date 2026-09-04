@@ -1,3 +1,7 @@
+import {
+    BOSS_HEALTH_BAR_MARKER_STYLES,
+    BOSS_HEALTH_BAR_MAX_MARKER_LABEL_LENGTH,
+} from "@august/protocol/ui/bossHealthBar";
 import { normalizeNpcSpecialName } from "@server/game/npc/NpcCombatAnimationData";
 import type { EncounterDefinition } from "@server/game/encounters/EncounterTypes";
 import { logger } from "@server/observability/logger";
@@ -120,6 +124,33 @@ export class EncounterRegistry {
                 throw new Error(
                     `Encounter '${definition.id}' boss health bar NPC type must belong to the encounter.`,
                 );
+            }
+            for (const marker of bossHealthBar.markers ?? []) {
+                if (
+                    !Number.isFinite(marker.percent) ||
+                    marker.percent <= 0 ||
+                    marker.percent >= 100
+                ) {
+                    throw new Error(
+                        `Encounter '${definition.id}' boss health bar marker percentage must be between 0 and 100 (exclusive).`,
+                    );
+                }
+                if (marker.label !== undefined) {
+                    const label = marker.label.trim();
+                    if (!label || label.length > BOSS_HEALTH_BAR_MAX_MARKER_LABEL_LENGTH) {
+                        throw new Error(
+                            `Encounter '${definition.id}' boss health bar marker label must contain 1-${BOSS_HEALTH_BAR_MAX_MARKER_LABEL_LENGTH} characters.`,
+                        );
+                    }
+                }
+                if (
+                    marker.style !== undefined &&
+                    !BOSS_HEALTH_BAR_MARKER_STYLES.includes(marker.style)
+                ) {
+                    throw new Error(
+                        `Encounter '${definition.id}' boss health bar marker style is invalid.`,
+                    );
+                }
             }
         }
         const killcount = definition.killcount;

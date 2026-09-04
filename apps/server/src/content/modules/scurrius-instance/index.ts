@@ -146,7 +146,14 @@ function registerEncounters(registry: IScriptRegistry): void {
         id: "scurrius",
         npcTypeIds: [SCURRIUS_ID],
         maxHealth: 150,
-        bossHealthBar: { name: "Scurrius", npcTypeId: SCURRIUS_ID },
+        bossHealthBar: {
+            name: "Scurrius",
+            npcTypeId: SCURRIUS_ID,
+            markers: [
+                { percent: 80, label: "Food pile", style: "mechanic" },
+                { percent: 30, label: "Final phase", style: "danger" },
+            ],
+        },
         killcount: { name: "Scurrius", collectionLogStructId: 777 },
         movement: { wanderRadius: 8, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 40, retreatInteractionRange: 45 },
         attacks: [

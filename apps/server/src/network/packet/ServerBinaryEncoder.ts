@@ -11,6 +11,12 @@ import {
 } from "@august/protocol/transport/messages/ServerMessage";
 import type { ProjectileLaunch } from "@august/protocol/projectiles/ProjectileLaunch";
 import type { FriendsChatSnapshot } from "@august/protocol/social/FriendsChat";
+import {
+    bossHealthBarMarkerStyleToId,
+    normalizeBossHealth,
+    normalizeBossHealthBarMarkers,
+    type BossHealthBarState,
+} from "@august/protocol/ui/bossHealthBar";
 import type { QuestListWidgetGroup } from "@august/protocol/ui/questList";
 import type { WorldEntityBuildArea } from "@august/protocol/worldentity/WorldEntityTypes";
 import type { CameraControlPayload } from "@server/network/messages";
@@ -651,6 +657,30 @@ export class ServerBinaryEncoder {
         this.buffer.writeInt(uid);
         this.buffer.writeByte(Math.max(0, Math.min(255, transparency | 0)));
         return this.buffer.toPacket(ServerMessageId.WIDGET_SET_TRANSPARENCY);
+    }
+
+    encodeWidgetSetBossHealthBar(state: BossHealthBarState): Uint8Array {
+        this.buffer.reset();
+        this.buffer.writeBoolean(state.active);
+        if (state.active) {
+            const health = normalizeBossHealth(state.current, state.maximum);
+            const markers = normalizeBossHealthBarMarkers(state.markers);
+            const name = String(state.name ?? "")
+                .replaceAll("\0", "")
+                .trim()
+                .slice(0, 128);
+            this.buffer.writeInt(Math.max(0, Math.trunc(state.npcTypeId)));
+            this.buffer.writeInt(health.current);
+            this.buffer.writeInt(health.maximum);
+            this.buffer.writeString(name);
+            this.buffer.writeByte(markers.length);
+            for (const marker of markers) {
+                this.buffer.writeShort(Math.round(marker.percent * 100));
+                this.buffer.writeByte(bossHealthBarMarkerStyleToId(marker.style));
+                this.buffer.writeString(marker.label ?? "");
+            }
+        }
+        return this.buffer.toPacket(ServerMessageId.WIDGET_SET_BOSS_HEALTH_BAR);
     }
 
     encodeWidgetSetNpcHead(uid: number, npcId: number): Uint8Array {
