@@ -54,6 +54,7 @@ const DEFAULT_XPDROPS_ENABLED = 1;
 const DEFAULT_KEYBINDING_ESC_TO_CLOSE = 1;
 
 export interface VarpSerializedData {
+    preferredDisplayMode?: number;
     varps?: Record<number, number>;
     varbits?: Record<number, number>;
 }
@@ -66,6 +67,7 @@ export interface VarpSerializedData {
  * portion of PlayerPersistentVars.
  */
 export class PlayerVarpState implements PersistentSubState<VarpSerializedData> {
+    preferredDisplayMode = 1;
     private varpValues: Map<number, number> = new Map();
     private varbitValues: Map<number, number> = new Map();
 
@@ -159,13 +161,15 @@ export class PlayerVarpState implements PersistentSubState<VarpSerializedData> {
                 varbits[id] = value;
             }
         }
-        const result: VarpSerializedData = {};
+        const result: VarpSerializedData = { preferredDisplayMode: this.preferredDisplayMode };
         if (Object.keys(varps).length > 0) result.varps = varps;
         if (Object.keys(varbits).length > 0) result.varbits = varbits;
         return result;
     }
 
     deserialize(data: VarpSerializedData | undefined): void {
+        const mode = data?.preferredDisplayMode;
+        this.preferredDisplayMode = mode !== undefined && Number.isInteger(mode) && mode >= 0 && mode <= 2 ? mode : 1;
         this.varpValues.clear();
         this.varbitValues.clear();
         if (!data) {

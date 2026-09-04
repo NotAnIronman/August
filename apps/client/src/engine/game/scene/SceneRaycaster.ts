@@ -766,15 +766,15 @@ export class SceneRaycaster {
 
         let resolved: LocType | undefined;
         try {
-            let loc = this.osrsClient.locTypeLoader.load(id);
+            let loc: LocType | null | undefined = this.osrsClient.locTypeLoader.load(id);
             if (loc?.transforms) {
                 const transformed = loc.transform(
                     this.osrsClient.varManager,
                     this.osrsClient.locTypeLoader,
                 );
-                if (transformed) {
-                    loc = transformed;
-                }
+                // A null transform means this object is absent in the current state.
+                // Do not raycast the hidden base definition as phantom scenery.
+                loc = transformed;
             }
             resolved = loc !== null ? loc : undefined;
         } catch {

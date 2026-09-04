@@ -298,6 +298,8 @@ export interface HandlerContext {
     canvasWidth?: number;
     canvasHeight?: number;
     windowMode?: number;
+    defaultWindowMode?: number;
+    setDefaultWindowMode?: (mode: number) => void;
     setWindowMode?: (mode: number) => void;
 
     // DB Query state

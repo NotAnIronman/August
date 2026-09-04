@@ -52,6 +52,7 @@ import {
 } from "@server/content/gamemodes/vanilla/quests";
 import { VANILLA_QUEST_LIST_GROUPS } from "@server/content/gamemodes/vanilla/questCatalog";
 import { getQuestStage, isQuestComplete, setQuestStage } from "@server/content/gamemodes/vanilla/quests/QuestService";
+import { canReceiveQuestDrop } from "@server/content/gamemodes/vanilla/quests/questDropEligibility";
 import { registerVanillaCommandHandlers } from "@server/content/gamemodes/vanilla/scripts/commands";
 import { registerAlKharidBorderHandlers } from "@server/content/gamemodes/vanilla/scripts/content/alKharidBorder";
 import { registerDraynorAreaHandlers } from "@server/content/gamemodes/vanilla/scripts/content/areas/draynor";
@@ -137,6 +138,7 @@ export class VanillaGamemode extends BaseGamemode {
         itemId: number,
         player: PlayerState | undefined,
     ): boolean {
+        if (!canReceiveQuestDrop(itemId, player)) return false;
         const clue = getClueScrollDefinitionForDirectItem(itemId);
         if (clue) {
             if (!player) return false;

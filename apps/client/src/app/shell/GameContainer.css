@@ -33,6 +33,12 @@
     height: 100%;
 }
 
+.game-viewport-fixed .game-canvas-stage {
+    width: 765px;
+    height: 503px;
+    margin: 0 auto;
+}
+
 .game-viewport-mobile {
     /* Allow the canvas to shrink below OSRS fixed-mode size on phones. */
     min-width: 0;

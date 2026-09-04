@@ -1,4 +1,6 @@
 import { vec3 } from "gl-matrix";
+import { ClientSettingId } from "@august/protocol/ui/clientSettings";
+import { sendClientSetting } from "@client/core/network/server-connection/outgoing/movement";
 
 import { directionToDelta } from "@august/game-model/movement/Direction";
 import { ChatMessageType } from "@august/protocol/chat/ChatMessageType";
@@ -588,7 +590,7 @@ export class OsrsClient {
     private lastCastSpotStartCycleByPlayer: Map<number, number> = new Map();
     // Track last active spot animation id per player for telemetry parity
     private lastSpotGraphicByPlayer: Map<number, number> = new Map();
-    debugId: boolean = true;
+    debugId: boolean = false;
 
     // State
 
@@ -1272,6 +1274,12 @@ export class OsrsClient {
 
     private initWidgetActionRouter(): void {
         this.widgetActionRouter = new WidgetActionRouter({
+            requestDisplayMode: (mode) => {
+                this.cs2Vm.context.windowMode = mode === 0 ? 1 : 2;
+                this.cs2Vm.context.defaultWindowMode = mode === 0 ? 1 : 2;
+                this.varManager.setVarbit(4607, mode === 2 ? 1 : 0);
+                sendClientSetting(ClientSettingId.DisplayMode, mode);
+            },
             getWidgetManager: () => this.widgetManager,
             getCs2Vm: () => this.cs2Vm,
             getVarManager: () => this.varManager,
@@ -2239,6 +2247,12 @@ export class OsrsClient {
                 }
             } else if (payload?.action === "set_root") {
                 clientDebugLog("[OsrsClient] Server setting root interface", payload.groupId);
+                const fixed = payload.groupId === 548;
+                this.cs2Vm.context.windowMode = fixed ? 1 : 2;
+                this.cs2Vm.context.defaultWindowMode = fixed ? 1 : 2;
+                this.varManager?.setVarbit(4607, payload.groupId === 164 ? 1 : 0);
+                this.renderer.canvas.closest(".game-viewport")?.classList.toggle("game-viewport-fixed", fixed);
+                this.renderer.forceResize();
                 if (this.widgetManager) {
                     // Set varc 170 (display mode) based on the root interface
                     // Enum 185 maps: 0->1137 (161 widgets), 1->1101, 2->1067, 3->1175, 4->1293

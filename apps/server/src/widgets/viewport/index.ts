@@ -160,6 +160,10 @@ export function getRootInterfaceId(displayMode: DisplayMode): number {
  * Get the child ID for an interface destination based on display mode
  */
 export function getChildId(dest: InterfaceDestinationEntry, displayMode: DisplayMode): number {
+    if (dest.resizeChildId >= 76 && dest.resizeChildId <= 89) {
+        if (displayMode === DisplayMode.FIXED) return dest.resizeChildId + 5;
+        if (displayMode === DisplayMode.RESIZABLE_LIST) return dest.resizeChildId - 3;
+    }
     switch (displayMode) {
         case DisplayMode.FIXED:
             return dest.fixedChildId;
@@ -191,9 +195,9 @@ export function getChildId(dest: InterfaceDestinationEntry, displayMode: Display
 export const ContainerChildIds = {
     // Desktop fixed (548)
     FIXED: {
-        MAINMODAL: 15, // toplevel:mainmodal - modal interfaces (bank, shop, etc.)
-        INVENTORY_TAB: 79, // Tab 3 container (SIDE3) - for inventory interface only
-        SIDEMODAL: 74, // toplevel:sidemodal - bank/shop side panels (hides ALL tabs via script 1213)
+        MAINMODAL: 41, // Cache enum 1129: 161:16 -> 548:41
+        INVENTORY_TAB: 84, // Cache enum 1129: 161:79 -> 548:84
+        SIDEMODAL: 79, // Cache enum 1129: 161:74 -> 548:79
     },
     // Desktop resizable (161)
     RESIZABLE: {
@@ -322,6 +326,7 @@ export function getPopoutUid(displayMode: DisplayMode): number {
  */
 export function getInventoryTabUid(displayMode: DisplayMode): number {
     const rootId = getRootInterfaceId(displayMode);
+    if (displayMode === DisplayMode.RESIZABLE_LIST) return (rootId << 16) | 76;
 
     // For mobile: use enum service if available, otherwise fall back to hardcoded
     if (displayMode === DisplayMode.MOBILE && viewportEnumService) {
@@ -416,9 +421,8 @@ export function getSidemodalUid(displayMode: DisplayMode): number {
         return viewportEnumService.getMobileComponent(BaseComponentUids.SIDEMODAL);
     }
 
-    // All desktop modes use child ID 74 for sidemodal
-    // Fixed (548), Resizable (161), Resizable List (164), Fullscreen (165)
-    return (rootId << 16) | ContainerChildIds.RESIZABLE.SIDEMODAL;
+    const child = displayMode === DisplayMode.FIXED ? 79 : displayMode === DisplayMode.RESIZABLE_LIST ? 71 : 74;
+    return (rootId << 16) | child;
 }
 
 export function getRemainingTabInterfaces(displayMode: DisplayMode): InterfaceMount[] {

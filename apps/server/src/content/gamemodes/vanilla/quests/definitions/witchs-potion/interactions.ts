@@ -13,7 +13,6 @@ import {
     HETTY_NPC_ID,
     RATS_TAIL_ITEM_ID,
     RAT_NPC_IDS,
-    STAGE_COMPLETE,
     STAGE_INGREDIENTS_GIVEN,
     STAGE_STARTED,
 } from "@server/content/gamemodes/vanilla/quests/definitions/witchs-potion/constants";
@@ -39,7 +38,7 @@ function registerRatTailDrops(
             const player = knownPlayers.get(killerPlayerId);
             if (!player) return;
             const stage = getQuestStage(player, quest);
-            if (stage < STAGE_STARTED || stage >= STAGE_COMPLETE) return;
+            if (stage !== STAGE_STARTED) return;
             if (services.inventory.findOwnedItemLocation(player, RATS_TAIL_ITEM_ID)) return;
             services.groundItems.spawn(RATS_TAIL_ITEM_ID, 1, tile, {
                 ownerId: killerPlayerId,

@@ -184,7 +184,10 @@ export function resolveDropEntry(def: NpcDropEntryDefinition): NpcDropEntry | un
         quantity: parseQuantity(def.quantity),
         probability: parseProbability(def.rarity),
         altProbability: parseProbability(def.altRarity),
-        condition: resolveDropCondition(def.condition),
+        // Mandatory item restrictions apply to every source, including legacy imports.
+        condition: itemId === 11941
+            ? { ...resolveDropCondition(def.condition), wildernessOnly: true }
+            : resolveDropCondition(def.condition),
         altCondition: resolveDropCondition(def.altCondition),
         dropBoostEligible: def.dropBoostEligible === true,
         outcomeId:

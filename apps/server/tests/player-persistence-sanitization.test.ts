@@ -6,6 +6,7 @@ import { mergePlayerPersistentVars } from "@server/game/state/PlayerPersistence"
 // This compile-time checklist prevents a newly persisted field from quietly
 // bypassing merge/sanitization the way the three regression fields below did.
 const persistentFieldCoverage = {
+    preferredDisplayMode: true,
     varps: true,
     varbits: true,
     gamemodeData: true,

@@ -1,4 +1,5 @@
 import { sendWidgetAction } from "@client/core/network/ServerConnection";
+import { TabKeybindingSettingsController, setUniqueTabBinding } from "@client/engine/game/widgets/TabKeybindingSettingsController";
 import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import type { WidgetActionClientPayload } from "@client/core/network/ServerConnection";
 import type { Cs2Vm, ScriptEvent } from "@client/engine/cs2/Cs2Vm";
@@ -26,6 +27,9 @@ import {
 } from "@client/engine/game/widgets/widgetActionPayload";
 import { handleTradeWidgetAction, type WidgetActionTradeDeps } from "@client/engine/game/widgets/widgetActionTrade";
 import { AttackOptionSettingsController } from "@client/engine/game/widgets/AttackOptionSettingsController";
+import { getNativeSettingSelection } from "./nativeSettingSelection";
+import { ClientSettingId } from "@august/protocol/ui/clientSettings";
+import { sendClientSetting } from "@client/core/network/server-connection/outgoing/movement";
 
 export type { WidgetActionEvent } from "@client/engine/game/widgets/widgetActionPayload";
 
@@ -34,6 +38,7 @@ export type PreparedClientSettingAction = () => boolean;
 export type WidgetActionRouterDeps = WidgetActionHandlersDeps &
     WidgetActionTradeDeps & {
         getInputManager: () => InputManager | undefined;
+        requestDisplayMode?: (mode: number) => void;
         getWidgetInteraction: () => WidgetInteractionController;
         getItemSpawnerUi: () => ItemSpawnerUi;
         getPlayerDesign: () => PlayerDesignController;
@@ -96,6 +101,7 @@ function resolveDynamicChildForAction(
  */
 export class WidgetActionRouter {
     private readonly attackOptionSettings = new AttackOptionSettingsController();
+    private readonly tabKeybindingSettings = new TabKeybindingSettingsController();
 
     constructor(private readonly deps: WidgetActionRouterDeps) {}
 
@@ -114,6 +120,31 @@ export class WidgetActionRouter {
             widget !== event.widget
                 ? { ...event, widget, slot: (widget.childIndex ?? event.slot) as any }
                 : event;
+        const keybinding = this.tabKeybindingSettings.observeAction(widgetManager, normalizedEvent);
+        if (keybinding) {
+            return () => {
+                const vars = this.deps.getVarManager();
+                if (!vars) return false;
+                setUniqueTabBinding(vars, keybinding.row, keybinding.key);
+                return true;
+            };
+        }
+        const native = getNativeSettingSelection(normalizedEvent);
+        if (native?.type === 2 && native.id === 12 && native.value >= 0 && native.value <= 2) {
+            return () => { this.deps.requestDisplayMode?.(native.value); return true; };
+        }
+        const orb = normalizedEvent.widget;
+        const uid = orb?.uid ?? 0;
+        if ((uid === ((160 << 16) | 6) || uid === ((895 << 16) | 4)) &&
+            (normalizedEvent.opIndex === 1 || /^(show|hide)( xp)?$/i.test(normalizedEvent.option ?? ""))) {
+            // CS2 1040 has already applied the explicit desired flag. Do not toggle it again.
+            return () => {
+                const value = this.deps.getVarManager()?.getVarbit(4702);
+                if (value === undefined) return false;
+                sendClientSetting(ClientSettingId.XpDrops, value);
+                return true;
+            };
+        }
         const selection = this.attackOptionSettings.observeAction(
             widgetManager,
             normalizedEvent,

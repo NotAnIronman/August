@@ -704,7 +704,7 @@ export class LoginHandshakeService {
                 {
                     const displayMode = isMobileClient
                         ? DisplayMode.MOBILE
-                        : DisplayMode.RESIZABLE_NORMAL;
+                        : p.varps.preferredDisplayMode;
                     const rootInterfaceGroupId = getRootInterfaceId(displayMode);
                     for (const script of getViewportRootInitScripts()) {
                         this.svc.networkLayer.withDirectSendBypass("runClientScript", () =>

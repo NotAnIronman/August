@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { RenderStatsOverlay } from "@client/ui/components/render-stats-overlay/index";
 import { OsrsLoadingBar } from "@client/ui/components/osrs-loading-bar/index";
@@ -14,10 +14,6 @@ import { OsrsClient } from "@client/engine/game/OsrsClient";
 import { SidebarShell } from "@client/features/sidebar/SidebarShell";
 import { BossHealthHud } from "@client/features/boss-health";
 
-const DebugControls = lazy(async () => {
-    const module = await import("@client/dev/components/DebugControls");
-    return { default: module.DebugControls };
-});
 
 interface OsrsContainerProps {
     osrsClient: OsrsClient;
@@ -98,11 +94,11 @@ function resolvePointerCoordinate(
 }
 
 export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
-    const [renderer, setRenderer] = useState<GameRenderer>(osrsClient.renderer);
+    const [renderer] = useState<GameRenderer>(osrsClient.renderer);
 
-    const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>();
+    const [downloadProgress] = useState<DownloadProgress>();
 
-    const [hideUi, setHideUi] = useState(false);
+    const [hideUi] = useState(false);
 
     const [fps, setFps] = useState(0);
     const [framePacing, setFramePacing] = useState({ rafHz: 0, cap: 0, skipped: 0, jsMs: 0 });
@@ -420,7 +416,7 @@ export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
 
                 {!hideUi && (
                     <span>
-                        {/* Bottom-left performance/optimization overlay (F3 toggles) */}
+                        {/* Performance overlay is controlled from the plugin sidebar. */}
 
                         {(osrsClient.hoverOverlayEnabled || isMobileMode) && (
                             <>
@@ -440,17 +436,6 @@ export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
                 )}
             </div>
 
-            {/* Debug controls sidebar (Leva) - top-left corner */}
-
-            <Suspense fallback={null}>
-                <DebugControls
-                    renderer={renderer}
-                    hideUi={hideUi}
-                    setRenderer={setRenderer}
-                    setHideUi={setHideUi}
-                    setDownloadProgress={setDownloadProgress}
-                />
-            </Suspense>
         </div>
     );
 }

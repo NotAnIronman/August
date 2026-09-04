@@ -368,6 +368,8 @@ export function mergePlayerPersistentVars(
         }
     }
     const result: PlayerPersistentVars = {};
+    const displayMode = rangedInteger(safeOverrides?.preferredDisplayMode ?? safeDefaults?.preferredDisplayMode, 0, 2);
+    if (displayMode !== undefined) result.preferredDisplayMode = displayMode;
     if (Object.keys(varps).length > 0) result.varps = varps;
     if (Object.keys(varbits).length > 0) result.varbits = varbits;
     if (gamemodeData && Object.keys(gamemodeData).length > 0) {

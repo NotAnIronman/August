@@ -1,4 +1,5 @@
 import { VARBIT_XPDROPS_ENABLED } from "@august/game-model/state/vars";
+import { setXpDropsVisible } from "@server/widgets/clientSettings";
 import type { PlayerState } from "@server/game/player";
 import { registerPlayerScopedCollections } from "@server/game/scripts/ScriptLifecycle";
 import {
@@ -26,24 +27,6 @@ import {
     closeWorldMapInterfaces,
     getWorldMapTransmitDataArgs,
 } from "@server/widgets/worldMapInterfaces";
-
-function getXpCounterMountUid(displayMode: number): number {
-    // DisplayMode enum:
-    // 0 = FIXED, 1 = RESIZABLE_NORMAL, 2 = RESIZABLE_LIST, 3 = FULLSCREEN, 4 = MOBILE
-    if (displayMode === 0) {
-        return (548 << 16) | 17;
-    }
-    if (displayMode === 2) {
-        return (164 << 16) | 7;
-    }
-    if (displayMode === 3) {
-        return (165 << 16) | 7;
-    }
-    if (displayMode === 4) {
-        return (601 << 16) | 30;
-    }
-    return (161 << 16) | 7;
-}
 
 const XP_DROPS_ORB_COMPONENT_ID = 6;
 const XP_DROPS_SETUP_GROUP_ID = 137;
@@ -310,13 +293,8 @@ export function registerMinimapWidgetHandlers(
             const current = player.varps.getVarbitValue(VARBIT_XPDROPS_ENABLED);
             const next = current === 1 ? 0 : 1;
 
-            player.varps.setVarbitValue(VARBIT_XPDROPS_ENABLED, next);
-
-            services.dialog.queueWidgetEvent(player.id, {
-                action: "set_hidden",
-                uid: getXpCounterMountUid(player.displayMode),
-                hidden: next === 0,
-            });
+            // Legacy clients send the widget operation; new clients send an explicit setting.
+            setXpDropsVisible(player, services, next === 1);
 
             services.system.logger.info?.(
                 `[script:minimap-widgets] XP drops orb toggled player=${player.id} value=${next}`,

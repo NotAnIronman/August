@@ -12,6 +12,7 @@ import { DEFAULT_BANK_CAPACITY } from "@server/game/state/PlayerBankSystem";
 export function exportPersistentVars(player: PlayerState): PlayerPersistentVars {
     const snapshot: PlayerPersistentVars = {};
     const varpData = player.varps.serialize();
+    snapshot.preferredDisplayMode = varpData.preferredDisplayMode;
     if (varpData.varps) snapshot.varps = varpData.varps;
     if (varpData.varbits) snapshot.varbits = varpData.varbits;
     const gamemodeData = player.gamemode.serializePlayerState(player);
@@ -138,7 +139,7 @@ export function applyPersistentVars(player: PlayerState, state?: PlayerPersisten
         }
         player.markAppearanceDirty();
     }
-    player.varps.deserialize({ varps: state.varps, varbits: state.varbits });
+    player.varps.deserialize({ varps: state.varps, varbits: state.varbits, preferredDisplayMode: state.preferredDisplayMode });
     if (state.gamemodeData && Object.keys(state.gamemodeData).length > 0) {
         player.gamemode.deserializePlayerState(
             player,

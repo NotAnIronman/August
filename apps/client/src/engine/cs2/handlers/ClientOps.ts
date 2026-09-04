@@ -411,11 +411,12 @@ export function registerClientOps(handlers: HandlerMap): void {
     });
 
     handlers.set(Opcodes.GETDEFAULTWINDOWMODE, (ctx) => {
-        ctx.pushInt(2);
+        ctx.pushInt(ctx.defaultWindowMode ?? ctx.windowMode ?? 2);
     });
 
     handlers.set(Opcodes.SETDEFAULTWINDOWMODE, (ctx) => {
-        ctx.intStackSize--; // pop mode
+        const mode = ctx.intStack[--ctx.intStackSize];
+        if (mode === 1 || mode === 2) ctx.setDefaultWindowMode?.(mode);
     });
 
     // === Camera ===

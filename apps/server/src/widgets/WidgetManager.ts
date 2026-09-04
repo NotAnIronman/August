@@ -400,6 +400,13 @@ export class PlayerWidgetManager {
         return !!keys && keys.size > 0;
     }
 
+    getByGroup(groupId: number): WidgetEntry | undefined {
+        const keys = this.groupIndex.get(Math.trunc(groupId));
+        if (!keys) return undefined;
+        for (const key of keys) return this.entries.get(key);
+        return undefined;
+    }
+
     getByScope(scope: WidgetScope): WidgetEntry | undefined {
         const key = this.scopeIndex.get(scope);
         if (!key) return undefined;

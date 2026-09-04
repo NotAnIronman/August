@@ -1,0 +1,59 @@
+import assert from "node:assert/strict";
+import { applyClientSetting } from "@server/widgets/clientSettings";
+import { PlayerVarpState } from "@server/game/state/PlayerVarpState";
+import { PlayerWidgetManager, getDefaultInterfaces } from "@server/widgets/WidgetManager";
+import { getMainmodalUid, getInventoryTabUid, getQuestTabUid, getSidemodalUid } from "@server/widgets/viewport";
+import { mergePlayerPersistentVars } from "@server/game/state/PlayerPersistence";
+import { ClientSettingId, isValidClientSetting } from "@august/protocol/ui/clientSettings";
+import { clientEncoder } from "@client/core/network/packet/ClientBinaryEncoder";
+import { decodeClientPacket } from "@server/network/packet/ClientBinaryDecoder";
+
+const events: any[] = [];
+const player: any = { id: 1, displayMode: 1, varps: new PlayerVarpState(), name: "Test" };
+player.varps.deserialize(undefined);
+player.widgets = new PlayerWidgetManager();
+player.widgets.setDispatcher((event: unknown) => events.push(event));
+const services: any = {
+    viewport: { getDefaultInterfaces, getMainmodalUid },
+    variables: { sendVarbit: (_p: unknown, id: number, value: number) => events.push({ action: "varbit", id, value }) },
+    system: { getCurrentTick: () => 1 },
+    dialog: {
+        getInterfaceService: () => ({ triggerCloseHooksForEntries() {} }),
+        queueWidgetEvent: (_id: number, event: unknown) => events.push(event),
+        openSubInterface: (_p: unknown, targetUid: number, groupId: number, type: number, opts: any = {}) => {
+            player.widgets.open(groupId, { ...opts, targetUid, type });
+        },
+    },
+};
+for (const m of getDefaultInterfaces(1)) player.widgets.open(m.groupId, { targetUid: m.targetUid, type: m.type });
+for (const mode of [0,2,1]) {
+    events.length = 0;
+    assert.equal(applyClientSetting(player, services, ClientSettingId.DisplayMode, mode), true);
+    assert.equal(player.displayMode, mode);
+    assert.equal(player.varps.preferredDisplayMode, mode);
+    assert(events.some(e => e.action === "set_root" && e.groupId === [548,161,164][mode]));
+    const saved = mergePlayerPersistentVars(undefined, JSON.parse(JSON.stringify(player.varps.serialize())));
+    const restored = new PlayerVarpState(); restored.deserialize(saved);
+    assert.equal(restored.preferredDisplayMode, mode);
+    const root = [548,161,164][mode];
+    const invChild = [84,79,76][mode];
+    assert.equal(getInventoryTabUid(mode), (root << 16) | invChild);
+    assert.equal(getQuestTabUid(mode), (root << 16) | (invChild - 1));
+    assert.equal(getSidemodalUid(mode), (root << 16) | [79,74,71][mode]);
+    assert.equal(getMainmodalUid(mode), (root << 16) | [41,16,16][mode]);
+    assert(events.some(e => e.action === "open_sub" && e.groupId === 149 && e.targetUid === getInventoryTabUid(mode)));
+    for (const value of [0,0,1]) {
+        applyClientSetting(player, services, ClientSettingId.XpDrops, value);
+        assert.equal(player.varps.getVarbitValue(4702), value, "explicit setting is idempotent");
+        assert(events.some(e => e.action === "set_hidden" && e.uid === ((root << 16) | [45,19,19][mode]) && e.hidden === (value === 0)));
+    }
+}
+for (const [setting,value] of [[0,0],[0,2],[1,0],[1,1]]) {
+    assert(isValidClientSetting(setting,value));
+    assert.deepEqual(decodeClientPacket(clientEncoder.encodeClientSetting(setting,value)), { type:"client_setting",payload:{setting,value} });
+}
+for (const [setting,value] of [[2,0],[0,3],[1,2],[0,NaN],[0,-1]]) assert(!isValidClientSetting(setting,value));
+player.displayMode = 4;
+assert.equal(applyClientSetting(player, services, 0, 0), false);
+assert.equal(player.displayMode, 4);
+console.log("Client setting persistence, layout remounts and XP visibility passed");

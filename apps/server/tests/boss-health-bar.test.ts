@@ -68,7 +68,7 @@ persistedState.setVarbitValue(BossHealthBarVarbit.Boss, 1);
 persistedState.setVarbitValue(BossHealthBarVarbit.Disabled, 1);
 assert.deepEqual(
     persistedState.serialize(),
-    { varbits: { [BossHealthBarVarbit.Disabled]: 1 } },
+    { preferredDisplayMode: 1, varbits: { [BossHealthBarVarbit.Disabled]: 1 } },
     "legacy cache HUD values stay transient without discarding the player's visibility preference",
 );
 persistedState.deserialize({

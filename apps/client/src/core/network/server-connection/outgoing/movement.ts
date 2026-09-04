@@ -1,5 +1,11 @@
 import { send } from "@client/core/network/server-connection/connection/send";
 import { state } from "@client/core/network/server-connection/state";
+import { isValidClientSetting } from "@august/protocol/ui/clientSettings";
+
+export function sendClientSetting(setting: number, value: number): void {
+    if (!state.socket || state.socket.readyState !== WebSocket.OPEN || !isValidClientSetting(setting, value)) return;
+    send({ type: "client_setting", payload: { setting, value } });
+}
 
 export function sendWalk(to: { x: number; y: number }, run: boolean = false): void {
     if (!state.socket || state.socket.readyState !== WebSocket.OPEN) return;

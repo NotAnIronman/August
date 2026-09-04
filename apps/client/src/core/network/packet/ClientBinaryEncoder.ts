@@ -497,6 +497,13 @@ export class ClientBinaryEncoder {
         return this.buffer.toPacket(ClientMessageId.VARP_TRANSMIT);
     }
 
+    encodeClientSetting(setting: number, value: number): Uint8Array {
+        this.buffer.reset();
+        this.buffer.writeByte(setting);
+        this.buffer.writeByte(value);
+        return this.buffer.toPacket(ClientMessageId.CLIENT_SETTING);
+    }
+
     // ========================================
     // DEBUG
     // ========================================
@@ -629,6 +636,8 @@ export function encodeClientMessage(msg: { type: string; payload: any }): Uint8A
 
         case "varp_transmit":
             return clientEncoder.encodeVarpTransmit(payload.varpId, payload.value);
+        case "client_setting":
+            return clientEncoder.encodeClientSetting(payload.setting, payload.value);
 
         case "resume_countdialog":
             return clientEncoder.encodeResumeCountdialog(payload.amount);

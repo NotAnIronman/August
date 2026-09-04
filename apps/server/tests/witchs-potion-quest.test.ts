@@ -96,3 +96,10 @@ assert.deepEqual(spawnedDrop, {
 });
 
 console.log("witchs-potion-quest.test.ts: all assertions passed");
+
+for (const stage of [0,2,3]) {
+    spawnedDrop = undefined;
+    eventHandlers.get("player:login")?.[0]?.({player:{id:42,varps:{getVarpValue:()=>stage}}});
+    eventHandlers.get("npc:death")?.[0]?.({npcTypeId:2854,killerPlayerId:42,tile:{x:3200,z:3200,level:0}});
+    assert.equal(spawnedDrop,undefined,`rat tails are not needed at quest stage ${stage}`);
+}

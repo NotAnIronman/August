@@ -250,6 +250,7 @@ export interface MessageHandlerServices {
     handleSpellCastOnItem: (ws: WebSocket, payload: MessagePayload<"spell_cast_item">) => void;
 
     // Widget/Interface
+    applyClientSetting?: (player: PlayerState, setting: number, value: number) => void;
     handleIfButtonD?: (player: PlayerState, payload: MessagePayload<"if_buttond">) => void;
     handleWidgetAction: (player: PlayerState, payload: MessagePayload<"widget_action">) => void;
     handleWidgetCloseState: (player: PlayerState, groupId: number) => void;

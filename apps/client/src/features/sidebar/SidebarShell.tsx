@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { ClientGraphicsSettings } from "./ClientGraphicsSettings";
 
 import type { OsrsClient } from "@client/engine/game/OsrsClient";
 import {
@@ -1105,6 +1106,7 @@ function PluginHubPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Element
                     ))}
                 </div>
             </section>
+            <ClientGraphicsSettings client={osrsClient} />
         </div>
     );
 }
@@ -1209,13 +1211,7 @@ export function SidebarShell({
 
     return (
         <div className={`rl-sidebar-root ${shouldShowPanel ? "open" : "closed"}`}>
-            <button
-                type="button"
-                className="rl-sidebar-backdrop"
-                onClick={() => store.setOpen(false)}
-                aria-label="Close sidebar"
-                tabIndex={shouldShowPanel ? 0 : -1}
-            />
+            <div className="rl-sidebar-backdrop" aria-hidden="true" />
             <button
                 type="button"
                 className={`rl-sidebar-toggle ${shouldShowPanel ? "active" : ""}`}

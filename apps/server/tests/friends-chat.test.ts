@@ -75,7 +75,7 @@ assert.deepEqual(setupOpens, [
     {
         groupId: 94,
         options: {
-            targetUid: (548 << 16) | 15,
+            targetUid: (548 << 16) | 41,
             type: 0,
             modal: true,
             scope: "modal",

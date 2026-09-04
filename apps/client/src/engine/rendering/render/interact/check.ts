@@ -673,9 +673,9 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                             host.osrsClient.varManager,
                             host.osrsClient.locTypeLoader,
                         );
-                        if (transformed) {
-                            resolvedLocType = transformed;
-                        }
+                        // A -1 morph is absent, not an interactive copy of its base definition.
+                        if (!transformed) continue;
+                        resolvedLocType = transformed;
                     }
                     if (resolvedLocType.name === "null" && !host.osrsClient.debugId) continue;
 

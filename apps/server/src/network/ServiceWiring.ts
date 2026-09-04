@@ -4,6 +4,7 @@
  * migrated to use ServerServices directly.
  */
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
+import { applyClientSetting } from "@server/widgets/clientSettings";
 import {
     SIDE_JOURNAL_CONTENT_GROUP_BY_TAB,
     SIDE_JOURNAL_TAB_CONTAINER_UID,
@@ -36,6 +37,11 @@ import { rememberPendingDebugRequest } from "@server/network/PendingDebugRequest
 export function registerMessageHandlers(svc: ServerServices, router: MessageRouter): void {
     // Register extracted handlers from MessageHandlers.ts
     const extendedServices: BinaryHandlerExtServices = {
+        applyClientSetting: (player, setting, value) => {
+            if (applyClientSetting(player, svc.scriptRuntime.getServices(), setting, value)) {
+                svc.gamemodeUi.applySideJournalUi(player);
+            }
+        },
         // Player management
         getPlayer: (ws) => svc.players?.get(ws),
         getPlayerById: (id) => svc.players?.getById(id),

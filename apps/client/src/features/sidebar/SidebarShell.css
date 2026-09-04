@@ -42,7 +42,7 @@
 
 .rl-sidebar-root.open .rl-sidebar-backdrop {
     opacity: 1;
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 .rl-sidebar-toggle,

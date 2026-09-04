@@ -263,6 +263,7 @@ export interface Cs2Context {
     canvasWidth?: number;
     canvasHeight?: number;
     windowMode?: number; // 1 = fixed, 2 = resizable
+    defaultWindowMode?: number;
     setWindowMode?: (mode: number) => void;
 
     // Drag operations
@@ -932,6 +933,8 @@ export class Cs2Vm {
                 return vm.context.windowMode;
             },
             setWindowMode: vm.context.setWindowMode,
+            get defaultWindowMode() { return vm.context.defaultWindowMode; },
+            setDefaultWindowMode: (mode: number) => { vm.context.defaultWindowMode = mode; },
 
             // DB Query state
             get dbRowQuery() {

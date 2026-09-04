@@ -702,6 +702,9 @@ function decodeClientPacketUnchecked(
                 },
             };
 
+        case ClientMessageId.CLIENT_SETTING:
+            return { type: "client_setting", payload: { setting: reader.readByte(), value: reader.readByte() } };
+
         case ClientMessageId.DEBUG: {
             const jsonStr = reader.readString();
             const payload: Extract<RoutedMessage, { type: "debug" }>["payload"] =

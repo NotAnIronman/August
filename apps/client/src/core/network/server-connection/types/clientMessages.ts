@@ -25,6 +25,7 @@ type ClientToServer =
           };
       }
     | { type: "varp_transmit"; payload: { varpId: number; value: number } }
+    | { type: "client_setting"; payload: { setting: number; value: number } }
     | {
           type: "interact";
           payload: { mode: "follow" | "trade"; targetId: number; modifierFlags?: number };

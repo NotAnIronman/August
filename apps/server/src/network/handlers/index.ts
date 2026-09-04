@@ -1,4 +1,5 @@
 import type { MessageHandlerServices } from "@server/network/MessageHandlers";
+import { isValidClientSetting } from "@august/protocol/ui/clientSettings";
 import type { MessageRouter } from "@server/network/MessageRouter";
 import { type BinaryHandlerExtServices, registerBinaryHandlers } from "@server/network/handlers/binaryMessageHandlers";
 import { registerChatHandler } from "@server/network/handlers/chatHandler";
@@ -42,6 +43,11 @@ export function registerAllHandlers(
     router.register("if_close", createIfCloseHandler(services));
     router.register("widget", createWidgetHandler(services));
     router.register("varp_transmit", createVarpTransmitHandler(services));
+    router.register("client_setting", (ctx) => {
+        const player = services.getPlayer(ctx.ws);
+        const { setting, value } = ctx.payload;
+        if (player && isValidClientSetting(setting, value)) services.applyClientSetting?.(player, setting, value);
+    });
 
     // Extracted from processBinaryMessage switch
     registerBinaryHandlers(router, services);

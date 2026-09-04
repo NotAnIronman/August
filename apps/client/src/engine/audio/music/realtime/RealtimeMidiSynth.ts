@@ -6,7 +6,8 @@ import { CacheSystem } from "@august/osrs-engine/cache/CacheSystem";
 import { IndexType } from "@august/osrs-engine/cache/IndexType";
 import { retryOnMissingGroup } from "@august/osrs-engine/cache/js5/retryOnMissingGroup";
 import { ByteBuffer } from "@august/osrs-engine/io/ByteBuffer";
-import { ensureSharedMusicWorklet, resumeAudioContextIfNeeded } from "@client/engine/audio/audioContext";
+import { ensureSharedMusicWorklet, getSharedMusicAudioContext, resumeAudioContextIfNeeded } from "@client/engine/audio/audioContext";
+import { createScriptProcessorMusicNode, type MusicOutputNode } from "@client/engine/audio/music/realtime/ScriptProcessorMusicNode";
 import { MusicPatch } from "@client/engine/audio/music/patch/MusicPatch";
 import { MusicTrack } from "@client/engine/audio/music/patch/MusicTrack";
 import { SoundCache } from "@client/engine/audio/music/patch/SoundCache";
@@ -81,7 +82,7 @@ export class RealtimeMidiSynth {
     private cache: CacheSystem;
     private soundCache: SoundCache;
     private context: AudioContext | null = null;
-    private workletNode: AudioWorkletNode | null = null;
+    private workletNode: MusicOutputNode | null = null;
     private gainNode: GainNode | null = null;
     private outputGain: number = 1.0;
     private workletReady: boolean = false;
@@ -140,7 +141,10 @@ export class RealtimeMidiSynth {
 
         try {
             // Share one device-rate AudioContext across all synths (no forced 44100).
-            const ctx = await ensureSharedMusicWorklet(() => this.getWorkletCode());
+            const ctx = getSharedMusicAudioContext();
+            if (!ctx) return false;
+            const useWorklet = !!ctx.audioWorklet && typeof AudioWorkletNode !== "undefined";
+            if (useWorklet) await ensureSharedMusicWorklet(() => this.getWorkletCode());
             this.context = ctx;
 
             // Listen for visibility changes to recover from browser throttling
@@ -164,11 +168,11 @@ export class RealtimeMidiSynth {
             }
 
             // Create worklet node
-            this.workletNode = new AudioWorkletNode(this.context, "music-worklet-processor", {
+            this.workletNode = useWorklet ? new AudioWorkletNode(this.context, "music-worklet-processor", {
                 numberOfInputs: 0,
                 numberOfOutputs: 1,
                 outputChannelCount: [2],
-            });
+            }) : createScriptProcessorMusicNode(ctx, this.getWorkletProcessorCode());
 
             // Create gain node at unity. OSRS MIDI volume is handled inside the synth
             // Avoid double-scaling here.

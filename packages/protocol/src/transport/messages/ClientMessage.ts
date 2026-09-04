@@ -72,6 +72,7 @@ export const enum ClientMessageId {
     RESUME_STRINGDIALOG = 194,
     MAP_EDIT = 195,
     FRIENDS_CHAT_ACTION = 196,
+    CLIENT_SETTING = 197,
 }
 
 /**
@@ -116,6 +117,7 @@ export const CLIENT_MESSAGE_LENGTHS: Record<ClientMessageId, number> = {
 
     [ClientMessageId.CHAT]: -1,
     [ClientMessageId.VARP_TRANSMIT]: 6, // varpId(2) + value(4)
+    [ClientMessageId.CLIENT_SETTING]: 2, // setting(1) + value(1)
     [ClientMessageId.RESUME_COUNTDIALOG]: 4, // value(4)
     [ClientMessageId.RESUME_NAMEDIALOG]: -1, // value(string)
     [ClientMessageId.RESUME_STRINGDIALOG]: -1, // value(string)
