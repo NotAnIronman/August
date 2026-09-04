@@ -24,6 +24,7 @@ import {
     VARP_OPTION_RUN,
     VARP_SOUND_EFFECTS_VOLUME,
     VARP_SPECIAL_ATTACK,
+    VARPS_TAB_KEYBINDINGS,
     XPDROPS_TRANSMIT_VARPS,
 } from "@august/game-model/state/vars";
 import { encodeMessage } from "@server/network/messages";
@@ -198,7 +199,8 @@ export class VarpSyncService {
         // Computed/forced varps (combat target, home teleport cooldowns) are
         // sent after this and override the stored values.
         for (const [varpId, value] of player.varps.getVarpEntries()) {
-            if (value === 0) continue;
+            // Zero is an explicit cleared binding, not an absent/default value.
+            if (value === 0 && !VARPS_TAB_KEYBINDINGS.some(id => id === varpId)) continue;
             this.services.networkLayer.withDirectSendBypass("varp", () =>
                 this.services.networkLayer.sendWithGuard(
                     sock,

@@ -222,6 +222,7 @@ export interface PlayerPersistentVars {
         }>;
     };
     follower?: PlayerFollowerPersistentEntry;
+    pendingPetRewards?: Array<{ itemId: number; quantity: number }>;
     instanceGrave?: InstanceGraveSnapshot;
     playTimeSeconds?: number;
 }

@@ -1,4 +1,5 @@
 import { chatHistory } from "@client/engine/cs2/ChatHistory";
+import { resolveWidgetOpKey } from "@client/engine/game/widgets/input/widgetOpKey";
 import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import type { ScriptEvent } from "@client/engine/cs2/Cs2Vm";
 import { collectWidgetsWithKeyHandlers } from "@client/ui/widgets/menu/WidgetInteractionResolver";
@@ -164,6 +165,16 @@ export function processWidgetKeyboardInput(
             for (const w of keyWidgetsByUid.values()) {
                 if (blockChatboxKeys && deps.getEnterToTypeChat().isChatboxGroupUid((w?.uid ?? 0) | 0)) {
                     continue;
+                }
+                const boundOp = resolveWidgetOpKey(w, keyEvent.keyTyped, (key) => input.keyArray[key] === 1);
+                if (boundOp !== undefined) {
+                    // Follow the same onOp/setting/transmit route as a context-menu action.
+                    deps.handleWidgetAction({
+                        widget: w,
+                        source: "menu",
+                        opIndex: boundOp,
+                        option: w.actions?.[boundOp - 1] ?? undefined,
+                    });
                 }
                 const keyCtx: Partial<ScriptEvent> = {
                     mouseX: mx - (w._absX ?? w.x ?? 0),

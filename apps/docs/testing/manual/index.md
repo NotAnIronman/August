@@ -5,6 +5,8 @@ They are evidence and work queues, never runtime configuration.
 
 - [NPC encounters](npc-encounters.md) records spawn, coordinate, and encounter checks.
 - [Special attacks](special-attacks.md) records activation and hit-behavior checks.
+- [Playtester fixes](playtester-fixes-2026-09-04.md) records keybinding, disposal, and pet
+  regressions plus the deferred layout assessment.
 
 Each record states its status, owner, date, validation meaning, and exit condition.
 Revalidate an observation after its owning system changes, promote stable behavior into

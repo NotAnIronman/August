@@ -96,29 +96,6 @@ export const DebugControls = memo(
         }, []);
 
         useEffect(() => {
-            function handleKeyDown(e: KeyboardEvent) {
-                if (e.repeat) {
-                    return;
-                }
-
-                switch (e.key) {
-                    case "F1":
-                        setHideUi((v) => !v);
-                        break;
-                    case "F4":
-                        removeLastPoint();
-                        break;
-                }
-            }
-
-            document.addEventListener("keydown", handleKeyDown);
-
-            return () => {
-                document.removeEventListener("keydown", handleKeyDown);
-            };
-        }, [removeLastPoint, setHideUi]);
-
-        useEffect(() => {
             setPointControls(
                 folder(
                     cameraPoints.reduce((acc: Record<string, any>, v, i) => {
@@ -202,7 +179,7 @@ export const DebugControls = memo(
 
         const recordSchema: Schema = {
             "Add camera point": button(() => addPoint()),
-            "Delete last point (F4)": button(() => removeLastPoint()),
+            "Delete last point": button(() => removeLastPoint()),
             Length: {
                 value: animationDuration,
                 onChange: (v: number) => {

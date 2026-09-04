@@ -42,6 +42,7 @@ const persistentFieldCoverage = {
     degradationCharges: true,
     collectionLog: true,
     follower: true,
+    pendingPetRewards: true,
     instanceGrave: true,
     playTimeSeconds: true,
 } as const satisfies Record<keyof PlayerPersistentVars, true>;
@@ -49,6 +50,7 @@ const persistentFieldCoverage = {
 assert.ok(Object.keys(persistentFieldCoverage).length > 0);
 
 const valid = mergePlayerPersistentVars(undefined, {
+    pendingPetRewards: [{ itemId: 29836, quantity: 1 }],
     bankQuantityCustom: 250,
     quickPrayers: ["piety", "protect_from_magic"],
     instanceGrave: {
@@ -59,6 +61,10 @@ const valid = mergePlayerPersistentVars(undefined, {
 });
 
 assert.equal(valid?.bankQuantityCustom, 250, "custom bank quantity must survive persistence");
+assert.deepEqual(valid?.pendingPetRewards, [{ itemId: 29836, quantity: 1 }]);
+assert.deepEqual(mergePlayerPersistentVars(undefined, {
+    pendingPetRewards: [{ itemId: -1, quantity: 1 }, { itemId: 29836, quantity: NaN }],
+})?.pendingPetRewards, []);
 assert.deepEqual(valid?.quickPrayers, ["piety", "protect_from_magic"]);
 assert.deepEqual(valid?.instanceGrave, {
     items: [{ itemId: 532, quantity: 3 }],

@@ -291,6 +291,16 @@ export function deriveMenuEntriesForWidget(
                 entries.push({ option: op.text, target: itemTarget, opIndex: 0 });
             }
         }
+        // Some cache items use all five native ops for actions such as Dismantle
+        // or Uncharge. Keep those actions and add a server-validated disposal
+        // entry only to the player's normal inventory, never bank/trade views.
+        const groupId = w.groupId ?? ((w.uid ?? 0) >>> 16);
+        if (groupId === 149 && !actions.some(action => /^(drop|destroy|discard)$/i.test(String(action)))) {
+            const examineIndex = entries.findIndex(entry => entry.option.toLowerCase() === "examine");
+            entries.splice(examineIndex < 0 ? entries.length : examineIndex, 0, {
+                option: "Drop", target: itemTarget, opIndex: 0,
+            });
+        }
     } else if (actions.length) {
         const ops: Array<{ text: string; index: number }> = [];
         for (let i = 0; i < actions.length; i++) {
@@ -908,7 +918,7 @@ export function collectWidgetsWithKeyHandlers(
         const x = ox + ((w.x as number) | 0);
         const y = oy + ((w.y as number) | 0);
         // Check for onKey handler
-        if (w.eventHandlers?.onKey || w.onKey) {
+        if (w.eventHandlers?.onKey || w.onKey || w.hasKeyBindings) {
             // Store absolute position for event coordinate calculation
             w._absX = x;
             w._absY = y;

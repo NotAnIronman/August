@@ -35,6 +35,25 @@ function createFollowerItemDefinitions(
  * follower variants without changing the drop/summon flow.
  */
 const PET_FOLLOWER_ITEM_DEFINITIONS = createFollowerItemDefinitions([
+    // Revision 237: kitten, grown, and overgrown inventory forms, in colour order.
+    [5591, [1555]],
+    [5592, [1556]],
+    [5593, [1557]],
+    [5594, [1558]],
+    [5595, [1559]],
+    [5596, [1560]],
+    [1619, [1561]],
+    [1620, [1562]],
+    [1621, [1563]],
+    [1622, [1564]],
+    [1623, [1565]],
+    [1624, [1566]],
+    [5598, [1567]],
+    [5599, [1568]],
+    [5600, [1569]],
+    [5601, [1570]],
+    [5602, [1571]],
+    [5603, [1572]],
     [2055, [11995]], // Chaos Elemental Jr.
     [6626, [12643]], // Dagannoth Supreme Jr.
     [6627, [12644]], // Dagannoth Prime Jr.

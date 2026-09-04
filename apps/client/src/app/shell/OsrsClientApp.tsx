@@ -25,6 +25,7 @@ import {
 } from "@client/core/platform/device/DeviceUtil";
 import {
     describeStorageShortfall,
+    describePersistentStorageUnavailable,
     ensurePersistentStorage,
     getStorageBudget,
     hasEnoughStorage,
@@ -244,7 +245,7 @@ function OsrsClientApp() {
                     // Skip on iOS Safari-in-tab: the dedicated home-screen hint already covers this.
                     if (!(isIos && !isStandalone)) {
                         addStorageWarning(
-                            "Persistent storage not supported in this browser. Cached assets may be cleared. Install as PWA or use a modern browser.",
+                            describePersistentStorageUnavailable(globalThis.isSecureContext),
                         );
                     }
                 }

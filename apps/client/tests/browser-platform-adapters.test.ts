@@ -4,6 +4,7 @@ import { getPublicAssetUrl } from "@client/core/config/publicAssets";
 import { getServerListUrl } from "@client/core/config/clientEnv";
 import { fetchWithTimeout } from "@client/core/network/fetchWithTimeout";
 import { createCanvasSurface2D } from "@client/core/platform/browser/CanvasSurface";
+import { describePersistentStorageUnavailable } from "@client/core/storage/StorageUtil";
 import {
     canUseLocalStorage,
     createBrowserJsonPersistence,
@@ -12,6 +13,11 @@ import {
 } from "@client/core/storage/localStorage";
 
 async function main(): Promise<void> {
+    const httpWarning = describePersistentStorageUnavailable(false);
+    assert.match(httpWarning, /HTTPS is required/);
+    assert.match(httpWarning, /server-side character saves/);
+    assert.doesNotMatch(httpWarning, /modern browser|Install as PWA/);
+    assert.match(describePersistentStorageUnavailable(true), /browser or browsing mode/);
     const originalWindow = (globalThis as any).window;
     const originalDocument = (globalThis as any).document;
     const originalFetch = globalThis.fetch;

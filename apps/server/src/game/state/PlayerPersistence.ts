@@ -626,6 +626,16 @@ export function mergePlayerPersistentVars(
         }
     }
 
+    const pendingPets = pick("pendingPetRewards");
+    if (Array.isArray(pendingPets)) {
+        result.pendingPetRewards = pendingPets.flatMap(reward => {
+            if (!isRecord(reward)) return [];
+            const itemId = positiveId(reward.itemId);
+            const quantity = stackQuantity(reward.quantity);
+            return itemId !== undefined && quantity !== undefined ? [{ itemId, quantity }] : [];
+        });
+    }
+
     // Collection log snapshots are replaced as a unit by an account override.
     const collectionLogSource = pick("collectionLog");
     const sanitizedCollectionLog = sanitizeCollectionLogSnapshot(collectionLogSource);

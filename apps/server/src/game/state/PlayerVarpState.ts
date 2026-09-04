@@ -6,6 +6,7 @@ import {
     VARP_AREA_SOUNDS_VOLUME,
     VARP_COMBAT_TARGET_PLAYER_INDEX,
     VARP_KEYBINDING_ESC_TO_CLOSE,
+    VARPS_TAB_KEYBINDINGS,
     VARP_MASTER_VOLUME,
     VARP_MUSIC_VOLUME,
     VARP_SHOP_QUANTITY,
@@ -19,6 +20,7 @@ import type { PersistentSubState } from "@server/game/state/PersistentSubState";
 
 /** Varps that should persist even when their value is 0. */
 const ZERO_PERSISTENT_VARPS = new Set<number>([
+    ...VARPS_TAB_KEYBINDINGS,
     VARP_MUSIC_VOLUME,
     VARP_SOUND_EFFECTS_VOLUME,
     VARP_AREA_SOUNDS_VOLUME,

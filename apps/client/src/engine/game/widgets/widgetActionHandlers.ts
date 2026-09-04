@@ -245,6 +245,7 @@ export function handleWidgetActionTargeting(
         "open-all",
         "empty",
         "destroy",
+        "discard",
         "rub",
         "commune",
         "fill",

@@ -1,4 +1,6 @@
 import { getItemDefinition } from "@server/data/items";
+import { awardPetReward } from "@server/game/followers/awardPetReward";
+import { getFollowerDefinitionByItemId } from "@server/game/followers/followerDefinitions";
 import type { ServerServices } from "@server/game/ServerServices";
 
 /**
@@ -194,6 +196,13 @@ export class GroundItemManager {
         if (!(itemId > 0) || !(quantity > 0)) return undefined;
         const def = getItemDefinition(itemId);
         if (!def) return undefined;
+        if (opts?.isMonsterDrop && opts.ownerId !== undefined && getFollowerDefinitionByItemId(itemId)) {
+            const owner = this.svc.players?.getById(opts.ownerId);
+            const services = this.svc.scriptRuntime?.getServices();
+            if (owner && services) {
+                if (awardPetReward(owner, itemId, quantity, services)) return undefined;
+            }
+        }
         const key = this.tileKey(tile.x, tile.y, tile.level, worldViewId);
         const list = this.stacksByTile.get(key) ?? [];
         const isStackable = def.stackable;

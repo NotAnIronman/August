@@ -86,6 +86,8 @@ export const VARP_OPTION_ATTACK_PRIORITY_NPC = 1306;
  */
 export const VARBIT_KEYBINDING_ESC_TO_CLOSE = 4681;
 export const VARP_KEYBINDING_ESC_TO_CLOSE = 1224;
+/** Cache rev 237: packed tab keybindings (5-bit fields); 1224 also owns Escape. */
+export const VARPS_TAB_KEYBINDINGS = [1224, 1225, 1226] as const;
 
 /**
  * Active follower NPC server index.
@@ -331,6 +333,7 @@ export const TRANSMIT_VARPS: ReadonlySet<number> = new Set([
     VARP_AUTO_RETALIATE, // Auto-retaliate toggle
     VARP_SPECIAL_ATTACK, // Special attack toggle
     VARP_KEYBINDING_ESC_TO_CLOSE, // %keybinding_esc_to_close
+    ...VARPS_TAB_KEYBINDINGS,
     VARP_SHOP_QUANTITY, // Shop quantity selector (%shop_quantity)
     VARP_SIDE_JOURNAL_STATE, // Side journal tab selection (drives IF_OPENSUB swap for 629:43)
     ...XPDROPS_TRANSMIT_VARPS, // XP drops setup/tracker persistence

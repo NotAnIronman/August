@@ -55,6 +55,7 @@ import { GameEventBus } from "@server/game/events/GameEventBus";
 import { EncounterManager } from "@server/game/encounters/EncounterManager";
 import { FollowerCombatManager } from "@server/game/followers/FollowerCombatManager";
 import { FollowerManager } from "@server/game/followers/FollowerManager";
+import { getFollowerDefinitionByItemId } from "@server/game/followers/followerDefinitions";
 import type {
     GamemodeDefinition,
     GamemodeUiController,
@@ -1346,7 +1347,8 @@ export class WSServer {
                 );
                 // Collection-log credit belongs to the assigned monster-drop
                 // owner at creation time, never to whoever eventually picks it up.
-                if (spawned && opts?.isMonsterDrop && opts.ownerId !== undefined) {
+                if (spawned && opts?.isMonsterDrop && opts.ownerId !== undefined &&
+                    !getFollowerDefinitionByItemId(itemId)) {
                     const owner = this.players?.getById(opts.ownerId);
                     if (owner) this.collectionLogService?.trackCollectionLogItem(owner, itemId);
                 }

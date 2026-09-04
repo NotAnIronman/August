@@ -444,14 +444,10 @@ function spawnCorpseDrop(corpse: NpcState, services: ScriptServices, drop: Pendi
 
 function awardNid(player: PlayerState, corpse: NpcState, services: ScriptServices, chance: number): void {
     if (player.collectionLog.hasItem(NID_ID) || player.collectionLog.hasItem(NID_VARIANT_ID) || Math.random() >= chance) return;
-    const added = player.items.addItem(NID_ID, 1, { assureFullInsertion: false }).completed;
-    if (added < 1) {
-        services.groundItems.spawn(NID_ID, 1, { x: corpse.tileX, y: corpse.tileY, level: corpse.level }, {
-            ownerId: player.id, privateTicks: 100, isMonsterDrop: true, worldViewId: corpse.worldViewId,
-        });
-    }
-    services.collectionLog.trackCollectionLogItem(player, NID_ID);
-    services.messaging.sendGameMessage(player, "You have a funny feeling like you're being followed.");
+    // The common monster-reward path logs and summons pets, or stores them safely.
+    services.groundItems.spawn(NID_ID, 1, { x: corpse.tileX, y: corpse.tileY, level: corpse.level }, {
+        ownerId: player.id, isMonsterDrop: true, worldViewId: corpse.worldViewId,
+    });
 }
 
 function finishCorpse(corpse: NpcState, services: ScriptServices): void {

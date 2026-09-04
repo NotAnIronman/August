@@ -931,6 +931,8 @@ export class InputManager {
 
     private onKeyDown = (event: KeyboardEvent) => {
         event.preventDefault();
+        // A held F-key must not repeatedly collapse/reopen its assigned tab.
+        if (event.repeat && /^F(?:[1-9]|1[0-2])$/.test(event.code)) return;
         this.idleTime = 0;
         this.lastInputTimeMs = this.nowMs();
 
