@@ -9,6 +9,7 @@ import {
     shouldDeprioritizeAttack,
 } from "../src/engine/game/menu/AttackOptionPolicy";
 import { AttackOptionSettingsController } from "../src/engine/game/widgets/AttackOptionSettingsController";
+import { WidgetActionRouter } from "../src/engine/game/widgets/WidgetActionRouter";
 import {
     VARP_OPTION_ATTACK_PRIORITY_NPC,
     VARP_OPTION_ATTACK_PRIORITY_PLAYER,
@@ -103,6 +104,52 @@ function dynamicOption(parentUid: number, childIndex: number, text: string, y: n
         }),
         { varpId: VARP_OPTION_ATTACK_PRIORITY_NPC, value: 1 },
     );
+}
+
+// Primary widget clicks prepare the selection before CS2 closes the dynamic dropdown, then
+// commit it afterward through the same varp route used by menu actions.
+{
+    const npcListUid = uid(39);
+    const npcOptions = [
+        dynamicOption(npcListUid, 1, "Depends on combat levels", 0),
+        dynamicOption(npcListUid, 2, "Always right-click", 20),
+        dynamicOption(npcListUid, 3, "Left-click where available", 40),
+        dynamicOption(npcListUid, 4, "Hidden", 60),
+    ];
+    const writes: Array<{ varpId: number; value: number }> = [];
+    const widgetManager = {
+        getWidgetByUid: (widgetUid: number) =>
+            widgetUid === npcListUid ? { uid: npcListUid, children: npcOptions } : undefined,
+    } as never;
+    const router = new WidgetActionRouter({
+        getWidgetManager: () => widgetManager,
+        getVarManager: () => ({
+            setVarp: (varpId: number, value: number) => {
+                writes.push({ varpId, value });
+            },
+        }),
+    } as never);
+
+    assert.equal(
+        router.prepareClientSettingAction({
+            widget: staticWidget(7),
+            option: "Choose",
+            source: "primary",
+        }),
+        undefined,
+    );
+    const commit = router.prepareClientSettingAction({
+        widget: npcOptions[1],
+        option: "Select",
+        target: "Always right-click",
+        source: "primary",
+    });
+    assert.equal(typeof commit, "function");
+    assert.deepEqual(writes, []);
+    assert.equal(commit?.(), true);
+    assert.deepEqual(writes, [
+        { varpId: VARP_OPTION_ATTACK_PRIORITY_NPC, value: ATTACK_OPTION_ALWAYS_RIGHT_CLICK },
+    ]);
 }
 
 assert.equal(normalizeAttackOptionMode(-1), ATTACK_OPTION_DEPENDS_ON_COMBAT_LEVELS);

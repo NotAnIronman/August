@@ -269,6 +269,17 @@ export function processWidgetClickInput(
                     // Handlers can mutate widget ops (e.g., Mute -> Unmute), but the transmitted action
                     // should reflect what was clicked pre-mutation.
                     const primaryAction = getPrimaryWidgetAction(w);
+                    const preparedClientSettingAction = deps.prepareClientSettingAction({
+                        widget: w,
+                        option: primaryAction.option,
+                        target: primaryAction.target,
+                        source: "primary",
+                        cursorX: widgetInteraction.clickedWidgetX,
+                        cursorY: widgetInteraction.clickedWidgetY,
+                        slot: primaryAction.slot,
+                        itemId: primaryAction.itemId,
+                        opIndex: primaryAction.opIndex,
+                    });
 
                     // Trade item slots are draggable and reach handleWidgetAction on mouse-up,
                     // but the native Accept/Decline buttons are not. Route these primary button
@@ -338,6 +349,14 @@ export function processWidgetClickInput(
                     // This matches the behavior we already do for server-driven run_script events.
                     if (invokedAnyHandler && widgetManager) {
                         widgetManager.invalidateAll();
+                    }
+
+                    // Commit cache-created setting dropdowns after their CS2 handler has updated
+                    // the interface. The commit owns the action and transmits its varp, avoiding a
+                    // second generic widget packet for the transient dropdown child.
+                    if (preparedClientSettingAction?.()) {
+                        widgetInteraction.clickedWidgetHandled = true;
+                        break;
                     }
 
                     // If click handlers resumed a pause button, skip generic IF_BUTTON send.

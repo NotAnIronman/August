@@ -29,6 +29,8 @@ import { AttackOptionSettingsController } from "@client/engine/game/widgets/Atta
 
 export type { WidgetActionEvent } from "@client/engine/game/widgets/widgetActionPayload";
 
+export type PreparedClientSettingAction = () => boolean;
+
 export type WidgetActionRouterDeps = WidgetActionHandlersDeps &
     WidgetActionTradeDeps & {
         getInputManager: () => InputManager | undefined;
@@ -97,6 +99,38 @@ export class WidgetActionRouter {
 
     constructor(private readonly deps: WidgetActionRouterDeps) {}
 
+    /**
+     * Observe a cache-driven client setting before its CS2 handler mutates or removes the
+     * dynamic dropdown widget, then return a commit step that can run after that handler.
+     *
+     * Primary clicks on non-draggable widgets are executed directly by widgetClickInput and do
+     * not otherwise pass through handleWidgetAction. Keeping this as a two-phase operation lets
+     * both input routes share the same setting logic without running widget scripts twice.
+     */
+    prepareClientSettingAction(event: WidgetActionEvent): PreparedClientSettingAction | undefined {
+        const widgetManager = this.deps.getWidgetManager();
+        const widget = resolveDynamicChildForAction(widgetManager, event.widget, event.slot);
+        const normalizedEvent =
+            widget !== event.widget
+                ? { ...event, widget, slot: (widget.childIndex ?? event.slot) as any }
+                : event;
+        const selection = this.attackOptionSettings.observeAction(
+            widgetManager,
+            normalizedEvent,
+        );
+        if (!selection) return undefined;
+
+        return () => {
+            const varManager = this.deps.getVarManager();
+            if (!varManager) return false;
+
+            // setVarp updates menu policy immediately. The existing TRANSMIT_VARPS hook persists
+            // the value server-side, so the dropdown widget operation must not also be sent.
+            varManager.setVarp(selection.varpId, selection.value);
+            return true;
+        };
+    }
+
     handleWidgetAction(event: WidgetActionEvent): void {
         const widgetManager = this.deps.getWidgetManager();
         let w = resolveDynamicChildForAction(widgetManager, event.widget, event.slot);
@@ -110,10 +144,7 @@ export class WidgetActionRouter {
                 : typeof w?.childIndex === "number"
                   ? w.childIndex
                   : w?.uid & 0xffff;
-        const attackOptionSelection = this.attackOptionSettings.observeAction(
-            widgetManager,
-            event,
-        );
+        const commitClientSettingAction = this.prepareClientSettingAction(event);
 
         if (this.deps.getItemSpawnerUi().handleWidgetClick(groupId | 0, childId | 0)) {
             return;
@@ -242,14 +273,8 @@ export class WidgetActionRouter {
             }
         }
 
-        if (attackOptionSelection) {
-            const varManager = this.deps.getVarManager();
-            if (varManager) {
-                // setVarp updates menu policy immediately and the existing TRANSMIT_VARPS hook
-                // persists the setting on the server. Do not also send the dynamic widget op.
-                varManager.setVarp(attackOptionSelection.varpId, attackOptionSelection.value);
-                return;
-            }
+        if (commitClientSettingAction?.()) {
+            return;
         }
 
         const resumePauseTriggeredByHandler =

@@ -1238,6 +1238,8 @@ export class OsrsClient {
             executeScriptListener: (widget, listener, eventContext) =>
                 this.executeScriptListener(widget, listener, eventContext),
             handleWidgetAction: (event) => this.handleWidgetAction(event),
+            prepareClientSettingAction: (event) =>
+                this.widgetActionRouter.prepareClientSettingAction(event),
             handleTradeWidgetAction: (widget, event, groupId, childId) =>
                 this.handleTradeWidgetAction(widget, event, groupId, childId),
             handleInventorySlotMove: (
