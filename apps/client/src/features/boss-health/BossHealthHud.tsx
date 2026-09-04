@@ -7,10 +7,15 @@ import {
     getBossHealthHudHue,
     getNextBossHealthHudMarker,
 } from "@client/features/boss-health/BossHealthHudStore";
+import {
+    bossHealthBarPreferences,
+    type BossHealthBarStyle,
+} from "@client/features/boss-health/BossHealthBarPreferences";
 import "@client/features/boss-health/BossHealthHud.css";
 
 export interface BossHealthHudProps {
     readonly store: BossHealthHudStore;
+    readonly style?: BossHealthBarStyle;
 }
 
 type BossHealthCssProperties = CSSProperties & {
@@ -35,8 +40,17 @@ function markerAriaLabel(marker: BossHealthHudMarker, reached: boolean): string 
     }`;
 }
 
-export function BossHealthHud({ store }: BossHealthHudProps): JSX.Element | null {
+export function BossHealthHud({
+    store,
+    style: styleOverride,
+}: BossHealthHudProps): JSX.Element | null {
     const state = useSyncExternalStore(store.subscribe, store.getState, store.getState);
+    const preferredStyle = useSyncExternalStore(
+        bossHealthBarPreferences.subscribe,
+        bossHealthBarPreferences.getSnapshot,
+        bossHealthBarPreferences.getSnapshot,
+    );
+    const hudStyle = styleOverride ?? preferredStyle;
     const [trailPercent, setTrailPercent] = useState(state.precisePercent);
     const trailIdentity = useRef("");
 
@@ -44,6 +58,12 @@ export function BossHealthHud({ store }: BossHealthHudProps): JSX.Element | null
         if (!state.active) {
             trailIdentity.current = "";
             setTrailPercent(0);
+            return;
+        }
+
+        // The old-school presentation deliberately has no delayed damage trail.
+        if (hudStyle === "oldschool") {
+            setTrailPercent(state.precisePercent);
             return;
         }
 
@@ -62,12 +82,12 @@ export function BossHealthHud({ store }: BossHealthHudProps): JSX.Element | null
         }
         const timer = window.setTimeout(() => setTrailPercent(state.precisePercent), 360);
         return () => window.clearTimeout(timer);
-    }, [state.active, state.name, state.npcTypeId, state.precisePercent, trailPercent]);
+    }, [hudStyle, state.active, state.name, state.npcTypeId, state.precisePercent, trailPercent]);
 
     if (!state.active) return null;
 
     const nextMarker = getNextBossHealthHudMarker(state.markers, state.precisePercent);
-    const style: BossHealthCssProperties = {
+    const cssVariables: BossHealthCssProperties = {
         "--boss-health-fill": `${state.precisePercent}%`,
         "--boss-health-trail": `${trailPercent}%`,
         "--boss-health-hue": String(getBossHealthHudHue(state.precisePercent)),
@@ -80,10 +100,11 @@ export function BossHealthHud({ store }: BossHealthHudProps): JSX.Element | null
     return (
         <div className="boss-health-hud-layer">
             <section
-                className="boss-health-hud"
-                style={style}
+                className={`boss-health-hud boss-health-hud--${hudStyle}`}
+                style={cssVariables}
                 aria-label={`${state.name} health`}
                 data-revision={state.revision}
+                data-style={hudStyle}
             >
                 <div className="boss-health-hud__plate">
                     <div className="boss-health-hud__header">
@@ -112,6 +133,9 @@ export function BossHealthHud({ store }: BossHealthHudProps): JSX.Element | null
                                 <span className="boss-health-hud__shine" />
                             </span>
                             <span className="boss-health-hud__track-gloss" aria-hidden="true" />
+                            <span className="boss-health-hud__oldschool-readout" aria-hidden="true">
+                                {exactHealth} · {displayPercent}
+                            </span>
                         </div>
 
                         {state.markers.length > 0 && (

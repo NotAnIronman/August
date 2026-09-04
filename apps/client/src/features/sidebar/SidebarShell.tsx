@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 
 import type { OsrsClient } from "@client/engine/game/OsrsClient";
+import {
+    bossHealthBarPreferences,
+    type BossHealthBarStyle,
+} from "@client/features/boss-health/BossHealthBarPreferences";
 import type { GroundItemsPluginConfig } from "@client/features/plugins/grounditems/types";
 import type { InteractHighlightPluginConfig } from "@client/features/plugins/interacthighlight/types";
 import type { TileMarkersPluginConfig } from "@client/features/plugins/tilemarkers/types";
@@ -633,6 +637,19 @@ function PluginHubPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Element
         tileMarkersGetSnapshot,
         tileMarkersGetSnapshot,
     );
+    const bossHealthBarStyle = useSyncExternalStore(
+        bossHealthBarPreferences.subscribe,
+        bossHealthBarPreferences.getSnapshot,
+        bossHealthBarPreferences.getSnapshot,
+    );
+
+    const bossHealthBarStyles: ReadonlyArray<{
+        value: BossHealthBarStyle;
+        label: string;
+    }> = [
+        { value: "modern", label: "Modern" },
+        { value: "oldschool", label: "Oldschool" },
+    ];
 
     const pluginToggles = useMemo<PluginHubToggle[]>(
         () => [
@@ -705,6 +722,36 @@ function PluginHubPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Element
                     />
                 </label>
             ))}
+            <section
+                className="rl-sidebar-plugin-style-setting"
+                aria-labelledby="boss-health-bar-style-name"
+            >
+                <span className="rl-sidebar-plugin-meta">
+                    <span id="boss-health-bar-style-name" className="rl-sidebar-plugin-name">
+                        Boss health bar style
+                    </span>
+                    <span className="rl-sidebar-plugin-desc">
+                        Modern is detailed; Oldschool is a compact red/green bar.
+                    </span>
+                </span>
+                <div
+                    className="rl-sidebar-style-toggle"
+                    role="group"
+                    aria-label="Boss Health Bar style"
+                >
+                    {bossHealthBarStyles.map((option) => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            className={bossHealthBarStyle === option.value ? "active" : undefined}
+                            aria-pressed={bossHealthBarStyle === option.value}
+                            onClick={() => bossHealthBarPreferences.setStyle(option.value)}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+            </section>
         </div>
     );
 }
