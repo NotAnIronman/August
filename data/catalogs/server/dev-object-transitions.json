@@ -570,6 +570,22 @@
       },
       "animationId": 737,
       "id": "rule-35"
+    },
+    {
+      "locId": 42595,
+      "option": 1,
+      "action": "exit",
+      "from": {
+        "x": 3679,
+        "y": 9797,
+        "level": 0
+      },
+      "to": {
+        "x": 3658,
+        "y": 3407,
+        "level": 0
+      },
+      "id": "rule-36"
     }
   ]
 }
