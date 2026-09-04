@@ -73,7 +73,11 @@ mix rules between gamemodes.
 strategies live under `pathfinding/engine/`. Command names and permissions resolve once
 through `game/commands/`. Weapon special attacks resolve through
 `game/combat/special-attacks/`, whose documented precedence prevents parallel special
-attack systems from reappearing.
+attack systems from reappearing. Reusable boss definitions, mechanic lifecycles, rooms,
+and timelines live under `game/encounters/`; reusable skill actions, requirements,
+inventory transforms, gathering policies, production policies, and resource-node
+lifecycle live under `game/skilling/`. Content supplies data and exceptional choreography
+to those owners rather than cloning their loops.
 
 ## Tick lifecycle
 

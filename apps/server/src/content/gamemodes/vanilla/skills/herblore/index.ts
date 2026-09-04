@@ -5,7 +5,7 @@ import type {
     ItemOnItemEvent,
     ScriptServices,
 } from "@server/game/scripts/types";
-import { logger } from "@server/observability/logger";
+import { applyInventoryTransform } from "@server/game/skilling/InventoryTransform";
 
 // ---------------------------------------------------------------------------
 // Herblore Skill
@@ -100,8 +100,6 @@ function herbloreLevel(services: ScriptServices, player: PlayerState): number {
 }
 
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
-    const consumeItem = services.inventory.consumeItem;
-    const setInventorySlot = services.inventory.setInventorySlot;
     const addSkillXp = services.skills.addSkillXp;
     const snapshotInventory = services.inventory.snapshotInventoryImmediate;
 
@@ -118,7 +116,12 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                     );
                     return;
                 }
-                setInventorySlot(player, source.slot, h.clean, 1);
+                const exchange = applyInventoryTransform(services.inventory, player, {
+                    inputs: [{ itemId: h.grimy, quantity: 1, slot: source.slot }],
+                    outputs: [{ itemId: h.clean, quantity: 1 }],
+                    outputPlacement: "first-consumed-slot",
+                });
+                if (!exchange.ok) return;
                 if (addSkillXp && h.xp > 0) {
                     addSkillXp(player, SkillId.Herblore, h.xp);
                 }
@@ -143,8 +146,15 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
             const isSourceHerb = source.itemId === u.cleanHerb;
             const herbSlot = isSourceHerb ? source.slot : target.slot;
             const vialSlot = isSourceHerb ? target.slot : source.slot;
-            if (!consumeItem(player, herbSlot)) return;
-            setInventorySlot(player, vialSlot, u.unf, 1);
+            const exchange = applyInventoryTransform(services.inventory, player, {
+                inputs: [
+                    { itemId: VIAL_OF_WATER, quantity: 1, slot: vialSlot },
+                    { itemId: u.cleanHerb, quantity: 1, slot: herbSlot },
+                ],
+                outputs: [{ itemId: u.unf, quantity: 1 }],
+                outputPlacement: "first-consumed-slot",
+            });
+            if (!exchange.ok) return;
             services.messaging.sendGameMessage(player, "You mix the herb into the water.");
             snapshotInventory(player);
         };
@@ -169,8 +179,15 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
             const srcIsUnf = source.itemId === f.unf;
             const unfSlot = srcIsUnf ? source.slot : target.slot;
             const secSlot = srcIsUnf ? target.slot : source.slot;
-            if (!consumeItem(player, unfSlot)) return;
-            setInventorySlot(player, secSlot, f.product3, 1);
+            const exchange = applyInventoryTransform(services.inventory, player, {
+                inputs: [
+                    { itemId: f.secondary, quantity: 1, slot: secSlot },
+                    { itemId: f.unf, quantity: 1, slot: unfSlot },
+                ],
+                outputs: [{ itemId: f.product3, quantity: 1 }],
+                outputPlacement: "first-consumed-slot",
+            });
+            if (!exchange.ok) return;
             if (addSkillXp && f.xp > 0) {
                 addSkillXp(player, SkillId.Herblore, f.xp);
             }
@@ -212,15 +229,23 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                     );
                     return;
                 }
-                for (let i = 0; i < required; i++) {
-                    if (!consumeItem(player, crystalSlot)) {
-                        logger.warn(
-                            `[herblore] failed to consume amylase crystal slot=${crystalSlot}`,
-                        );
-                        return;
-                    }
-                }
-                setInventorySlot(player, potionSlot, recipe.stamina, 1);
+                const exchange = applyInventoryTransform(services.inventory, player, {
+                    inputs: [
+                        {
+                            itemId: recipe.superEnergy,
+                            quantity: 1,
+                            slot: potionSlot,
+                        },
+                        {
+                            itemId: AMYLASE_CRYSTAL,
+                            quantity: required,
+                            slot: crystalSlot,
+                        },
+                    ],
+                    outputs: [{ itemId: recipe.stamina, quantity: 1 }],
+                    outputPlacement: "first-consumed-slot",
+                });
+                if (!exchange.ok) return;
                 services.messaging.sendGameMessage(
                     player,
                     "You mix the amylase crystals into the potion.",

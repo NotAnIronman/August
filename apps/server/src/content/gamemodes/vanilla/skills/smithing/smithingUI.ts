@@ -2,6 +2,11 @@ import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { PlayerState } from "@server/game/player";
 import type { SmithingOptionMessage } from "@server/game/scripts/types";
 import type { ScriptServices } from "@server/game/scripts/types";
+import {
+    type SkillActionPolicy,
+    defineSkillAction,
+    requestSkillAction,
+} from "@server/game/skilling/SkillAction";
 import { shouldGuaranteeIronSmelt } from "@server/content/gamemodes/vanilla/skills/smithing/smithingBonuses";
 import {
     HAMMER_ITEM_ID,
@@ -44,6 +49,24 @@ const SMITHING_BAR_MIN_LEVEL_BY_TYPE: Readonly<Record<number, number>> = {
     6: 85,
     9: 8,
 };
+
+const SMELT_ACTIONS = new Map<string, SkillActionPolicy>(
+    SMELTING_RECIPES.map((recipe) => [
+        recipe.id,
+        defineSkillAction("smelt", { delayTicks: recipe.delayTicks ?? 4 }),
+    ]),
+);
+const SMITH_ACTIONS = new Map<string, SkillActionPolicy>(
+    SMITHING_RECIPES.map((recipe) => [
+        recipe.id,
+        defineSkillAction("smith", {
+            // The anvil interface closes before the first hammer swing, which
+            // begins next tick; later repetitions retain the recipe cadence.
+            delayTicks: 1,
+            cooldownTicks: recipe.delayTicks ?? 4,
+        }),
+    ]),
+);
 
 function countInventoryItem(services: ScriptServices, player: PlayerState, itemId: number): number {
     const inv = services.inventory.getInventoryItems(player);
@@ -372,20 +395,17 @@ export class SmithingUI {
                 ? requestedCount
                 : this.resolveQuantity(currentMode, available, customAmount);
         const desired = Math.max(1, Math.min(available, desiredRaw));
-        const delay = recipe.delayTicks !== undefined ? Math.max(1, recipe.delayTicks) : 4;
-        const tick = this.services.system.getCurrentTick() ?? 0;
-        const result = this.services.combat.requestAction(
-            player,
-            {
-                kind: "skill.smelt",
-                data: { recipeId: recipe.id, count: desired },
-                delayTicks: delay,
-                cooldownTicks: delay,
-                groups: ["skill.smelt"],
-            },
-            tick,
-        );
-        if (!result.ok) {
+        const action = SMELT_ACTIONS.get(recipe.id);
+        const requested =
+            action !== undefined &&
+            requestSkillAction(
+                this.services,
+                player,
+                action,
+                { recipeId: recipe.id, count: desired },
+                this.services.system.getCurrentTick() ?? 0,
+            );
+        if (!requested) {
             this.services.messaging.sendGameMessage(
                 player,
                 "You're too busy to do that right now.",
@@ -435,20 +455,17 @@ export class SmithingUI {
         // while any modal is open, so IF 312 must close first or the action stalls.
         this.closeInterface(player);
 
-        const tick = this.services.system.getCurrentTick() ?? 0;
-        const result = this.services.combat.requestAction(
-            player,
-            {
-                kind: "skill.smith",
-                data: { recipeId: recipe.id, count: desired },
-                // First hammer swing starts next tick (OpenRune/OSRS anvil parity).
-                delayTicks: 1,
-                cooldownTicks: Math.max(1, recipe.delayTicks ?? 4),
-                groups: ["skill.smith"],
-            },
-            tick,
-        );
-        if (!result.ok) {
+        const action = SMITH_ACTIONS.get(recipe.id);
+        const requested =
+            action !== undefined &&
+            requestSkillAction(
+                this.services,
+                player,
+                action,
+                { recipeId: recipe.id, count: desired },
+                this.services.system.getCurrentTick() ?? 0,
+            );
+        if (!requested) {
             this.services.messaging.sendGameMessage(
                 player,
                 "You're too busy to do that right now.",

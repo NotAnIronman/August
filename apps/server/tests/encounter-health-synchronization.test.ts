@@ -122,6 +122,9 @@ function testPoisonAndVenomStatusTicksUseTheSameObserver(): void {
 
 function testPreventedLethalStatusHitPublishesOnlyItsCommittedHealth(): void {
     const { npc, runtime } = createEncounter(81_045, 10);
+    const generationBeforeHit = runtime.generation;
+    runtime.ownTask("lethal-intercept-task");
+    runtime.ownHazard("lethal-intercept-hazard");
     npc.inflictPoison(20, 0, 1);
 
     const commit = npc.beginHealthTransaction();
@@ -142,6 +145,14 @@ function testPreventedLethalStatusHitPublishesOnlyItsCommittedHealth(): void {
     assert.equal(npc.getHitpoints(), 1);
     assert.equal(runtime.healthCurrent, 1);
     assert.notEqual(runtime.lifecycle, "dead");
+    assert.equal(
+        runtime.generation,
+        generationBeforeHit,
+        "reversing a lethal hit must not be mistaken for an encounter reset",
+    );
+    const remaining = runtime.snapshotOwnedResources();
+    assert.deepEqual([...remaining.taskIds], ["lethal-intercept-task"]);
+    assert.deepEqual([...remaining.hazardIds], ["lethal-intercept-hazard"]);
 }
 
 function testAuthoritativeHealRevivesEncounterPlanningBeforeDespawn(): void {
@@ -177,6 +188,60 @@ function testThresholdEventsDeliverOncePerLifeAndRearmOnReset(): void {
     assert.deepEqual(delivered, ["three-quarters", "three-quarters"]);
 }
 
+function testResetCleansOwnedResourcesButPreservesTheBoss(): void {
+    const typeId = 81_049;
+    const registry = new EncounterRegistry();
+    registry.register(definition(typeId, 100));
+    const removedNpcs: number[] = [];
+    const cancelledTasks: Array<string | number> = [];
+    const removedHazards: string[] = [];
+    const removedLocations: string[] = [];
+    const manager = new EncounterManager(registry, {
+        removeNpc: (id) => removedNpcs.push(id),
+        cancelTask: (id) => {
+            cancelledTasks.push(id);
+            if (id === 77) throw new Error("simulated task-adapter failure");
+        },
+        removeHazard: (id) => removedHazards.push(id),
+        removeLocation: (id) => removedLocations.push(id),
+    });
+    const npc = new NpcState(
+        549,
+        typeId,
+        1,
+        -1,
+        -1,
+        32,
+        { x: 3200, y: 3200, level: 0 },
+        { maxHitpoints: 100 },
+    );
+    const runtime = manager.ensureForNpc(npc);
+    assert.ok(runtime);
+    runtime.ownNpc(999);
+    runtime.ownTask(77);
+    runtime.ownTask("named-task");
+    runtime.ownHazard("acid-pool");
+    runtime.ownLocation("temporary-pillar");
+
+    npc.applyDamage(25);
+    assert.doesNotThrow(
+        () => npc.resetToSpawn(),
+        "one failing cleanup adapter must not block the remaining owned resources",
+    );
+
+    assert.equal(runtime.lifecycle, "idle");
+    assert.equal(runtime.healthCurrent, 100);
+    assert.deepEqual(removedNpcs, [999]);
+    assert.deepEqual(cancelledTasks, [77, "named-task"]);
+    assert.deepEqual(removedHazards, ["acid-pool"]);
+    assert.deepEqual(removedLocations, ["temporary-pillar"]);
+    const remaining = runtime.snapshotOwnedResources();
+    assert.deepEqual([...remaining.npcRuntimeIds], [npc.id]);
+    assert.equal(remaining.taskIds.size, 0);
+    assert.equal(remaining.hazardIds.size, 0);
+    assert.equal(remaining.locationIds.size, 0);
+}
+
 function testFormTransitionPreservesSharedHealthExactlyOnce(): void {
     const firstTypeId = 81_060;
     const secondTypeId = 81_061;
@@ -200,6 +265,11 @@ function testFormTransitionPreservesSharedHealthExactlyOnce(): void {
     );
     const runtime = manager.ensureForNpc(first);
     assert.ok(runtime);
+    const generationBeforeTransition = runtime.generation;
+    runtime.ownNpc(777);
+    runtime.ownTask("form-transition-task");
+    runtime.ownHazard("form-transition-hazard");
+    runtime.ownLocation("form-transition-location");
     first.applyDamage(60);
     assert.equal(runtime.healthCurrent, 40);
     assert.deepEqual(deliveredThresholds, ["three-quarters"]);
@@ -223,6 +293,19 @@ function testFormTransitionPreservesSharedHealthExactlyOnce(): void {
     assert.equal(replacement.getHitpoints(), 40);
     assert.equal(runtime.currentNpcRuntimeId, replacement.id);
     assert.equal(runtime.healthCurrent, 40, "preserved damage must not be applied twice");
+    assert.equal(
+        runtime.generation,
+        generationBeforeTransition,
+        "changing forms must not invalidate same-life encounter work",
+    );
+    const resourcesAfterTransition = runtime.snapshotOwnedResources();
+    assert.deepEqual(
+        [...resourcesAfterTransition.npcRuntimeIds].sort((a, b) => a - b),
+        [replacement.id, 777].sort((a, b) => a - b),
+    );
+    assert.deepEqual([...resourcesAfterTransition.taskIds], ["form-transition-task"]);
+    assert.deepEqual([...resourcesAfterTransition.hazardIds], ["form-transition-hazard"]);
+    assert.deepEqual([...resourcesAfterTransition.locationIds], ["form-transition-location"]);
     assert.deepEqual(
         deliveredThresholds,
         ["three-quarters"],
@@ -298,6 +381,7 @@ testPoisonAndVenomStatusTicksUseTheSameObserver();
 testPreventedLethalStatusHitPublishesOnlyItsCommittedHealth();
 testAuthoritativeHealRevivesEncounterPlanningBeforeDespawn();
 testThresholdEventsDeliverOncePerLifeAndRearmOnReset();
+testResetCleansOwnedResourcesButPreservesTheBoss();
 testFormTransitionPreservesSharedHealthExactlyOnce();
 testRespawnCreatesFreshRuntimeAndRearmsPerLifeThresholds();
 

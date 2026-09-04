@@ -120,8 +120,11 @@ export function knockback(
     const source = services.combat.getNpc(runtime.currentNpcRuntimeId) as NpcState | undefined;
     if (!source) return createInactiveMechanicHandle(`${runtime.id}:knockback:noop`);
     const distance = Math.max(1, Math.trunc(params.distance ?? 1));
-    const dx = Math.sign(params.target.tileX - source.tileX) || 1;
-    const dy = Math.sign(params.target.tileY - source.tileY) || 1;
+    let dx = Math.sign(params.target.tileX - source.tileX);
+    let dy = Math.sign(params.target.tileY - source.tileY);
+    // Cardinal alignment must remain cardinal. Only choose an arbitrary axis
+    // when both actors occupy the same origin tile.
+    if (dx === 0 && dy === 0) dx = 1;
     const destination = { x: params.target.tileX + dx * distance, y: params.target.tileY + dy * distance };
     const path = services.movement.getPathService()?.findPathSteps({
         from: { x: params.target.tileX, y: params.target.tileY, plane: params.target.level },

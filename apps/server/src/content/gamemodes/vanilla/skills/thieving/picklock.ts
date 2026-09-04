@@ -6,6 +6,7 @@ import type {
     ScriptActionHandlerContext,
     ScriptServices,
 } from "@server/game/scripts/types";
+import { defineSkillAction, repeatSkillAction } from "@server/game/skilling/SkillAction";
 
 // ---------------------------------------------------------------------------
 // Picklock System
@@ -28,6 +29,14 @@ const PICKLOCK_SUCCESS_ANIM = 536; // human_openchest
 const PICKLOCK_SOUND = 2402;
 const PICKLOCK_CYCLE_TICKS = 5;
 const THIEVING_SKILL_ID = 17;
+const PICKLOCK_START_ACTION = defineSkillAction("picklock", {
+    delayTicks: 0,
+    cooldownTicks: 0,
+});
+const PICKLOCK_BEGIN_ACTION = defineSkillAction("picklock", { delayTicks: 1 });
+const PICKLOCK_CYCLE_ACTION = defineSkillAction("picklock", {
+    delayTicks: PICKLOCK_CYCLE_TICKS,
+});
 
 // -- Picklock definitions (multiloc + varbit) ---------------------------------
 interface PicklockDef {
@@ -111,15 +120,11 @@ function executePicklockAction(ctx: ScriptActionHandlerContext): ActionExecution
         effects.push(buildMessageEffect(player, "You attempt to pick the lock on the trap door."));
         services.sound.sendSound(player, PICKLOCK_SOUND);
 
-        services.combat.scheduleAction(
-            player.id,
-            {
-                kind: "skill.picklock",
-                data: { ...data, started: true },
-                delayTicks: 1,
-                cooldownTicks: 1,
-                groups: ["skill.picklock"],
-            },
+        repeatSkillAction(
+            services,
+            player,
+            PICKLOCK_BEGIN_ACTION,
+            { ...data, started: true },
             tick,
         );
         return { ok: true, cooldownTicks: 1, effects };
@@ -131,15 +136,11 @@ function executePicklockAction(ctx: ScriptActionHandlerContext): ActionExecution
         services.animation.playPlayerSeq(player, PICKLOCK_FAIL_ANIM);
         services.sound.sendSound(player, PICKLOCK_SOUND);
 
-        services.combat.scheduleAction(
-            player.id,
-            {
-                kind: "skill.picklock",
-                data: { ...data, started: true },
-                delayTicks: PICKLOCK_CYCLE_TICKS,
-                cooldownTicks: PICKLOCK_CYCLE_TICKS,
-                groups: ["skill.picklock"],
-            },
+        repeatSkillAction(
+            services,
+            player,
+            PICKLOCK_CYCLE_ACTION,
+            { ...data, started: true },
             tick,
         );
         return { ok: true, cooldownTicks: PICKLOCK_CYCLE_TICKS, effects };
@@ -164,7 +165,7 @@ function executePicklockAction(ctx: ScriptActionHandlerContext): ActionExecution
 
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     // Register picklock action handler
-    registry.registerActionHandler("skill.picklock", executePicklockAction);
+    registry.registerActionHandler(PICKLOCK_START_ACTION.kind, executePicklockAction);
 
     // Register loc interactions for each picklock definition
     for (const def of PICKLOCK_LOCS) {
@@ -187,11 +188,11 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
             services.combat.requestAction(
                 player,
                 {
-                    kind: "skill.picklock",
+                    kind: PICKLOCK_START_ACTION.kind,
                     data: actionData,
-                    delayTicks: 0,
-                    cooldownTicks: 0,
-                    groups: ["skill.picklock"],
+                    delayTicks: PICKLOCK_START_ACTION.delayTicks,
+                    cooldownTicks: PICKLOCK_START_ACTION.cooldownTicks,
+                    groups: [...PICKLOCK_START_ACTION.groups],
                 },
                 event.tick,
             );

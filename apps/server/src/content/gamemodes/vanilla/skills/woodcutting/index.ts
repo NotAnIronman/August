@@ -6,7 +6,8 @@ import type {
     ScriptActionHandlerContext,
     ScriptServices,
 } from "@server/game/scripts/types";
-import { ResourceNodeTracker, buildTileKey } from "@server/content/gamemodes/vanilla/systems/ResourceNodeTracker";
+import { defineGatheringSkill } from "@server/game/skilling/GatheringSkill";
+import { ResourceNodeTracker, buildTileKey } from "@server/game/skilling/ResourceNodeTracker";
 import {
     SKILL_ERROR_SOUND,
     buildMessageEffect,
@@ -42,24 +43,26 @@ interface WoodcuttingActionData {
     ticksInSwing: number;
 }
 
-function rollWoodcuttingSuccess(
-    level: number,
-    tree: WoodcuttingTreeDefinition,
-    hatchet: HatchetDefinition,
-): boolean {
-    // OSRS Woodcutting rolls on a 0..255 curve. A tree supplies a base chance
-    // and a level-99 ratio; the axe improves the low endpoint, then the
-    // current level is interpolated between low and high.  This replaces the
-    // old ratio calculation, where a steel axe could accidentally reach 100%.
-    const axeMultiplier = 1 + (Math.max(1, hatchet.accuracy) - 1) * 0.25;
-    const low = tree.chopChance * axeMultiplier;
-    const high = low * tree.chopRatio;
-    const clampedLevel = Math.min(99, Math.max(1, Math.floor(level)));
-    const numerator = Math.floor(
-        (low * (99 - clampedLevel)) / 98 + (high * (clampedLevel - 1)) / 98,
-    ) + 1;
-    return Math.random() * 255 < Math.min(255, Math.max(1, numerator));
-}
+const WOODCUTTING_SKILL = defineGatheringSkill<
+    WoodcuttingTreeDefinition,
+    HatchetDefinition,
+    undefined
+>({
+    name: "woodcut",
+    timing: { delayTicks: 1 },
+    success: {
+        kind: "linear-255",
+        // Axe accuracy modifies only the low endpoint; level interpolation and
+        // the tree's ratio remain identical to the established implementation.
+        low: (tree, hatchet) =>
+            tree.chopChance * (1 + (Math.max(1, hatchet.accuracy) - 1) * 0.25),
+        ratio: (tree) => tree.chopRatio,
+    },
+    depletion: {
+        chance: (tree) => 1 / Math.max(1, tree.depleteRoll ?? 1),
+    },
+    respawn: { duration: (tree) => tree.respawnTicks },
+});
 
 function isInWoodcuttingGuild(player: PlayerState): boolean {
     return (
@@ -143,26 +146,21 @@ function executeWoodcutAction(ctx: ScriptActionHandlerContext): ActionExecutionR
         services.location.faceTile(player, tile);
         services.animation.playPlayerSeq(player, hatchet.animation);
         effects.push(buildMessageEffect(player, "You swing your axe at the tree."));
-        const reschedule = services.combat.scheduleAction(
-            player.id,
+        const reschedule = WOODCUTTING_SKILL.repeat(
+            services,
+            player,
             {
-                kind: "skill.woodcut",
-                data: {
-                    treeId: tree.id,
-                    treeLocId: locId,
-                    stumpId,
-                    tile: { x: tile.x, y: tile.y },
-                    level: plane,
-                    started: true,
-                    ticksInSwing: 0,
-                },
-                delayTicks: 1,
-                cooldownTicks: 1,
-                groups: ["skill.woodcut"],
+                treeId: tree.id,
+                treeLocId: locId,
+                stumpId,
+                tile: { x: tile.x, y: tile.y },
+                level: plane,
+                started: true,
+                ticksInSwing: 0,
             },
             tick,
         );
-        if (!reschedule?.ok) {
+        if (!reschedule) {
             services.stopGatheringInteraction?.(player);
             effects.push(buildMessageEffect(player, "You stop chopping the tree."));
         }
@@ -181,7 +179,7 @@ function executeWoodcutAction(ctx: ScriptActionHandlerContext): ActionExecutionR
     let inventorySnapshot = false;
     let bankSnapshot = false;
 
-    let success = shouldRoll && rollWoodcuttingSuccess(effectiveLevel, tree, hatchet);
+    let success = shouldRoll && WOODCUTTING_SKILL.rollSuccess(effectiveLevel, tree, hatchet);
     if (!success && shouldRoll && hasEchoAxePerk && Math.random() < 0.5) {
         success = true;
     }
@@ -225,18 +223,24 @@ function executeWoodcutAction(ctx: ScriptActionHandlerContext): ActionExecutionR
         }
         services.skills.addSkillXp(player, SkillId.Woodcutting, tree.xp);
 
-        const depleteRoll = tree.depleteRoll ?? 1;
-        const shouldDeplete = depleteRoll <= 1 || Math.random() < 1 / depleteRoll;
+        const shouldDeplete = WOODCUTTING_SKILL.rollDepletion(tree, undefined);
         if (shouldDeplete) {
             treeDepleted = true;
             if (locId > 0) {
                 services.gathering
                     ?.getTracker<any>("woodcutting")
-                    ?.addWithRandomDuration(nodeKey, tile, plane, tick, tree.respawnTicks, {
+                    ?.addWithRandomDuration(
+                        nodeKey,
+                        tile,
+                        plane,
+                        tick,
+                        WOODCUTTING_SKILL.respawnDuration(tree) ?? tree.respawnTicks,
+                        {
                         locId,
                         stumpId,
                         treeId: tree.id,
-                    });
+                        },
+                    );
                 services.location.emitLocChange(locId, stumpId, tile, plane);
                 services.sound.enqueueSoundBroadcast(
                     WOODCUTTING_DEPLETE_SOUND,
@@ -281,26 +285,21 @@ function executeWoodcutAction(ctx: ScriptActionHandlerContext): ActionExecutionR
 
     if (continueChopping) {
         const nextTicksInSwing = ticksInSwing >= 3 ? -1 : ticksInSwing;
-        const reschedule = services.combat.scheduleAction(
-            player.id,
+        const reschedule = WOODCUTTING_SKILL.repeat(
+            services,
+            player,
             {
-                kind: "skill.woodcut",
-                data: {
-                    treeId: tree.id,
-                    treeLocId: locId,
-                    stumpId,
-                    tile: { x: tile.x, y: tile.y },
-                    level: plane,
-                    started: true,
-                    ticksInSwing: nextTicksInSwing,
-                },
-                delayTicks: 1,
-                cooldownTicks: 1,
-                groups: ["skill.woodcut"],
+                treeId: tree.id,
+                treeLocId: locId,
+                stumpId,
+                tile: { x: tile.x, y: tile.y },
+                level: plane,
+                started: true,
+                ticksInSwing: nextTicksInSwing,
             },
             tick,
         );
-        if (!reschedule?.ok) {
+        if (!reschedule) {
             services.stopGatheringInteraction?.(player);
             effects.push(buildMessageEffect(player, "You stop chopping the tree."));
         }
@@ -313,13 +312,21 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     registry.registerActionHandler("skill.woodcut", executeWoodcutAction);
 
     const wcTracker = new ResourceNodeTracker<{ locId: number; stumpId: number; treeId: string }>();
-    services.gathering?.registerTracker("woodcutting", wcTracker, (node, gatheringSvc) => {
+    const disposeTracker = services.gathering?.registerTracker("woodcutting", wcTracker, (node, gatheringSvc) => {
         gatheringSvc.emitLocChange(node.data.stumpId, node.data.locId, node.tile, node.level);
     });
+    if (disposeTracker) registry.registerCleanup(disposeTracker);
 
     const locTypeLoader = services.data.getLocTypeLoader();
     const wcLocMap = buildWoodcuttingLocMap(locTypeLoader);
-    services.getWoodcuttingTree = (locId) => getWoodcuttingTreeFromMap(locId, wcLocMap);
+    const previousTreeProvider = services.getWoodcuttingTree;
+    const treeProvider = (locId: number) => getWoodcuttingTreeFromMap(locId, wcLocMap);
+    services.getWoodcuttingTree = treeProvider;
+    registry.registerCleanup(() => {
+        if (services.getWoodcuttingTree === treeProvider) {
+            services.getWoodcuttingTree = previousTreeProvider;
+        }
+    });
 
     const startWoodcutting = (event: {
         locId: number;
@@ -332,27 +339,22 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                 | WoodcuttingTreeDefinition
                 | undefined;
             if (!tree) return;
-            const delay = 0;
-            const result = services.combat.requestAction(
+            const result = WOODCUTTING_SKILL.request(
+                services,
                 event.player,
                 {
-                    kind: "skill.woodcut",
-                    data: {
-                        treeId: tree.id,
-                        treeLocId: event.locId,
-                        stumpId: tree.stumpId,
-                        tile: { x: event.tile.x, y: event.tile.y },
-                        level: event.level,
-                        started: false,
-                        ticksInSwing: 0,
-                    },
-                    delayTicks: delay,
-                    cooldownTicks: delay,
-                    groups: ["skill.woodcut"],
+                    treeId: tree.id,
+                    treeLocId: event.locId,
+                    stumpId: tree.stumpId,
+                    tile: { x: event.tile.x, y: event.tile.y },
+                    level: event.level,
+                    started: false,
+                    ticksInSwing: 0,
                 },
                 event.tick,
+                { delayTicks: 0, cooldownTicks: 0 },
             );
-            if (!result.ok) {
+            if (!result) {
                 services.messaging.sendGameMessage(
                     event.player,
                     "You're too busy to do that right now.",

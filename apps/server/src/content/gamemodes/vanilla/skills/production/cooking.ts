@@ -1,5 +1,5 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
-import type { ActionEffect, ActionExecutionResult } from "@server/game/actions/types";
+import type { ActionExecutionResult } from "@server/game/actions/types";
 import type { PlayerState } from "@server/game/player";
 import {
     ANY_LOC_ID,
@@ -7,6 +7,16 @@ import {
     type ScriptActionHandlerContext,
     type ScriptServices,
 } from "@server/game/scripts/types";
+import {
+    type ProductionRecipePolicy,
+    defineProductionSkill,
+} from "@server/game/skilling/ProductionSkill";
+import { getSkillLevel } from "@server/game/skilling/Requirements";
+import {
+    type SkillActionPolicy,
+    defineSkillAction,
+    requestSkillAction,
+} from "@server/game/skilling/SkillAction";
 import {
     COOKING_RECIPES,
     type CookingHeatSource,
@@ -21,104 +31,89 @@ import {
     MAX_DIALOG_OPTIONS,
     SKILL_DIALOG_META,
     type SkillDialogChoice,
-    buildMessageEffect,
-    buildSkillFailure,
     countItem,
-    enqueueSkillAction,
     getInventory,
     hasItem,
     resolveCookingHeatSource,
 } from "@server/content/gamemodes/vanilla/skills/production/productionActions";
 
-interface SkillCookActionData {
-    recipeId: string;
-    count: number;
-    heatSource?: "fire" | "range";
-}
+const COOKING_RECIPES_CORE: ProductionRecipePolicy<CookingRecipe>[] = COOKING_RECIPES.map(
+    (recipe) => ({
+        id: recipe.id,
+        source: recipe,
+        level: recipe.level,
+        levelSource: "effective" as const,
+        inputs: [{ itemId: recipe.rawItemId, quantity: 1 }],
+        outputs: [{ itemId: recipe.cookedItemId, quantity: 1 }],
+        xp: recipe.xp,
+        animationId: recipe.animation ?? 897,
+        ticks: recipe.delayTicks ?? 3,
+        outputPlacement: "first-consumed-slot",
+    }),
+);
+
+// Ground fires keep their established one-off timing and action group rather
+// than acquiring the broader modal surface lock used by range interactions.
+const DIRECT_FIRE_COOK_ACTIONS = new Map<string, SkillActionPolicy>(
+    COOKING_RECIPES.map((recipe) => [
+        recipe.id,
+        defineSkillAction("cook", { delayTicks: recipe.delayTicks ?? 4 }),
+    ]),
+);
+
+const COOKING = defineProductionSkill({
+    name: "cook",
+    skillId: SkillId.Cooking,
+    requestGroups: ["skill.surface"],
+    recipes: COOKING_RECIPES_CORE,
+    messages: {
+        unknownRecipe: "You can't cook that.",
+        missingLevel: (recipe) => `You need Cooking level ${recipe.level} to cook that.`,
+        missingInputs: () => "You need raw food to cook.",
+        missingTools: () => "You need raw food to cook.",
+        inventoryFull: () => "You need more inventory space to cook that.",
+        success: (recipe, outcome) =>
+            outcome.variant === "burn"
+                ? `You accidentally burn the ${recipe.source.name}.`
+                : `You cook the ${recipe.source.name}.`,
+        interrupted: "You stop cooking because you're already busy.",
+    },
+    resolveOutcome: ({ services, player, recipe, data, random }) => {
+        const heatSource = String(data.heatSource ?? "").toLowerCase() === "fire" ? "fire" : "range";
+        const level = getSkillLevel(services, player, SkillId.Cooking);
+        const burnBonus = heatSource === "fire" ? 0 : DEFAULT_COOKING_BURN_BONUS;
+        const outcome = rollCookingOutcome(recipe.source, level, { burnBonus, rng: random });
+        const cooked = outcome === "success";
+        const burntItemId = recipe.source.burntItemId ?? -1;
+        return {
+            variant: outcome,
+            outputs: [
+                {
+                    itemId: cooked || !(burntItemId > 0) ? recipe.source.cookedItemId : burntItemId,
+                    quantity: 1,
+                },
+            ],
+            awardXp: cooked,
+            emitCraftEvents: cooked,
+        };
+    },
+    buildRepeatData: ({ recipe, data }, remaining) => ({
+        recipeId: recipe.id,
+        count: remaining,
+        heatSource: String(data.heatSource ?? "").toLowerCase() === "fire" ? "fire" : "range",
+    }),
+});
 
 export function executeCookAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
-    const { player, tick, services } = ctx;
-    const data = ctx.data as SkillCookActionData;
-    const recipe = getCookingRecipeById(data.recipeId);
-    if (!recipe) {
-        return buildSkillFailure(player, "You can't cook that.", "unknown_recipe");
+    const result = COOKING.execute(ctx);
+    if (!result.ok) {
+        if (result.reason === "level") result.reason = "cook_level";
+        else if (result.reason === "materials") result.reason = "missing_item";
     }
-
-    const skill = services.skills.getSkill(player, SkillId.Cooking);
-    const effectiveLevel = Math.max(1, (skill?.baseLevel ?? 1) + (skill?.boost ?? 0));
-    if (effectiveLevel < recipe.level) {
-        return buildSkillFailure(
-            player,
-            `You need Cooking level ${recipe.level} to cook that.`,
-            "cook_level",
-        );
-    }
-
-    const slot = services.inventory.findInventorySlotWithItem(player, recipe.rawItemId);
-    if (slot === undefined || !services.inventory.consumeItem(player, slot)) {
-        return buildSkillFailure(player, "You need raw food to cook.", "missing_item");
-    }
-
-    const targetCount = Math.max(1, data.count);
-    const heatSourceRaw = String(data.heatSource ?? "").toLowerCase();
-    const heatSource = heatSourceRaw === "fire" ? "fire" : "range";
-    const burnBonus = heatSource === "fire" ? 0 : DEFAULT_COOKING_BURN_BONUS;
-
-    const outcome = rollCookingOutcome(recipe, effectiveLevel, { burnBonus });
-    const cooked = outcome === "success";
-    const burntItemId = recipe.burntItemId ?? -1;
-    const producedItemId = cooked || !(burntItemId > 0) ? recipe.cookedItemId : burntItemId;
-
-    services.inventory.setInventorySlot(player, slot, producedItemId, 1);
-    services.animation.playPlayerSeq(player, recipe.animation ?? 897);
-
-    if (cooked) {
-        services.skills.addSkillXp(player, SkillId.Cooking, recipe.xp);
-        services.system.eventBus?.emit("item:craft", {
-            playerId: player.id,
-            itemId: recipe.cookedItemId,
-            count: 1,
-        });
-    }
-
-    const effects: ActionEffect[] = [
-        { type: "inventorySnapshot", playerId: player.id },
-        buildMessageEffect(
-            player,
-            cooked ? `You cook the ${recipe.name}.` : `You accidentally burn the ${recipe.name}.`,
-        ),
-    ];
-
-    const remaining = Math.max(0, targetCount - 1);
-    if (remaining > 0) {
-        const reschedule = services.combat.scheduleAction(
-            player.id,
-            {
-                kind: "skill.cook",
-                data: { recipeId: recipe.id, count: remaining, heatSource },
-                delayTicks: recipe.delayTicks ?? 3,
-                cooldownTicks: recipe.delayTicks ?? 3,
-                groups: ["skill.cook"],
-            },
-            tick,
-        );
-        if (!reschedule?.ok) {
-            effects.push(
-                buildMessageEffect(player, "You stop cooking because you're already busy."),
-            );
-        }
-    }
-
-    return {
-        ok: true,
-        cooldownTicks: recipe.delayTicks !== undefined ? Math.max(1, recipe.delayTicks) : 3,
-        groups: ["skill.cook"],
-        effects,
-    };
+    return result;
 }
 
 export function registerCookingInteractions(registry: IScriptRegistry, services: ScriptServices) {
-    const requestAction = services.combat.requestAction;
     const openDialogOptions = services.dialog.openDialogOptions;
     const closeDialog = services.dialog.closeDialog;
 
@@ -128,7 +123,7 @@ export function registerCookingInteractions(registry: IScriptRegistry, services:
         tick?: number,
         opts?: { desiredCount?: number; heatSource?: CookingHeatSource },
     ) => {
-        const cookLevel = services.skills.getSkill(player, SkillId.Cooking)?.baseLevel ?? 1;
+        const cookLevel = getSkillLevel(services, player, SkillId.Cooking, "effective");
         if (cookLevel < recipe.level) {
             services.messaging.sendGameMessage(
                 player,
@@ -143,21 +138,24 @@ export function registerCookingInteractions(registry: IScriptRegistry, services:
             return;
         }
         const desired = Math.max(1, Math.min(batch, opts?.desiredCount ?? batch));
-        enqueueSkillAction(
-            requestAction,
-            "cook",
-            player,
-            recipe.id,
-            desired,
-            recipe.delayTicks ?? 3,
-            tick,
-            services.messaging.sendGameMessage,
-            opts?.heatSource ? { heatSource: opts.heatSource } : undefined,
-        );
+        const policy = COOKING.getRecipe(recipe.id);
+        if (
+            !policy ||
+            !COOKING.request(
+                services,
+                player,
+                policy,
+                desired,
+                tick,
+                opts?.heatSource ? { heatSource: opts.heatSource } : undefined,
+            )
+        ) {
+            services.messaging.sendGameMessage(player, "You can't cook right now.");
+        }
     };
 
     registry.registerLocAction("cook", (event) => {
-        const level = services.skills.getSkill(event.player, SkillId.Cooking)?.baseLevel ?? 1;
+        const level = getSkillLevel(services, event.player, SkillId.Cooking, "effective");
         const inventory = getInventory(services, event.player);
         const heatSource = resolveCookingHeatSource(services, event.locId);
         const cookingCandidates = COOKING_RECIPES.filter((r) =>
@@ -206,7 +204,9 @@ export function registerCookingInteractions(registry: IScriptRegistry, services:
                         return;
                     }
                     closeDialog?.(event.player, meta.id);
-                    tryCookingRecipe(event.player, selected.recipe, event.tick, {
+                    // Dialogs may remain open for many ticks. Resolve the live
+                    // clock when the player chooses so the full cook delay is kept.
+                    tryCookingRecipe(event.player, selected.recipe, undefined, {
                         desiredCount: selected.batch,
                         heatSource,
                     });
@@ -238,23 +238,20 @@ export function registerCookingInteractions(registry: IScriptRegistry, services:
             const recipe = getCookingRecipeByRawItemId(event.source.itemId);
             if (!recipe) return;
             const player = event.player;
-            const delay = recipe.delayTicks !== undefined ? Math.max(1, recipe.delayTicks) : 4;
-            const result = services.combat.requestAction(
+            const action = DIRECT_FIRE_COOK_ACTIONS.get(recipe.id);
+            if (!action) return;
+            const requested = requestSkillAction(
+                services,
                 player,
+                action,
                 {
-                    kind: "skill.cook",
-                    data: {
-                        recipeId: recipe.id,
-                        count: 1,
-                        heatSource: "fire" as CookingHeatSource,
-                    },
-                    delayTicks: delay,
-                    cooldownTicks: delay,
-                    groups: ["skill.cook"],
+                    recipeId: recipe.id,
+                    count: 1,
+                    heatSource: "fire" as CookingHeatSource,
                 },
                 event.tick,
             );
-            if (!result.ok) {
+            if (!requested) {
                 services.messaging.sendGameMessage(player, "You're too busy to do that right now.");
                 return;
             }

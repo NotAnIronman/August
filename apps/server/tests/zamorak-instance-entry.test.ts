@@ -14,6 +14,7 @@ assert.equal(getLocInteractionRangeOverride(26518), 3);
 
 const handlers = new Map<string, LocInteractionHandler>();
 const registry = {
+    registerCleanup: () => undefined,
     registerLocInteraction: (locId: number, handler: LocInteractionHandler, action?: string) => {
         handlers.set(`${locId}:${action}`, handler);
         return { unregister() {} };
@@ -94,5 +95,26 @@ prayer = 42;
 handlers.get("26518:climb-off")?.({ player: bridgePlayer, services: bridgeServices, tile: { x: 2885, y: 5347 }, tick: 2 } as never);
 assert.deepEqual(teleports.at(-1), { x: 2885, y: 5331, level: 2 });
 assert.equal(prayer, 42, "returning across the bridge must not drain Prayer");
+
+let altarPrayerTarget = -1;
+const altarMessages: string[] = [];
+const altarPlayer = {
+    id: 2,
+    skillSystem: {
+        getSkill: () => ({ baseLevel: 70, boost: -10 }),
+        setSkillBoost: (_skill: number, target: number) => (altarPrayerTarget = target),
+    },
+    prayer: { resetDrainAccumulator: () => undefined },
+};
+const altarServices = {
+    instances: { get: () => ({ definitionId: "kril-room" }) },
+    messaging: { sendGameMessage: (_player: unknown, message: string) => altarMessages.push(message) },
+    animation: { playPlayerSeq: () => undefined },
+    sound: { sendSound: () => undefined },
+};
+handlers.get("26363:pray")?.({ player: altarPlayer, services: altarServices, tick: 100 } as never);
+assert.equal(altarPrayerTarget, 70);
+handlers.get("26363:pray")?.({ player: altarPlayer, services: altarServices, tick: 101 } as never);
+assert.match(altarMessages.at(-1) ?? "", /Wait 5 minutes and try again/);
 
 console.log("zamorak instance entry tests passed");

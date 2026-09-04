@@ -54,7 +54,7 @@ const player = {
         getCategoryStat: (structId: number) => stats.get(structId),
     },
 };
-register({} as IScriptRegistry, {
+register({ registerCleanup: () => ({ unregister: () => undefined }) } as unknown as IScriptRegistry, {
     combat: { registerOnNpcKilled: (listener: typeof onNpcKilled) => (onNpcKilled = listener) },
     messaging: { sendGameMessage: (_player: unknown, message: string) => messages.push(message) },
     variables: { queueVarp: (_playerId: number, id: number, value: number) => varps.push({ id, value }) },

@@ -4,7 +4,8 @@ import { HITMARK_DAMAGE } from "@server/game/combat/HitEffects";
 import { isDeveloperGodmodeEnabled, isDeveloperInstakillEnabled } from "@server/game/dev/DeveloperFlags";
 import { VARP_COLLECTION_CATEGORY_COUNT } from "@server/game/collectionlog";
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
-import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
+import { attack, defineBoss, phase } from "@server/game/encounters/BossDefinition";
+import { registerOwnedEncounter } from "@server/game/encounters/EncounterRegistry";
 import { spawnFloorHazard } from "@server/game/encounters/mechanics";
 import type { NpcState } from "@server/game/npc";
 import type { PendingNpcDrop } from "@server/game/npcManager";
@@ -74,6 +75,7 @@ const ANIM = Object.freeze({
 type Special = "acid-ball" | "acid-splatter" | "acid-drip";
 type AraxyteKind = "acidic" | "mirrorback" | "ruptura";
 interface AraxxorState {
+    readonly generation: number;
     startedAt: number;
     normalAttacks: number;
     standardAttacks: number;
@@ -81,7 +83,7 @@ interface AraxxorState {
     readonly eggPattern: readonly AraxyteKind[];
     nextEggAt: number;
     eggIndex: number;
-    readonly eggIds: Map<number, number>;
+    readonly eggIds: Map<number, NpcState>;
     enraged: boolean;
 }
 const states = new WeakMap<NpcState, AraxxorState>();
@@ -94,16 +96,18 @@ interface AraxxorCorpse {
 const corpses = new WeakMap<NpcState, AraxxorCorpse>();
 
 function stateFor(npc: NpcState, services: ScriptServices): AraxxorState {
+    const runtime = services.encounters.ensure(npc);
+    const generation = runtime?.generation ?? 0;
     let state = states.get(npc);
-    if (!state) {
-        const firstEgg = services.encounters.ensure(npc)?.rng.nextInt(3) ?? 0;
+    if (!state || state.generation !== generation) {
+        const firstEgg = runtime?.rng.nextInt(3) ?? 0;
         const eggPattern = firstEgg === 0
             ? ["acidic", "mirrorback", "ruptura"] as const
             : firstEgg === 1
                 ? ["mirrorback", "ruptura", "acidic"] as const
                 : ["ruptura", "acidic", "mirrorback"] as const;
         const special = eggPattern[0] === "acidic" ? "acid-ball" : eggPattern[0] === "mirrorback" ? "acid-splatter" : "acid-drip";
-        state = { startedAt: services.system.getCurrentTick(), normalAttacks: 0, standardAttacks: 0, special, eggPattern, nextEggAt: 3, eggIndex: 0, eggIds: new Map(), enraged: false };
+        state = { generation, startedAt: services.system.getCurrentTick(), normalAttacks: 0, standardAttacks: 0, special, eggPattern, nextEggAt: 3, eggIndex: 0, eggIds: new Map(), enraged: false };
         states.set(npc, state);
     }
     return state;
@@ -128,9 +132,8 @@ function slayerEligible(player: PlayerState, services: ScriptServices): boolean 
     return assigned.some(name => name.includes("araxyte") || name.includes("spider") || name === "araxxor");
 }
 
-function registerEncounters(): void {
-    if (!EncounterRegistry.shared.get("araxxor")) {
-        registerEncounter({
+function registerEncounters(registry: IScriptRegistry): void {
+    registerOwnedEncounter(registry, defineBoss({
             // The dead form is intentionally not an encounter form. It is an
             // inert, interactable corpse and must never inherit Araxxor's
             // combat target or attack plan.
@@ -141,41 +144,39 @@ function registerEncounters(): void {
             movement: { wanderRadius: 5, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
             immunities: { poison: true, venom: true },
             attacks: [
-                { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 6, maxHit: 38, animationId: ANIM.melee, effects: { venomDamage: 6 } },
-                { id: "magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 6, maxHit: 21, animationId: ANIM.magic, effects: { venomDamage: 6, prayerDrainFraction: 0.09 } },
-                { id: "ranged", type: AttackType.Ranged, rangeTiles: 10, preferredDistance: 1, speedTicks: 6, maxHit: 34, animationId: ANIM.ranged, effects: { venomDamage: 6, defenceDrainFraction: 0.09 } },
-                { id: "enraged-melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 4, maxHit: 38, animationId: ANIM.enragedMelee, effects: { venomDamage: 6 } },
-                { id: "enraged-magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 21, animationId: ANIM.slowRanged, effects: { venomDamage: 6, prayerDrainFraction: 0.09 } },
-                { id: "enraged-ranged", type: AttackType.Ranged, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 34, animationId: ANIM.ranged, effects: { venomDamage: 6, defenceDrainFraction: 0.09 } },
+                attack.melee({ id: "melee", speedTicks: 6, maxHit: 38, animationId: ANIM.melee, effects: { venomDamage: 6 } }),
+                attack.magic({ id: "magic", preferredDistance: 1, speedTicks: 6, maxHit: 21, animationId: ANIM.magic, effects: { venomDamage: 6, prayerDrainFraction: 0.09 } }),
+                attack.ranged({ id: "ranged", preferredDistance: 1, speedTicks: 6, maxHit: 34, animationId: ANIM.ranged, effects: { venomDamage: 6, defenceDrainFraction: 0.09 } }),
+                attack.melee({ id: "enraged-melee", speedTicks: 4, maxHit: 38, animationId: ANIM.enragedMelee, effects: { venomDamage: 6 } }),
+                attack.magic({ id: "enraged-magic", preferredDistance: 1, speedTicks: 4, maxHit: 21, animationId: ANIM.slowRanged, effects: { venomDamage: 6, prayerDrainFraction: 0.09 } }),
+                attack.ranged({ id: "enraged-ranged", preferredDistance: 1, speedTicks: 4, maxHit: 34, animationId: ANIM.ranged, effects: { venomDamage: 6, defenceDrainFraction: 0.09 } }),
             ],
             phases: [
-                { id: "normal", startsAtHealthPercent: 100, attackIds: ["melee", "magic", "ranged"] },
-                { id: "enraged", startsAtHealthPercent: 25, attackIds: ["enraged-melee", "enraged-magic", "enraged-ranged"] },
+                phase.atHealth("normal", 100, ["melee", "magic", "ranged"]),
+                phase.atHealth("enraged", 25, ["enraged-melee", "enraged-magic", "enraged-ranged"]),
             ],
-        });
-    }
+        }));
     for (const minion of [
         { id: MIRRORBACK_ID, name: "araxxor-mirrorback", maxHit: 12 },
         { id: RUPTURA_ID, name: "araxxor-ruptura", maxHit: 1 },
         { id: ACIDIC_ARAXYTE_ID, name: "araxxor-acidic-araxyte", maxHit: 15 },
     ]) {
-        if (EncounterRegistry.shared.get(minion.name)) continue;
-        registerEncounter({
+        registerOwnedEncounter(registry, defineBoss({
             id: minion.name, npcTypeIds: [minion.id], maxHealth: 58,
             movement: { wanderRadius: 2, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 35, retreatInteractionRange: 40 },
             attacks: [{ id: "attack", type: minion.id === ACIDIC_ARAXYTE_ID ? AttackType.Ranged : AttackType.Melee, rangeTiles: minion.id === ACIDIC_ARAXYTE_ID ? 8 : 1, preferredDistance: minion.id === ACIDIC_ARAXYTE_ID ? 6 : 1, speedTicks: minion.id === MIRRORBACK_ID ? 6 : 4, maxHit: minion.maxHit, animationId: minion.id === ACIDIC_ARAXYTE_ID ? ANIM.acidicAttack : minion.id === MIRRORBACK_ID ? ANIM.mirrorbackAttack : ANIM.araxyteAttack, effects: minion.id === ACIDIC_ARAXYTE_ID ? { venomDamage: 6 } : undefined }],
-        });
+        }));
     }
     for (const eggId of [MIRRORBACK_EGG_ID, RUPTURA_EGG_ID, ACIDIC_ARAXYTE_EGG_ID]) {
         const name = `araxxor-egg-${eggId}`;
-        if (!EncounterRegistry.shared.get(name)) registerEncounter({
+        registerOwnedEncounter(registry, defineBoss({
             id: name, npcTypeIds: [eggId], maxHealth: 65,
             movement: { wanderRadius: 0, aggressionRadius: 0, combatLeashRadius: 0 },
             // The registry requires an attack definition. Eggs are spawned
             // non-aggressive, so this zero-damage fallback is never selected
             // in normal play; it only gives their 65 HP an encounter runtime.
             attacks: [{ id: "inert", type: AttackType.Melee, rangeTiles: 1, speedTicks: 99, maxHit: 0 }],
-        });
+        }));
     }
 }
 
@@ -207,8 +208,8 @@ function configureAraxxorBoss(boss: NpcState, services: ScriptServices, showSpaw
     boss.suppressDefenceAnimation = true;
     if (showSpawn) services.npc.queueNpcSeq(boss, ANIM.spawn);
     boss.onHealthChange((change) => {
-        const state = stateFor(boss, services);
         if (change.reason === "reset") { states.delete(boss); return; }
+        const state = stateFor(boss, services);
         if (!state.enraged && change.current > 0 && change.current <= 255) {
             state.enraged = true;
             services.npc.queueNpcSeq(boss, ANIM.enrage);
@@ -271,7 +272,7 @@ function spawnEgg(npc: NpcState, target: PlayerState, services: ScriptServices, 
         respawns: false,
     });
     if (!egg) return;
-    state.eggIds.set(eggIndex % EGG_TILES.length, egg.id);
+    state.eggIds.set(eggIndex % EGG_TILES.length, egg);
     runtime.ownNpc(egg.id);
     egg.suppressDefenceAnimation = true;
     services.npc.queueNpcSeq(egg, ANIM.eggSpawn);
@@ -284,7 +285,7 @@ function spawnEggRing(npc: NpcState, target: PlayerState, services: ScriptServic
 
 function hatchEgg(npc: NpcState, target: PlayerState, services: ScriptServices, state: AraxxorState, eggIndex: number): void {
     const slot = eggIndex % EGG_TILES.length;
-    const egg = state.eggIds.get(slot) === undefined ? undefined : services.combat.getNpc(state.eggIds.get(slot)!);
+    const egg = state.eggIds.get(slot);
     state.eggIds.delete(slot);
     if (!egg) { spawnEgg(npc, target, services, state, slot); return; }
     const kind = state.eggPattern[eggIndex % state.eggPattern.length]!;
@@ -292,10 +293,18 @@ function hatchEgg(npc: NpcState, target: PlayerState, services: ScriptServices, 
     const tile = EGG_TILES[slot]!;
     const instance = services.instances.get(target.id);
     const runtime = services.encounters.ensure(npc);
+    if (!runtime) return;
+    const generation = runtime.generation;
     services.npc.queueNpcSeq(egg, ANIM.eggHatch);
-    services.scheduler.after(1, () => {
+    let hatchTaskId = -1;
+    hatchTaskId = services.scheduler.after(1, () => {
+        if (runtime.generation !== generation) return;
+        runtime.releaseTask(hatchTaskId);
         const eggDamage = Math.max(0, egg.getMaxHitpoints() - egg.getHitpoints());
-        services.npc.removeNpc(egg.id);
+        if (services.combat.getNpc(egg.id) === egg) {
+            runtime.releaseNpc(egg.id);
+            services.npc.removeNpc(egg.id);
+        }
         if (eggDamage < 58 && services.combat.getNpc(npc.id) === npc && inLair(target, services)) {
             const add = services.npc.spawnNpc({
                 id: addId, x: tile.x, y: tile.y, level: npc.level, size: 1,
@@ -306,16 +315,18 @@ function hatchEgg(npc: NpcState, target: PlayerState, services: ScriptServices, 
                 combatLeashRadius: 35, retreatInteractionRange: 40, respawns: false,
                 lifetimeTicks: 80,
             });
-            if (!add) return;
-            add.suppressDrops = true;
-            if (eggDamage > 0) add.applyDamage(eggDamage);
-            runtime?.ownNpc(add.id);
-            services.npc.engageCombat(add, target);
+            if (add) {
+                add.suppressDrops = true;
+                if (eggDamage > 0) add.applyDamage(eggDamage);
+                runtime.ownNpc(add.id);
+                services.npc.engageCombat(add, target);
+            }
         }
         // Each hatching slot is immediately replenished, keeping a visible
         // six-egg ring throughout the encounter and ready for its next turn.
         if (services.combat.getNpc(npc.id) === npc && inLair(target, services)) spawnEgg(npc, target, services, state, slot);
     }, { kind: "npc", id: npc.id });
+    runtime.ownTask(hatchTaskId);
 }
 
 function araxxorAttack(event: NpcAttackEvent): NpcAttackDecision | void {
@@ -323,6 +334,7 @@ function araxxorAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     if (!inLair(target, services)) return;
     const state = stateFor(npc, services);
     const runtime = services.encounters.ensure(npc);
+    if (state.eggIds.size === 0) spawnEggRing(npc, target, services);
     if (!state.enraged && npc.getHitpoints() <= 255) { state.enraged = true; services.npc.queueNpcForcedChat(npc, "Araxxor becomes enraged!"); }
     state.normalAttacks += 1;
     // Araxxor performs six standard attacks, then a special. The egg clock
@@ -349,7 +361,19 @@ function araxxorAttack(event: NpcAttackEvent): NpcAttackDecision | void {
         services.messaging.sendGameMessage(target, "Araxxor splatters acid across the lair!");
     } else {
         // The repeated targeted patches follow the player for six ticks.
-        for (let delay = 0; delay < 6; delay += 1) services.scheduler.after(delay, () => acidPatches(npc, target, services, 1, true), { kind: "npc", id: npc.id });
+        if (runtime) {
+            const generation = runtime.generation;
+            for (let delay = 0; delay < 6; delay += 1) {
+                let taskId = -1;
+                taskId = services.scheduler.after(delay, () => {
+                    if (runtime.generation !== generation) return;
+                    runtime.releaseTask(taskId);
+                    if (services.combat.getNpc(npc.id) !== npc) return;
+                    acidPatches(npc, target, services, 1, true);
+                }, { kind: "npc", id: npc.id });
+                runtime.ownTask(taskId);
+            }
+        }
         services.messaging.sendGameMessage(target, "Acid drips towards you!");
     }
     return NpcAttackDecision.Prevent;
@@ -370,8 +394,9 @@ function rupturaAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     // Ruptura's blast is intentionally useful: it damages Araxxor and any
     // nearby live araxyte/egg using the player as the credited source, so
     // normal death handling and hitsplats remain intact.
+    const araxxor = services.npc.findNearbyNpc(target, ARAXXOR_ID, 30);
     const blastTargets = [
-        services.npc.findNearbyNpc(target, ARAXXOR_ID, 30),
+        araxxor,
         services.npc.findNearbyNpc(target, MIRRORBACK_ID, 30),
         services.npc.findNearbyNpc(target, ACIDIC_ARAXYTE_ID, 30),
         services.npc.findNearbyNpc(target, MIRRORBACK_EGG_ID, 30),
@@ -445,6 +470,7 @@ function finishCorpse(corpse: NpcState, services: ScriptServices): void {
             combatLeashRadius: 35, retreatInteractionRange: 40, respawns: false,
         });
         if (boss) {
+            services.instances.attachNpc(instance.id, boss);
             configureAraxxorBoss(boss, services, true);
             // A respawn is a complete new encounter life: it receives the
             // same six live eggs and freshly seeded hatch/special state as the
@@ -497,7 +523,14 @@ function becomeCorpse(event: Parameters<IScriptRegistry["registerNpcPreDeath"]>[
     const instance = event.services.instances.get(event.killer.id);
     // Eggs belong to a single Araxxor life. Remove every surviving anchor
     // before the corpse is created so the next life begins with one clean ring.
-    for (const eggId of fight.eggIds.values()) event.services.npc.removeNpc(eggId);
+    const runtime = event.services.encounters.getByNpcRuntimeId(event.npc.id);
+    for (const egg of fight.eggIds.values()) {
+        const liveEgg = event.services.combat.getNpc(egg.id);
+        if (liveEgg === egg) {
+            runtime?.releaseNpc(egg.id);
+            event.services.npc.removeNpc(egg.id);
+        }
+    }
     fight.eggIds.clear();
     const corpse = event.services.npc.spawnNpc({
         id: DEAD_ARAXXOR_ID, x: event.npc.tileX, y: event.npc.tileY, level: event.npc.level,
@@ -524,7 +557,7 @@ function becomeCorpse(event: Parameters<IScriptRegistry["registerNpcPreDeath"]>[
 }
 
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
-    registerEncounters();
+    registerEncounters(registry);
     // Some cache definitions expose the cave entrance as an unnamed first
     // option. Keep the id-specific fallback in addition to named actions.
     registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services: eventServices }) => entryOptions(player, eventServices));

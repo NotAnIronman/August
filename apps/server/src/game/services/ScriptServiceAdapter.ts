@@ -860,6 +860,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             create: (player, spec) => deps.instancedAreaManager.create(player, spec),
             get: (playerId) => deps.instancedAreaManager.get(playerId),
             getById: (instanceId) => deps.instancedAreaManager.getById(instanceId),
+            attachNpc: (instanceId, npc) =>
+                deps.instancedAreaManager.attachNpc(instanceId, npc),
             getMemberPlayers: (instanceId) =>
                 deps.instancedAreaManager.getMemberPlayers(instanceId),
             listJoinable: (definitionId) =>
@@ -907,9 +909,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             faceTile: (player, tile) => deps.locationService.faceTile(player, tile),
         },
         combat: {
-            registerOnNpcKilled: (fn) => {
-                deps.combatActionHandler?.registerOnNpcKilled(fn);
-            },
+            registerOnNpcKilled: (fn) =>
+                deps.combatActionHandler?.registerOnNpcKilled(fn),
             requestAction: (player, request, currentTick) => {
                 try {
                     const groups = Array.isArray(request?.groups) ? request.groups : [];

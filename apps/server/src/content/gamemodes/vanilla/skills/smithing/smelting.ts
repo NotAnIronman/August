@@ -1,5 +1,5 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
-import type { ActionEffect, ActionExecutionResult } from "@server/game/actions/types";
+import type { ActionExecutionResult } from "@server/game/actions/types";
 import type { PlayerState } from "@server/game/player";
 import {
     ANY_LOC_ID,
@@ -8,11 +8,13 @@ import {
     type ScriptServices,
 } from "@server/game/scripts/types";
 import {
+    type ProductionRecipePolicy,
+    defineProductionSkill,
+} from "@server/game/skilling/ProductionSkill";
+import {
     MAX_BATCH,
-    buildMessageEffect,
     buildSkillFailure,
     clampBatchCount,
-    enqueueSkillAction,
     getInventory,
 } from "@server/content/gamemodes/vanilla/skills/production/productionActions";
 import {
@@ -54,33 +56,102 @@ function buildSmeltInterfaceFailure(
     return result;
 }
 
-function firstRemovedSlot(
-    removed: Map<number, { itemId: number; quantity: number }>,
-): number | undefined {
-    for (const [slot] of removed) return slot;
-    return undefined;
-}
-
 function describeBar(services: ScriptServices, itemId: number): string {
     return services.data.getObjType(itemId)?.name ?? "bar";
 }
+
+const SMELTING_RECIPES_CORE: ProductionRecipePolicy<SmeltingRecipe>[] = SMELTING_RECIPES.map(
+    (recipe) => ({
+        id: recipe.id,
+        source: recipe,
+        level: recipe.level,
+        levelSource: "effective" as const,
+        inputs: recipe.inputs,
+        outputs: [
+            { itemId: recipe.outputItemId, quantity: Math.max(1, recipe.outputQuantity) },
+        ],
+        tools:
+            recipe.requiredToolItemIds && recipe.requiredToolItemIds.length > 0
+                ? [
+                      {
+                          itemIds: recipe.requiredToolItemIds,
+                          source: "inventory" as const,
+                          match: "any" as const,
+                      },
+                  ]
+                : undefined,
+        xp: recipe.xp,
+        animationId: recipe.animation ?? FURNACE_ANIMATION,
+        ticks: recipe.delayTicks ?? 4,
+        outputPlacement: "first-consumed-slot",
+    }),
+);
+
+const SMELTING = defineProductionSkill({
+    name: "smelt",
+    skillId: SkillId.Smithing,
+    requestGroups: ["skill.surface"],
+    recipes: SMELTING_RECIPES_CORE,
+    messages: {
+        unknownRecipe: "You can't smelt that bar.",
+        missingLevel: (recipe) => `You need Smithing level ${recipe.level} to smelt that.`,
+        missingInputs: () => "You need the right ores to smelt that.",
+        missingTools: () => "You need the right mould to make that.",
+        inventoryFull: () => "You need more inventory space for the bar.",
+        success: (recipe, outcome, context) =>
+            outcome.variant === "failed"
+                ? "The iron ore is too impure and you fail to produce a bar."
+                : `You retrieve a ${describeBar(context.services, recipe.source.outputItemId).toLowerCase()}.`,
+        interrupted: "You stop smelting.",
+    },
+    resolveOutcome: ({ player, services, recipe, random }) => {
+        const equip = services.equipment.getEquipArray(player) ?? [];
+        const ringCharges =
+            recipe.source.successType === "iron" ? getRingOfForgingCharges(player) : undefined;
+        const level = services.skills.getSkill(player, SkillId.Smithing)?.baseLevel ?? 1;
+        const success = rollSmeltingSuccess(level, recipe.source, equip, ringCharges, random);
+        return success
+            ? {
+                  variant: "success",
+                  xp: getSmeltingXpWithBonuses(recipe.source, equip),
+              }
+            : {
+                  variant: "failed",
+                  outputs: [],
+                  animationId: -1,
+                  awardXp: false,
+                  emitCraftEvents: false,
+              };
+    },
+    afterStep: ({ player, services, recipe }, outcome) => {
+        if (outcome.variant === "success" && recipe.source.successType === "iron") {
+            consumeRingOfForgingCharge(player, services);
+        }
+    },
+    buildRepeatData: ({ recipe, data }, remaining) => ({
+        recipeId: recipe.id,
+        count: remaining,
+        facilityLocId: data.facilityLocId,
+    }),
+});
 
 function rollSmeltingSuccess(
     level: number,
     recipe: SmeltingRecipe,
     equip: number[],
     ringCharges?: number,
+    random: () => number = Math.random,
 ): boolean {
     if (shouldGuaranteeIronSmelt(recipe, equip, ringCharges)) return true;
     if (recipe.successType === "iron") {
         const chance = calculateIronSmeltChance(level);
-        return Math.random() < chance;
+        return random() < chance;
     }
     return true;
 }
 
 export function executeSmeltAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
-    const { player, tick, services } = ctx;
+    const { player, services } = ctx;
     const data = ctx.data as SkillSmeltActionData;
     const recipe = getSmeltingRecipeById(data.recipeId);
     if (!recipe) {
@@ -92,7 +163,8 @@ export function executeSmeltAction(ctx: ScriptActionHandlerContext): ActionExecu
         );
     }
 
-    const skill = services.skills.getSkill(player, SkillId.Smithing);
+    // Preserve the established failure ordering: the level requirement is
+    // reported before a restricted furnace mismatch.
     if (getEffectiveSmithingLevel(player) < recipe.level) {
         return buildSmeltInterfaceFailure(
             player,
@@ -114,105 +186,14 @@ export function executeSmeltAction(ctx: ScriptActionHandlerContext): ActionExecu
         );
     }
 
-    const inventory = getInventory(services, player);
-    if (!hasRequiredSmeltingTools(inventory, recipe)) {
-        return buildSmeltInterfaceFailure(
-            player,
-            "You need the right mould to make that.",
-            "missing_tool",
-            services,
-        );
+    const result = SMELTING.execute(ctx);
+    if (!result.ok) {
+        if (result.reason === "level") result.reason = "smelt_level";
+        else if (result.reason === "tool") result.reason = "missing_tool";
+        else if (result.reason === "materials") result.reason = "missing_ore";
     }
-
-    const removal = services.production?.takeInventoryItems(
-        player,
-        recipe.inputs as Array<{ itemId: number; quantity: number }>,
-    );
-    if (!removal?.ok) {
-        return buildSmeltInterfaceFailure(
-            player,
-            "You need the right ores to smelt that.",
-            "missing_ore",
-            services,
-        );
-    }
-
-    const targetCount = Math.max(1, data.count);
-    const delay = recipe.delayTicks !== undefined ? Math.max(1, recipe.delayTicks) : 4;
-    const effects: ActionEffect[] = [];
-
-    const equip = services.equipment.getEquipArray(player) ?? [];
-    const ringCharges = recipe.successType === "iron" ? getRingOfForgingCharges(player) : undefined;
-    const success = rollSmeltingSuccess(skill?.baseLevel ?? 1, recipe, equip, ringCharges);
-
-    if (success) {
-        const fSlot = firstRemovedSlot(removal.removed);
-        if (fSlot !== undefined) {
-            services.inventory.setInventorySlot(
-                player,
-                fSlot,
-                recipe.outputItemId,
-                Math.max(1, recipe.outputQuantity),
-            );
-        } else {
-            const dest = services.inventory.addItemToInventory(
-                player,
-                recipe.outputItemId,
-                Math.max(1, recipe.outputQuantity),
-            );
-            if (dest.added <= 0) {
-                services.production?.restoreInventoryRemovals(player, removal.removed);
-                return buildSmeltInterfaceFailure(
-                    player,
-                    "You need more inventory space for the bar.",
-                    "inventory_full",
-                    services,
-                );
-            }
-        }
-
-        services.animation.playPlayerSeq(player, recipe.animation ?? FURNACE_ANIMATION);
-        const xpAward = getSmeltingXpWithBonuses(recipe, equip);
-        services.skills.addSkillXp(player, SkillId.Smithing, xpAward);
-        services.system.eventBus?.emit("item:craft", {
-            playerId: player.id,
-            itemId: recipe.outputItemId,
-            count: Math.max(1, recipe.outputQuantity),
-        });
-        const barName = describeBar(services, recipe.outputItemId);
-        effects.push(
-            { type: "inventorySnapshot", playerId: player.id },
-            buildMessageEffect(player, `You retrieve a ${barName.toLowerCase()}.`),
-        );
-        if (recipe.successType === "iron") {
-            consumeRingOfForgingCharge(player, services);
-        }
-    } else {
-        effects.push(
-            buildMessageEffect(player, "The iron ore is too impure and you fail to produce a bar."),
-        );
-    }
-
-    const remaining = Math.max(0, targetCount - 1);
-    if (remaining > 0) {
-        const reschedule = services.combat.scheduleAction(
-            player.id,
-            {
-                kind: "skill.smelt",
-                data: { recipeId: recipe.id, count: remaining },
-                delayTicks: delay,
-                cooldownTicks: delay,
-                groups: ["skill.smelt"],
-            },
-            tick,
-        );
-        if (!reschedule?.ok) {
-            effects.push(buildMessageEffect(player, "You stop smelting."));
-        }
-    }
-
     services.production?.updateSmeltingInterface?.(player);
-    return { ok: true, cooldownTicks: delay, groups: ["skill.smelt"], effects };
+    return result;
 }
 
 type SmeltChoice = {
@@ -221,8 +202,6 @@ type SmeltChoice = {
 };
 
 export function registerSmeltingInteractions(registry: IScriptRegistry, services: ScriptServices) {
-    const requestAction = services.combat.requestAction;
-
     const trySmeltRecipe = (
         player: PlayerState,
         recipe: SmeltingRecipe,
@@ -255,17 +234,15 @@ export function registerSmeltingInteractions(registry: IScriptRegistry, services
             return;
         }
         const desired = Math.max(1, Math.min(batch, opts?.desiredCount ?? batch));
-        enqueueSkillAction(
-            requestAction,
-            "smelt",
-            player,
-            recipe.id,
-            desired,
-            recipe.delayTicks ?? 4,
-            tick,
-            services.messaging.sendGameMessage,
-            { facilityLocId: opts?.facilityLocId },
-        );
+        const policy = SMELTING.getRecipe(recipe.id);
+        if (
+            !policy ||
+            !SMELTING.request(services, player, policy, desired, tick, {
+                facilityLocId: opts?.facilityLocId,
+            })
+        ) {
+            services.messaging.sendGameMessage(player, "You can't smelt right now.");
+        }
     };
 
     const openSmeltDialog = (
@@ -334,7 +311,9 @@ export function registerSmeltingInteractions(registry: IScriptRegistry, services
                     services.messaging.sendGameMessage(player, "You decide not to smelt anything.");
                     return;
                 }
-                trySmeltRecipe(player, selected.recipe, tick, {
+                // The selection can happen long after the furnace click; use
+                // the live scheduler tick so recipe timing cannot be skipped.
+                trySmeltRecipe(player, selected.recipe, undefined, {
                     desiredCount: Math.max(1, Math.min(selected.batch, quantity | 0)),
                     facilityLocId,
                 });

@@ -12,7 +12,7 @@ export interface EncounterTimelineScheduler {
         taskId: string;
         runAtTick: number;
         callback: () => void;
-    }): string;
+    }): string | number;
 }
 
 /**
@@ -26,7 +26,7 @@ export function scheduleEncounterTimeline<TContext>(
     timelineId: string,
     steps: readonly EncounterTimelineStep<TContext>[],
     context: TContext,
-): readonly string[] {
+): readonly (string | number)[] {
     if (!timelineId.trim()) throw new Error("Encounter timeline id cannot be empty.");
     const seenStepIds = new Set<string>();
     for (const step of steps) {
@@ -36,21 +36,31 @@ export function scheduleEncounterTimeline<TContext>(
         }
         seenStepIds.add(step.id);
     }
+    const generation = runtime.generation;
     return [...steps]
         .sort((first, second) => first.atTickOffset - second.atTickOffset)
         .map((step) => {
             const taskId = `${runtime.id}:${timelineId}:${step.id}`;
-            const scheduledId = scheduler.schedule({
+            let scheduledId: string | number | undefined;
+            let completedSynchronously = false;
+            scheduledId = scheduler.schedule({
                 ownerId: runtime.id,
                 taskId,
                 runAtTick: Math.trunc(currentTick) + Math.max(0, Math.trunc(step.atTickOffset)),
                 callback: () => {
-                    if (runtime.lifecycle !== "disposed" && runtime.lifecycle !== "dead") {
+                    if (scheduledId === undefined) completedSynchronously = true;
+                    else if (runtime.generation === generation) runtime.releaseTask(scheduledId);
+                    if (
+                        runtime.generation === generation &&
+                        runtime.lifecycle !== "disposed" &&
+                        runtime.lifecycle !== "dead" &&
+                        runtime.lifecycle !== "resetting"
+                    ) {
                         step.execute(context);
                     }
                 },
             });
-            runtime.ownTask(scheduledId);
+            if (!completedSynchronously) runtime.ownTask(scheduledId);
             return scheduledId;
         });
 }

@@ -8,6 +8,8 @@ import type {
     ScriptActionHandlerContext,
     ScriptServices,
 } from "@server/game/scripts/types";
+import { applyInventoryTransform } from "@server/game/skilling/InventoryTransform";
+import { defineSkillAction, repeatSkillAction } from "@server/game/skilling/SkillAction";
 
 // ---------------------------------------------------------------------------
 // Thieving System
@@ -676,6 +678,11 @@ const GLOVES_OF_SILENCE_ID = 10075;
 const GLOVES_OF_SILENCE_BONUS = 5;
 const EQUIPMENT_SLOT_GLOVES = 9;
 const THIEVING_SKILL_ID = 17;
+const PICKPOCKET_START_ACTION = defineSkillAction("pickpocket", {
+    delayTicks: 0,
+    cooldownTicks: 0,
+});
+const PICKPOCKET_PHASE_ACTION = defineSkillAction("pickpocket", { delayTicks: 1 });
 
 // ---------------------------------------------------------------------------
 // Pickpocket Action Execution
@@ -683,21 +690,17 @@ const THIEVING_SKILL_ID = 17;
 
 function schedulePickpocket(
     services: ScriptServices,
-    playerId: number,
+    player: PlayerState,
     data: PickpocketActionData,
     tick: number,
-): void {
-    services.combat.scheduleAction(
-        playerId,
-        {
-            kind: "skill.pickpocket",
-            data,
-            delayTicks: 1,
-            cooldownTicks: 1,
-            groups: ["skill.pickpocket"],
-        },
-        tick,
-    );
+): boolean {
+    return repeatSkillAction(services, player, PICKPOCKET_PHASE_ACTION, data, tick);
+}
+
+function releasePickpocketState(player: PlayerState, services: ScriptServices): void {
+    player.lock = LockState.NONE;
+    services.combat.clearPlayerFaceTarget(player);
+    services.variables.sendVarbit?.(player, PICKPOCKET_BUSY_VARBIT, 0);
 }
 
 function rollPickpocketSuccess(
@@ -829,7 +832,9 @@ function executePickpocketAction(ctx: ScriptActionHandlerContext): ActionExecuti
         }
         services.animation.playPlayerSeq(player, PICKPOCKET_ANIM);
         player.lock = LockState.FULL_WITH_ITEM_INTERACTION;
-        schedulePickpocket(services, player.id, { ...data, phase: 1 }, tick);
+        if (!schedulePickpocket(services, player, { ...data, phase: 1 }, tick)) {
+            releasePickpocketState(player, services);
+        }
         return { ok: true, cooldownTicks: 1, effects };
     }
 
@@ -881,7 +886,9 @@ function executePickpocketAction(ctx: ScriptActionHandlerContext): ActionExecuti
         }
         services.combat.clearPlayerFaceTarget(player);
 
-        schedulePickpocket(services, player.id, { ...data, phase: 2 }, tick);
+        if (!schedulePickpocket(services, player, { ...data, phase: 2 }, tick)) {
+            releasePickpocketState(player, services);
+        }
         return { ok: true, cooldownTicks: 1, effects };
     }
 
@@ -901,7 +908,9 @@ function executePickpocketAction(ctx: ScriptActionHandlerContext): ActionExecuti
             services.npc.faceNpcToPlayer(npc, player);
         }
 
-        schedulePickpocket(services, player.id, { ...data, phase: 3 }, tick);
+        if (!schedulePickpocket(services, player, { ...data, phase: 3 }, tick)) {
+            releasePickpocketState(player, services);
+        }
         return { ok: true, cooldownTicks: 1, effects };
     }
 
@@ -955,7 +964,7 @@ function executePickpocketAction(ctx: ScriptActionHandlerContext): ActionExecuti
 
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     // Register pickpocket action handler
-    registry.registerActionHandler("skill.pickpocket", executePickpocketAction);
+    registry.registerActionHandler(PICKPOCKET_START_ACTION.kind, executePickpocketAction);
 
     // Register NPC pickpocket interactions
     for (const def of PICKPOCKET_NPCS) {
@@ -984,11 +993,11 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
                     services.combat.requestAction(
                         player,
                         {
-                            kind: "skill.pickpocket",
+                            kind: PICKPOCKET_START_ACTION.kind,
                             data: actionData,
-                            delayTicks: 0,
-                            cooldownTicks: 0,
-                            groups: ["skill.pickpocket"],
+                            delayTicks: PICKPOCKET_START_ACTION.delayTicks,
+                            cooldownTicks: PICKPOCKET_START_ACTION.cooldownTicks,
+                            groups: [...PICKPOCKET_START_ACTION.groups],
                             rejectIfGroupPending: true,
                         },
                         tick,
@@ -1025,14 +1034,20 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
                     min === max ? min : min + Math.floor(Math.random() * (max - min + 1));
             }
 
-            const remaining = entry.quantity - count;
-            if (remaining > 0) {
-                services.inventory.setInventorySlot(player, slot, pouchId, remaining);
-            } else {
-                services.inventory.setInventorySlot(player, slot, -1, 0);
+            const exchange = applyInventoryTransform(services.inventory, player, {
+                inputs: [{ itemId: pouchId, quantity: count }],
+                outputs: [{ itemId: currencyId, quantity: totalCurrency }],
+                outputPlacement: "first-consumed-slot",
+            });
+            if (!exchange.ok) {
+                if (exchange.reason === "inventory-full") {
+                    services.messaging.sendGameMessage(
+                        player,
+                        "You don't have enough inventory space to open that pouch.",
+                    );
+                }
+                return;
             }
-
-            services.inventory.addItemToInventory(player, currencyId, totalCurrency);
             services.inventory.snapshotInventory(player);
             services.sound.sendSound(player, COIN_POUCH_OPEN_SOUND);
             const pouchText = count === 1 ? "coin pouch" : "coin pouches";

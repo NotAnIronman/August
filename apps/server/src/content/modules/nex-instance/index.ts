@@ -3,7 +3,8 @@ import type { IScriptRegistry, LocInteractionEvent, ScriptServices } from "@serv
 import { PRAYER_RECHARGE_SOUND_ID } from "@august/osrs-engine/prayer/prayers";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { AttackType } from "@server/game/combat/AttackType";
-import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
+import { attack, defineBoss } from "@server/game/encounters/BossDefinition";
+import { registerOwnedEncounter } from "@server/game/encounters/EncounterRegistry";
 import type { NpcState } from "@server/game/npc";
 
 const KILLCOUNT_DOOR_ID = 42933;
@@ -60,9 +61,8 @@ interface NexPhaseController {
     readyToAdvance: boolean;
 }
 
-function registerNexEncounters(): void {
-    if (!EncounterRegistry.shared.get("nex")) {
-        registerEncounter({
+function registerNexEncounters(registry: IScriptRegistry): void {
+    registerOwnedEncounter(registry, defineBoss({
             id: "nex",
             npcTypeIds: [11278],
             maxHealth: 3400,
@@ -74,11 +74,10 @@ function registerNexEncounters(): void {
             // after this lifecycle layer. Until then Nex has her authentic
             // smoke-phase base styles rather than a misleading mixed pool.
             attacks: [
-                { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 4, maxHit: 27, animation: "melee" },
-                { id: "smoke-magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 1, speedTicks: 4, maxHit: 33, animation: "magic" },
+                attack.melee({ id: "melee", speedTicks: 4, maxHit: 27, animation: "melee" }),
+                attack.magic({ id: "smoke-magic", preferredDistance: 1, speedTicks: 4, maxHit: 33, animation: "magic" }),
             ],
-        });
-    }
+        }));
 
     for (const mage of [
         { id: "fumus", npcTypeId: 11283, maxHealth: 2720 },
@@ -86,15 +85,14 @@ function registerNexEncounters(): void {
         { id: "cruor", npcTypeId: 11285, maxHealth: 1360 },
         { id: "glacies", npcTypeId: 11286, maxHealth: 680 },
     ] as const) {
-        if (EncounterRegistry.shared.get(`nex-${mage.id}`)) continue;
-        registerEncounter({
+        registerOwnedEncounter(registry, defineBoss({
             id: `nex-${mage.id}`,
             npcTypeIds: [mage.npcTypeId],
             maxHealth: mage.maxHealth,
             movement: { wanderRadius: 0, aggressionRadius: 10, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 0, retreatInteractionRange: 40 },
             immunities: { poison: true, venom: true },
             attacks: [{ id: "ancient-magic", type: AttackType.Magic, rangeTiles: 10, preferredDistance: 10, speedTicks: 5, maxHit: 29, animation: "magic" }],
-        });
+        }));
     }
 }
 
@@ -308,7 +306,7 @@ function prayAtNexAltar({ player, services, tick }: LocInteractionEvent): void {
 }
 
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
-    registerNexEncounters();
+    registerNexEncounters(registry);
     installNexBank(services);
     spawnAncientPrisonPopulation(services);
     registry.registerLocInteraction(NEX_ALTAR_ID, prayAtNexAltar, "pray");

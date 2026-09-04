@@ -228,6 +228,9 @@ export class WSServer {
             removeNpc: (npcRuntimeId) => {
                 this.npcManager?.removeNpc(npcRuntimeId);
             },
+            cancelTask: (taskId) => {
+                if (typeof taskId === "number") this.scriptScheduler.cancel(taskId);
+            },
         },
         (npcTypeId, animation, selector) =>
             this.combatDataService?.resolveNpcEncounterAnimation(
@@ -1303,10 +1306,16 @@ export class WSServer {
         }
         if (this.npcManager) {
             this.npcManager.setLifecycleHooks({
-                onRemove: (npcId) => this.encounterManager.removeNpc(npcId),
+                onRemove: (npcId) => {
+                    this.instancedAreaManager?.detachNpc(npcId);
+                    this.encounterManager.removeNpc(npcId);
+                },
                 onReset: (npcId, context) => {
                     const npc = this.npcManager?.getById(npcId);
                     if (!npc) return;
+                    if (context.kind === "respawn") {
+                        this.instancedAreaManager?.attachNpcByWorldView(npc);
+                    }
                     this.encounterManager.ensureForNpc(npc);
                     const spawnAnimation = this.combatDataService?.getNpcSpawnAnimation(
                         npc.typeId,

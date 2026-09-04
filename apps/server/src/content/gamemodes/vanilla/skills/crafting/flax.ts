@@ -5,7 +5,8 @@ import type {
     ScriptActionHandlerContext,
     ScriptServices,
 } from "@server/game/scripts/types";
-import { ResourceNodeTracker, buildTileKey } from "@server/content/gamemodes/vanilla/systems/ResourceNodeTracker";
+import { defineGatheringSkill } from "@server/game/skilling/GatheringSkill";
+import { ResourceNodeTracker, buildTileKey } from "@server/game/skilling/ResourceNodeTracker";
 import { FLAX_LOC_IDS, FLAX_PICK_DELAY_TICKS, isFlaxLocId } from "@server/content/gamemodes/vanilla/skills/crafting/flaxData";
 
 const FLAX_ACTIONS = ["pick", "pick-flax"];
@@ -14,6 +15,16 @@ const FLAX_ITEM_ID = 1779;
 const FLAX_PICK_ANIMATION = 827;
 const FLAX_PICK_SOUND = 2581;
 const FLAX_RESPAWN_TICKS = 25;
+
+const FLAX_GATHERING = defineGatheringSkill<{ respawnTicks: number }, undefined>({
+    name: "flax",
+    timing: { delayTicks: 0, cooldownTicks: FLAX_PICK_DELAY_TICKS },
+    success: { kind: "custom", roll: () => true },
+    depletion: { chance: () => 1 },
+    respawn: {
+        duration: (resource) => ({ min: resource.respawnTicks, max: resource.respawnTicks }),
+    },
+});
 
 let flaxTracker: ResourceNodeTracker<{ locId: number }> | undefined;
 
@@ -56,12 +67,31 @@ function executeFlaxAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
 
     services.sound.enqueueSoundBroadcast(FLAX_PICK_SOUND, tile.x, tile.y, plane);
 
-    flaxTracker?.add(buildTileKey(tile, plane), tile, plane, tick + FLAX_RESPAWN_TICKS, { locId });
-    services.location.emitLocChange(locId, 0, tile, plane);
-
     const result = services.inventory.addItemToInventory(player, FLAX_ITEM_ID, 1);
-    if (result.added > 0) {
-        effects.push({ type: "inventorySnapshot", playerId: player.id });
+    if (result.added <= 0) {
+        services.stopGatheringInteraction?.(player);
+        return {
+            ok: true,
+            effects: [
+                buildMessageEffect(player, "Your inventory is too full to hold any more flax."),
+            ],
+        };
+    }
+    effects.push({ type: "inventorySnapshot", playerId: player.id });
+
+    if (FLAX_GATHERING.rollDepletion({ respawnTicks: FLAX_RESPAWN_TICKS }, undefined)) {
+        const duration = FLAX_GATHERING.respawnDuration({
+            respawnTicks: FLAX_RESPAWN_TICKS,
+        }) ?? { min: FLAX_RESPAWN_TICKS, max: FLAX_RESPAWN_TICKS };
+        flaxTracker?.addWithRandomDuration(
+            buildTileKey(tile, plane),
+            tile,
+            plane,
+            tick,
+            duration,
+            { locId },
+        );
+        services.location.emitLocChange(locId, 0, tile, plane);
     }
 
     effects.push(buildMessageEffect(player, "You pick some flax."));
@@ -80,32 +110,31 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     registry.registerActionHandler("skill.flax", executeFlaxAction);
 
     flaxTracker = new ResourceNodeTracker<{ locId: number }>();
-    services.gathering?.registerTracker("flax", flaxTracker, (node, gatheringSvc) => {
+    const registeredTracker = flaxTracker;
+    const disposeTracker = services.gathering?.registerTracker("flax", registeredTracker, (node, gatheringSvc) => {
         gatheringSvc.emitLocChange(0, node.data.locId, node.tile, node.level);
     });
+    registry.registerCleanup(() => {
+        disposeTracker?.();
+        if (flaxTracker === registeredTracker) flaxTracker = undefined;
+    });
 
-    const requestAction = services.combat.requestAction;
     const registerLoc = (locId: number, action: string) => {
         registry.registerLocInteraction(
             locId,
             (event) => {
                 if (!isFlaxLocId(event.locId)) return;
-                const result = requestAction(
+                const result = FLAX_GATHERING.request(
+                    services,
                     event.player,
                     {
-                        kind: "skill.flax",
-                        data: {
-                            locId: event.locId,
-                            tile: { x: event.tile.x, y: event.tile.y },
-                            level: event.level,
-                        },
-                        delayTicks: 0,
-                        cooldownTicks: FLAX_PICK_DELAY_TICKS,
-                        groups: [FLAX_GROUP],
+                        locId: event.locId,
+                        tile: { x: event.tile.x, y: event.tile.y },
+                        level: event.level,
                     },
                     event.tick,
                 );
-                if (!result.ok) {
+                if (!result) {
                     services.messaging.sendGameMessage(
                         event.player,
                         "You're too busy to pick flax right now.",

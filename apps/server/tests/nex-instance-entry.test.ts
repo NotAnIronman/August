@@ -7,6 +7,7 @@ const handlers = new Map<string, LocInteractionHandler>();
 const removals: unknown[][] = [];
 const spawns: unknown[] = [];
 const registry = {
+    registerCleanup: () => ({ unregister() {} }),
     registerLocInteraction: (locId: number, handler: LocInteractionHandler, action?: string) => {
         handlers.set(`${locId}:${action}`, handler);
         return { unregister() {} };

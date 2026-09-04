@@ -6,8 +6,14 @@ import { AttackType } from "@server/game/combat/AttackType";
 import { HITMARK_DAMAGE, HITMARK_HEAL } from "@server/game/combat/HitEffects";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { faceAngleRs } from "@august/osrs-engine/geometry";
-import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
-import { invulnerabilityWindow, type MechanicHandle } from "@server/game/encounters/mechanics";
+import { attack, defineBoss } from "@server/game/encounters/BossDefinition";
+import { registerOwnedEncounter } from "@server/game/encounters/EncounterRegistry";
+import {
+    defineBossMechanics,
+    mechanic,
+    type BossMechanicEvent,
+    type MechanicHandle,
+} from "@server/game/encounters/mechanics";
 import { NpcAttackDecision, NpcPreDeathDecision, type NpcAttackEvent, type IScriptRegistry, type ScriptServices } from "@server/game/scripts/types";
 import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
 import { secondsToTicks } from "@server/game/scripts/timing";
@@ -56,7 +62,7 @@ const GLYPH_OFFSETS: Record<Moon, ReadonlyArray<readonly [number, number]>> = {
     blue: [[-2, -4], [-4, -2], [-4, 1], [-2, 3], [1, 3], [3, 1], [3, -2], [1, -4]],
     blood: [[3, -2], [1, -4], [-2, -4], [-4, -2], [-4, 1], [-2, 3], [1, 3], [3, 1]],
 };
-type GlyphState = { markerId?: number; offsets: ReadonlyArray<readonly [number, number]>; position: number; attacks: number; completedRotations: number; specialReady: boolean; offTicks: number; tickTaskActive: boolean; onGlyph?: boolean };
+type GlyphState = { markerId?: number; offsets: ReadonlyArray<readonly [number, number]>; position: number; completedRotations: number; specialReady: boolean; offTicks: number; tickTaskActive: boolean; onGlyph?: boolean };
 const glyphStates = new WeakMap<NpcState, GlyphState>();
 type MoonSpecialState = {
     kind: Moon;
@@ -263,7 +269,8 @@ function restartGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptS
     stopMoonSpecial(npc, services);
     // Specials resume from the glyph which triggered them rather than
     // snapping the cycle back to its first position.
-    state.attacks = 0;
+    const runtime = services.encounters.ensure(npc);
+    if (runtime) moonMechanics.glyphAdvance.reset(runtime);
     state.offTicks = 0;
     // Also guarantees a fresh marker after stopMoonSpecial's own
     // restoreBlueBraziers scene rebuild, even though the both-lit path
@@ -282,9 +289,9 @@ function playerIsFacingNpc(player: PlayerState, npc: NpcState): boolean {
 function startBloodSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
     const runtime = services.encounters.ensure(npc);
     if (runtime) {
-        special.shieldMechanic = runtime.runMechanic("moon-special-shield", "replace", () =>
-            invulnerabilityWindow(runtime, services, { id: "moon-special-shield" }),
-        );
+        special.shieldMechanic = moonMechanics.shield.run(runtime, services, {
+            blockTargeting: false,
+        }).handle;
     } else npc.isUnattackable = true;
     for (const [dx, dy] of [[-4, 0], [4, 0]] as const) {
         const jaguar = services.npc.spawnNpc({
@@ -441,9 +448,9 @@ function startBlueSpecial(npc: NpcState, player: PlayerState, services: ScriptSe
         // restores isUnattackable on cleanup (special.shieldMechanic.cancel()
         // in stopMoonSpecial), so attackability returns correctly once the
         // storm ends.
-        special.shieldMechanic = runtime.runMechanic("moon-special-shield", "replace", () =>
-            invulnerabilityWindow(runtime, services, { id: "moon-special-shield", blockTargeting: true }),
-        );
+        special.shieldMechanic = moonMechanics.shield.run(runtime, services, {
+            blockTargeting: true,
+        }).handle;
     } else npc.isUnattackable = true;
     // Players must be able to run between the two braziers on either side
     // of the boss during the storm. TickPhaseService's Moon-boss occupancy
@@ -485,6 +492,45 @@ function startMoonSpecial(npc: NpcState, player: PlayerState, services: ScriptSe
     if (moon === "blue") startBlueSpecial(npc, player, services, special);
 }
 
+interface MoonGlyphMechanicInput extends BossMechanicEvent {
+    readonly event: NpcAttackEvent;
+    readonly state: GlyphState;
+    preventAttack: boolean;
+}
+
+const moonMechanics = defineBossMechanics({
+    shield: mechanic.invulnerability<{ readonly blockTargeting: boolean }>({
+        id: "moon-special-shield",
+        reentrancy: "replace",
+        params: ({ input }) => ({
+            id: "moon-special-shield",
+            blockTargeting: input.blockTargeting,
+        }),
+    }),
+    glyphAdvance: mechanic.custom<MoonGlyphMechanicInput>({
+        id: "moon-glyph-advance",
+        reentrancy: "stack",
+        trigger: mechanic.everyAttacks(3, { attackIds: ["attack"] }),
+        execute: ({ input }) => {
+            const { event, state } = input;
+            state.position = (state.position + 1) % state.offsets.length;
+            if (state.position % 4 === 0) {
+                state.completedRotations += 1;
+                state.specialReady = true;
+            }
+            state.offTicks = 0;
+            setGlyphDamageMode(event.npc, state, false);
+            moveGlyph(event.npc, event.target, event.services, state);
+            if (!state.specialReady) return;
+            const moon = (Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>)
+                .find(([, definition]) => definition.id === event.npc.typeId)?.[0];
+            if (moon) startMoonSpecial(event.npc, event.target, event.services, moon);
+            state.specialReady = false;
+            input.preventAttack = true;
+        },
+    }),
+});
+
 function setGlyphDamageMode(npc: NpcState, state: GlyphState, onGlyph: boolean): void {
     if (state.onGlyph === onGlyph) return;
     state.onGlyph = onGlyph;
@@ -496,7 +542,7 @@ function setGlyphDamageMode(npc: NpcState, state: GlyphState, onGlyph: boolean):
 
 function beginGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptServices, moon: Moon): void {
     const state: GlyphState = {
-        offsets: GLYPH_OFFSETS[moon], position: 0, attacks: 0, completedRotations: 0, specialReady: false, offTicks: 0, tickTaskActive: true,
+        offsets: GLYPH_OFFSETS[moon], position: 0, completedRotations: 0, specialReady: false, offTicks: 0, tickTaskActive: true,
     };
     glyphStates.set(npc, state);
     moveGlyph(npc, player, services, state);
@@ -526,24 +572,17 @@ function moonGlyphAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     const state = glyphStates.get(event.npc);
     if (!state) return;
     if (moonSpecials.get(event.npc)?.active) return NpcAttackDecision.Prevent;
-    state.attacks += 1;
-    // Glyph advances every 3 attacks (was 4).
-    if (state.attacks % 3 === 0) {
-        state.position = (state.position + 1) % state.offsets.length;
-        if (state.position % 4 === 0) {
-            state.completedRotations += 1;
-            state.specialReady = true;
-        }
-        state.offTicks = 0;
-        setGlyphDamageMode(event.npc, state, false);
-        moveGlyph(event.npc, event.target, event.services, state);
-        if (state.specialReady) {
-            const moon = (Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>).find(([, definition]) => definition.id === event.npc.typeId)?.[0];
-            if (moon) startMoonSpecial(event.npc, event.target, event.services, moon);
-            state.specialReady = false;
-            return NpcAttackDecision.Prevent;
-        }
-    }
+    // The declaration owns the every-three-attacks cadence; its callback
+    // retains the glyph move and special choreography verbatim.
+    const runtime = event.services.encounters.ensure(event.npc);
+    const glyphInput: MoonGlyphMechanicInput = {
+        attackId: "attack",
+        event,
+        state,
+        preventAttack: false,
+    };
+    if (runtime) moonMechanics.glyphAdvance.run(runtime, event.services, glyphInput);
+    if (glyphInput.preventAttack) return NpcAttackDecision.Prevent;
     const moon = (Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>).find(([, definition]) => definition.id === event.npc.typeId)?.[0];
     if (!moon) return;
     event.services.npc.queueNpcSeq(event.npc, MOON_MELEE_SEQUENCES[moon]);
@@ -567,20 +606,41 @@ function moonGlyphAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     return NpcAttackDecision.Prevent;
 }
 
-function registerEncounters(): void {
+function registerEncounters(registry: IScriptRegistry): void {
     for (const [key, moon] of Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>) {
-        if (EncounterRegistry.shared.get(`moon-${key}`)) continue;
-        registerEncounter({ id: `moon-${key}`, npcTypeIds: [moon.id], maxHealth: 500, bossHealthBar: { name: `${key[0].toUpperCase()}${key.slice(1)} Moon`, npcTypeId: moon.id }, movement: { wanderRadius: 0, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 60, retreatInteractionRange: 60 }, attacks: [{ id: "attack", type: AttackType.Melee, rangeTiles: 30, preferredDistance: 30, speedTicks: 6, maxHit: 20, animation: "attack" }] });
+        registerOwnedEncounter(registry, defineBoss({
+            id: `moon-${key}`,
+            npcTypeIds: [moon.id],
+            maxHealth: 500,
+            bossHealthBar: {
+                name: `${key[0].toUpperCase()}${key.slice(1)} Moon`,
+                npcTypeId: moon.id,
+            },
+            movement: {
+                wanderRadius: 0,
+                aggressionRadius: 30,
+                aggressionToleranceTicks: 2_147_483_647,
+                combatLeashRadius: 60,
+                retreatInteractionRange: 60,
+            },
+            attacks: [attack.melee({
+                id: "attack",
+                rangeTiles: 30,
+                preferredDistance: 30,
+                speedTicks: 6,
+                maxHit: 20,
+                animation: "attack",
+            })],
+            mechanics: moonMechanics,
+        }));
     }
-    if (!EncounterRegistry.shared.get("moon-blood-jaguar")) {
-        registerEncounter({
-            id: "moon-blood-jaguar",
-            npcTypeIds: [BLOOD_JAGUAR_NPC_ID],
-            maxHealth: 35,
-            movement: { wanderRadius: 0, aggressionRadius: 30 },
-            attacks: [{ id: "bite", type: AttackType.Melee, rangeTiles: 1, speedTicks: 4, maxHit: 8 }],
-        });
-    }
+    registerOwnedEncounter(registry, defineBoss({
+        id: "moon-blood-jaguar",
+        npcTypeIds: [BLOOD_JAGUAR_NPC_ID],
+        maxHealth: 35,
+        movement: { wanderRadius: 0, aggressionRadius: 30 },
+        attacks: [attack.melee({ id: "bite", speedTicks: 4, maxHit: 8 })],
+    }));
 }
 
 function addOrDrop(player: PlayerState, services: ScriptServices, itemId: number, quantity: number): void {
@@ -594,6 +654,7 @@ function spawnMoon(player: PlayerState, services: ScriptServices, moon: Moon): v
     services.movement.teleportPlayer(player, def.entry.x, def.entry.y, def.entry.level);
     const npc = services.npc.spawnNpc({ id: def.id, x: def.boss.x, y: def.boss.y, level: 0, size: 3, idleSeqId: MOON_IDLE_SEQUENCES[moon], worldViewId: player.worldViewId, ownerPlayerId: player.id, wanderRadius: 0, attackSpeed: 6, isAggressive: false, aggressionRadius: 30, aggressionToleranceTicks: 2_147_483_647, isImmovable: true, respawns: false });
     if (!npc) { services.messaging.sendGameMessage(player, "The Moon fails to awaken. Please try again."); return; }
+    services.instances.attachNpc(run.instanceId, npc);
     npc.suppressDefenceAnimation = true;
     // OSRS flat armour: the Blue Moon has -5 flat armour, increasing every
     // successful melee/ranged hitsplat dealt to her by 5 (magic ignores it).
@@ -794,7 +855,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
         },
     });
 
-    registerEncounters();
+    registerEncounters(registry);
     STATUES.forEach((id, index) => {
         const handler = ({ player, services }: { player: PlayerState; services: ScriptServices }) => createRun(player, services, (["blood", "blue", "eclipse"] as Moon[])[index]!);
         registry.registerLocInteraction(id, handler, "start solo");

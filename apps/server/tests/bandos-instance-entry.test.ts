@@ -21,6 +21,7 @@ assert.deepEqual(resolveLocActions(1, ["Open"]), ["Open"]);
 
 const handlers = new Map<string, LocInteractionHandler>();
 const registry = {
+    registerCleanup: () => undefined,
     registerLocInteraction: (locId: number, handler: LocInteractionHandler, action?: string) => {
         handlers.set(`${locId}:${action}`, handler);
         return { unregister() {} };

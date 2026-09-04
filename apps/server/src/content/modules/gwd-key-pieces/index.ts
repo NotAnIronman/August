@@ -8,8 +8,8 @@ const KEY_PIECES = new Map<number, readonly [number, number]>([
     [3162, [26358, 26359]], // Armadyl
 ]);
 
-export function register(_registry: IScriptRegistry, services: ScriptServices): void {
-    services.combat.registerOnNpcKilled?.((player, npc) => {
+export function register(registry: IScriptRegistry, services: ScriptServices): void {
+    const unregister = services.combat.registerOnNpcKilled?.((player, npc) => {
         const variants = KEY_PIECES.get(npc.typeId);
         if (!variants || isFrozenDoorComplete(player) || variants.some((itemId) => player.items.hasItem(itemId))) return;
         const result = services.inventory.addItemToInventory(player, variants[0], 1);
@@ -21,4 +21,5 @@ export function register(_registry: IScriptRegistry, services: ScriptServices): 
             services.messaging.sendGameMessage(player, "Your frozen key piece falls to the ground.");
         }
     });
+    if (unregister) registry.registerCleanup(unregister);
 }

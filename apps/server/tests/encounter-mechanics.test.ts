@@ -39,6 +39,7 @@ function createHarness(): {
     const graphics: unknown[] = [];
     const damages: Array<{ playerId: number; amount: number }> = [];
     const spawned: any[] = [];
+    const liveNpcs = new Map<number, any>();
     const removed: number[] = [];
     const engaged: number[] = [];
     let sourceHitpoints = 100;
@@ -48,7 +49,7 @@ function createHarness(): {
     };
     const services = {
         combat: {
-            getNpc: (id: number) => (id === source.id ? source : undefined),
+            getNpc: (id: number) => (id === source.id ? source : liveNpcs.get(id)),
             applyNpcDamageToPlayer: (_source: unknown, player: { id: number }, _hitmark: unknown, amount: number) => {
                 damages.push({ playerId: player.id, amount });
             },
@@ -70,9 +71,13 @@ function createHarness(): {
             spawnNpc: (request: Record<string, unknown>) => {
                 const npc = { ...request, id: nextNpcId++ };
                 spawned.push(npc);
+                liveNpcs.set(npc.id, npc);
                 return npc;
             },
-            removeNpc: (id: number) => removed.push(id),
+            removeNpc: (id: number) => {
+                liveNpcs.delete(id);
+                removed.push(id);
+            },
             engageCombat: (npc: { id: number }) => engaged.push(npc.id),
         },
     } as unknown as ScriptServices;

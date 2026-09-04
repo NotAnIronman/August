@@ -15,6 +15,8 @@ import { InstancedAreaManager } from "@server/world/InstancedAreaManager";
 
 const ENCOUNTER_ID = "instance-boss-hud-lifecycle-test";
 const BOSS_TYPE_ID = 59_999;
+const NEXT_ENCOUNTER_ID = "instance-next-boss-hud-lifecycle-test";
+const NEXT_BOSS_TYPE_ID = 59_998;
 if (!EncounterRegistry.shared.get(ENCOUNTER_ID)) {
     EncounterRegistry.shared.register({
         id: ENCOUNTER_ID,
@@ -29,6 +31,15 @@ if (!EncounterRegistry.shared.get(ENCOUNTER_ID)) {
                 speedTicks: 4,
             },
         ],
+    });
+}
+if (!EncounterRegistry.shared.get(NEXT_ENCOUNTER_ID)) {
+    EncounterRegistry.shared.register({
+        id: NEXT_ENCOUNTER_ID,
+        npcTypeIds: [NEXT_BOSS_TYPE_ID],
+        maxHealth: 500,
+        bossHealthBar: { name: "Next Framework Boss", npcTypeId: NEXT_BOSS_TYPE_ID },
+        attacks: [{ id: "melee", type: AttackType.Melee, rangeTiles: 1, speedTicks: 4 }],
     });
 }
 
@@ -121,6 +132,9 @@ const npcs = new Map<
     }
 >();
 const services = {
+    players: {
+        getById: (id: number) => id === owner.id ? owner : id === member.id ? member : undefined,
+    },
     mapService: { buildInstanceCollision: () => [] },
     pathService: {
         registerWorldViewCollision: () => undefined,
@@ -264,6 +278,93 @@ assert.ok(
         (entry) =>
             entry.playerId === owner.id && entry.id === BossHealthBarVar.NpcType && entry.value === -1,
     ),
+);
+
+const dynamicRoom = instances.create(owner, {
+    definitionId: "dynamic-framework-room",
+    templateChunks: [],
+    destination: { x: 3200, y: 3200, level: 0 },
+    access: "party",
+    maxPlayers: 2,
+});
+assert(dynamicRoom);
+const opensBeforeDynamicBoss = opens.length;
+let firstDynamicHealth = 255;
+const firstDynamicBoss = {
+    id: 900,
+    typeId: BOSS_TYPE_ID,
+    worldViewId: dynamicRoom.worldViewId,
+    getHitpoints: () => firstDynamicHealth,
+    getMaxHitpoints: () => 255,
+} as unknown as import("@server/game/npc").NpcState;
+npcs.set(firstDynamicBoss.id, firstDynamicBoss);
+assert.equal(instances.attachNpc(dynamicRoom.id, firstDynamicBoss), true);
+assert.equal(owner.instanceNpcIds.has(firstDynamicBoss.id), true);
+assert.equal(opens.length, opensBeforeDynamicBoss + 1, "a late boss opens the owner HUD");
+assert.deepEqual(opens.at(-1)?.opts.varps, { [BossHealthBarVar.NpcType]: BOSS_TYPE_ID });
+assert.equal(instances.detachNpc(firstDynamicBoss.id), true);
+assert.equal(owner.instanceNpcIds.has(firstDynamicBoss.id), false);
+assert.equal(instances.attachNpcByWorldView(firstDynamicBoss), true);
+assert.equal(owner.instanceNpcIds.has(firstDynamicBoss.id), true, "a queued respawn reattaches by view");
+
+assert(instances.join(member, dynamicRoom.id));
+assert.equal(member.instanceNpcIds.has(firstDynamicBoss.id), true);
+firstDynamicHealth = 0;
+instances.syncBossHealthBars();
+assert.equal(
+    sentVarbits.filter((entry) => entry.id === BossHealthBarVarbit.Current).at(-1)?.value,
+    0,
+);
+const replacementSameBoss = {
+    id: 902,
+    typeId: BOSS_TYPE_ID,
+    worldViewId: dynamicRoom.worldViewId,
+    getHitpoints: () => 255,
+    getMaxHitpoints: () => 255,
+} as unknown as import("@server/game/npc").NpcState;
+npcs.set(replacementSameBoss.id, replacementSameBoss);
+assert.equal(instances.attachNpc(dynamicRoom.id, replacementSameBoss), true);
+instances.syncBossHealthBars();
+assert.equal(
+    sentVarbits.filter((entry) => entry.id === BossHealthBarVarbit.Current).at(-1)?.value,
+    255,
+    "HUD resolution prefers a live replacement form over a retained dead actor",
+);
+assert.equal(instances.detachNpc(replacementSameBoss.id), true);
+npcs.delete(replacementSameBoss.id);
+const secondDynamicBoss = {
+    id: 901,
+    typeId: NEXT_BOSS_TYPE_ID,
+    worldViewId: dynamicRoom.worldViewId,
+    getHitpoints: () => 500,
+    getMaxHitpoints: () => 500,
+} as unknown as import("@server/game/npc").NpcState;
+npcs.set(secondDynamicBoss.id, secondDynamicBoss);
+const opensBeforeBossSwitch = opens.length;
+assert.equal(instances.attachNpc(dynamicRoom.id, secondDynamicBoss), true);
+assert.equal(opens.length, opensBeforeBossSwitch + 2, "a sequential boss remounts every member HUD");
+assert.deepEqual(opens.at(-1)?.opts.varps, { [BossHealthBarVar.NpcType]: NEXT_BOSS_TYPE_ID });
+
+assert.equal(instances.detachNpc(firstDynamicBoss.id), true);
+npcs.delete(firstDynamicBoss.id);
+assert.equal(owner.instanceNpcIds.has(firstDynamicBoss.id), false);
+assert.equal(member.instanceNpcIds.has(firstDynamicBoss.id), false);
+assert.equal(instances.detachNpc(secondDynamicBoss.id), true);
+npcs.delete(secondDynamicBoss.id);
+const recycledWorldNpc = {
+    id: secondDynamicBoss.id,
+    typeId: 1,
+    worldViewId: -1,
+    getHitpoints: () => 1,
+    getMaxHitpoints: () => 1,
+};
+npcs.set(recycledWorldNpc.id, recycledWorldNpc);
+assert.equal(instances.dispose(owner), true);
+assert.equal(instances.dispose(member), true);
+assert.strictEqual(
+    npcs.get(recycledWorldNpc.id),
+    recycledWorldNpc,
+    "instance cleanup must not remove an unrelated NPC which reused a detached runtime id",
 );
 
 console.log("instance boss health bar lifecycle tests passed");

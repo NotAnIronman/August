@@ -19,7 +19,7 @@ import { encodeMessage, type BankServerUpdate } from "@server/network/messages";
 import { VanillaUiController } from "@server/content/gamemodes/vanilla/VanillaUiController";
 import { BankingManager, registerBankInterfaceHooks, registerBankingHandlers } from "@server/content/gamemodes/vanilla/banking";
 import type { BankingProviderServices } from "@server/content/gamemodes/vanilla/banking/BankingProvider";
-import "./combat/BossCombatScript";
+import { registerBossCombatEncounters } from "@server/content/gamemodes/vanilla/combat/BossCombatScript";
 import { createCombatStyleSequenceProvider } from "@server/content/gamemodes/vanilla/combat/CombatStyleSequences";
 import { createEquipmentBonusProvider } from "@server/content/gamemodes/vanilla/combat/EquipmentBonuses";
 import { createInstantUtilitySpecialProvider } from "@server/content/gamemodes/vanilla/combat/InstantUtilitySpecialCatalog";
@@ -355,6 +355,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerDigHandlers(registry, services);
 
         // Content
+        registerBossCombatEncounters(registry);
         registerBarrowsHandlers(registry, services);
         registerClimbingHandlers(registry, services);
         // Key doors before generic door open/close so locked locs win.

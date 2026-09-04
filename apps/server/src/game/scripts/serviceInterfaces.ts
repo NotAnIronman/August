@@ -789,6 +789,8 @@ export interface InstanceFacade {
     create(player: PlayerState, spec: QuestInstanceSpec): QuestInstanceHandle | undefined;
     get(playerId: number): QuestInstanceHandle | undefined;
     getById(instanceId: string): QuestInstanceHandle | undefined;
+    /** Adds an NPC spawned after creation to instance visibility, cleanup, and HUD tracking. */
+    attachNpc(instanceId: string, npc: NpcState): boolean;
     /** Returns the live players currently assigned to this private instance. */
     getMemberPlayers(instanceId: string): readonly PlayerState[];
     listJoinable(definitionId?: string): readonly QuestInstanceHandle[];
@@ -890,7 +892,9 @@ export interface CombatFacade {
      * generically, e.g. the achievement diary's kill-trigger tracker.
      * Passes through to CombatActionHandler.registerOnNpcKilled.
      */
-    registerOnNpcKilled?(fn: (killer: PlayerState, npc: NpcState, tick: number) => void): void;
+    registerOnNpcKilled?(
+        fn: (killer: PlayerState, npc: NpcState, tick: number) => void,
+    ): (() => void) | undefined;
     applyPrayers(
         player: PlayerState,
         prayers: PrayerName[],

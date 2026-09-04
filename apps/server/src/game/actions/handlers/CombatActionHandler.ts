@@ -1519,8 +1519,10 @@ export class CombatActionHandler {
      * this just passes through to the sub-handler that actually owns
      * the death-confirmation code path).
      */
-    registerOnNpcKilled(fn: (killer: PlayerState, npc: NpcState, tick: number) => void): void {
-        this.npcHitHandler.registerOnNpcKilled(fn);
+    registerOnNpcKilled(
+        fn: (killer: PlayerState, npc: NpcState, tick: number) => void,
+    ): () => void {
+        return this.npcHitHandler.registerOnNpcKilled(fn);
     }
 
     // ========================================================================

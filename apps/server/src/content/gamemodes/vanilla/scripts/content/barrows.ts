@@ -1,6 +1,8 @@
 import type { PlayerState } from "@server/game/player";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { CollisionFlag } from "@august/game-model/collision/CollisionFlag";
+import { attack, defineBoss } from "@server/game/encounters/BossDefinition";
+import { registerOwnedEncounter } from "@server/game/encounters/EncounterRegistry";
 import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
 import { NpcAttackDecision, NpcPreDeathDecision, type IScriptRegistry, type NpcAttackEvent, type ScriptServices } from "@server/game/scripts/types";
 import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
@@ -58,6 +60,32 @@ function runFor(player: PlayerState): BarrowsRun {
 
 function brotherFor(key: BrotherKey): Brother {
     return BROTHERS.find((brother) => brother.key === key)!;
+}
+
+export function registerBarrowsEncounters(registry: IScriptRegistry): void {
+    for (const brother of BROTHERS) {
+        const configuredAttack = (() => {
+            switch (brother.key) {
+                case "ahrim":
+                    return attack.magic({ id: "magic", speedTicks: 4, maxHit: 20, animation: "attack" });
+                case "karil":
+                    return attack.ranged({ id: "ranged", speedTicks: 4, maxHit: 20, animation: "attack" });
+                case "dharok":
+                    return attack.melee({ id: "melee", speedTicks: 4, maxHit: 29, animation: "attack" });
+                case "guthan":
+                    return attack.melee({ id: "melee", speedTicks: 4, maxHit: 26, animation: "attack" });
+                case "torag":
+                case "verac":
+                    return attack.melee({ id: "melee", speedTicks: 4, maxHit: 25, animation: "attack" });
+            }
+        })();
+        registerOwnedEncounter(registry, defineBoss({
+            id: `barrows-${brother.key}`,
+            npcTypeIds: [brother.npcId],
+            maxHealth: 100,
+            attacks: [configuredAttack],
+        }));
+    }
 }
 
 function findSafeSpawnTile(player: PlayerState, services: ScriptServices): { x: number; y: number } | undefined {
@@ -313,6 +341,7 @@ function dharokAttack(event: NpcAttackEvent): NpcAttackDecision {
 }
 
 export function registerBarrowsHandlers(registry: IScriptRegistry, services: ScriptServices): void {
+    registerBarrowsEncounters(registry);
     const clearRun = (playerId: number): void => {
         const run = runs.get(playerId);
         if (run?.activeNpcId !== undefined) services.npc.removeNpc(run.activeNpcId);

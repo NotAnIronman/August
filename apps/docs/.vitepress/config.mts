@@ -43,6 +43,8 @@ export default defineConfig({
                 items: [
                     { text: 'Architecture', link: '/architecture' },
                     { text: 'Project Map', link: '/project-map' },
+                    { text: 'Skilling Framework', link: '/skilling-framework' },
+                    { text: 'Boss & Skilling Matrix', link: '/boss-skilling-integration-matrix' },
                 ],
             },
             {

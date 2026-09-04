@@ -10,6 +10,14 @@ import {
     type ScriptInventoryEntry,
     type ScriptServices,
 } from "@server/game/scripts/types";
+import { applyInventoryTransform } from "@server/game/skilling/InventoryTransform";
+import {
+    type SkillActionPolicy,
+    defineSkillAction,
+    repeatSkillAction,
+    requestSkillAction,
+    skillActionResult,
+} from "@server/game/skilling/SkillAction";
 import {
     SINEW_ANIMATION_ID,
     SINEW_CRAFT_XP,
@@ -29,7 +37,14 @@ import {
 
 const MAX_BATCH = 28;
 const SPIN_ACTION = "spin";
-const SPIN_GROUP = "skill.spin";
+
+const SPIN_ACTIONS = new Map<string, SkillActionPolicy>(
+    SPINNING_RECIPES.map((recipe) => [
+        recipe.id,
+        defineSkillAction("spin", { delayTicks: recipe.delayTicks }),
+    ]),
+);
+const SINEW_ACTION = defineSkillAction("sinew", { delayTicks: SINEW_DELAY_TICKS });
 
 type InventoryEntry = ScriptInventoryEntry;
 type CraftableChoice = {
@@ -76,24 +91,19 @@ const enqueueSpinAction = (
     visualTarget?: SpinVisualTarget,
     tick?: number,
 ): boolean => {
-    const delay = Math.max(1, recipe.delayTicks);
-    const currentTick = Number.isFinite(tick) ? (tick as number) : services.system.getCurrentTick();
-    const result = services.combat.requestAction(
+    const action = SPIN_ACTIONS.get(recipe.id);
+    if (!action) return false;
+    return requestSkillAction(
+        services,
         player,
+        action,
         {
-            kind: "skill.spin",
-            data: {
-                recipeId: recipe.id,
-                count: Math.max(1, desiredCount),
-                target: visualTarget,
-            },
-            delayTicks: delay,
-            cooldownTicks: delay,
-            groups: [SPIN_GROUP],
+            recipeId: recipe.id,
+            count: Math.max(1, desiredCount),
+            target: visualTarget,
         },
-        currentTick,
+        tick,
     );
-    return result.ok;
 };
 
 // ---------------------------------------------------------------------------
@@ -148,6 +158,10 @@ function executeSpinAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     if (!recipe) {
         return { ok: true, effects: [buildMessageEffect(player, "You can't spin that.")] };
     }
+    const action = SPIN_ACTIONS.get(recipe.id);
+    if (!action) {
+        return { ok: true, effects: [buildMessageEffect(player, "You can't spin that.")] };
+    }
 
     const skill = services.skills.getSkill(player, SkillId.Crafting);
     if ((skill?.baseLevel ?? 1) < recipe.level) {
@@ -163,50 +177,25 @@ function executeSpinAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     }
 
     const totalCount = Math.max(1, data.count);
-    const removed = new Map<number, number>();
     const requiredPerSpin = Math.max(1, recipe.inputQuantity);
-
-    for (let i = 0; i < requiredPerSpin; i++) {
-        const slot = services.inventory.findInventorySlotWithItem(player, recipe.inputItemId);
-        if (slot === undefined || !services.inventory.consumeItem(player, slot)) {
-            services.production?.restoreInventoryItems(player, recipe.inputItemId, removed);
-            return {
-                ok: true,
-                effects: [
-                    buildMessageEffect(
-                        player,
-                        `You need more ${recipe.inputName} to keep spinning.`,
-                    ),
-                ],
-            };
-        }
-        removed.set(slot, (removed.get(slot) ?? 0) + 1);
-    }
-
     const productQuantity = Math.max(1, recipe.outputQuantity);
-    const firstSlot = removed.keys().next()?.value;
-    if (firstSlot !== undefined) {
-        services.inventory.setInventorySlot(
-            player,
-            firstSlot,
-            recipe.productItemId,
-            productQuantity,
-        );
-    } else {
-        const dest = services.inventory.addItemToInventory(
-            player,
-            recipe.productItemId,
-            productQuantity,
-        );
-        if (dest.added <= 0) {
-            services.production?.restoreInventoryItems(player, recipe.inputItemId, removed);
-            return {
-                ok: true,
-                effects: [
-                    buildMessageEffect(player, "You need more inventory space to keep spinning."),
-                ],
-            };
-        }
+    const exchange = applyInventoryTransform(services.inventory, player, {
+        inputs: [{ itemId: recipe.inputItemId, quantity: requiredPerSpin }],
+        outputs: [{ itemId: recipe.productItemId, quantity: productQuantity }],
+        outputPlacement: "first-consumed-slot",
+    });
+    if (!exchange.ok) {
+        return {
+            ok: true,
+            effects: [
+                buildMessageEffect(
+                    player,
+                    exchange.reason === "inventory-full"
+                        ? "You need more inventory space to keep spinning."
+                        : `You need more ${recipe.inputName} to keep spinning.`,
+                ),
+            ],
+        };
     }
 
     services.skills.addSkillXp(player, SkillId.Crafting, recipe.xp);
@@ -221,18 +210,14 @@ function executeSpinAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
     const remaining = Math.max(0, totalCount - 1);
 
     if (remaining > 0) {
-        const reschedule = services.combat.scheduleAction(
-            player.id,
-            {
-                kind: "skill.spin",
-                data: { recipeId: recipe.id, count: remaining, target: data.target },
-                delayTicks: recipe.delayTicks,
-                cooldownTicks: recipe.delayTicks,
-                groups: ["skill.spin"],
-            },
+        const rescheduled = repeatSkillAction(
+            services,
+            player,
+            action,
+            { recipeId: recipe.id, count: remaining, target: data.target },
             tick,
         );
-        if (!reschedule?.ok) {
+        if (!rescheduled) {
             effects.push(
                 buildMessageEffect(player, "You stop spinning because you're already busy."),
             );
@@ -241,12 +226,7 @@ function executeSpinAction(ctx: ScriptActionHandlerContext): ActionExecutionResu
         }
     }
 
-    return {
-        ok: true,
-        cooldownTicks: recipe.delayTicks,
-        groups: ["skill.spin"],
-        effects,
-    };
+    return skillActionResult(action, effects);
 }
 
 function executeSinewAction(ctx: ScriptActionHandlerContext): ActionExecutionResult {
@@ -266,14 +246,26 @@ function executeSinewAction(ctx: ScriptActionHandlerContext): ActionExecutionRes
         slot = services.inventory.findInventorySlotWithItem(player, sourceItemId);
     }
 
-    if (slot === undefined || !services.inventory.consumeItem(player, slot)) {
+    const slotEntry =
+        slot === undefined ? undefined : services.inventory.getInventoryItems(player)[slot];
+    if (!slotEntry || slotEntry.itemId !== sourceItemId || slotEntry.quantity <= 0) {
         return {
             ok: true,
             effects: [buildMessageEffect(player, "You need raw meat to dry into sinew.")],
         };
     }
 
-    services.inventory.setInventorySlot(player, slot, SINEW_ITEM_ID, 1);
+    const exchange = applyInventoryTransform(services.inventory, player, {
+        inputs: [{ itemId: sourceItemId, quantity: 1, slot }],
+        outputs: [{ itemId: SINEW_ITEM_ID, quantity: 1 }],
+        outputPlacement: "first-consumed-slot",
+    });
+    if (!exchange.ok) {
+        return {
+            ok: true,
+            effects: [buildMessageEffect(player, "You need raw meat to dry into sinew.")],
+        };
+    }
     services.animation.playPlayerSeq(player, SINEW_ANIMATION_ID);
     services.skills.addSkillXp(player, SkillId.Crafting, SINEW_CRAFT_XP);
     services.system.eventBus?.emit("item:craft", {
@@ -287,12 +279,7 @@ function executeSinewAction(ctx: ScriptActionHandlerContext): ActionExecutionRes
         buildMessageEffect(player, "You dry the meat into sinew."),
     ];
 
-    return {
-        ok: true,
-        cooldownTicks: SINEW_DELAY_TICKS,
-        groups: ["skill.sinew"],
-        effects,
-    };
+    return skillActionResult(SINEW_ACTION, effects);
 }
 
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
@@ -427,24 +414,20 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
             const player = event.player;
             const tile = event.target.tile;
             const level = event.target.level;
-            const result = services.combat.requestAction(
+            const requested = requestSkillAction(
+                services,
                 player,
+                SINEW_ACTION,
                 {
-                    kind: "skill.sinew",
-                    data: {
-                        slot: event.source.slot,
-                        itemId: event.source.itemId,
-                        locId,
-                        tile,
-                        level,
-                    },
-                    delayTicks: SINEW_DELAY_TICKS,
-                    cooldownTicks: SINEW_DELAY_TICKS,
-                    groups: ["skill.sinew"],
+                    slot: event.source.slot,
+                    itemId: event.source.itemId,
+                    locId,
+                    tile,
+                    level,
                 },
                 event.tick,
             );
-            if (!result.ok) {
+            if (!requested) {
                 services.messaging.sendGameMessage(player, "You're too busy to do that right now.");
                 return;
             }

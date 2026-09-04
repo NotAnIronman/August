@@ -152,22 +152,85 @@ function testConditionalAndStickyAttackPlanning(): void {
     assert.equal(far?.traits.type, AttackType.Ranged);
     assert.equal(far?.traits.maxHitOverride, 35);
 
-    // Moving toward the target must not reroll the reserved attack every tick.
-    const whilePathing = runtime.planAttack({ tick: 11, targetId: 20, targetDistance: 1 });
+    // A still-eligible reservation must not reroll on every pursuit tick.
+    const whilePathing = runtime.planAttack({ tick: 11, targetId: 20, targetDistance: 4 });
     assert.strictEqual(whilePathing, far);
-    assert.equal(runtime.consumePlannedAttack(20, 11)?.definition.id, "ranged");
 
-    // The consumed ranged attack is cooling down; melee is selected up close.
+    // Crossing below its minimum range invalidates the reservation immediately.
     assert.equal(
         runtime.planAttack({ tick: 12, targetId: 20, targetDistance: 1 })?.definition.id,
         "melee",
     );
+    assert.equal(runtime.consumePlannedAttack(20, 12)?.definition.id, "melee");
 
-    // A reserved melee attack cannot remain sticky after its target runs out
-    // of range; a hybrid NPC must immediately re-plan to its ranged option.
+    // A reserved melee attack likewise cannot remain sticky after its target
+    // runs out of range; a hybrid NPC immediately re-plans to ranged.
     assert.equal(
-        runtime.planAttack({ tick: 15, targetId: 20, targetDistance: 6 })?.definition.id,
+        runtime.planAttack({ tick: 13, targetId: 20, targetDistance: 6 })?.definition.id,
         "ranged",
+    );
+}
+
+function testReservedAttackRevalidatesPhaseAndDynamicCondition(): void {
+    const phaseRuntime = createRuntime();
+    assert.equal(
+        phaseRuntime.planAttack({ tick: 1, targetId: 20, targetDistance: 1 })?.definition.id,
+        "melee",
+    );
+    phaseRuntime.applyDamage(60);
+    assert.equal(
+        phaseRuntime.planAttack({ tick: 2, targetId: 20, targetDistance: 1 })?.definition.id,
+        "enraged-magic",
+        "a reservation from the prior health phase must not bypass the new whitelist",
+    );
+
+    const conditionalDefinition: EncounterDefinition = {
+        id: "conditional-reservation",
+        npcTypeIds: [1002],
+        maxHealth: 100,
+        attacks: [
+            {
+                id: "close-distance",
+                type: AttackType.Melee,
+                rangeTiles: 1,
+                speedTicks: 4,
+                priority: 10,
+                condition: (context) => !context.targetIsAttackingNpc,
+            },
+            {
+                id: "fallback",
+                type: AttackType.Ranged,
+                rangeTiles: 8,
+                speedTicks: 4,
+            },
+        ],
+    };
+    const conditionalRuntime = new EncounterRuntime(
+        "conditional-reservation:1",
+        conditionalDefinition,
+        12,
+        1002,
+        100,
+        321,
+    );
+    assert.equal(
+        conditionalRuntime.planAttack({
+            tick: 1,
+            targetId: 20,
+            targetDistance: 1,
+            targetIsAttackingNpc: false,
+        })?.definition.id,
+        "close-distance",
+    );
+    assert.equal(
+        conditionalRuntime.planAttack({
+            tick: 2,
+            targetId: 20,
+            targetDistance: 1,
+            targetIsAttackingNpc: true,
+        })?.definition.id,
+        "fallback",
+        "a Kree-style pursuit reservation must stop when its dynamic condition changes",
     );
 }
 
@@ -255,6 +318,13 @@ function testManagerCombatBridgeAndCleanup(): void {
     );
 
     manager.getByNpcRuntimeId(10)?.ownNpc(99);
+    manager.getByNpcRuntimeId(10)?.ownNpc(98);
+    manager.removeNpc(98);
+    assert.deepEqual(
+        [...(manager.getByNpcRuntimeId(10)?.snapshotOwnedResources().npcRuntimeIds ?? [])],
+        [10, 99],
+        "an ordinarily removed helper must leave its parent's ownership set immediately",
+    );
     manager.removeNpc(10);
     assert.deepEqual(removedNpcIds, [99]);
     assert.equal(manager.getByNpcRuntimeId(10), undefined);
@@ -305,7 +375,58 @@ function testTargetSelectionAndOwnedTimeline(): void {
     ]);
     for (const task of scheduled) task.callback();
     assert.deepEqual(executed, ["telegraph", "impact"]);
-    assert.equal(runtime.snapshotOwnedResources().taskIds.size, 2);
+    assert.equal(
+        runtime.snapshotOwnedResources().taskIds.size,
+        0,
+        "completed timeline steps must release their task ownership",
+    );
+
+    const staleTasks: Array<{ callback: () => void }> = [];
+    const staleIds = scheduleEncounterTimeline(
+        runtime,
+        {
+            schedule: ({ taskId, callback }) => {
+                staleTasks.push({ callback });
+                return "reused-task-id";
+            },
+        },
+        200,
+        "stale-wave",
+        [{ id: "impact", atTickOffset: 5, execute: () => executed.push("stale-impact") }],
+        {},
+    );
+    assert.deepEqual([...runtime.snapshotOwnedResources().taskIds], staleIds);
+    const resetResources = runtime.resetHealth();
+    assert.deepEqual([...resetResources.taskIds], staleIds);
+    assert.equal(runtime.snapshotOwnedResources().taskIds.size, 0);
+    const freshTasks: Array<{ callback: () => void }> = [];
+    scheduleEncounterTimeline(
+        runtime,
+        {
+            schedule: ({ callback }) => {
+                freshTasks.push({ callback });
+                return "reused-task-id";
+            },
+        },
+        210,
+        "fresh-wave",
+        [{ id: "impact", atTickOffset: 5, execute: () => executed.push("fresh-impact") }],
+        {},
+    );
+    for (const task of staleTasks) task.callback();
+    assert.deepEqual(
+        [...runtime.snapshotOwnedResources().taskIds],
+        ["reused-task-id"],
+        "a stale callback must not release a task id reused by the fresh generation",
+    );
+    assert.deepEqual(
+        executed,
+        ["telegraph", "impact"],
+        "timeline callbacks from an earlier reset generation must be inert",
+    );
+    for (const task of freshTasks) task.callback();
+    assert.deepEqual(executed, ["telegraph", "impact", "fresh-impact"]);
+    assert.equal(runtime.snapshotOwnedResources().taskIds.size, 0);
 }
 
 function testCanonicalAnimationResolution(): void {
@@ -378,6 +499,7 @@ function testAttackAnimationPrecedenceAndSafety(): void {
 
 testRegistryValidation();
 testConditionalAndStickyAttackPlanning();
+testReservedAttackRevalidatesPhaseAndDynamicCondition();
 testThresholdsPhasesAndSharedFormHealth();
 testOwnedResourceCleanup();
 testManagerCombatBridgeAndCleanup();

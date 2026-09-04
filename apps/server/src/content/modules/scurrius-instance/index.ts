@@ -1,7 +1,12 @@
 import { AttackType } from "@server/game/combat/AttackType";
 import { CombatAttributes } from "@server/game/combat/state/CombatAttributes";
-import { EncounterRegistry, registerEncounter } from "@server/game/encounters/EncounterRegistry";
-import { spawnAdds, spawnFloorHazard, type MechanicHandle } from "@server/game/encounters/mechanics";
+import { attack, defineBoss } from "@server/game/encounters/BossDefinition";
+import { registerOwnedEncounter } from "@server/game/encounters/EncounterRegistry";
+import {
+    defineBossMechanics,
+    mechanic,
+    type MechanicHandle,
+} from "@server/game/encounters/mechanics";
 import type { NpcState } from "@server/game/npc";
 import type { PlayerState } from "@server/game/player";
 import { OverheadType } from "@server/game/prayer/OverheadType";
@@ -41,6 +46,85 @@ interface ScurriusState {
     ratMechanic?: MechanicHandle;
 }
 
+interface ScurriusDelayedImpactInput {
+    readonly target: PlayerState;
+    readonly type: AttackType;
+    readonly maxHit: number;
+    readonly travelTicks: number;
+    readonly roomId: string;
+}
+
+const scurriusMechanics = defineBossMechanics({
+    rats: mechanic.spawnAdds<{ readonly target: PlayerState }>({
+        id: "scurrius-rats",
+        reentrancy: "ignore",
+        params: ({ input }) => ({
+            id: "scurrius-rats",
+            npcTypeId: RAT_ID,
+            count: 6,
+            formation: "ring",
+            radius: 2,
+            target: input.target,
+            attackSpeed: 4,
+            lifetimeTicks: 150,
+            suppressDrops: true,
+        }),
+    }),
+    fallingRocks: mechanic.floorHazard<{
+        readonly target: PlayerState;
+        readonly players: readonly PlayerState[];
+        readonly randomTiles: readonly { x: number; y: number; level: number }[];
+    }>({
+        id: "scurrius-falling-rocks",
+        reentrancy: "stack",
+        params: ({ input }) => ({
+            id: "scurrius-falling-rocks",
+            randomTiles: input.randomTiles,
+            targetMode: "current-target",
+            currentTargetId: input.target.id,
+            hazardQuantity: 15,
+            tell: { locId: ROCKFALL_TELL_LOC_ID, locShape: 10 },
+            projectileId: 10,
+            hazardTime: 5,
+            liveTicks: 1,
+            hazardDamage: (rng) => 15 + rng.nextInt(8),
+            players: input.players,
+            appliesTo: "all-members",
+        }),
+    }),
+    delayedProjectile: mechanic.delayedImpact<ScurriusDelayedImpactInput>({
+        id: "scurrius-delayed-projectile",
+        reentrancy: "stack",
+        params: ({ input, runtime, services }) => ({
+            id: "scurrius-delayed-projectile",
+            target: input.target,
+            delayTicks: input.travelTicks,
+            projectile: {
+                projectileId: input.type === AttackType.Magic ? 711 : 10,
+                sourceHeight: 90,
+                endHeight: 20,
+                slope: 20,
+            },
+            isTargetValid: ({ target }) => {
+                const room = services.instances.getById(input.roomId);
+                return room?.definitionId === INSTANCE_ID && room.memberPlayerIds.includes(target.id);
+            },
+            onImpact: ({ source, target, tick }) => {
+                const damage = protectedFrom(target, input.type)
+                    ? 0
+                    : runtime.rng.nextInt(input.maxHit + 1);
+                services.combat.applyNpcDamageToPlayer(
+                    source,
+                    target,
+                    input.type === AttackType.Magic ? 2 : 1,
+                    damage,
+                    tick,
+                );
+            },
+        }),
+    }),
+});
+
 const states = new WeakMap<NpcState, ScurriusState>();
 const cheeseCreditsByPlayer = new WeakMap<PlayerState, number>();
 
@@ -57,31 +141,28 @@ function isScurriusRoom(player: PlayerState, services: ScriptServices): boolean 
     return services.instances.get(player.id)?.definitionId === INSTANCE_ID;
 }
 
-function registerEncounters(): void {
-    if (!EncounterRegistry.shared.get("scurrius")) {
-        registerEncounter({
-            id: "scurrius",
-            npcTypeIds: [SCURRIUS_ID],
-            maxHealth: 150,
-            bossHealthBar: { name: "Scurrius", npcTypeId: SCURRIUS_ID },
-            killcount: { name: "Scurrius", collectionLogStructId: 777 },
-            movement: { wanderRadius: 8, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 40, retreatInteractionRange: 45 },
-            attacks: [
-                { id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 5, maxHit: 13, animation: "melee", condition: (context) => context.targetDistance <= 1 && context.healthPercent > 30 },
-                { id: "ranged", type: AttackType.Ranged, rangeTiles: 12, preferredDistance: 1, speedTicks: 5, maxHit: 7, weight: 1, animation: "ranged", condition: (context) => context.healthPercent > 30 && context.targetDistance > 1 },
-                { id: "magic", type: AttackType.Magic, rangeTiles: 12, preferredDistance: 1, speedTicks: 5, maxHit: 8, weight: 1, animation: "magic", condition: (context) => context.healthPercent > 30 && context.targetDistance > 1 },
-                { id: "final-ranged", type: AttackType.Ranged, rangeTiles: 12, preferredDistance: 6, speedTicks: 4, maxHit: 7, weight: 1, animation: "ranged", condition: (context) => context.healthPercent <= 30 },
-                { id: "final-magic", type: AttackType.Magic, rangeTiles: 12, preferredDistance: 6, speedTicks: 4, maxHit: 8, weight: 1, animation: "magic", condition: (context) => context.healthPercent <= 30 },
-            ],
-        });
-    }
-    if (!EncounterRegistry.shared.get("scurrius-giant-rat")) {
-        registerEncounter({
-            id: "scurrius-giant-rat", npcTypeIds: [RAT_ID], maxHealth: 15,
-            movement: { wanderRadius: 5, aggressionRadius: 12, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 20, retreatInteractionRange: 20 },
-            attacks: [{ id: "melee", type: AttackType.Melee, rangeTiles: 1, maxDistance: 1, preferredDistance: 1, speedTicks: 4, maxHit: 3, animation: "attack" }],
-        });
-    }
+function registerEncounters(registry: IScriptRegistry): void {
+    registerOwnedEncounter(registry, defineBoss({
+        id: "scurrius",
+        npcTypeIds: [SCURRIUS_ID],
+        maxHealth: 150,
+        bossHealthBar: { name: "Scurrius", npcTypeId: SCURRIUS_ID },
+        killcount: { name: "Scurrius", collectionLogStructId: 777 },
+        movement: { wanderRadius: 8, aggressionRadius: 15, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 40, retreatInteractionRange: 45 },
+        attacks: [
+            attack.melee({ id: "melee", speedTicks: 5, maxHit: 13, animation: "melee", condition: (context) => context.targetDistance <= 1 && context.healthPercent > 30 }),
+            attack.ranged({ id: "ranged", rangeTiles: 12, preferredDistance: 1, speedTicks: 5, maxHit: 7, weight: 1, animation: "ranged", condition: (context) => context.healthPercent > 30 && context.targetDistance > 1 }),
+            attack.magic({ id: "magic", rangeTiles: 12, preferredDistance: 1, speedTicks: 5, maxHit: 8, weight: 1, animation: "magic", condition: (context) => context.healthPercent > 30 && context.targetDistance > 1 }),
+            attack.ranged({ id: "final-ranged", rangeTiles: 12, preferredDistance: 6, speedTicks: 4, maxHit: 7, weight: 1, animation: "ranged", condition: (context) => context.healthPercent <= 30 }),
+            attack.magic({ id: "final-magic", rangeTiles: 12, preferredDistance: 6, speedTicks: 4, maxHit: 8, weight: 1, animation: "magic", condition: (context) => context.healthPercent <= 30 }),
+        ],
+        mechanics: scurriusMechanics,
+    }));
+    registerOwnedEncounter(registry, defineBoss({
+        id: "scurrius-giant-rat", npcTypeIds: [RAT_ID], maxHealth: 15,
+        movement: { wanderRadius: 5, aggressionRadius: 12, aggressionToleranceTicks: 2_147_483_647, combatLeashRadius: 20, retreatInteractionRange: 20 },
+        attacks: [attack.melee({ maxHit: 3, animation: "attack" })],
+    }));
 }
 
 function createRoom(player: PlayerState, services: ScriptServices, access: "solo" | "party"): void {
@@ -107,19 +188,31 @@ function createRoom(player: PlayerState, services: ScriptServices, access: "solo
 
 function beginEating(npc: NpcState, state: ScurriusState, roomId: string, services: ScriptServices): void {
     if (state.fed || npc.getHitpoints() <= 0) return;
+    const runtime = services.encounters.ensure(npc);
+    if (!runtime) return;
+    const generation = runtime.generation;
     state.fed = true;
     state.eating = true;
     state.bites = 0;
-    const rng = services.encounters.ensure(npc)?.rng;
+    const rng = runtime.rng;
     const pile = FOOD_PILES[rng?.nextInt(FOOD_PILES.length) ?? 0] ?? FOOD_PILES[0];
     // Clear the active chase before sending him to food.  Eating only begins
     // after the route completes, never at the tile where he crossed 80% HP.
     services.npc.disengageCombat(npc);
     if (!services.npc.moveNpcTo(npc, pile, true)) services.npc.teleportNpc(npc, pile);
+    const scheduleBite = (delayTicks: number): void => {
+        let taskId = -1;
+        taskId = services.scheduler.after(delayTicks, () => {
+            if (runtime.generation !== generation) return;
+            runtime.releaseTask(taskId);
+            takeBite();
+        }, { kind: "npc", id: npc.id });
+        runtime.ownTask(taskId);
+    };
     const takeBite = (): void => {
         if (!state.eating || npc.getHitpoints() <= 0 || state.bites >= 5) { state.eating = false; return; }
         if (npc.tileX !== pile.x || npc.tileY !== pile.y) {
-            services.scheduler.after(1, takeBite, { kind: "npc", id: npc.id });
+            scheduleBite(1);
             return;
         }
         services.npc.queueNpcSeq(npc, state.bites === 0 ? 10688 : 10689);
@@ -128,15 +221,16 @@ function beginEating(npc: NpcState, state: ScurriusState, roomId: string, servic
         npc.heal((5 + (rng?.nextInt(2) ?? 0) * 5) * Math.max(1, services.instances.getMemberPlayers(roomId).length));
         state.bites++;
         if (state.bites >= 5) { state.eating = false; return; }
-        services.scheduler.after(4, takeBite, { kind: "npc", id: npc.id });
+        scheduleBite(4);
     };
-    services.scheduler.after(4, takeBite, { kind: "npc", id: npc.id });
+    scheduleBite(4);
 }
 
 function installScurriusHealthController(npc: NpcState, roomId: string, services: ScriptServices): void {
     npc.onHealthChange((change) => {
         const state = stateFor(npc);
         if (change.reason === "reset") {
+            state.eating = false;
             state.ratMechanic?.cancel();
             states.set(npc, { fed: false, finalPhase: false, eating: false, bites: 0, summonReadyAt: 0, rockReadyAt: 0 });
             return;
@@ -169,31 +263,33 @@ function protectedFrom(player: PlayerState, type: AttackType): boolean {
     return overhead === (type === AttackType.Magic ? OverheadType.MAGIC : OverheadType.RANGED);
 }
 
-function launchDelayedAttack(event: NpcAttackEvent, forcedType?: AttackType, forcedMaxHit?: number): void {
+function launchDelayedAttack(
+    event: NpcAttackEvent,
+    roomId: string,
+    forcedType?: AttackType,
+    forcedMaxHit?: number,
+): void {
     const { npc, target, attack, services, tick } = event;
     const type = forcedType ?? attack.traits.type;
     const maxHit = forcedMaxHit ?? attack.traits.maxHitOverride ?? 0;
     const distance = Math.max(Math.abs(npc.tileX - target.tileX), Math.abs(npc.tileY - target.tileY));
     const travel = Math.max(2, Math.min(5, Math.ceil(distance / 3) + 1));
-    services.projectiles.launch({ projectileId: type === AttackType.Magic ? 711 : 10, source: { tileX: npc.tileX, tileY: npc.tileY, plane: npc.level, actor: { kind: "npc", serverId: npc.id } }, target: { tileX: target.tileX, tileY: target.tileY, plane: target.level, actor: { kind: "player", serverId: target.id } }, sourceHeight: 90, endHeight: 20, slope: 20, startPos: 0, startCycleOffset: 0, endCycleOffset: travel * 30 });
-    const rng = services.encounters.ensure(npc)?.rng;
-    services.scheduler.after(travel, (impactTick) => {
-        if (target.worldViewId !== npc.worldViewId || target.level !== npc.level) return;
-        const damage = protectedFrom(target, type) ? 0 : (rng?.nextInt(maxHit + 1) ?? 0);
-        services.combat.applyNpcDamageToPlayer(npc, target, type === AttackType.Magic ? 2 : 1, damage, impactTick);
-    }, { kind: "npc", id: npc.id });
+    const runtime = services.encounters.ensure(npc);
+    if (!runtime) return;
+    scurriusMechanics.delayedProjectile.run(runtime, services, {
+        target,
+        type,
+        maxHit,
+        travelTicks: travel,
+        roomId,
+    });
 }
 
 function summonRats(npc: NpcState, target: PlayerState, services: ScriptServices, state: ScurriusState): void {
     if (state.ratMechanic?.isActive) return;
     const runtime = services.encounters.ensure(npc);
     if (!runtime) return;
-    state.ratMechanic = runtime.runMechanic("scurrius-rats", "ignore", () =>
-        spawnAdds(runtime, services, {
-            id: "scurrius-rats", npcTypeId: RAT_ID, count: 6, formation: "ring", radius: 2,
-            target, attackSpeed: 4, lifetimeTicks: 150, suppressDrops: true,
-        }),
-    );
+    state.ratMechanic = scurriusMechanics.rats.run(runtime, services, { target }).handle;
 }
 
 function fallingRocks(npc: NpcState, target: PlayerState, services: ScriptServices, roomId: string): void {
@@ -213,25 +309,11 @@ function fallingRocks(npc: NpcState, target: PlayerState, services: ScriptServic
     }
     // Prevent the ordinary attack animation from immediately replacing Jump.
     services.npc.queueNpcSeq(npc, 10698);
-    runtime.runMechanic("scurrius-falling-rocks", "stack", () =>
-        spawnFloorHazard(runtime, services, {
-            id: "scurrius-falling-rocks",
-            randomTiles,
-            targetMode: "current-target",
-            currentTargetId: target.id,
-            hazardQuantity: 15,
-            // Cache loc 56358 is the selected one-tile rockfall shadow.
-            // A loc tell is guaranteed to be rendered as scenery rather than
-            // as an invisible NPC footprint.
-            tell: { locId: ROCKFALL_TELL_LOC_ID, locShape: 10 },
-            projectileId: 10,
-            hazardTime: 5,
-            liveTicks: 1,
-            hazardDamage: (rng) => 15 + rng.nextInt(8),
-            players,
-            appliesTo: "all-members",
-        }),
-    );
+    scurriusMechanics.fallingRocks.run(runtime, services, {
+        target,
+        players,
+        randomTiles,
+    });
 }
 
 function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
@@ -255,7 +337,7 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     if (attack.traits.type === AttackType.Melee) {
         if (state.eating) {
             const type = (rng?.next() ?? 0) < 0.5 ? AttackType.Ranged : AttackType.Magic;
-            launchDelayedAttack(event, type, type === AttackType.Magic ? 8 : 7);
+            launchDelayedAttack(event, room.id, type, type === AttackType.Magic ? 8 : 7);
             return NpcAttackDecision.Prevent;
         }
         // The generic hit path is authoritative for a melee swing, but queue
@@ -265,7 +347,7 @@ function scurriusAttack(event: NpcAttackEvent): NpcAttackDecision | void {
         return;
     }
     services.npc.queueNpcSeq(npc, attack.traits.type === AttackType.Magic ? 10696 : 10695);
-    launchDelayedAttack(event);
+    launchDelayedAttack(event, room.id);
     return NpcAttackDecision.Prevent;
 }
 
@@ -283,7 +365,7 @@ function eatCheese({ player, services }: { player: PlayerState; services: Script
 }
 
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
-    registerEncounters();
+    registerEncounters(registry);
     registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services }) => entryOptions(player, services), "open");
     registry.registerLocInteraction(ENTRANCE_LOC_ID, ({ player, services }) => {
         const count = services.instances.listJoinable(INSTANCE_ID).reduce((total, room) => total + room.memberPlayerIds.length, 0);
@@ -296,8 +378,9 @@ export function register(registry: IScriptRegistry, _services: ScriptServices): 
     registry.registerLocInteraction(EXIT_LOC_ID, ({ player, services }) => { if (isScurriusRoom(player, services)) services.instances.leave(player, ENTRANCE); else services.movement.teleportPlayer(player, INSIDE.x, INSIDE.y, INSIDE.level); });
     for (const locId of FOOD_PILE_IDS) registry.registerLocInteraction(locId, eatCheese, "eat");
     registry.registerNpcAttack(SCURRIUS_ID, scurriusAttack);
-    _services.combat.registerOnNpcKilled?.((killer, npc) => {
+    const unregisterKillListener = _services.combat.registerOnNpcKilled?.((killer, npc) => {
         if (npc.typeId !== SCURRIUS_ID || !isScurriusRoom(killer, _services)) return;
         cheeseCreditsByPlayer.set(killer, (cheeseCreditsByPlayer.get(killer) ?? 0) + 1);
     });
+    if (unregisterKillListener) registry.registerCleanup(unregisterKillListener);
 }

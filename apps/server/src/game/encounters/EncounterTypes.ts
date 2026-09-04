@@ -145,7 +145,8 @@ export interface EncounterThresholdEvent {
 
 export interface EncounterOwnedResources {
     readonly npcRuntimeIds: ReadonlySet<number>;
-    readonly taskIds: ReadonlySet<string>;
+    /** Scheduler-native task handles. Core schedulers use numbers; named adapters may use strings. */
+    readonly taskIds: ReadonlySet<string | number>;
     readonly hazardIds: ReadonlySet<string>;
     readonly locationIds: ReadonlySet<string>;
 }

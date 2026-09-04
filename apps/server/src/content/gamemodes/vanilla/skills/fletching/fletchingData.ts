@@ -660,6 +660,8 @@ registerCombineRecipe({
 export const FLETCHING_LOG_IDS = Array.from(LOG_RECIPE_MAP.keys());
 export const FLETCHING_STRING_IDS = Array.from(STRING_RECIPE_MAP.keys());
 export const FLETCHING_COMBINE_RECIPES = COMBINE_RECIPES;
+/** Complete declarative recipe catalog used by the shared production runtime. */
+export const FLETCHING_RECIPES = Array.from(RECIPE_LOOKUP.values());
 
 export function getFletchingProductsForLog(
     logItemId: number,
