@@ -62,15 +62,18 @@ export function buildWidgetInputFrame(
     };
 
     // MouseOver/MouseLeave handling
-    // PERF: Cache hit test results - only recompute when mouse moves
+    // Revalidate once per client cycle even with a stationary pointer: layout,
+    // visibility and mounted interfaces can change without a mousemove event.
     let hits: any[];
-    if (mx === state.lastHoverHitX && my === state.lastHoverHitY && state.cachedHoverHits) {
+    const hoverCycle = deps.getTransmitCycles().cycleCntr;
+    if (mx === state.lastHoverHitX && my === state.lastHoverHitY && state.cachedHoverHits && state.cachedHoverCycle === hoverCycle) {
         hits = state.cachedHoverHits;
     } else {
         hits = collectFromAllRoots(mx, my);
         state.lastHoverHitX = mx;
         state.lastHoverHitY = my;
         state.cachedHoverHits = hits;
+        state.cachedHoverCycle = hoverCycle;
     }
     return {
         input,

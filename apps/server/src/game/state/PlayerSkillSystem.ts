@@ -429,8 +429,10 @@ export class PlayerSkillSystem {
         interval: number = DEFAULT_POISON_INTERVAL_TICKS,
     ): void {
         const nextPotency = Math.max(1, Math.floor(potency));
+        if (this.status.venomEffect || currentTick < this.status.poisonImmuneUntilTick) return;
         if (!this.status.poisonEffect || nextPotency > this.status.poisonEffect.potency) {
             this.status.poisonEffect = {
+                startedTick: currentTick, hitsSinceDecrease: 0,
                 potency: nextPotency,
                 interval: Math.max(1, interval),
                 nextTick: currentTick + Math.max(1, interval),
@@ -455,11 +457,14 @@ export class PlayerSkillSystem {
         cap: number = 20,
     ): void {
         const nextStage = Math.max(1, Math.floor(stage));
+        if (currentTick < this.status.venomImmuneUntilTick) return;
+        this.curePoison();
         const effectiveRamp = Math.max(1, Math.floor(ramp));
         const effectiveCap = Math.max(nextStage, Math.floor(cap));
         const effect = this.status.venomEffect;
         if (!effect || nextStage > effect.stage) {
             this.status.venomEffect = {
+                startedTick: currentTick,
                 stage: nextStage,
                 interval: Math.max(1, interval),
                 nextTick: currentTick + Math.max(1, interval),
@@ -475,6 +480,37 @@ export class PlayerSkillSystem {
 
     cureVenom(): void {
         this.status.venomEffect = undefined;
+    }
+
+    /** One poison cure reduces venom to poison; a subsequent cure removes it. */
+    reduceVenomOrCurePoison(tick: number): void {
+        const venom = this.status.venomEffect;
+        if (!venom) { this.curePoison(); return; }
+        this.cureVenom();
+        this.status.poisonEffect = { potency: venom.stage, interval: venom.interval,
+            nextTick: venom.nextTick, startedTick: tick, hitsSinceDecrease: 0 };
+    }
+
+    grantStatusImmunity(tick: number, poisonTicks: number, venomTicks = 0): void {
+        this.status.poisonImmuneUntilTick = Math.max(this.status.poisonImmuneUntilTick, tick + poisonTicks);
+        this.status.venomImmuneUntilTick = Math.max(this.status.venomImmuneUntilTick, tick + venomTicks);
+    }
+
+    takeHealthOrbTimerSync(tick: number, tickMs: number): [number, number, number] | undefined {
+        const effect = this.status.venomEffect ?? this.status.poisonEffect;
+        const seconds = (ticks: number) => Math.max(0, Math.ceil(ticks * tickMs / 1000));
+        const poison = this.status.poisonEffect;
+        const next = effect ? Math.max(0, effect.nextTick - tick) : 0;
+        const values: [number, number, number] = [
+            effect ? seconds(tick - (effect.startedTick ?? tick)) : 0,
+            seconds(next),
+            this.status.venomEffect ? -1 : poison
+                ? seconds(next + (poison.potency * 5 - (poison.hitsSinceDecrease ?? 0) - 1) * poison.interval) : 0,
+        ];
+        const key = values.join(",");
+        if (this.status.lastHealthOrbTimers === key) return undefined;
+        this.status.lastHealthOrbTimers = key;
+        return values;
     }
 
     /** Returns the damage the currently queued poison or venom hit would deal. */
@@ -547,7 +583,11 @@ export class PlayerSkillSystem {
         const amount = Math.max(1, Math.floor(effect.potency));
         const result = this.applyHitpointsDamage(amount);
         this.setColorOverride(21, 7, 50, 40, 1);
-        effect.potency = Math.max(0, effect.potency - 1);
+        effect.hitsSinceDecrease = (effect.hitsSinceDecrease ?? 0) + 1;
+        if (effect.hitsSinceDecrease >= 5) {
+            effect.potency = Math.max(0, effect.potency - 1);
+            effect.hitsSinceDecrease = 0;
+        }
         if (effect.potency <= 0 || result.current <= 0) {
             this.status.poisonEffect = undefined;
         } else {

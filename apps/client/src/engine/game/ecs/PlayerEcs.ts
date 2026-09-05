@@ -2128,7 +2128,6 @@ export class PlayerEcs {
                             //  may override it to face `targetIndex` (interactions).
                             if (
                                 within256 &&
-                                !isInteracting &&
                                 ((currX0 | 0) !== (nx | 0) || (currY0 | 0) !== (ny | 0))
                             ) {
                                 this.targetRot[i] = movementOrientation & 2047;
@@ -2334,7 +2333,7 @@ export class PlayerEcs {
                         (((this.srvT?.[i] as number) ?? 1.0) < 1.0 ? 1 : 0) +
                         (this._queueLen(i) | 0);
 
-                    if ((this.getInteractionIndex(i) | 0) !== NO_INTERACTION) {
+                    if (pathLengthLike === 0 && (this.getInteractionIndex(i) | 0) !== NO_INTERACTION) {
                         const interactionOrientation = this.interactionOrientationProvider?.(i);
                         if (
                             typeof interactionOrientation === "number" &&

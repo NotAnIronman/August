@@ -40,6 +40,28 @@ try {
     const later = Object.assign(new Event("mousedown", { cancelable: true }), { button: 2 });
     surface.dispatchEvent(later);
     assert.equal(later.defaultPrevented, false, "teardown removes surface handlers");
+    // Also protect a canvas attached or reparented after input initialization.
+    const detached = Object.assign(new EventTarget(), {style:{pointerEvents:"auto"},parentElement:null as any,
+        contains:(t: unknown)=>t===detached, width:800,height:600,
+        getBoundingClientRect:()=>({left:0,top:0,right:400,bottom:300,width:400,height:300})});
+    input.init(detached as any);
+    detached.parentElement=surface;
+    const captured = Object.assign(new Event("contextmenu",{cancelable:true}),{clientX:100,clientY:100,shiftKey:true});
+    Object.defineProperty(captured,"target",{value:surface});
+    document.dispatchEvent(captured);
+    assert(captured.defaultPrevented,"late-attached canvas and overlay descendants are protected in document capture");
+    const pointerDown = Object.assign(new Event("pointerdown", {cancelable:true}), {button:2, clientX:100, clientY:100, shiftKey:true});
+    Object.defineProperty(pointerDown,"target",{value:surface});
+    document.dispatchEvent(pointerDown);
+    assert(pointerDown.defaultPrevented,"right-button pointer gesture is cancelled before browser image handling");
+    assert.equal(input.clickMode1,ClickMode.RIGHT,"pointer capture delivers the game click even when compatibility mouse events are suppressed");
+    assert.equal(input.clickMode2,ClickMode.RIGHT);
+    document.dispatchEvent(Object.assign(new Event("pointerup"),{button:2}));
+    assert.equal(input.clickMode2,ClickMode.NONE,"release outside canvas cannot leave right button held");
+    const outside = Object.assign(new Event("contextmenu",{cancelable:true}),{clientX:100,clientY:100});
+    document.dispatchEvent(outside);
+    assert.equal(outside.defaultPrevented,false,"context menus outside game surface remain native");
+    input.cleanUp();
 } finally { Object.assign(globalThis, { window: previousWindow, document: previousDocument }); }
 
 function createDeps(options: {
@@ -154,6 +176,8 @@ function createDeps(options: {
 
     assert.equal(worldMapPointerCalls, 0, "open context menu must block pointer input");
     assert.equal(cs2Vm.inputDialogString, "A", "open context menu must not discard keyboard input");
+    controller.reset();
+    assert.equal(state.cachedHoverHits,null,"root replacement discards cached widget references");
 }
 
 console.log("widget-context-menu-input.test.ts: all tests passed");

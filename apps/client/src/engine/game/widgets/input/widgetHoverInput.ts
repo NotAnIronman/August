@@ -1,4 +1,5 @@
 import type { ScriptEvent } from "@client/engine/cs2/Cs2Vm";
+import { updateHealthOrbTooltip } from "@client/features/health-orb/HealthOrbTooltip";
 import type { WidgetInputControllerDeps, WidgetInputFrame, WidgetInputState } from "@client/engine/game/widgets/input/widgetInputTypes";
 import type { WidgetInteractionController } from "@client/engine/game/widgets/WidgetInteractionController";
 import type { WidgetManager } from "@client/ui/widgets/WidgetManager";
@@ -11,6 +12,7 @@ export function processWidgetHoverInput(
     widgetInteraction: WidgetInteractionController,
 ): void {
     const { mx, my, hits } = frame;
+        updateHealthOrbTooltip(hits, mx, my, deps.getVarManager(), deps.getRenderer()?.canvas);
         try {
             deps.getWorldMap().updateWorldMapIconHover(mx, my);
         } catch {}

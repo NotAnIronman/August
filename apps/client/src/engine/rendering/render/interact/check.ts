@@ -46,19 +46,8 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
         const picked = pickX !== -1 && pickY !== -1;
         const leftClicked = inputManager.leftClickX !== -1 && inputManager.leftClickY !== -1;
 
-        // If the click is inside the bottom-right UI tabs region, consume it (don't interact with world).
-        if (leftClicked) {
-            const contW = 241;
-            const contH = 37 + 261 + 37; // strip + panel + strip
-            const contX = host.app.width - 8 - contW; // right margin 8
-            const contY = host.app.height - 8 - contH; // bottom margin 8
-            const mx = inputManager.leftClickX;
-            const my = inputManager.leftClickY;
-            if (mx >= contX && mx <= contX + contW && my >= contY && my <= contY + contH) {
-                host.clearInteractHighlightHoverTarget();
-                return;
-            }
-        }
+        // Visible widgets below own UI hit testing. A fixed legacy rectangle
+        // here swallowed arena clicks even when that part of the scene was clear.
 
         const menuCooldown = isTouchDevice ? 50 : 10;
 

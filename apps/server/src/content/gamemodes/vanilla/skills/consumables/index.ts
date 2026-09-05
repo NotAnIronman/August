@@ -1,4 +1,5 @@
 import { SKILL_IDS, SkillId } from "@august/osrs-engine/skill/skills";
+import { registerStatusCures } from "./statusCures";
 import {
     ANTIFIRE_TIMER,
     SUPER_ANTIFIRE_TIMER,
@@ -207,6 +208,7 @@ const SUPER_ENERGY_MIX_DEFS: RunEnergyConsumableDef[] = [
 ];
 
 const STRANGE_FRUIT_DEF: RunEnergyConsumableDef = {
+    cureVenom: true,
     itemId: 464,
     boostPercent: 30,
     label: "strange fruit",
@@ -782,6 +784,7 @@ const applyStatBoost = (player: PlayerState, skillId: SkillId, formula: BoostFor
 // ============================================================================
 
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
+    registerStatusCures(registry, services);
     const setInventorySlot = services.inventory.setInventorySlot;
 
     for (const def of FOOD_DEFS) {
@@ -884,9 +887,13 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                                 radius: 1,
                             });
                         }
-                        if (def.curePoison) player.skillSystem.curePoison();
+                        if (def.curePoison) player.skillSystem.reduceVenomOrCurePoison(tick);
                         if (def.cureDisease) player.skillSystem.cureDisease();
-                        if (def.cureVenom) player.skillSystem.cureVenom();
+                        if (def.cureVenom) {
+                            player.skillSystem.cureVenom();
+                            player.skillSystem.curePoison();
+                            if (def.itemId === 464) player.skillSystem.grantStatusImmunity(tick, 0, secondsToTicks(services, 18));
+                        }
                         if (def.skillBoosts) {
                             for (const boost of def.skillBoosts) {
                                 if (boost.relativeToBase !== undefined) {
@@ -1064,7 +1071,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                         if (def.healAmount) {
                             player.skillSystem.applyHitpointsHeal(def.healAmount);
                         }
-                        if (def.curePoison) player.skillSystem.curePoison();
+                        if (def.curePoison) player.skillSystem.reduceVenomOrCurePoison(tick);
                         if (def.cureDisease) player.skillSystem.cureDisease();
                         if (def.cureVenom) player.skillSystem.cureVenom();
                         const consumeText =

@@ -1455,10 +1455,11 @@ export class CombatHitProcessor {
     private applyEncounterAttackEffects(hit: AppliedCombatHit): void {
         const effects = hit.pending.attack.traits.effects;
         if (!(hit.source instanceof NpcState) || !(hit.target instanceof PlayerState) || !effects) return;
-        if (effects.poisonDamage !== undefined && hit.pending.landed) {
+        const statusImmune = hasVenomImmunityEquipment(hit.target.appearance.equip[EquipmentSlot.HEAD] ?? -1);
+        if (effects.poisonDamage !== undefined && hit.pending.landed && !statusImmune) {
             hit.target.skillSystem.inflictPoison(effects.poisonDamage, hit.appliedClock);
         }
-        if (effects.venomDamage !== undefined && hit.pending.landed) {
+        if (effects.venomDamage !== undefined && hit.pending.landed && !statusImmune) {
             hit.target.skillSystem.inflictVenom(effects.venomDamage, hit.appliedClock);
         }
         if (effects.prayerDrainFraction !== undefined && hit.amount > 0) {

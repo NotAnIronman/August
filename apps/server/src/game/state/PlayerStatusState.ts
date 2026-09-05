@@ -20,18 +20,24 @@ export class PlayerStatusState {
     poisonEffect?: PoisonEffectState;
     /** Last status sent to the native health orb (varp 102); not persistent. */
     lastHealthOrbStatus?: number;
+    lastHealthOrbTimers?: string;
+    poisonImmuneUntilTick = -1;
+    venomImmuneUntilTick = -1;
     venomEffect?: VenomEffectState;
     diseaseEffect?: DiseaseEffectState;
     regenEffect?: RegenerationEffectState;
 }
 
 export type PoisonEffectState = {
+    startedTick?: number;
+    hitsSinceDecrease?: number;
     potency: number;
     nextTick: number;
     interval: number;
 };
 
 export type VenomEffectState = {
+    startedTick?: number;
     stage: number;
     nextTick: number;
     interval: number;

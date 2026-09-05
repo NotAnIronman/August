@@ -13,6 +13,8 @@ import type { NpcState } from "@server/game/npc";
  * remain on PlayerState as thin delegates.
  */
 export class PlayerCombatState {
+    /** Explicit walk input wins over same-tick damage-triggered retaliation. */
+    manualMovementTick = -1;
     private combatAttributes?: CombatAttributeStore;
     private autoRetaliateFallback: boolean = true;
 

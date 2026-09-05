@@ -646,7 +646,7 @@ export function registerWidgetOps(handlers: HandlerMap): void {
         const argCount = IS_MODERN ? 4 : 3;
 
         if (ctx.intStackSize < argCount) {
-            throw new Error("RuntimeException");
+            throw new Error(`CC_CREATE: expected ${argCount} arguments, got ${ctx.intStackSize}`);
         }
 
         // Read deterministic arguments
@@ -666,7 +666,7 @@ export function registerWidgetOps(handlers: HandlerMap): void {
         let groupId = (parentUid >>> 16) & 0xffff;
 
         if (groupId === 0) {
-            throw new Error("RuntimeException");
+            throw new Error(`CC_CREATE: invalid parent ${parentUid}, revision ${ctx.clientRevision}`);
         }
 
         // Ensure the parent's group is loaded before looking up the widget
@@ -675,7 +675,7 @@ export function registerWidgetOps(handlers: HandlerMap): void {
 
         const parent = ctx.widgetManager.getWidgetByUid(parentUid);
         if (!parent) {
-            throw new Error("RuntimeException");
+            throw new Error(`CC_CREATE: missing parent ${parentUid}`);
         }
 
         if (ctx.widgetManager.isServerOwnedWidget(parentUid)) {
@@ -689,7 +689,7 @@ export function registerWidgetOps(handlers: HandlerMap): void {
 
         if (!parent.children) parent.children = [];
         if (childIndex > 0 && !parent.children[childIndex - 1]) {
-            throw new Error("RuntimeException");
+            throw new Error(`CC_CREATE: missing previous child ${childIndex - 1} of ${parentUid}`);
         }
         while (parent.children.length <= childIndex) parent.children.push(null);
 

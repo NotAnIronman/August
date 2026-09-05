@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { HealthOrbTooltip } from "@client/features/health-orb/HealthOrbTooltip";
 
 import { RenderStatsOverlay } from "@client/ui/components/render-stats-overlay/index";
 import { OsrsLoadingBar } from "@client/ui/components/osrs-loading-bar/index";
@@ -356,6 +357,7 @@ export function GameContainer({ osrsClient }: OsrsContainerProps): JSX.Element {
             >
                 <div className="game-canvas-shell">
                     <div className="game-canvas-stage">
+                        {!hideUi && !osrsClient.isOnLoginScreen() && <HealthOrbTooltip />}
                         {loadingBarOverlay}
 
                         {!hideUi && !osrsClient.isOnLoginScreen() && (

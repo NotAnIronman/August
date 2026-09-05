@@ -1,5 +1,7 @@
 # Layout, status orbs, Araxxor and pets — 2026-09-05
 
+Follow-up: the [focused layout/combat update](playtester-layout-combat-followup-2026-09-05.md) supersedes this document's layout/input fixes, Mirrorback percentages, egg-pose behavior and associated QA expectations.
+
 ## Host update
 
 Sync the complete source changes, rebuild the client, and restart the game server. Both sides changed, including a new pet-examine packet; do not update only one side.

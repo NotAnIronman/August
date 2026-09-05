@@ -74,6 +74,8 @@ export interface FloorHazardParams {
     /** Optional on-hit utility, such as disabling prayers or stunning. */
     readonly effect?: FloorHazardEffect;
     readonly tickInterval?: number;
+    /** Presentation style for the hazard's direct damage (normal by default). */
+    readonly hitsplatStyle?: number;
     /** Players eligible for this hazard; caller supplies instance membership. */
     readonly players: readonly PlayerState[];
     readonly appliesTo?: "all-members" | "current-target" | readonly number[];
@@ -233,7 +235,7 @@ export function spawnFloorHazard(
                                 0,
                                 Math.trunc(typeof configuredDamage === "function" ? configuredDamage(runtime.rng) : configuredDamage),
                             );
-                            services.combat.applyNpcDamageToPlayer(source, player, HITMARK_DAMAGE, damage, tick);
+                            services.combat.applyNpcDamageToPlayer(source, player, params.hitsplatStyle ?? HITMARK_DAMAGE, damage, tick);
                             if (params.effect?.disablePrayers) {
                                 player.prayer.setActivePrayers([]);
                                 player.prayer.setQuickPrayersEnabled(false);

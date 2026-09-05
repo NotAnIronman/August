@@ -188,4 +188,38 @@ simulateApproach("pillar-obstacle", { x: 3236, y: 3236 }, 1, "player-first", wit
 simulateApproach("pillar-obstacle-3x3", { x: 3236, y: 3236 }, 3, "npc-first", withPillarBetween);
 simulateApproach("pillar-obstacle-3x3", { x: 3236, y: 3236 }, 3, "player-first", withPillarBetween);
 
-console.log("reciprocal melee approach (real pathfinding) tests passed");
+// Moving a large target along the same edge must not replace a still-valid
+// approach route; moving it away from that edge must request a new route.
+{
+    const pathService = makeOpenPathService();
+    let routeCalls = 0;
+    const find = pathService.findPathSteps.bind(pathService);
+    pathService.findPathSteps = (...args) => { routeCalls++; return find(...args); };
+    const player = new PlayerState(3,3230,3230,0,TEST_GAMEMODE);
+    const npc = new NpcState(4,1,3,-1,-1,32,{x:3236,y:3234,level:0},{maxHitpoints:100});
+    player.setCombatTarget(npc);
+    const engine = new CombatTickEngine({pathService,
+        getPlayer:id=>id===player.id ? player : undefined,
+        getNpc:id=>id===npc.id ? npc : undefined,
+        getCombatants:()=>[player], resolveAttackTraits:()=>MELEE_TRAITS});
+    engine.processTick(200);
+    assert(player.hasPath());
+    const original = [...player.getPathQueue()];
+    const end = original.at(-1)!;
+    const initialCalls = routeCalls;
+    assert(initialCalls > 0);
+    if (end.x < npc.tileX || end.x >= npc.tileX + npc.size) {
+        npc.teleport(npc.tileX,npc.tileY + (end.y <= npc.tileY + 1 ? -1 : 1),0);
+    } else {
+        npc.teleport(npc.tileX + (end.x <= npc.tileX + 1 ? -1 : 1),npc.tileY,0);
+    }
+    engine.processTick(201);
+    assert.equal(routeCalls,initialCalls,"same reachable target edge keeps the existing route");
+    assert.deepEqual(player.getPathQueue(),original);
+    npc.teleport(3245,3245,0);
+    engine.processTick(202);
+    assert(routeCalls > initialCalls,"invalidated endpoint must route toward the new target position");
+    assert.notDeepEqual(player.getPathQueue(),original);
+}
+
+console.log("reciprocal melee and moving-target approach (real pathfinding) tests passed");

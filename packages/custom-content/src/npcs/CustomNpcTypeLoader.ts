@@ -24,6 +24,8 @@ export class CustomNpcTypeLoader implements NpcTypeLoader {
                 if (key.endsWith("SeqId")) (npc as unknown as Record<string, unknown>)[key] = -1;
             }
             npc.rotationSpeed = 0;
+            // One frame only: the closed-egg pose hides the other hatch stages.
+            npc.idleSeqId = 11507;
         }
         this.overrides.set(id, npc);
         return npc;

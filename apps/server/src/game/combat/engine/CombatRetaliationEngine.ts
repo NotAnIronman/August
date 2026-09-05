@@ -52,7 +52,8 @@ export class CombatRetaliationEngine {
         }
         if (
             defender instanceof PlayerState &&
-            !defender.combatAttributes.get(CombatAttributes.AUTO_RETALIATE_ENABLED)
+            (!defender.combatAttributes.get(CombatAttributes.AUTO_RETALIATE_ENABLED)
+                || defender.hasPath() || defender.combat.manualMovementTick === currentMapClock)
         ) {
             return false;
         }

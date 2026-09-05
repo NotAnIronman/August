@@ -33,7 +33,7 @@ export function configureMirrorbackRedirection(boss: NpcState, services: ScriptS
             .find(npc => npc?.typeId === 13671 && npc.getHitpoints() > 0
                 && npc.worldViewId === boss.worldViewId && npc.level === boss.level);
         if (!mirror || damage < 2) return damage;
-        const redirected = Math.floor(damage / 2);
+        const redirected = Math.floor(damage / 5);
         const hpBefore = mirror.getHitpoints();
         services.combat.applyPlayerDamageToNpc(player, mirror, HITMARK_DAMAGE, redirected, tick);
         const actual = Math.min(redirected, Math.max(0, hpBefore - mirror.getHitpoints()));

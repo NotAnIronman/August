@@ -2264,6 +2264,8 @@ export class OsrsClient {
                     });
                 }
             } else if (payload?.action === "set_root") {
+                this.widgetInteraction?.clearWidgetInteractionState();
+                this.widgetInputController?.reset();
                 this.scriptEvents = [];
                 this.scriptEvents2 = [];
                 this.scriptEvents3 = [];

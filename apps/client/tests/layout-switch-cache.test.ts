@@ -30,7 +30,11 @@ manager.onLoadListener = (_id, widget) => {
     vm.runScriptEvent(createScriptEvent({ widget, args: widget.onLoad! }));
     assert.equal(vm.lastError, null);
 };
-manager.onSubChangeInvoker = widget => { vm.invokeEventHandler(widget, "onSubChange"); assert.equal(vm.lastError, null); };
+manager.onSubChangeInvoker = widget => {
+    assert(widget.groupId === manager.rootInterface || manager.getInterfaceParentContainerUid(widget.groupId) !== undefined,
+        "detached roots must not run direct callbacks when mounting the new layout");
+    vm.invokeEventHandler(widget, "onSubChange"); assert.equal(vm.lastError, null);
+};
 manager.onResizeInvoker = widget => { vm.invokeEventHandler(widget, "onResize"); assert.equal(vm.lastError, null); };
 manager.resize(1000, 700);
 for (const root of [161, 164, 548, 161, 164]) {
@@ -92,6 +96,7 @@ const npcs = factory.getNpcTypeLoader();
 for (const definition of FOLLOWER_ITEM_DEFINITIONS) assert(npcs.load(definition.npcTypeId).isFollower);
 for (const id of [13670, 13672, 13674]) {
     const egg = npcs.load(id);
-    assert.equal(egg.getIdleSeqId(factory.getBasTypeLoader()), -1);
-    assert(Object.values(egg.getMovementSeqSet(factory.getBasTypeLoader())).every(id => id === -1));
+    assert.equal(egg.getIdleSeqId(factory.getBasTypeLoader()), 11507);
+    assert.equal(factory.getSeqTypeLoader().load(11507).frameIds?.length, 1, "closed egg is a static pose, not a morph or moving animation");
+    assert(Object.values(egg.getMovementSeqSet(factory.getBasTypeLoader())).every(id => id === -1 || id === 11507));
 }

@@ -816,7 +816,8 @@ export class PlayerSyncManager {
         const orientation = this.computeOrientation(selfX, selfY, targetX, targetY);
         if (orientation === undefined) return;
         const state = this.movementSync.getState(serverId);
-        // targetIndex-facing is applied even while moving.
+        // Movement orientation takes precedence; idle actors can face a target.
+        if (this.playerEcs.isMoving(ecsIndex)) return;
         this.playerEcs.setTargetRot(ecsIndex, orientation);
         if (state) state.lastOrientation = orientation;
     }

@@ -1,6 +1,6 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { AttackType } from "@server/game/combat/AttackType";
-import { HITMARK_DAMAGE } from "@server/game/combat/HitEffects";
+import { HITMARK_DAMAGE, HITMARK_VENOM } from "@server/game/combat/HitEffects";
 import { isDeveloperGodmodeEnabled, isDeveloperInstakillEnabled } from "@server/game/dev/DeveloperFlags";
 import { VARP_COLLECTION_CATEGORY_COUNT } from "@server/game/collectionlog";
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
@@ -260,7 +260,7 @@ function acidPatches(npc: NpcState, target: PlayerState, services: ScriptService
     runtime.runMechanic("araxxor-acid", "stack", () => spawnFloorHazard(runtime, services, {
         id: "araxxor-acid", randomTiles: roomTiles(), targetMode: targetPlayer ? "current-target" : "random", currentTargetId: target.id,
         hazardQuantity: count, tell: { locId: ACID_TELL_LOC_ID, locShape: 10 }, hazardTime: 2, liveTicks: 10,
-        tickInterval: 2, hazardDamage: rng => 4 + rng.nextInt(8), players: services.instances.getMemberPlayers(room.id), appliesTo: "all-members",
+        tickInterval: 2, hitsplatStyle: HITMARK_VENOM, hazardDamage: rng => 4 + rng.nextInt(8), players: services.instances.getMemberPlayers(room.id), appliesTo: "all-members",
     }));
 }
 
@@ -276,7 +276,7 @@ function spawnEgg(npc: NpcState, target: PlayerState, services: ScriptServices, 
         id: eggId, x: tile.x, y: tile.y, level: npc.level, size: 1,
         worldViewId: npc.worldViewId,
         ownerPlayerId: instance?.access === "solo" ? target.id : undefined,
-        idleSeqId: -1, wanderRadius: 0, isAggressive: false, isImmovable: true,
+        idleSeqId: ANIM.eggIdle, wanderRadius: 0, isAggressive: false, isImmovable: true,
         respawns: false,
     });
     if (!egg) return;
@@ -363,7 +363,7 @@ function araxxorAttack(event: NpcAttackEvent): NpcAttackDecision | void {
                 runtime.runMechanic("araxxor-cleave", "stack", () => spawnFloorHazard(runtime, services, {
                     id: "araxxor-cleave", tiles,
                     tell: { locId: ACID_TELL_LOC_ID, locShape: 10 }, hazardTime: 1,
-                    liveTicks: "encounter", tickInterval: 2, hazardDamage: rng => 4 + rng.nextInt(8),
+                    liveTicks: "encounter", tickInterval: 2, hitsplatStyle: HITMARK_VENOM, hazardDamage: rng => 4 + rng.nextInt(8),
                     players: services.instances.getMemberPlayers(room.id), appliesTo: "all-members",
                 }));
             }

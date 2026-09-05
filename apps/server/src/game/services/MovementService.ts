@@ -667,6 +667,11 @@ export class MovementService {
     ): boolean {
         const player = this.services.players?.get(sock);
         if (!player) return true;
+        player.combat.manualMovementTick = currentTick;
+        this.services.players?.clearAllInteractions(sock);
+        player.resetInteractions();
+        player.clearForcedOrientation();
+        player.pendingFaceTile = undefined;
         if (!player.canMove()) {
             if (player.lock === LockState.FULL) {
                 this.services.messagingService.queueChatMessage({
@@ -680,10 +685,6 @@ export class MovementService {
         }
         this.services.interfaceManager.closeInterruptibleInterfaces(player);
         try {
-            this.services.players?.clearAllInteractions(sock);
-            player.resetInteractions();
-            player.clearForcedOrientation();
-            player.pendingFaceTile = undefined;
             player.clearInteraction();
             player.stopAnimation();
         } catch (err) { logger.warn("[movement] failed to clear interaction state", err); }

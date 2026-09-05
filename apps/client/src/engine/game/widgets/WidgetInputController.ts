@@ -1,5 +1,6 @@
 import type { WidgetManager } from "@client/ui/widgets/WidgetManager";
 import type { InputManager } from "@client/core/input/InputManager";
+import { clearHealthOrbTooltip } from "@client/features/health-orb/HealthOrbTooltip";
 import type { WidgetInteractionController } from "@client/engine/game/widgets/WidgetInteractionController";
 import {
     isQuestListScrollbarWidget,
@@ -41,6 +42,11 @@ export class WidgetInputController {
 
     constructor(private readonly deps: WidgetInputControllerDeps) {}
 
+    reset(): void {
+        Object.assign(this.state, createWidgetInputState());
+        clearHealthOrbTooltip();
+    }
+
     handleUiInput(): void {
         const input = this.deps.getInputManager();
         const widgetManager = this.deps.getWidgetManager();
@@ -53,7 +59,10 @@ export class WidgetInputController {
             widgetManager,
             widgetInteraction,
         );
-        if (!frame) return;
+        if (!frame) {
+            clearHealthOrbTooltip();
+            return;
+        }
 
         const transmitCycles = this.deps.getTransmitCycles();
         const hoverCycle = transmitCycles.cycleCntr | 0;

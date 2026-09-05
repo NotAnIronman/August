@@ -23,6 +23,7 @@ export type WidgetInputState = {
     lastHoverHitX: number;
     lastHoverHitY: number;
     cachedHoverHits: any[] | null;
+    cachedHoverCycle?: number;
     lastHoverListenerCycle: number;
 };
 

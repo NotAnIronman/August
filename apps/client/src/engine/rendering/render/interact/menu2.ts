@@ -2,7 +2,6 @@ import { mat4,vec3,vec4 } from "gl-matrix";
 
 import { MenuTargetType,OsrsMenuEntry } from "@august/osrs-engine/MenuEntry";
 import { Ray } from "@client/engine/game/math/Raycast";
-import { isMouseInUIRegion as checkMouseInUIRegion } from "@client/engine/game/menu/WorldMenuBuilder";
 import {
     resolveGroundItemStackPlane
 } from "@client/engine/game/scene/PlaneResolver";
@@ -43,7 +42,7 @@ export function toCssEvent(host: WebGLOsrsRendererHost,
 
 export function isMouseInUIRegion(host: WebGLOsrsRendererHost, mx: number, my: number): boolean {
 
-        return checkMouseInUIRegion(mx, my, host.canvas.width, host.canvas.height);
+        return host.osrsClient.isPointOverWidget(mx, my);
     
 }
 

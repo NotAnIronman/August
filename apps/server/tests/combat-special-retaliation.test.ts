@@ -176,4 +176,10 @@ assert.equal(ddsHits[1].landed, true);
 assert.notEqual(ddsHits[0].damage, ddsHits[1].damage, "DDS hits must perform separate damage rolls");
 assert.equal(randomValues.length, 0, "DDS must consume an accuracy and damage roll per hit");
 
+retaliatingPlayer.resetInteractions();
+retaliatingPlayer.combat.manualMovementTick = 100;
+assert.equal(retaliation.intercept(retaliatingPlayer,npcCombatEntityRef(npcAttacker.id),100),false,"same-tick damage cannot undo a walk click");
+retaliatingPlayer.setPath([{x:3200,y:3201}],false);
+assert.equal(retaliation.intercept(retaliatingPlayer,npcCombatEntityRef(npcAttacker.id),101),false,"retaliation must not replace active movement");
+assert.equal(retaliatingPlayer.getInteractionIndex(),-1);
 console.log("combat special and retaliation regression tests passed");

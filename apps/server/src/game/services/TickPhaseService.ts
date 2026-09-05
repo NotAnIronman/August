@@ -1,4 +1,6 @@
 import { WebSocket } from "ws";
+import { HEALTH_ORB_TIMER_VARPS } from "@august/protocol/ui/healthOrb";
+import { hasVenomImmunityEquipment } from "@server/game/combat/PoisonVenomSystem";
 import { deliverPendingPetRewards } from "@server/game/followers/awardPetReward";
 
 import {
@@ -413,6 +415,10 @@ export class TickPhaseService {
             }
 
             const hasHitpointsCapeRegen = this.playerHasHitpointsCapeRegen(player);
+            if (hasVenomImmunityEquipment(player.appearance.equip[EquipmentSlot.HEAD] ?? -1)) {
+                player.skillSystem.curePoison();
+                player.skillSystem.cureVenom();
+            }
             const statusHits = this.svc.statusEffects.processPlayer(
                 player,
                 frame.tick,
@@ -435,6 +441,9 @@ export class TickPhaseService {
             const regenTimer = player.skillSystem.takeHitpointRegenTimerSync(frame.tick);
             const orbStatus = player.skillSystem.takeHealthOrbStatusSync();
             if (orbStatus !== undefined) this.svc.variableService.queueVarp(player.id, 102, orbStatus);
+            const orbTimers = player.skillSystem.takeHealthOrbTimerSync(frame.tick, this.svc.tickMs);
+            if (orbTimers) Object.values(HEALTH_ORB_TIMER_VARPS).forEach((id, i) =>
+                this.svc.variableService.queueVarp(player.id, id, orbTimers[i]));
             if (regenTimer) {
                 this.svc.variableService.queueVarp(player.id, VARP_MAP_CLOCK, frame.tick);
                 this.svc.broadcastService.queueClientScript(

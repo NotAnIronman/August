@@ -1730,7 +1730,7 @@ export class WidgetManager {
     }
 
     /**
-     * Trigger onSubChange handlers on all loaded interfaces.
+     * Trigger onSubChange handlers on currently mounted interfaces.
      * Called when sub-interfaces are opened or closed.
      * In OSRS, this triggers handlers like toplevel_subchange (161) and chat_onsubchange (162).
      * The chatbox handler (162:0) calls script 113 which resizes CHATMODAL when dialogs are mounted.
@@ -1738,12 +1738,15 @@ export class WidgetManager {
     triggerOnSubChange(): void {
         if (!this.onSubChangeInvoker && !this.onSubChangeListener) return;
 
-        // Trigger onSubChange on the full widget tree for every loaded interface.
+        // Trigger onSubChange on the full widget tree for every mounted interface.
         // Reference: VertexNormal.runComponentCloseListeners(var0, 1) walks all descendants,
         // not just roots. This is important for:
         // - Root interface (161): toplevel_subchange - shows/hides tab icons
         // - Chatbox (162): chat_onsubchange -> script 113 - resizes CHATMODAL for dialogs
         for (const [groupId] of this.groups) {
+            // Cache residency is not interface ownership. A detached gameframe's
+            // callbacks overwrite the active root's shared CS2 state on remount.
+            if (groupId !== this.rootInterface && !this.groupToContainerUid.has(groupId)) continue;
             const roots = this.getAllGroupRoots(groupId);
             if (!roots.length) continue;
 

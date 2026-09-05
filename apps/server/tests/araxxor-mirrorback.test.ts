@@ -36,14 +36,15 @@ function hit(target: NpcState, damage: number, type: AttackType = AttackType.Mel
         hitsplatType: DeferredHitsplatType.Normal, attackType: type, revealClock: 1, profileId: "test" });
     return queue.processTick(1, { hitsplats: [] } as any)[0];
 }
-assert.equal(hit(boss, 100).amount, 50);
-assert.equal(mirror.getHitpoints(), 8);
+assert.equal(hit(boss, 100).amount, 80);
+assert.equal(mirror.getHitpoints(), 38);
 assert.equal(foreign.getHitpoints(), 58, "do not redirect to another instance");
-assert.deepEqual(redirects, [50]);
-assert.deepEqual(recoils, [25], "half of half; redirected damage is not recoiled twice");
-assert.equal(hit(boss, 21).amount, 11);
+assert.deepEqual(redirects, [20]);
+assert.deepEqual(recoils, [10], "half of 20%; redirected damage is not recoiled twice");
+mirror.applyDamage(35);
+assert.equal(hit(boss, 21).amount, 17);
 assert.equal(mirror.getHitpoints(), 0);
-assert.deepEqual(recoils, [25, 4], "fatal redirect recoils actual damage, rounded down");
+assert.deepEqual(recoils, [10, 1], "fatal redirect recoils actual damage, rounded down");
 assert.equal(hit(boss, 20).amount, 20, "dead mirrors stop redirecting immediately");
 const direct = npc(23, 13671, 58);
 live.set(direct.id, direct);

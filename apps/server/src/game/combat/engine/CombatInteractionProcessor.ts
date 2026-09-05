@@ -338,6 +338,15 @@ export class CombatInteractionProcessor {
         if (unchanged && attacker.hasPath()) {
             return true;
         }
+        if (sameEngagement && attacker instanceof PlayerState && attacker.hasPath()
+            && traits.type === AttackType.Melee && rangeTiles === 1 && attacker.level === target.level) {
+            const end = attacker.getPathQueue().at(-1);
+            const strategy = new CardinalAdjacentRouteStrategy(target.tileX, target.tileY,
+                Math.max(1, target.size), Math.max(1, target.size));
+            // A moving large target often still covers the same reachable edge.
+            // Keep that valid route instead of selecting a different side each tick.
+            if (end && strategy.hasArrived(end.x, end.y, attacker.level, attacker.size)) return true;
+        }
 
         // Reuse the previously committed approach tile as long as the target
         // hasn't moved and this is still the same engagement — see
@@ -355,6 +364,7 @@ export class CombatInteractionProcessor {
                   : { ok: false as const, approachTile: undefined };
 
         if (!routed.ok) {
+            attacker.clearPath();
             this.routes.delete(attacker);
             return false;
         }

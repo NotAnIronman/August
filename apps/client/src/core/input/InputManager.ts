@@ -334,6 +334,11 @@ export class InputManager {
         element.addEventListener("contextmenu", this.onContextMenu, true);
         element.addEventListener("auxclick", this.onContextMenu, true);
         element.addEventListener("focusout", this.onFocusOut);
+        // Resolve live ancestry: the canvas can be initialized before attachment.
+        document.addEventListener("contextmenu", this.onDocumentContextMenu, true);
+        document.addEventListener("mousedown", this.onDocumentSecondaryDown, true);
+        document.addEventListener("pointerdown", this.onDocumentSecondaryPointerDown, true);
+        document.addEventListener("pointerup", this.onDocumentSecondaryPointerUp, true);
     }
 
     cleanUp() {
@@ -358,6 +363,10 @@ export class InputManager {
         this.element.removeEventListener("contextmenu", this.onContextMenu, true);
         this.element.removeEventListener("auxclick", this.onContextMenu, true);
         this.element.removeEventListener("focusout", this.onFocusOut);
+        document.removeEventListener("contextmenu", this.onDocumentContextMenu, true);
+        document.removeEventListener("mousedown", this.onDocumentSecondaryDown, true);
+        document.removeEventListener("pointerdown", this.onDocumentSecondaryPointerDown, true);
+        document.removeEventListener("pointerup", this.onDocumentSecondaryPointerUp, true);
         this.removeDocumentGrab();
         this.touchAdapter.destroy();
         canvas.style.pointerEvents = this.previousPointerEvents;
@@ -943,6 +952,38 @@ export class InputManager {
 
     private onContextMenu = (event: MouseEvent) => {
         event.preventDefault();
+    };
+
+    private isGameSurfaceEvent(event: MouseEvent): boolean {
+        const canvas = this.element;
+        if (!canvas) return false;
+        const surface = canvas.closest?.(".game-canvas-stage") ?? canvas.parentElement ?? canvas;
+        if (!surface.contains(event.target as Node)) return false;
+        const rect = canvas.getBoundingClientRect();
+        return event.clientX >= rect.left && event.clientX < rect.right
+            && event.clientY >= rect.top && event.clientY < rect.bottom;
+    }
+
+    private onDocumentContextMenu = (event: MouseEvent): void => {
+        if (!this.isGameSurfaceEvent(event)) return;
+        event.preventDefault();
+        event.stopPropagation();
+    };
+
+    private onDocumentSecondaryDown = (event: MouseEvent): void => {
+        if (event.button === 2 && this.isGameSurfaceEvent(event)) event.preventDefault();
+    };
+
+    private onDocumentSecondaryPointerDown = (event: PointerEvent): void => {
+        if (event.button !== 2 || !this.isGameSurfaceEvent(event)) return;
+        // Cancel native gesture initiation before Chromium produces compatibility
+        // mouse events, and explicitly retain the game's secondary click.
+        event.preventDefault();
+        this.onMouseDown(event);
+    };
+
+    private onDocumentSecondaryPointerUp = (event: PointerEvent): void => {
+        if (event.button === 2 && this.clickMode2 === ClickMode.RIGHT) this.onMouseUp(event);
     };
 
     // === Keyboard handlers - OSRS GameApplet.keyPressed/keyReleased ===
