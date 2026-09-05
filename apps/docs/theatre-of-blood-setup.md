@@ -22,6 +22,10 @@ disconnected members can still return.
 These are the supplied bounds plus four tiles on every edge. Map copies additionally round
 outwards to eight-tile chunks. Explicit scene origins keep Maiden's western side inside the
 104-tile instance view; server collision and client rebuild packets use the same origin.
+Every room copies all four cache planes. Maiden, Bloat, Nylo and Sotetseg enter on logical
+plane 0 but stand on plane-1 bridge surfaces; omitting those surfaces leaves players beneath
+the stairs. Xarpus remains on logical plane 1 and includes the lower pit and its height base.
+Bridge collision is shifted once during scene linking, just as in the non-instanced map.
 Xarpus skeleton **32741** is retained as a reference; no skeleton interaction is invented yet.
 The supplied six-boss order takes precedence over the conflicting Nylo/Verzik exit labels.
 
@@ -111,7 +115,12 @@ the existing database.
    voluntary logout and leaving. Existing inventory and equipment must remain unchanged by resume.
 7. On a developer account, preview all six rooms and inspect terrain, collision, walls and
    decorations. Confirm the 3D terrain and players appear immediately, including when crossing
-   map-square boundaries. Xarpus alone uses plane 1. Use Development IDs to gather encounter objects.
+   map-square boundaries. Check the first four entrances place you on the stairs, not underneath,
+   and that you can walk into the rooms. Xarpus alone uses logical plane 1; its lower pit should
+   also render. Use Development IDs to gather encounter objects.
+8. On HTTP, the storage/cache warning should show once per browser tab session. Dismiss it,
+   reload, and confirm it stays hidden. A new session can show it again. If the browser blocks
+   session storage completely, suppression is limited to the current page lifetime.
 
 Automated coverage includes every padded tile, the real instance lifecycle, party room transfer,
 disconnect/reconnect with new player IDs, full-party reconstruction, ordered completion, durable

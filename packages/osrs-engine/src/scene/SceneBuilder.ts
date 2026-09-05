@@ -2009,13 +2009,10 @@ export class SceneBuilder {
                         sceneX < scene.sizeX - 1 &&
                         sceneY < scene.sizeY - 1
                     ) {
-                        let collisionLevel = targetPlane;
-                        if ((scene.tileRenderFlags[1]?.[sceneX]?.[sceneY] & 0x2) === 0x2) {
-                            collisionLevel = targetPlane - 1;
-                        }
-
-                        const collisionMap =
-                            collisionLevel >= 0 ? scene.collisionMaps[collisionLevel] : undefined;
+                        // Match decodeLocs: applyBridgeLinks shifts collision
+                        // once after all locs are installed. Demoting here too
+                        // moves walls onto the wrong floor (or drops them).
+                        const collisionMap = scene.collisionMaps[targetPlane];
 
                         this.addLoc(
                             scene,

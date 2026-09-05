@@ -53,10 +53,11 @@ for (let i=0;i<6;i++) {
     const g = theatreRoomGeometry(i);
     assert.deepEqual(g.bounds,{minX:g.room.minX-4,maxX:g.room.maxX+4,minY:g.room.minY-4,maxY:g.room.maxY+4});
     const chunks = buildInstanceTemplate([g.copy]);
-    for (let x=g.bounds.minX;x<=g.bounds.maxX;x++) for(let y=g.bounds.minY;y<=g.bounds.maxY;y++) {
-        const packed = chunks[g.room.entrance.level][(x-g.sceneBase.x)>>3][(y-g.sceneBase.y)>>3];
+    for (let plane=0;plane<4;plane++) for (let x=g.bounds.minX;x<=g.bounds.maxX;x++) for(let y=g.bounds.minY;y<=g.bounds.maxY;y++) {
+        const packed = chunks[plane][(x-g.sceneBase.x)>>3][(y-g.sceneBase.y)>>3];
         assert.notEqual(packed,-1,"every padded tile must be included");
         const chunk = unpackTemplateChunk(packed);
+        assert.equal(chunk.plane,plane,"copy supporting terrain, bridges and roofs without changing their planes");
         assert.equal(chunk.chunkX,x>>3); assert.equal(chunk.chunkY,y>>3);
     }
     const packets:any[]=[];

@@ -42,6 +42,7 @@ import { useSafariLandscapeLock } from "@client/app/hooks/useSafariLandscapeLock
 import { useViewportCssVars } from "@client/app/hooks/useViewportCssVars";
 import { renderDataLoaderSerializer } from "@client/core/workers/RenderDataLoader";
 import { RenderDataWorkerPool } from "@client/core/workers/RenderDataWorkerPool";
+import { createSessionNotice } from "@client/core/storage/SessionNotice";
 
 registerSerializer(renderDataLoaderSerializer);
 
@@ -100,6 +101,7 @@ function OsrsClientApp() {
     const [errorMessage, setErrorMessage] = useState<string>();
     const [osrsClient, setOsrsClient] = useState<OsrsClient>();
     const [storageWarnings, setStorageWarnings] = useState<string[]>([]);
+    const storageNotice = useMemo(() => createSessionNotice("august.storage-notice.shown.v1"), []);
     const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<BeforeInstallPromptEvent>();
     const [showInstallPrompt, setShowInstallPrompt] = useState(false);
     const [showIosInstallHint, setShowIosInstallHint] = useState(false);
@@ -110,13 +112,19 @@ function OsrsClientApp() {
     const safariLandscapeLock = useSafariLandscapeLock(checkMobile());
 
     const addStorageWarning = useCallback((message: string) => {
+        if (!storageNotice.canShow()) return;
         setStorageWarnings((prev) => {
             if (prev.includes(message)) {
                 return prev;
             }
             return [...prev, message];
         });
-    }, []);
+    }, [storageNotice]);
+
+    useEffect(() => {
+        // Record actual presentation, not just a warning queued behind Install.
+        if (!showInstallPrompt && storageWarnings.length > 0) storageNotice.markShown();
+    }, [showInstallPrompt, storageWarnings, storageNotice]);
 
     useEffect(() => {
         if (!(isTouchDevice || isIos)) return;
@@ -181,11 +189,12 @@ function OsrsClientApp() {
     }, []);
 
     const dismissStorageWarnings = useCallback(() => {
+        storageNotice.dismiss();
         setStorageWarnings([]);
         // Avoid revealing a near-duplicate "add to home screen" banner underneath.
         setShowIosInstallHint(false);
         setClientPreference("iosInstallHintDismissed", true);
-    }, []);
+    }, [storageNotice]);
 
     // Two workers build maps in parallel — halves total grid load time.
     // Progressive rendering shows each map as it arrives, no main-thread freeze.

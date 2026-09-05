@@ -22,7 +22,11 @@ export function theatreRoomGeometry(index: number) {
         sourceBaseX:sceneBase.x,sourceBaseY:sceneBase.y,
         widthChunks:Math.floor(bounds.maxX/8)-sceneBase.x/8+1,
         heightChunks:Math.floor(bounds.maxY/8)-sceneBase.y/8+1,
-        destinationChunkX:0,destinationChunkY:0,sourcePlanes:[room.entrance.level],
+        // Logical player planes are not standalone terrain layers: the first
+        // four entrances stand on plane-1 bridges linked down to plane 0, and
+        // Xarpus's plane-1 room depends on the pit/height base below it. Preserve
+        // the complete cache column, including roofs and bridge collision.
+        destinationChunkX:0,destinationChunkY:0,sourcePlanes:[0,1,2,3],
     };
     if (copy.widthChunks > 13 || copy.heightChunks > 13) throw new Error("Theatre room exceeds instance view");
     return {room,bounds,sceneBase,copy};
