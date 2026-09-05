@@ -94,6 +94,14 @@ export class MovementService {
         level: number,
         forceRebuild: boolean = false,
     ): void {
+        if (player.raidProgress?.guard("teleport", () => this.teleportPlayer(player,x,y,level,forceRebuild))) return;
+        // A voluntary escape after confirming progress loss must detach the
+        // private world before rebuilding the overworld at the destination.
+        if (!player.raidProgress?.checkpoint && !player.raidProgress?.isInternal &&
+            this.services.instancedAreaManager?.get(player.id)?.definitionId?.startsWith("theatre-of-blood:")) {
+            this.services.instancedAreaManager.dispose(player,{x,y,level});
+            return;
+        }
         if (
             player.worldViewId === SAILING_WORLD_ENTITY_INDEX &&
             this.services.worldEntityInfoEncoder.isEntityActive(
@@ -201,8 +209,9 @@ export class MovementService {
 
         this.resetNpcSyncForRegionChange(player);
 
-        const regionX = x >> 3;
-        const regionY = y >> 3;
+        const room = this.services.instancedAreaManager?.get(player.id);
+        const regionX = room ? (room.baseX >> 3) + 6 : x >> 3;
+        const regionY = room ? (room.baseY >> 3) + 6 : y >> 3;
 
         const payload = buildRebuildRegionPayload(
             regionX,
@@ -253,6 +262,15 @@ export class MovementService {
         player: PlayerState,
         request: TeleportActionRequest,
     ): { ok: boolean; reason?: string } {
+        // This lower-level request does not own spell runes/item charges. Replaying
+        // it alone would create a free teleport. Content may guard its whole action
+        // first; otherwise require a fresh click through the normal cost checks.
+        if (player.raidProgress?.guard("teleport", () => {
+            this.services.scriptRuntime.getServices().messaging.sendGameMessage(player,
+                "Theatre progress cleared. Select your teleport again to continue.");
+        })) {
+            return {ok:false,reason:"confirmation_required"};
+        }
         const playerId = player.id;
 
         const replacePending = request.replacePending === true;

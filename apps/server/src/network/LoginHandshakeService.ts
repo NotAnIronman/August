@@ -251,6 +251,9 @@ export class LoginHandshakeService {
     }
 
     completeLogout(ws: WebSocket, player?: PlayerState, source?: string): void {
+        if (player?.raidProgress?.guard("log out", () => {
+            if (this.svc.players?.get(ws) === player && player.canLogout()) this.completeLogout(ws,player,source);
+        })) return;
         const normalizedSource = source?.trim().slice(0, 64) ?? "";
         const sourceSuffix =
             normalizedSource.length > 0 && normalizedSource !== "logout"
@@ -490,6 +493,25 @@ export class LoginHandshakeService {
                     }
                     this.svc.queueWidgetEvent(p!.id, action);
                 });
+                p.raidProgress.persist = () => {
+                    if (!p!.__saveKey) throw new Error("Cannot clear raid progress without an account save key");
+                    this.svc.playerPersistence.saveSnapshot(p!.__saveKey, p!);
+                };
+                p.raidProgress.confirm = (action, accept) => {
+                    const origin = {x:p!.tileX,y:p!.tileY,level:p!.level,view:p!.worldViewId};
+                    this.svc.scriptRuntime.getServices().dialog.openDialogOptions(p!, {
+                        id: "raid-progress-loss", title: `If you ${action}, your Theatre progress will be lost.`,
+                        options: ["Cancel — keep progress", "Confirm — clear progress and continue"], modal: true,
+                        onSelect: choice => {
+                            if (choice !== 1 || this.svc.players?.get(ws) !== p ||
+                                p!.tileX !== origin.x || p!.tileY !== origin.y || p!.level !== origin.level || p!.worldViewId !== origin.view) return;
+                            try { accept(); } catch (error) {
+                                logger.warn("[theatre] Could not save progress confirmation", error);
+                                this.svc.scriptRuntime.getServices().messaging.sendGameMessage(p!, "Could not save your progress. The action was cancelled; please try again.");
+                            }
+                        },
+                    });
+                };
 
                 if (!isReconnect) {
                     this.svc.actionScheduler.registerPlayer(p);
@@ -1224,7 +1246,13 @@ export class LoginHandshakeService {
                     // combat orphaning retain a player in a destroyed world view.
                     const disconnectedFromInstance =
                         this.svc.instancedAreaManager?.get(player.id) !== undefined;
-                    this.svc.instancedAreaManager?.dispose(player);
+                    if (this.svc.instancedAreaManager?.get(player.id)?.definitionId?.startsWith("theatre-of-blood:")) {
+                        player.raidProgress.disconnected();
+                    } else if (player.raidProgress.checkpoint?.status === "active") {
+                        player.raidProgress.clear();
+                    }
+                    player.raidProgress.confirm = undefined;
+                    player.raidProgress.internally(() => this.svc.instancedAreaManager?.dispose(player));
                     this.svc.worldEntityInfoEncoder.removePlayer(player.id);
 
                     const currentTick = this.svc.ticker.currentTick();

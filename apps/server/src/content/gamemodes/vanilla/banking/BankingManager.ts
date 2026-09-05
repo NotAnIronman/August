@@ -1757,6 +1757,7 @@ export class BankingManager implements BankingProvider {
      * Uses InterfaceService which handles all widget initialization via registered hooks.
      */
     openBank(player: PlayerState, _opts?: { mode?: "bank" | "collect" }): void {
+        if (player.raidProgress?.guard("open a bank", () => this.openBank(player,_opts))) return;
         const interfaceService = this.services.getInterfaceService();
         if (!interfaceService) {
             this.services.logger.warn("[bank] InterfaceService not available");

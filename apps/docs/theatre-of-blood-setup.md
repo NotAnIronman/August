@@ -1,7 +1,63 @@
 # Theatre of Blood setup
 
-The raid rooms, party rules, encounters and rewards are not implemented by this setup batch.
-The user is gathering the object IDs and encounter requirements for the next steps.
+The base room instances, party progression, disconnect recovery and progress-loss confirmations
+are implemented. Encounters, boss spawns, mechanics and final loot are deliberately not installed
+yet. Ordinary exit clicks cannot complete an unfinished room.
+
+## Entrance and rooms
+
+Use entrance object **32653** near **3677,3219,0**. Choose solo, create a party (maximum five),
+or join a waiting party. Once an encounter starts, new recruits cannot join that run; eligible
+disconnected members can still return.
+
+| Order | Room | Entrance | Exit object | Padded bounds X / Y |
+| --- | --- | --- | --- | --- |
+| 1 | Maiden | 3219,4460,0 | 33113 | 3151–3229 / 4418–4467 |
+| 2 | Bloat | 3322,4447,0 | 33113 | 3265–3326 / 4429–4466 |
+| 3 | Nylo | 3295,4283,0 | 33113 | 3276–3315 / 4229–4287 |
+| 4 | Sotetseg | 3280,4293,0 | 33113 | 3263–3296 / 4289–4338 |
+| 5 | Xarpus | 3170,4375,1 | 32751 | 3151–3189 / 4370–4404 |
+| 6 | Verzik | 3168,4297,0 | 33113 | 3149–3187 / 4292–4332 |
+
+These are the supplied bounds plus four tiles on every edge. Map copies additionally round
+outwards to eight-tile chunks. Explicit scene origins keep Maiden's western side inside the
+104-tile instance view; server collision and client rebuild packets use the same origin.
+Xarpus skeleton **32741** is retained as a reference; no skeleton interaction is invented yet.
+The supplied six-boss order takes precedence over the conflicting Nylo/Verzik exit labels.
+
+Developer accounts have **Preview rooms (development)** in the entrance menu. The preview
+picker has two pages of three rooms. Preview instances award no progress or rewards; the room
+exit returns outside. Normal accounts do not receive this menu.
+
+## Checkpoints and parties
+
+- Each player stores a versioned checkpoint; a shared SQLite `theatre_runs` record holds the
+  party's authoritative room, roster and completed-room count. It does not rely on player IDs.
+- A normal disconnect removes the player from the private instance and saves them outside.
+  Clicking the main entrance offers continuation. Reconnecting party members enter the room
+  their original party currently occupies, at that room's entrance.
+- If nobody remains, the next eligible return reconstructs one shared instance at the first
+  unfinished room. The unfinished fight resets; completed rooms are not replayed.
+- Server interruptions can recover the latest saved player state and durable party checkpoint.
+  Saved private-room locations resolve outside, not into an uninstanced copy of the arena.
+- Trading, taking ground items, opening a bank, teleporting, voluntarily leaving and logging
+  out require confirmation to discard protected progress. Cancel keeps it. In-raid pickups
+  remain allowed; the pickup restriction applies after disconnecting.
+- Confirmation durably saves the cleared checkpoint before retrying an action. Save failures,
+  reused confirmations, changed sessions, changed locations and superseded prompts cannot
+  authorize the action. A protected trade recipient must initiate and confirm first.
+- Medallion teleports retry the complete ownership-checked action. The generic queued teleport
+  fallback asks for a fresh teleport click after confirmation, so it cannot skip rune/charge
+  validation belonging to the original spell or item handler.
+- Death invalidates the checkpoint. Voluntary logout/exit is not a disconnect continuation.
+  A cleared checkpoint cannot rejoin its former run through the ordinary party-join menu.
+
+Future encounters should obtain `theatreRuns(services)` from the module, call
+`startRoom(instanceId, roomId)` when the encounter begins, and call
+`completeRoom(instanceId, roomId)` only on authoritative completion. Completion is ordered and
+idempotent. An unlocked exit transfers connected members together to the next room. Only after
+all six rooms are complete can the final exit finish the run. The final reward implementation
+still needs its own durable claim transaction; this batch grants no loot.
 
 ## Drakan's medallion (22400)
 
@@ -18,6 +74,10 @@ queue, respect `canTeleport` and pending teleports, and recheck item ownership w
 They do not consume the medallion or intercept Wear/Drop. Charges, quest unlocks and custom
 teleport animations are not added in this initial setup.
 
+The native inventory operations are sparse: Wear=2, Ver Sinhaza=3, Darkmeyer=4, Slepe=6,
+Drop=7, Examine=10. Worn operations are Remove=1, Ver Sinhaza=2, Darkmeyer=3, Slepe=4.
+Both equipment interfaces now distinguish teleports from Remove using server-side cache data.
+
 ## Development IDs
 
 Open the xRSPS/plugin settings panel, scroll to **Development**, and enable
@@ -28,8 +88,10 @@ browser storage is unavailable. It replaces the old Client graphics debug checkb
 
 ## Host smoke test
 
-Sync all files, rebuild the client (`pnpm --filter @august/client build`), restart the game
-server and hard-refresh once. No game-cache rebuild or account-storage clearing is needed.
+Sync all changed **and new** files and restart the game server. This batch changes server
+runtime code only; the added client file is a regression test, so no client rebuild is required
+if the previous Development-ID update is already deployed. No cache rebuild or account-storage
+clearing is needed. The Theatre table is created automatically in the existing database.
 
 1. Enable IDs, right-click several objects and note their Examine IDs. Reload and confirm the
    preference remains enabled. Disable it and verify the ordinary menu labels return.
@@ -37,7 +99,18 @@ server and hard-refresh once. No game-cache rebuild or account-storage clearing 
    especially Slepe's underground destination on plane 1.
 3. Confirm stale clicks after moving/removing the medallion do not teleport, and that existing
    teleport restrictions are still enforced. Normal Wear, Remove and Drop should remain intact.
+4. Enter solo and create/join a two-player party. Verify isolation between runs and a shared
+   room within the party. Unfinished exits must not skip the encounter.
+5. Disconnect a party member, reconnect, and use Continue at the entrance. They should enter
+   the same instance as the remaining member. Repeat with everyone disconnected.
+6. After disconnecting, test Cancel and Confirm for bank, trade, pickup and medallion teleport.
+   Cancel preserves Continue; Confirm performs the action and removes Continue. Also test
+   voluntary logout and leaving. Existing inventory and equipment must remain unchanged by resume.
+7. On a developer account, preview all six rooms and inspect terrain, collision, walls and
+   decorations. Xarpus alone uses plane 1. Use Development IDs to gather encounter objects.
 
-Automated coverage checks the real cache options, destination mapping, inventory/equipment
-ownership, rejection feedback, saved debug preferences, and Examine labels. Live destination
-terrain and gameplay behavior still need the host smoke test.
+Automated coverage includes every padded tile, the real instance lifecycle, party room transfer,
+disconnect/reconnect with new player IDs, full-party reconstruction, ordered completion, durable
+SQLite records, confirmation replay/failure handling, guarded service entry points, real
+socket-close ordering, native cache menu slots and server binary medallion routing. Live terrain,
+collision and visual transitions still need the host smoke test; boss combat awaits encounter work.

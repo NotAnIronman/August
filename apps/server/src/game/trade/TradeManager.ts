@@ -314,6 +314,11 @@ export class TradeManager {
     }
 
     requestTrade(initiator: PlayerState, target: PlayerState, currentTick: number): void {
+        if (initiator.raidProgress?.guard("trade", () => this.requestTrade(initiator,target,this.svc.ticker.currentTick()))) return;
+        if (target.raidProgress?.checkpoint) {
+            this.svc.messagingService.sendGameMessageToPlayer(initiator,"That player must initiate the trade and confirm clearing their Theatre progress first.");
+            return;
+        }
         if (initiator.id === target.id) return;
         if (this.getPlayerSaveKey(initiator) === this.getPlayerSaveKey(target)) {
             this.svc.messagingService.sendGameMessageToPlayer(
@@ -351,7 +356,7 @@ export class TradeManager {
             return;
         }
         if (
-            initiator.level !== target.level ||
+            initiator.worldViewId !== target.worldViewId || initiator.level !== target.level ||
             Math.max(
                 Math.abs(initiator.tileX - target.tileX),
                 Math.abs(initiator.tileY - target.tileY),

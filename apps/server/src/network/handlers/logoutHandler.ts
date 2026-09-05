@@ -32,6 +32,9 @@ export function createLogoutHandler(services: MessageHandlerServices): MessageHa
                     }
                     return;
                 }
+                if (player.raidProgress?.guard("log out", () => {
+                    if (player.canLogout()) services.completeLogout(ws,player);
+                })) return;
                 services.completeLogout(ws, player);
             }
             if (!player) services.completeLogout(ws);

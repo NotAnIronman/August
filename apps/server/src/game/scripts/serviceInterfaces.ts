@@ -557,6 +557,7 @@ export interface InventoryFacade {
 }
 
 export interface EquipmentFacade {
+    performItemAction?(player: PlayerState, slot: number, itemId: number, option: string): boolean;
     getEquippedItem(player: PlayerState, slot: number): number;
     getEquipArray(player: PlayerState): number[];
     unequipItem(player: PlayerState, slot: number): boolean;
@@ -785,6 +786,7 @@ export interface SequenceFacade {
 }
 
 export interface InstanceFacade {
+    readonly theatreRuns?: import("@server/content/modules/theatre-of-blood/TheatreRun").TheatreRunStore;
     buildTemplate(copies: readonly InstanceAreaCopy[]): number[][][];
     create(player: PlayerState, spec: QuestInstanceSpec): QuestInstanceHandle | undefined;
     get(playerId: number): QuestInstanceHandle | undefined;

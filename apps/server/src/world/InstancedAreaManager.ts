@@ -46,6 +46,8 @@ export interface QuestInstanceLoc {
 }
 
 export interface QuestInstanceSpec {
+    /** Optional chunk-aligned world origin for rooms not centred on their entry. */
+    sceneBase?: { x: number; y: number };
     templateChunks: number[][][];
     destination: { x: number; y: number; level: number };
     npcs?: readonly QuestInstanceNpc[];
@@ -163,15 +165,21 @@ export class InstancedAreaManager {
     }
 
     create(player: PlayerState, spec: QuestInstanceSpec): QuestInstanceHandle | undefined {
-        this.dispose(player);
+        if (player.raidProgress?.guard("teleport", () => {
+            this.services.scriptRuntime.getServices().messaging.sendGameMessage(player,
+                "Theatre progress cleared. Select the entrance again to continue.");
+        })) return undefined;
         const mapService = this.services.mapService;
         const pathService = this.services.pathService;
         const npcManager = this.services.npcManager;
         if (!mapService || !pathService || !npcManager) return undefined;
 
         const worldViewId = this.allocateWorldViewId();
-        const baseX = ((Math.trunc(spec.destination.x) >> 3) - 6) * 8;
-        const baseY = ((Math.trunc(spec.destination.y) >> 3) - 6) * 8;
+        const baseX = spec.sceneBase?.x ?? ((Math.trunc(spec.destination.x) >> 3) - 6) * 8;
+        const baseY = spec.sceneBase?.y ?? ((Math.trunc(spec.destination.y) >> 3) - 6) * 8;
+        if (!Number.isInteger(baseX) || !Number.isInteger(baseY) || baseX % 8 || baseY % 8 ||
+            spec.destination.x < baseX || spec.destination.x >= baseX + INSTANCE_SIZE ||
+            spec.destination.y < baseY || spec.destination.y >= baseY + INSTANCE_SIZE) return undefined;
         const collisionMaps = mapService.buildInstanceCollision(
             spec.templateChunks,
             0,
@@ -180,6 +188,8 @@ export class InstancedAreaManager {
             INSTANCE_SIZE,
         );
         if (!collisionMaps) return undefined;
+
+        this.dispose(player);
 
         const view = new SailingWorldView(
             worldViewId,
@@ -223,6 +233,8 @@ export class InstancedAreaManager {
         this.instancesById.set(runtime.id, runtime);
         this.instanceIdByPlayer.set(player.id, runtime.id);
         player.worldViewId = worldViewId;
+        if (player.raidProgress && spec.definitionId?.startsWith("theatre-of-blood:"))
+            player.raidProgress.recoveryLocation = spec.exit;
         this.services.movementService.teleportToInstance(
             player,
             spec.destination.x,
@@ -357,6 +369,10 @@ export class InstancedAreaManager {
     }
 
     join(player: PlayerState, instanceId: string): QuestInstanceHandle | undefined {
+        if (player.raidProgress?.guard("teleport", () => {
+            this.services.scriptRuntime.getServices().messaging.sendGameMessage(player,
+                "Theatre progress cleared. Select the party again to continue.");
+        })) return undefined;
         const runtime = this.instancesById.get(instanceId);
         if (!runtime || runtime.access !== "party") return undefined;
         if (runtime.memberPlayerIds.size >= runtime.maxPlayers) return undefined;
@@ -370,6 +386,8 @@ export class InstancedAreaManager {
         runtime.memberNames.set(player.id, player.name || `Player ${player.id}`);
         this.instanceIdByPlayer.set(player.id, runtime.id);
         player.worldViewId = runtime.worldViewId;
+        if (player.raidProgress && runtime.definitionId?.startsWith("theatre-of-blood:"))
+            player.raidProgress.recoveryLocation = runtime.exit;
         player.instanceNpcIds.clear();
         for (const npcId of runtime.npcRuntimeIds) player.instanceNpcIds.add(npcId);
         this.services.movementService.teleportToInstance(
@@ -390,10 +408,13 @@ export class InstancedAreaManager {
         const runtime = this.getRuntimeForPlayer(player.id);
         if (!runtime) return false;
 
+        if (player.raidProgress?.guard("leave", () => this.dispose(player,destination))) return false;
+
         this.bossHealthBars.leave(player);
         this.services.scriptScheduler.cancelOwner({ kind: "player", id: player.id });
         player.instanceNpcIds.clear();
         player.worldViewId = -1;
+        if (player.raidProgress) player.raidProgress.recoveryLocation = undefined;
         runtime.memberPlayerIds.delete(player.id);
         runtime.memberNames.delete(player.id);
         this.instanceIdByPlayer.delete(player.id);

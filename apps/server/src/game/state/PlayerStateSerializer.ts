@@ -110,6 +110,8 @@ export function exportPersistentVars(player: PlayerState): PlayerPersistentVars 
     snapshot.firstPetDrops = player.followers.getFirstPetDrops();
     if (pendingPetRewards.length) snapshot.pendingPetRewards = pendingPetRewards.map(reward => ({ ...reward }));
     const instanceGrave = player.instanceGrave.serialize();
+    snapshot.raidCheckpoint = player.raidProgress.serialize();
+    if (player.raidProgress.recoveryLocation) snapshot.location = {...player.raidProgress.recoveryLocation};
     if (instanceGrave) snapshot.instanceGrave = instanceGrave;
     snapshot.accountCreationTimeMs = accountSnapshot.accountCreationTimeMs;
     snapshot.playTimeSeconds = accountSnapshot.playTimeSeconds;
@@ -252,4 +254,5 @@ export function applyPersistentVars(player: PlayerState, state?: PlayerPersisten
     player.followers.setPendingRewards(state.pendingPetRewards);
     player.followers.setFirstPetDrops(state.firstPetDrops);
     player.instanceGrave.deserialize(state.instanceGrave);
+    player.raidProgress.deserialize(state.raidCheckpoint);
 }

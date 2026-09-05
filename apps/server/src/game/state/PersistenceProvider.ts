@@ -13,6 +13,8 @@
 import type { PlayerPersistentVars, PlayerState } from "@server/game/player";
 
 export interface PersistenceProvider {
+    /** Shared, durable boss-rush progress (required to enable Theatre entry). */
+    theatreRuns?: import("@server/content/modules/theatre-of-blood/TheatreRun").TheatreRunStore;
     /** Apply persisted state onto a player (merge defaults + player-specific data). */
     applyToPlayer(player: PlayerState, key: string): void;
 

@@ -113,6 +113,7 @@ export class PlayerDeathService {
         // Phase 1: Lock & Capture State
         // ========================================
         // CRITICAL: Lock player FIRST to prevent action queueing exploits
+        player.raidProgress?.clear();
         player.lock = LockState.FULL;
 
         // SECURITY: Snapshot skull and prayer state IMMEDIATELY

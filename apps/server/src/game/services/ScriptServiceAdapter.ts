@@ -562,6 +562,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             hasInventorySlot: (player) => player.items.getFreeSlotCount() > 0,
         },
         equipment: {
+            performItemAction: (player,slot,itemId,optionLabel) =>
+                deps.equipmentService.performEquipmentAction(player,{slot,itemId,optionLabel}),
             getEquippedItem: (player, slot) => {
                 try {
                     return deps.equipmentService.ensureEquipArray(player)[slot] ?? -1;
@@ -856,6 +858,7 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             },
         },
         instances: {
+            theatreRuns: deps.playerPersistence.theatreRuns,
             buildTemplate: (copies) => buildInstanceTemplate(copies),
             create: (player, spec) => deps.instancedAreaManager.create(player, spec),
             get: (playerId) => deps.instancedAreaManager.get(playerId),

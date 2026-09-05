@@ -214,6 +214,19 @@ export function registerEquipmentWidgetHandlers(
                 const player = event.player;
                 if (!player) return;
 
+                const itemId = services.equipment.getEquippedItem(player,slot);
+                if (itemId <= 0 || (event.itemId !== undefined && event.itemId > 0 && event.itemId !== itemId)) return;
+                const op = event.opId ?? 1;
+                if (op !== 1) {
+                    // wear_init configures op2..op9 from the item's worn params.
+                    // Resolve on the server; never trust a client-supplied label.
+                    if (op < 2 || op > 9) return;
+                    const option = services.data.getObjType(itemId)?.params?.get(449 + op);
+                    if (typeof option === "string" && option.trim())
+                        services.equipment.performItemAction?.(player,slot,itemId,option);
+                    return;
+                }
+
                 services.system.logger.info?.(
                     `[equipment-widgets] Remove clicked: interface=${interfaceId} component=${component} slot=${slot} player=${player.id}`,
                 );

@@ -542,6 +542,8 @@ export class GroundItemHandler {
         player: PlayerState,
         interaction: GroundItemInteractionState,
     ): void {
+        if (!interaction.source && this.isTakeOption(interaction.option) &&
+            player.raidProgress?.guard("pick up items", () => this.handleArrivedGroundItemInteraction(player,interaction))) return;
         const target = this.findValidatedInteractionStack(player, interaction);
         if (!target) {
             this.sendNothingInteresting(player);
@@ -649,6 +651,7 @@ export class GroundItemHandler {
         stackId: number,
         requestedQuantity?: number,
     ): void {
+        if (player.raidProgress?.guard("pick up items", () => this.attemptTakeGroundItem(player,tile,itemId,stackId,requestedQuantity))) return;
         if (player.level !== tile.level) {
             this.svc.messagingService.queueChatMessage({
                 messageType: "game",

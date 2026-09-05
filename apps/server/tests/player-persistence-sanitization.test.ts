@@ -47,6 +47,7 @@ const persistentFieldCoverage = {
     pendingPetRewards: true,
     firstPetDrops: true,
     instanceGrave: true,
+    raidCheckpoint: true,
     playTimeSeconds: true,
 } as const satisfies Record<keyof PlayerPersistentVars, true>;
 

@@ -18,6 +18,14 @@ try {
     const persistence = new PlayerPersistence({ dataDir });
     const database = getSqliteDatabase({ dataDir });
     const connection = database.connection;
+    const run = {version:1 as const,id:"theatre-persistence-test",access:"party" as const,roster:["alice","bob"],
+        roomIndex:3,completedRooms:3,started:true,instanceId:"instance-5"};
+    persistence.theatreRuns.save(run);
+    assert.deepEqual(persistence.theatreRuns.load(run.id),run);
+    const reopened = new PlayerPersistence({dataDir});
+    assert.deepEqual(reopened.theatreRuns.load(run.id),run,"party progress survives a new persistence instance");
+    assert.equal(reopened.theatreRuns.load("missing-run"),undefined);
+    assert.throws(()=>reopened.theatreRuns.save({...run,completedRooms:99}),/Invalid Theatre/);
 
     const savedState: PlayerPersistentVars = {
         accountStage: 2,

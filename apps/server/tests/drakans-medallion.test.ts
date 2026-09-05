@@ -3,6 +3,8 @@ import { CacheSystem } from "@august/osrs-engine/cache/CacheSystem";
 import { getCacheLoaderFactory } from "@august/custom-content/items/cacheLoaderDecorator";
 import { loadCache, loadCacheList, loadCacheInfos } from "@tools/cache/client/load-util";
 import { ScriptRegistry } from "@server/game/scripts/ScriptRegistry";
+import { registerBinaryHandlers } from "@server/network/handlers/binaryMessageHandlers";
+import { registerEquipmentWidgetHandlers } from "@server/content/gamemodes/vanilla/equipment/equipmentWidgets";
 import { registerDrakansMedallionHandlers, DRAKANS_DESTINATIONS } from "@server/content/gamemodes/vanilla/scripts/items/drakansMedallion";
 
 const data = loadCache(loadCacheList(loadCacheInfos()).latest);
@@ -66,4 +68,50 @@ for (const destination of DRAKANS_DESTINATIONS) {
 assert.equal(registry.findItemAction(22400,"drop"),undefined,"normal Drop is not intercepted");
 assert.equal(registry.findItemAction(22400,"wear"),undefined,"normal Wear is not intercepted");
 assert.equal(registry.findItemAction(22400),undefined,"no wildcard teleport action");
+// Exercise the actual binary IF_BUTTON route, not just the leaf item handlers.
+const packets = new Map<string,(event:any)=>void>();
+const player = {id:1};
+let removals=0;
+services.system={logger:{info:()=>{}}};
+services.data={getObjType:()=>medallion};
+services.equipment.getEquipArray=()=>[-1,-1,equipped];
+services.equipment.unequipItem=()=>{removals++;return true;};
+services.equipment.performItemAction=(_p:any,slot:number,itemId:number,option:string)=>{
+    const handler=registry.findEquipmentAction(itemId,option.toLowerCase());
+    handler?.({player,slot,itemId,option,services,tick:1} as any);
+    return !!handler;
+};
+registerEquipmentWidgetHandlers(registry,services);
+const runtime = {getServices:()=>services,queueItemAction:(event:any)=>{
+    const handler=registry.findItemAction(event.itemId,event.option);
+    handler?.({...event,services,source:{slot:event.slot,itemId:event.itemId}});
+    return !!handler;
+}};
+registerBinaryHandlers({register:(name:string,handler:any)=>packets.set(name,handler)} as any,{
+    getPlayer:()=>player,getCurrentTick:()=>1,getObjType:()=>medallion,
+    handleFriendsChatWidgetAction:()=>false,getScriptRegistry:()=>registry,getScriptRuntime:()=>runtime,
+    getCs2ModalManager:()=>({handleWidgetAction:()=>false}),
+    getWidgetDialogHandler:()=>({handleWidgetActionMessage:()=>{}}),
+} as any);
+const click=(group:number,component:number,opId:number,itemId=22400)=>packets.get("widget_action")!({
+    ws:{},payload:{widgetId:(group<<16)|component,slot:0,itemId,opId},
+});
+for(const [op,name] of [[3,"Ver Sinhaza"],[4,"Darkmeyer"],[6,"Slepe"]] as const) {
+    click(149,0,op);
+    const dest: typeof DRAKANS_DESTINATIONS[number]=DRAKANS_DESTINATIONS.find(d=>d.option===name)!;
+    assert.deepEqual(requests.splice(0).map(r=>[r.x,r.y,r.level]),[[dest.x,dest.y,dest.level]]);
+}
+for(const [group,component] of [[387,17],[84,12]]) {
+    for(const [op,name] of [[2,"Ver Sinhaza"],[3,"Darkmeyer"],[4,"Slepe"]] as const) {
+        click(group,component,op);
+        const dest: typeof DRAKANS_DESTINATIONS[number]=DRAKANS_DESTINATIONS.find(d=>d.option===name)!;
+        assert.deepEqual(requests.splice(0).map(r=>[r.x,r.y,r.level]),[[dest.x,dest.y,dest.level]]);
+        assert.equal(removals,0,"worn teleports never unequip");
+    }
+    click(group,component,10); click(group,component,2,4151);
+    assert.equal(requests.length,0,"examine and stale item IDs cannot teleport");
+}
+click(387,17,1); assert.equal(removals,1,"Remove still unequips");
+for(const op of [1,2,5,7,10]) click(149,0,op);
+assert.equal(requests.length,0,"reserved, Wear, Drop and Examine operations never teleport");
 console.log("Drakan's medallion: cache options, all three inventory/worn destinations and ownership/restriction checks passed");

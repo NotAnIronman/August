@@ -1,7 +1,9 @@
 import fs from "fs";
+import { sanitizeRaidCheckpoint } from "@server/game/state/PlayerRaidState";
 import { sanitizeFirstPetDrops } from "@server/game/state/PlayerFollowerPersistState";
 import type { StatementSync } from "node:sqlite";
 import path from "path";
+import { sanitizeTheatreRun, type TheatreRunStore } from "@server/content/modules/theatre-of-blood/TheatreRun";
 
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import { PRAYER_NAME_SET, type PrayerName } from "@august/osrs-engine/prayer/prayers";
@@ -676,6 +678,9 @@ export function mergePlayerPersistentVars(
 
     const instanceGrave = sanitizeInstanceGraveSnapshot(pick("instanceGrave"));
     if (instanceGrave) result.instanceGrave = instanceGrave;
+    // Explicit null must replace older progress, not merge it back after abandonment.
+    const raidCheckpoint = pick("raidCheckpoint");
+    if (raidCheckpoint !== undefined) result.raidCheckpoint = sanitizeRaidCheckpoint(raidCheckpoint) ?? null;
 
     return result;
 }
@@ -702,6 +707,7 @@ export class PlayerPersistence implements PersistenceProvider {
     private readonly defaults: PlayerPersistentVars | undefined;
     private readonly defaultsPath: string;
     private readonly database: SqliteDatabase;
+    readonly theatreRuns: TheatreRunStore;
     private readonly statements: PlayerPersistenceStatements;
 
     constructor(options: PlayerPersistenceOptions = {}) {
@@ -711,6 +717,24 @@ export class PlayerPersistence implements PersistenceProvider {
             : path.join(dataDir, "player-defaults.json");
         this.database = getSqliteDatabase({ dataDir, databasePath: options.databasePath });
         const connection = this.database.connection;
+        connection.exec(`CREATE TABLE IF NOT EXISTS theatre_runs (
+            run_id TEXT PRIMARY KEY, state_json TEXT NOT NULL, updated_at TEXT NOT NULL
+        )`);
+        const loadRun = connection.prepare("SELECT state_json FROM theatre_runs WHERE run_id = ?");
+        const saveRun = connection.prepare(`INSERT INTO theatre_runs (run_id,state_json,updated_at) VALUES (?,?,?)
+            ON CONFLICT(run_id) DO UPDATE SET state_json=excluded.state_json,updated_at=excluded.updated_at`);
+        this.theatreRuns = {
+            load: id => {
+                const row = loadRun.get(id) as {state_json:string} | undefined;
+                if (!row) return undefined;
+                try { return sanitizeTheatreRun(JSON.parse(row.state_json)); } catch { return undefined; }
+            },
+            save: run => {
+                const valid = sanitizeTheatreRun(run);
+                if (!valid) throw new Error("Invalid Theatre run record");
+                saveRun.run(valid.id,JSON.stringify(valid),new Date().toISOString());
+            },
+        };
         this.statements = {
             selectExists: connection.prepare(
                 "SELECT 1 FROM player_states WHERE account_name = ?",

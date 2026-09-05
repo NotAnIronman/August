@@ -1,4 +1,5 @@
 import { VARBIT_ACTIVE_SPELLBOOK } from "@august/game-model/state/vars";
+import { PlayerRaidState } from "@server/game/state/PlayerRaidState";
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import { PrayerName } from "@august/osrs-engine/prayer/prayers";
 import { SKILL_IDS, SkillId } from "@august/osrs-engine/skill/skills";
@@ -227,6 +228,7 @@ export interface PlayerPersistentVars {
     pendingPetRewards?: Array<{ itemId: number; quantity: number }>;
     firstPetDrops?: import("@server/game/state/PlayerFollowerPersistState").FirstPetDrop[];
     instanceGrave?: InstanceGraveSnapshot;
+    raidCheckpoint?: import("@server/game/state/PlayerRaidState").RaidCheckpoint | null;
     playTimeSeconds?: number;
 }
 
@@ -248,6 +250,7 @@ export class PlayerState extends Actor {
     readonly followers = new PlayerFollowerPersistState();
     /** Lost items from the player's most recent instanced death. */
     readonly instanceGrave = new PlayerInstanceGraveState();
+    readonly raidProgress = new PlayerRaidState();
     /** Composed skill system (levels, XP, hitpoints, status effects, restoration) */
     readonly skillSystem: PlayerSkillSystem;
 

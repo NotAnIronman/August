@@ -6,6 +6,7 @@ import type { WebSocket } from "ws";
 import type { ServerServices } from "@server/game/ServerServices";
 import type { PlayerState } from "@server/game/player";
 import { PlayerInstanceGraveState } from "@server/game/state/PlayerInstanceGraveState";
+import { PlayerRaidState } from "@server/game/state/PlayerRaidState";
 import { LoginHandshakeService } from "@server/network/LoginHandshakeService";
 
 const events: string[] = [];
@@ -15,6 +16,7 @@ const player = {
     name: "Disconnecting Player",
     __saveKey: "disconnecting_player",
     instanceGrave,
+    raidProgress: new PlayerRaidState(),
     widgets: {
         closeAll: () => [],
         setDispatcher: () => undefined,
@@ -88,3 +90,26 @@ assert.deepEqual(
 );
 
 console.log("disconnect death persistence regression test passed");
+
+// A live Theatre disconnect must save eligibility and dispose the instance
+// before the ordinary logout snapshot, even when combat would orphan a player.
+events.length=0;
+player.raidProgress.set({version:1,raid:"theatre-of-blood",runId:"disconnect-test",completedRooms:2,
+    access:"party",roster:["disconnecting_player"],status:"active"});
+const mutable=services as any;
+mutable.playerDeathService.forceCompleteDeath=()=>false;
+mutable.instancedAreaManager={get:()=>({definitionId:"theatre-of-blood:disconnect-test:2"}),dispose:()=>{
+    assert.equal(player.raidProgress.checkpoint?.status,"disconnected");
+    assert(player.raidProgress.isInternal,"disconnect cleanup must bypass voluntary-leave confirmation");
+    events.push("dispose");
+}};
+mutable.playerPersistence.saveSnapshot=()=>{
+    assert.equal(player.raidProgress.checkpoint?.status,"disconnected");events.push("save-disconnected");
+};
+mutable.locationService={clearTemporaryLocsOwnedByPlayer:()=>{}};
+mutable.eventBus={emit:()=>{}};
+mutable.players.remove=()=>events.push("remove");
+mutable.actionScheduler={unregisterPlayer:()=>{}};
+emitter.emit("close");
+assert.deepEqual(events,["dispose","world-remove","save-disconnected","remove"]);
+console.log("Theatre real socket-close checkpoint/disposal/save order passed");

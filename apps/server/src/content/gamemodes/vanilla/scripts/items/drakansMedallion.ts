@@ -9,6 +9,10 @@ export const DRAKANS_DESTINATIONS = [
 ] as const;
 
 function teleport(player: PlayerState, services: ScriptServices, destination: typeof DRAKANS_DESTINATIONS[number]): void {
+    if (player.raidProgress?.guard("teleport", () => {
+        if (services.inventory.getInventoryItems(player).some(item => item.itemId === DRAKANS_MEDALLION_ID && item.quantity > 0) ||
+            services.equipment.getEquipArray(player).includes(DRAKANS_MEDALLION_ID)) teleport(player,services,destination);
+    })) return;
     const result = services.movement.requestTeleportAction(player, {
         x: destination.x, y: destination.y, level: destination.level,
         requireCanTeleport: true, rejectIfPending: true, replacePending: false,

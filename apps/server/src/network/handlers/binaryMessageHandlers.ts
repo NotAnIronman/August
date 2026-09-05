@@ -14,6 +14,7 @@ import type { MessageHandlerServices } from "@server/network/MessageHandlers";
 import type { MessageHandler, MessageRouter } from "@server/network/MessageRouter";
 import type { Cs2ModalManager } from "@server/network/managers";
 import type { GroundItemActionPayload } from "@server/network/managers";
+import { inventoryWidgetActionIndex } from "./inventoryWidgetActions";
 
 type InventoryActionDef = {
     inventoryActions?: Array<string | null | undefined>;
@@ -51,9 +52,10 @@ function resolveInventoryAction(
     actionDef: InventoryActionDef | undefined,
     opId: number,
     subOpId?: number,
+    nativeInventory = false,
 ): string | undefined {
-    const opIndex = (opId | 0) - 1;
-    if (opIndex < 0) return undefined;
+    const opIndex = nativeInventory ? inventoryWidgetActionIndex(opId) : (opId | 0) - 1;
+    if (opIndex === undefined || opIndex < 0) return undefined;
 
     if (typeof subOpId === "number" && subOpId >= 1) {
         const subops = actionDef?.subops?.[opIndex];
@@ -183,7 +185,7 @@ function createWidgetActionHandler(services: BinaryHandlerExtServices): MessageH
         } else {
             if (payload.itemId !== undefined && payload.itemId > 0 && hasValidSlot && opId >= 1) {
                 const actionDef = getItemActionDef(payload.itemId, services);
-                const resolved = resolveInventoryAction(actionDef, opId, subOpId);
+                const resolved = resolveInventoryAction(actionDef, opId, subOpId, groupId === 149);
                 if (resolved) {
                     const tick = services.getCurrentTick();
                     if (
