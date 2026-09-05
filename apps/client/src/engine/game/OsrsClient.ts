@@ -1,4 +1,5 @@
 import { vec3 } from "gl-matrix";
+import { loadDebugIds, saveDebugIds } from "@client/features/sidebar/developmentPreferences";
 import { WidgetPacketQueue } from "@client/engine/game/widgets/WidgetPacketQueue";
 import { ClientSettingId } from "@august/protocol/ui/clientSettings";
 import { sendClientSetting } from "@client/core/network/server-connection/outgoing/movement";
@@ -595,7 +596,12 @@ export class OsrsClient {
     private lastCastSpotStartCycleByPlayer: Map<number, number> = new Map();
     // Track last active spot animation id per player for telemetry parity
     private lastSpotGraphicByPlayer: Map<number, number> = new Map();
-    debugId: boolean = false;
+    private debugIdsEnabled = loadDebugIds();
+    get debugId(): boolean { return this.debugIdsEnabled; }
+    set debugId(enabled: boolean) {
+        this.debugIdsEnabled = enabled;
+        saveDebugIds(enabled);
+    }
 
     // State
 

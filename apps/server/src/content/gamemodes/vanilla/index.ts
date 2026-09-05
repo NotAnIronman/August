@@ -85,6 +85,7 @@ import {
     registerClueScrollBoxHandlers,
 } from "@server/content/gamemodes/vanilla/scripts/items/clueScrollBoxes";
 import { registerPacksHandlers } from "@server/content/gamemodes/vanilla/scripts/items/packs";
+import { registerDrakansMedallionHandlers } from "@server/content/gamemodes/vanilla/scripts/items/drakansMedallion";
 import { registerToxicBlowpipeHandlers } from "@server/content/gamemodes/vanilla/scripts/items/toxicBlowpipe";
 import { registerWebweaverBowHandlers } from "@server/content/gamemodes/vanilla/scripts/items/webweaverBow";
 import { handleDismiss, handleResumePauseButton, registerLevelUpHandlers } from "@server/content/gamemodes/vanilla/scripts/levelup";
@@ -391,6 +392,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerClueScrollBoxHandlers(registry, services);
         registerFollowerItemHandlers(registry, services);
         registerPacksHandlers(registry, services);
+        registerDrakansMedallionHandlers(registry);
         registerToxicBlowpipeHandlers(registry, services);
         registerWebweaverBowHandlers(registry, services);
 

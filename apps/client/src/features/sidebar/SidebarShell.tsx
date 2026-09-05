@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { ClientGraphicsSettings } from "./ClientGraphicsSettings";
+import { DevelopmentSettings } from "./DevelopmentSettings";
 
 import type { OsrsClient } from "@client/engine/game/OsrsClient";
 import {
@@ -1119,6 +1120,7 @@ function PluginHubPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Element
                 </div>
             </section>
             <ClientGraphicsSettings client={osrsClient} />
+            <DevelopmentSettings client={osrsClient} />
         </div>
     );
 }

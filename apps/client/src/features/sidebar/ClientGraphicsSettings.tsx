@@ -23,9 +23,6 @@ export function ClientGraphicsSettings({ client }: { client: OsrsClient }): JSX.
         <label className="rl-sidebar-check">Performance statistics
             <input type="checkbox" checked={client.hoverOverlayEnabled} onChange={event => change(() => { client.hoverOverlayEnabled = event.target.checked; })} />
         </label>
-        <label className="rl-sidebar-check">Debug IDs and unnamed objects
-            <input type="checkbox" checked={client.debugId} onChange={event => change(() => { client.debugId = event.target.checked; })} />
-        </label>
         <p className="rl-sidebar-plugin-desc">Keybindings, layout, and audio are in the game's Settings tab.</p>
     </section>;
 }
