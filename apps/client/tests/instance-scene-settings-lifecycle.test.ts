@@ -74,6 +74,7 @@ function createHost(options: { pending?: boolean; active?: boolean } = {}) {
             },
         },
         mapManager: {
+            setInstanceSceneBounds: () => undefined,
             mapSquares,
             loadingMapIds: new Set<number>(),
             removeMap: (mapX: number, mapY: number) => {

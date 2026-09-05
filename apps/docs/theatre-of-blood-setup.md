@@ -88,10 +88,11 @@ browser storage is unavailable. It replaces the old Client graphics debug checkb
 
 ## Host smoke test
 
-Sync all changed **and new** files and restart the game server. This batch changes server
-runtime code only; the added client file is a regression test, so no client rebuild is required
-if the previous Development-ID update is already deployed. No cache rebuild or account-storage
-clearing is needed. The Theatre table is created automatically in the existing database.
+Sync all changed **and new** files, **rebuild the client**, restart the game server, then
+hard-refresh each browser. The equipment/instance-rendering follow-up changes both server
+and client runtime code; a server restart alone will not deploy the rendering fix. No cache
+rebuild or account-storage clearing is needed. The Theatre table is created automatically in
+the existing database.
 
 1. Enable IDs, right-click several objects and note their Examine IDs. Reload and confirm the
    preference remains enabled. Disable it and verify the ordinary menu labels return.
@@ -99,6 +100,8 @@ clearing is needed. The Theatre table is created automatically in the existing d
    especially Slepe's underground destination on plane 1.
 3. Confirm stale clicks after moving/removing the medallion do not teleport, and that existing
    teleport restrictions are still enforced. Normal Wear, Remove and Drop should remain intact.
+   Remove armour, weapons and jewellery from both equipment interfaces. Native worn buttons
+   send an absent-item sentinel; this must not be mistaken for a mismatched equipped item.
 4. Enter solo and create/join a two-player party. Verify isolation between runs and a shared
    room within the party. Unfinished exits must not skip the encounter.
 5. Disconnect a party member, reconnect, and use Continue at the entrance. They should enter
@@ -107,10 +110,12 @@ clearing is needed. The Theatre table is created automatically in the existing d
    Cancel preserves Continue; Confirm performs the action and removes Continue. Also test
    voluntary logout and leaving. Existing inventory and equipment must remain unchanged by resume.
 7. On a developer account, preview all six rooms and inspect terrain, collision, walls and
-   decorations. Xarpus alone uses plane 1. Use Development IDs to gather encounter objects.
+   decorations. Confirm the 3D terrain and players appear immediately, including when crossing
+   map-square boundaries. Xarpus alone uses plane 1. Use Development IDs to gather encounter objects.
 
 Automated coverage includes every padded tile, the real instance lifecycle, party room transfer,
 disconnect/reconnect with new player IDs, full-party reconstruction, ordered completion, durable
 SQLite records, confirmation replay/failure handling, guarded service entry points, real
-socket-close ordering, native cache menu slots and server binary medallion routing. Live terrain,
+socket-close ordering, native cache menu slots, wire-encoded equipment operations and all six
+rooms' render bounds, player selection, camera heights and bridge flags. Live terrain,
 collision and visual transitions still need the host smoke test; boss combat awaits encounter work.

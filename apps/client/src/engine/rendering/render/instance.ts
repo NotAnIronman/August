@@ -307,6 +307,14 @@ export function markInstanceSceneCommitted(
         host.instanceSceneBuildPending = false;
         host.instanceSceneReady = true;
         host.instanceSceneFallbackState = null;
+        // Instance mode skips normal streaming-grid updates. Keeping the old
+        // overworld bounds clamps the cull origin outside this room and rejects
+        // every terrain/actor draw, despite a successfully built minimap.
+        host.mapManager.setInstanceSceneBounds(
+            (host.instanceRegionX - 6) * 8,
+            (host.instanceRegionY - 6) * 8,
+            104,
+        );
         host.osrsClient.notifyRendererReady();
         applyDeferredInstanceSceneSettings(host);
         startPendingInstanceLocRebuild(host);

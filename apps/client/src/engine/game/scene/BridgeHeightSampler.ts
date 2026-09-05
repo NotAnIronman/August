@@ -1,4 +1,4 @@
-import { getMapIndexFromTile } from "@august/osrs-engine/map/MapFileIndex";
+import { resolveWorldTileMap, worldTileMapBounds } from "@client/engine/game/scene/WorldTileMap";
 import { Scene } from "@august/osrs-engine/scene/Scene";
 import type { MapManager, MapSquare } from "@client/engine/game/MapManager";
 import { clampPlane } from "@client/engine/game/scene/Plane";
@@ -27,9 +27,7 @@ export function sampleBridgeHeightForWorldTile<T extends MapSquare>(
     basePlane: number,
     strategy: BridgePlaneStrategy = BridgePlaneStrategy.RENDER,
 ): BridgeHeightSample {
-    const mapX = getMapIndexFromTile(worldX);
-    const mapY = getMapIndexFromTile(worldY);
-    const map = mapManager.getMap(mapX, mapY) as HeightMapBridgeMapSquare | undefined;
+    const map = resolveWorldTileMap(mapManager, worldX, worldY) as HeightMapBridgeMapSquare | undefined;
     const result: BridgeHeightSample = {
         plane: clampPlane(basePlane),
         height: 0,
@@ -39,18 +37,16 @@ export function sampleBridgeHeightForWorldTile<T extends MapSquare>(
         return result;
     }
 
-    // For instances, the height data may be at source coordinates while the map
-    // is registered at instance coordinates. Use baseWorldX/Y if available.
-    const mapWorldX =
-        typeof map.baseWorldX === "number" ? map.baseWorldX : mapX * Scene.MAP_SQUARE_SIZE;
-    const mapWorldY =
-        typeof map.baseWorldY === "number" ? map.baseWorldY : mapY * Scene.MAP_SQUARE_SIZE;
+    // A combined instance's mesh origin can differ from its resource map ID.
+    const bounds = worldTileMapBounds(map);
+    const mapWorldX = bounds.minX;
+    const mapWorldY = bounds.minY;
     const localPxX = Math.floor((worldX - mapWorldX) * 128);
     const localPxY = Math.floor((worldY - mapWorldY) * 128);
 
     let tileX = localPxX >> 7;
     let tileY = localPxY >> 7;
-    const maxTileIndex = Scene.MAP_SQUARE_SIZE - 1;
+    const maxTileIndex = bounds.maxX - bounds.minX - 1;
     tileX = Math.max(0, Math.min(maxTileIndex, tileX));
     tileY = Math.max(0, Math.min(maxTileIndex, tileY));
 

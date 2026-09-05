@@ -200,12 +200,15 @@ export function getMapZoneDistanceFromPoint(host: WebGLOsrsRendererHost, map: We
         // OSRS scene visibility is zone-based (8x8 tiles), not map-square based.
         const zoneX = tileX >> 3;
         const zoneY = tileY >> 3;
-        const bwx = (map as any).baseWorldX;
-        const bwy = (map as any).baseWorldY;
-        const mapMinZoneX = bwx != null ? (bwx | 0) >> 3 : map.mapX << 3;
-        const mapMinZoneY = bwy != null ? (bwy | 0) >> 3 : map.mapY << 3;
-        const mapMaxZoneX = mapMinZoneX + 7;
-        const mapMaxZoneY = mapMinZoneY + 7;
+        // A combined instance is chunk-aligned and spans 104 tiles. Its map ID
+        // identifies the resource, not the origin or size of its geometry.
+        const baseX = map.getRenderBaseTileX();
+        const baseY = map.getRenderBaseTileY();
+        const span = map.getLocalTileSpan();
+        const mapMinZoneX = baseX >> 3;
+        const mapMinZoneY = baseY >> 3;
+        const mapMaxZoneX = (baseX + span - 1) >> 3;
+        const mapMaxZoneY = (baseY + span - 1) >> 3;
         const dx =
             zoneX < mapMinZoneX
                 ? mapMinZoneX - zoneX

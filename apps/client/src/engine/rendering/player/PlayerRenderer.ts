@@ -3,7 +3,7 @@ import PicoGL, { DrawCall, Texture } from "picogl";
 
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import { PlayerAppearance } from "@august/osrs-engine/config/player/PlayerAppearance";
-import { getMapIndexFromTile } from "@august/osrs-engine/map/MapFileIndex";
+import { mapContainsWorldTile } from "@client/engine/game/scene/WorldTileMap";
 import { Model } from "@august/osrs-engine/model/Model";
 import { ModelData } from "@august/osrs-engine/model/ModelData";
 import { clamp } from "@august/game-model/math/MathUtil";
@@ -630,8 +630,7 @@ export class PlayerRenderer {
                 const tileX = ((pe.getX?.(j) ?? 0) / 128) | 0;
                 const tileY = ((pe.getY?.(j) ?? 0) / 128) | 0;
                 if (
-                    getMapIndexFromTile(tileX) === map.mapX &&
-                    getMapIndexFromTile(tileY) === map.mapY
+                    mapContainsWorldTile(map, tileX, tileY)
                 )
                     playerIndices.push(j | 0);
             }
@@ -676,8 +675,7 @@ export class PlayerRenderer {
                 const tileX = ((pe.getX?.(j) ?? 0) / 128) | 0;
                 const tileY = ((pe.getY?.(j) ?? 0) / 128) | 0;
                 if (
-                    getMapIndexFromTile(tileX) === map.mapX &&
-                    getMapIndexFromTile(tileY) === map.mapY
+                    mapContainsWorldTile(map, tileX, tileY)
                 )
                     playerIndices.push(j | 0);
             }
@@ -2275,10 +2273,7 @@ export class PlayerRenderer {
                 ) {
                     continue;
                 }
-                if (
-                    getMapIndexFromTile(tileX) !== map.mapX ||
-                    getMapIndexFromTile(tileY) !== map.mapY
-                ) {
+                if (!mapContainsWorldTile(map, tileX, tileY)) {
                     continue;
                 }
             }

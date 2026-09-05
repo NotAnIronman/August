@@ -5,11 +5,15 @@ import { loadCache, loadCacheList, loadCacheInfos } from "@tools/cache/client/lo
 import { ScriptRegistry } from "@server/game/scripts/ScriptRegistry";
 import { registerBinaryHandlers } from "@server/network/handlers/binaryMessageHandlers";
 import { registerEquipmentWidgetHandlers } from "@server/content/gamemodes/vanilla/equipment/equipmentWidgets";
+import { PacketBuffer } from "@client/core/network/packet/PacketBuffer";
+import { parsePacketsAsMessages, OsrsClientPacketId } from "@server/network/packet/PacketHandler";
 import { registerDrakansMedallionHandlers, DRAKANS_DESTINATIONS } from "@server/content/gamemodes/vanilla/scripts/items/drakansMedallion";
+import { registerToxicBlowpipeHandlers } from "@server/content/gamemodes/vanilla/scripts/items/toxicBlowpipe";
 
 const data = loadCache(loadCacheList(loadCacheInfos()).latest);
 const cache = CacheSystem.fromFiles("dat2", data.files);
-const medallion = getCacheLoaderFactory(data.info,cache).getObjTypeLoader().load(22400);
+const objTypes = getCacheLoaderFactory(data.info,cache).getObjTypeLoader();
+const medallion = objTypes.load(22400);
 assert.equal(medallion.name,"Drakan's medallion");
 assert.deepEqual(DRAKANS_DESTINATIONS,[
     {option:"Ver Sinhaza",x:3649,y:3230,level:0},
@@ -70,10 +74,10 @@ assert.equal(registry.findItemAction(22400,"wear"),undefined,"normal Wear is not
 assert.equal(registry.findItemAction(22400),undefined,"no wildcard teleport action");
 // Exercise the actual binary IF_BUTTON route, not just the leaf item handlers.
 const packets = new Map<string,(event:any)=>void>();
-const player = {id:1};
+const player = {id:1, equipment:{getBlowpipeChargeState:()=>({scales:123,dartCount:45,dartId:806})}};
 let removals=0;
 services.system={logger:{info:()=>{}}};
-services.data={getObjType:()=>medallion};
+services.data={getObjType:(id:number)=>objTypes.load(id)};
 services.equipment.getEquipArray=()=>[-1,-1,equipped];
 services.equipment.unequipItem=()=>{removals++;return true;};
 services.equipment.performItemAction=(_p:any,slot:number,itemId:number,option:string)=>{
@@ -93,9 +97,18 @@ registerBinaryHandlers({register:(name:string,handler:any)=>packets.set(name,han
     getCs2ModalManager:()=>({handleWidgetAction:()=>false}),
     getWidgetDialogHandler:()=>({handleWidgetActionMessage:()=>{}}),
 } as any);
-const click=(group:number,component:number,opId:number,itemId=22400)=>packets.get("widget_action")!({
-    ws:{},payload:{widgetId:(group<<16)|component,slot:0,itemId,opId},
-});
+const click=(group:number,component:number,opId:number,itemId=group === 149 ? 22400 : -1)=>{
+    const opcodes=[0,OsrsClientPacketId.IF_BUTTON1,OsrsClientPacketId.IF_BUTTON2,OsrsClientPacketId.IF_BUTTON3,
+        OsrsClientPacketId.IF_BUTTON4,OsrsClientPacketId.IF_BUTTON5,OsrsClientPacketId.IF_BUTTON6,
+        OsrsClientPacketId.IF_BUTTON7,OsrsClientPacketId.IF_BUTTON8,OsrsClientPacketId.IF_BUTTON9,OsrsClientPacketId.IF_BUTTON10];
+    const wire=new PacketBuffer(9);
+    wire.writeByte(opcodes[opId]); wire.writeInt((group<<16)|component);
+    wire.writeShort(group === 149 ? 0 : -1); wire.writeShort(itemId);
+    const decoded=parsePacketsAsMessages(wire.data)[0].msg!;
+    assert.equal(decoded.type,"widget_action");
+    if(itemId === -1) assert.equal((decoded.payload as any).itemId,65535,"worn containers use an unsigned sentinel on the wire");
+    packets.get("widget_action")!({ws:{},payload:decoded.payload});
+};
 for(const [op,name] of [[3,"Ver Sinhaza"],[4,"Darkmeyer"],[6,"Slepe"]] as const) {
     click(149,0,op);
     const dest: typeof DRAKANS_DESTINATIONS[number]=DRAKANS_DESTINATIONS.find(d=>d.option===name)!;
@@ -112,6 +125,27 @@ for(const [group,component] of [[387,17],[84,12]]) {
     assert.equal(requests.length,0,"examine and stale item IDs cannot teleport");
 }
 click(387,17,1); assert.equal(removals,1,"Remove still unequips");
+// Every equipment slot, including slots whose cache worn index differs from
+// our internal index, uses an item-less container button.
+const removedSlots:number[]=[];
+services.equipment.unequipItem=(_p:unknown,slot:number)=>{removedSlots.push(slot);return true;};
+for(const group of [387,84]) {
+    for(let slot=0;slot<11;slot++) click(group,(group === 387 ? 15 : 10)+slot,1);
+}
+assert.deepEqual(removedSlots,[...Array(11).keys(),...Array(11).keys()]);
+equipped=-1;click(387,15,1);assert.equal(removedSlots.length,22,"empty slots cannot unequip a nonexistent item");equipped=22400;
+// A non-teleport worn operation must reach its actual effect, too.
+registerToxicBlowpipeHandlers(registry,services);
+equipped=12926;
+const checkOp=Array.from({length:8},(_,i)=>i+2).find(op=>objTypes.load(equipped).params?.get(449+op)==="Check");
+assert.notEqual(checkOp,undefined,"the real blowpipe cache defines a worn Check operation");
+for(const [group,component] of [[387,18],[84,13]]) {
+    click(group,component,checkOp!);
+    assert.equal(messages.at(-1),"Your toxic blowpipe contains 123 scales and 45 darts.");
+    messages.length=0;
+}
+assert.equal(removedSlots.length,22,"operating a weapon must not unequip it");
+equipped=22400;
 for(const op of [1,2,5,7,10]) click(149,0,op);
 assert.equal(requests.length,0,"reserved, Wear, Drop and Examine operations never teleport");
 console.log("Drakan's medallion: cache options, all three inventory/worn destinations and ownership/restriction checks passed");

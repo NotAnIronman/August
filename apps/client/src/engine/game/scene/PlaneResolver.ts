@@ -1,5 +1,4 @@
-import { getMapIndexFromTile } from "@august/osrs-engine/map/MapFileIndex";
-import { Scene } from "@august/osrs-engine/scene/Scene";
+import { resolveWorldTileMap, worldTileMapBounds } from "@client/engine/game/scene/WorldTileMap";
 import type { MapManager, MapSquare } from "@client/engine/game/MapManager";
 import { clampPlane } from "@client/engine/game/scene/Plane";
 import {
@@ -143,14 +142,15 @@ function resolveForWorldTile<T extends MapSquare>(
         localTileY: number,
     ) => number,
 ): number {
-    const map = mapManager.getMap(getMapIndexFromTile(tileX), getMapIndexFromTile(tileY)) as
+    const map = resolveWorldTileMap(mapManager, tileX, tileY) as
         | (T & TileFlagMapSquare)
         | undefined;
     if (!map) {
         return clampPlane(basePlane);
     }
-    const localX = tileX & (Scene.MAP_SQUARE_SIZE - 1);
-    const localY = tileY & (Scene.MAP_SQUARE_SIZE - 1);
+    const bounds = worldTileMapBounds(map);
+    const localX = tileX - bounds.minX;
+    const localY = tileY - bounds.minY;
     return localResolver(map, basePlane, localX, localY);
 }
 

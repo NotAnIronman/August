@@ -148,6 +148,7 @@ async function immediateAttackWaitsForCommittedInstanceScene(): Promise<void> {
     };
     let residentMap = oldMap;
     const mapManager = {
+        setInstanceSceneBounds: () => undefined,
         currentMapX: -1,
         currentMapY: -1,
         worldEntityMapIds: new Set<number>(),

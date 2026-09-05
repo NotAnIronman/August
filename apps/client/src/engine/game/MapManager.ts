@@ -97,6 +97,14 @@ export class MapManager<T extends MapSquare> {
     private activeExpandedMapLoading: number = 0;
     private gridTransitionPending: boolean = false;
     private transitionRenderMapIds: number[] = [];
+    private instanceSceneBounds?: { minX: number; maxX: number; minY: number; maxY: number };
+
+    /** Commit the combined instance's footprint without clearing its resident mesh. */
+    setInstanceSceneBounds(baseX: number, baseY: number, size: number): void {
+        this.instanceSceneBounds = {
+            minX: baseX, maxX: baseX + size, minY: baseY, maxY: baseY + size,
+        };
+    }
 
     visibleMapCount: number = 0;
     visibleMaps: T[] = [];
@@ -166,6 +174,7 @@ export class MapManager<T extends MapSquare> {
     }
 
     clearMaps(): void {
+        this.instanceSceneBounds = undefined;
         this.invalidMapIds.clear();
         this.loadingMapIds.clear();
         this.loadAttempts.clear();
@@ -283,6 +292,7 @@ export class MapManager<T extends MapSquare> {
               maxY: number;
           }
         | undefined {
+        if (this.instanceSceneBounds) return { ...this.instanceSceneBounds };
         return this.resolveGridTileBounds(
             this.activeUsingSceneBaseStreaming,
             this.activeSceneBaseX,

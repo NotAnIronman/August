@@ -215,7 +215,12 @@ export function registerEquipmentWidgetHandlers(
                 if (!player) return;
 
                 const itemId = services.equipment.getEquippedItem(player,slot);
-                if (itemId <= 0 || (event.itemId !== undefined && event.itemId > 0 && event.itemId !== itemId)) return;
+                // Native worn-slot containers have no item model themselves.
+                // IF_BUTTON encodes that absent item as unsigned-short 0xffff;
+                // the authoritative equipped slot supplies the actual item ID.
+                const clickedItemId = event.itemId;
+                if (itemId <= 0 || (clickedItemId !== undefined && clickedItemId > 0 &&
+                    clickedItemId !== 0xffff && clickedItemId !== itemId)) return;
                 const op = event.opId ?? 1;
                 if (op !== 1) {
                     // wear_init configures op2..op9 from the item's worn params.
