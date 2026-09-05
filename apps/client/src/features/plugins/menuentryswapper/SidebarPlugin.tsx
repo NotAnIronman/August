@@ -17,7 +17,8 @@ export function MenuEntrySwapperPanel({ plugin }: { plugin: MenuEntrySwapperPlug
     ] as const;
     return <div className="rl-sidebar-panel-content rl-sidebar-scrollable">
         <div className="rl-sidebar-panel-title">Menu Entry Swapper</div>
-        <p className="rl-sidebar-panel-copy">Hold Shift and right-click an NPC, object, ground item, inventory item or spell.
+        <p className="rl-sidebar-panel-copy">Hold Ctrl and right-click an NPC, object, ground item, inventory item or spell.
+            Shift + right-click also works in browsers that do not reserve it for their own context menu.
             Choose Swap left-click or Swap shift-click. Preferences save on this browser.
             Saved non-combat choices can replace Attack. Active spell/item targeting is unchanged.</p>
         {toggles.map(([key, label]) => <label className="rl-sidebar-check" key={key}>

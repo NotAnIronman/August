@@ -21,7 +21,7 @@ const previousWindow = globalThis.window;
 const previousDocument = globalThis.document;
 try {
     Object.assign(globalThis, { window: new EventTarget(), document: new EventTarget() });
-    const surface = Object.assign(new EventTarget(), { contains: (target: unknown) => target === surface });
+    const surface = Object.assign(new EventTarget(), { contains: (target: unknown) => target === surface || target === canvas });
     const canvas = Object.assign(new EventTarget(), { style: { pointerEvents: "auto" }, parentElement: surface,
         width: 800, height: 600, getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 300 }) });
     const input = new InputManager();
@@ -35,6 +35,33 @@ try {
     const context = new Event("contextmenu", { cancelable: true });
     surface.dispatchEvent(context);
     assert(context.defaultPrevented);
+    surface.dispatchEvent(Object.assign(new Event("mousedown", { cancelable: true }), {
+        button: 2, ctrlKey: true, shiftKey: false, clientX: 100, clientY: 100,
+    }));
+    assert.equal(input.controlDown, true, "Ctrl-right-click works even without a preceding keydown");
+    assert.equal(input.shiftDown, false, "Ctrl must not impersonate Shift-click behavior");
+    assert.equal(input.clickMode1, ClickMode.RIGHT);
+    // Browser default focus moves from the canvas to its focusable input wrapper
+    // after mousedown. That is not a loss of focus from the game.
+    for (let n = 0; n < 6; n++) {
+        surface.dispatchEvent(Object.assign(new Event("mousedown", { cancelable: true }), {
+            button: 0, clientX: 100, clientY: 100, shiftKey: true,
+        }));
+        surface.dispatchEvent(Object.assign(new Event("focusout"), { relatedTarget: surface }));
+        assert.equal(input.mouseX, 200, "internal focus transfer must retain pointer coordinates");
+        assert.equal(input.clickMode2, ClickMode.LEFT, "internal focus transfer must retain the pressed button");
+        assert.equal(input.shiftDown, true, "internal focus transfer must retain modifiers");
+        input.onFrameStart();
+        assert.equal(input.leftClickX, 200, `left click ${n + 1} must reach the frame`);
+        surface.dispatchEvent(Object.assign(new Event("focusout"), { relatedTarget: canvas }));
+        assert.equal(input.mouseX, 200, "menu focus restoration within the game is also harmless");
+        surface.dispatchEvent(Object.assign(new Event("mouseup"), { button: 0, clientX: 100, clientY: 100 }));
+        input.onFrameEnd();
+    }
+    surface.dispatchEvent(Object.assign(new Event("focusout"), { relatedTarget: null }));
+    assert.equal(input.mouseX, -1, "leaving the game still resets input");
+    assert.equal(input.shiftDown, false);
+    assert.equal(input.controlDown, false);
     input.cleanUp();
     assert.equal(canvas.style.pointerEvents, "auto", "teardown restores original hit testing");
     const later = Object.assign(new Event("mousedown", { cancelable: true }), { button: 2 });

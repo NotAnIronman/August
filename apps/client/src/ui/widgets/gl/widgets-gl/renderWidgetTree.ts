@@ -496,7 +496,7 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                                     ui,
                                     chosenWidget: w,
                                     transformEntries: (rows: any[]) => ClientState.isSpellSelected || ClientState.isItemSelected === 1 ? rows :
-                                        (opts.game as any)?.osrsClient?.menuEntrySwapperPlugin?.applyWidgetEntries(rows, w, inputManager?.shiftDown === true, true) ?? rows,
+                                        (opts.game as any)?.osrsClient?.menuEntrySwapperPlugin?.applyWidgetEntries(rows, w, inputManager?.shiftDown === true, true, inputManager?.shiftDown === true || inputManager?.controlDown === true) ?? rows,
                                     scheduleRender,
                                     menuState,
                                     label: {
@@ -661,7 +661,7 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                     ui,
                     chosenWidget: chosen,
                     transformEntries: (rows: any[]) => ClientState.isSpellSelected || ClientState.isItemSelected === 1 ? rows :
-                        (opts.game as any)?.osrsClient?.menuEntrySwapperPlugin?.applyWidgetEntries(rows, chosen, inputManager?.shiftDown === true, true) ?? rows,
+                        (opts.game as any)?.osrsClient?.menuEntrySwapperPlugin?.applyWidgetEntries(rows, chosen, inputManager?.shiftDown === true, true, inputManager?.shiftDown === true || inputManager?.controlDown === true) ?? rows,
                     scheduleRender,
                     menuState,
                     label: {

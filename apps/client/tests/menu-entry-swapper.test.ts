@@ -55,7 +55,16 @@ assert.equal(resolvePrimary({ ...spellWidget, fileId: 0, actions: ["Cast", "Auto
     "actual spell shift click uses Autocast's original operation");
 restored.setSwap(attack, "left", "Attack");
 assert.equal(restored.apply([talk, attack], false, false)[0], talk, "swaps respect attack priority");
+restored.setSwap(bank, "left", "Bank");
 const configRows = restored.apply([talk, bank], true, true);
+const ctrlRows = restored.apply([talk, bank], false, true, true);
+assert(ctrlRows.some(row => row.option === "Swap left-click"), "Ctrl edits swaps independently of Shift preferences");
+assert.equal(ctrlRows[0].option, "Bank", "Ctrl must not select the saved Shift action");
+assert.equal(ctrlRows[0].shiftClick, undefined);
+for (const widget of [itemWidget, spellWidget]) {
+    const rows = restored.applyWidgetEntries(widget === itemWidget ? itemRows : spellRows, widget, false, true, true) as any[];
+    assert(rows.some(row => row.option === "Swap shift-click"), "Ctrl configuration works for inventory and spells");
+}
 const chooser = configRows.find(row => row.option === "Swap left-click")!;
 assert.equal(chooser.opcode, MenuOpcode.Custom);
 chooser.subEntries![1].onClick!();
@@ -71,13 +80,13 @@ assert.equal(state.opcodes[entries[0].menuStateIndex!], MenuOpcode.NpcThirdOptio
 assert.equal(state.identifiers[entries[0].menuStateIndex!], 42, "swap preserves server NPC index");
 const initialMenu = buildSimpleMenuEntries({ osrsClient: {
     menuState: new MenuState(), menuEntrySwapperPlugin: restored,
-    inputManager: { shiftDown: true, pickX: 100 }, menuOpen: false,
+    inputManager: { shiftDown: false, controlDown: true, pickX: 100 }, menuOpen: false,
 } } as never, [
     { ...bank, targetName: "Banker", targetLevel: -1 },
     { ...talk, targetName: "Banker", targetLevel: -1 },
 ], { shouldFreeze: false, toCssEvent: () => undefined });
 assert(initialMenu.some(entry => entry.option === "Swap left-click"),
-    "the first Shift-right-click includes configuration before menuOpen is set");
+    "the first Ctrl-right-click includes configuration before menuOpen is set");
 const players = worldEntriesToSimple([
     { option: "Walk here", targetType: MenuTargetType.NONE, targetId: -1, targetName: "", targetLevel: -1 },
     { option: "Follow", targetType: MenuTargetType.PLAYER, targetId: 9, targetName: "Tester", targetLevel: -1,

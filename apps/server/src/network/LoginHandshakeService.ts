@@ -10,7 +10,6 @@ import {
 } from "@august/protocol/ui/sideJournal";
 import {
     VARBIT_SIDE_JOURNAL_TAB,
-    VARBIT_XPDROPS_ENABLED,
     VARP_SIDE_JOURNAL_STATE,
 } from "@august/game-model/state/vars";
 import { getItemDefinition } from "@server/data/items";
@@ -27,14 +26,7 @@ import {
     getMainmodalUid,
     getRootInterfaceId,
 } from "@server/widgets/WidgetManager";
-import {
-    MINIMAP_WIDGET_GROUP_ID,
-    VARBIT_MINIMAP_TOGGLE,
-    createOrbsBootstrapActions,
-    getMapClockValue,
-    getMinimapToggleVarbits,
-    rewriteMinimapOrbsMount,
-} from "@server/widgets/minimapOrbs";
+import { mountLoginGameframe } from "@server/widgets/loginGameframe";
 import { getEnhancedClientLoginScripts, getViewportRootInitScripts } from "@server/widgets/viewport";
 import { ADMIN_CROWN_ICON } from "@server/network/AuthenticationService";
 import type { RoutedMessage } from "@server/network/MessageRouter";
@@ -721,6 +713,8 @@ export class LoginHandshakeService {
                             ),
                         );
                     }
+                    // A fresh client root has no subinterfaces, including on reconnect.
+                    p.widgets.closeAll({ silent: true });
                     this.svc.queueWidgetEvent(p.id, {
                         action: "set_root",
                         groupId: rootInterfaceGroupId,
@@ -741,64 +735,12 @@ export class LoginHandshakeService {
                     const filteredInterfaces = preStartMode
                         ? interfaces.filter((i: { groupId: number }) => i.groupId !== 629)
                         : interfaces;
-                    const xpDropsEnabled = p.varps.getVarbitValue(VARBIT_XPDROPS_ENABLED) === 1;
-                    const minimapToggleValue = p.varps.getVarbitValue(VARBIT_MINIMAP_TOGGLE);
-                    const mapClock = getMapClockValue(p.varps, this.svc.ticker.currentTick());
-                    for (const mount of filteredInterfaces) {
-                        const intf = rewriteMinimapOrbsMount(
-                            mount,
-                            displayMode,
-                            minimapToggleValue,
-                        );
-                        const questVarps: Record<number, number> = {};
-                        const questVarbits: Record<number, number> = {};
-                        if (intf.groupId === SIDE_JOURNAL_GROUP_ID) {
-                            const gamemodeSideJournalBootstrap =
-                                this.svc.gamemodeUi.getSideJournalBootstrapState(p);
-                            Object.assign(questVarps, gamemodeSideJournalBootstrap.varps);
-                            Object.assign(questVarbits, gamemodeSideJournalBootstrap.varbits);
-                        }
-                        const minimapVarbits =
-                            mount.groupId === MINIMAP_WIDGET_GROUP_ID
-                                ? getMinimapToggleVarbits(minimapToggleValue)
-                                : {};
-                        const mergedVarbits = {
-                            ...(intf.varbits ?? {}),
-                            ...questVarbits,
-                            ...minimapVarbits,
-                        };
-                        const mergedVarps = {
-                            ...(intf.varps ?? {}),
-                            ...questVarps,
-                        };
-                        const hideXpCounterOnOpen = intf.groupId === 122 && !xpDropsEnabled;
-                        this.svc.queueWidgetEvent(p.id, {
-                            action: "open_sub",
-                            targetUid: intf.targetUid,
-                            groupId: intf.groupId,
-                            type: intf.type,
-                            ...(Array.isArray(intf.postScripts) && intf.postScripts.length > 0
-                                ? { postScripts: intf.postScripts }
-                                : {}),
-                            ...(hideXpCounterOnOpen ? { hiddenUids: [intf.targetUid] } : {}),
-                            ...(Object.keys(mergedVarps).length > 0 ? { varps: mergedVarps } : {}),
-                            ...(Object.keys(mergedVarbits).length > 0
-                                ? { varbits: mergedVarbits }
-                                : {}),
-                        });
-
-                        if (mount.groupId === MINIMAP_WIDGET_GROUP_ID) {
-                            for (const action of createOrbsBootstrapActions(
-                                intf.groupId,
-                                mapClock,
-                            )) {
-                                this.svc.queueWidgetEvent(p.id, action);
-                            }
-                        }
-                        if (intf.groupId === SIDE_JOURNAL_GROUP_ID) {
-                            this.svc.gamemodeUi.applySideJournalUi(p);
-                        }
-                    }
+                    mountLoginGameframe(p, filteredInterfaces, {
+                        currentTick: this.svc.ticker.currentTick(),
+                        queue: action => this.svc.queueWidgetEvent(p.id, action),
+                        getSideJournalBootstrap: () => this.svc.gamemodeUi.getSideJournalBootstrapState(p),
+                        applySideJournal: () => this.svc.gamemodeUi.applySideJournalUi(p),
+                    });
                     if (
                         tutorialMode &&
                         !preStartMode &&
@@ -1077,44 +1019,12 @@ export class LoginHandshakeService {
                             } else {
                                 p.account.accountStage = 2;
                                 const displayMode = p.displayMode ?? 1;
-                                const minimapToggleValue =
-                                    p.varps.getVarbitValue(VARBIT_MINIMAP_TOGGLE);
-                                const mapClock = getMapClockValue(
-                                    p.varps,
-                                    this.svc.ticker.currentTick(),
-                                );
-                                const allInterfaces = getDefaultInterfaces(displayMode);
-                                for (const mount of allInterfaces) {
-                                    const intf = rewriteMinimapOrbsMount(
-                                        mount,
-                                        displayMode,
-                                        minimapToggleValue,
-                                    );
-                                    this.svc.queueWidgetEvent(p.id, {
-                                        action: "open_sub",
-                                        targetUid: intf.targetUid,
-                                        groupId: intf.groupId,
-                                        type: intf.type,
-                                        ...(Array.isArray(intf.postScripts) &&
-                                        intf.postScripts.length > 0
-                                            ? { postScripts: intf.postScripts }
-                                            : {}),
-                                        ...(mount.groupId === MINIMAP_WIDGET_GROUP_ID
-                                            ? {
-                                                  varbits:
-                                                      getMinimapToggleVarbits(minimapToggleValue),
-                                              }
-                                            : {}),
-                                    });
-                                    if (mount.groupId === MINIMAP_WIDGET_GROUP_ID) {
-                                        for (const action of createOrbsBootstrapActions(
-                                            intf.groupId,
-                                            mapClock,
-                                        )) {
-                                            this.svc.queueWidgetEvent(p.id, action);
-                                        }
-                                    }
-                                }
+                                mountLoginGameframe(p, getDefaultInterfaces(displayMode), {
+                                    currentTick: this.svc.ticker.currentTick(),
+                                    queue: action => this.svc.queueWidgetEvent(p.id, action),
+                                    getSideJournalBootstrap: () => this.svc.gamemodeUi.getSideJournalBootstrapState(p),
+                                    applySideJournal: () => this.svc.gamemodeUi.applySideJournalUi(p),
+                                });
                                 for (const script of getEnhancedClientLoginScripts(p.name)) {
                                     this.svc.queueWidgetEvent(p.id, {
                                         action: "run_script",

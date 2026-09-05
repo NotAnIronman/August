@@ -1,5 +1,8 @@
 # Layout, input, Araxxor and status follow-up — 2026-09-05
 
+The subsequent [layout/input root-cause fix](playtester-layout-input-root-causes-2026-09-05.md)
+supersedes this document's layout diagnosis and Brave Shift-right-click test expectations.
+
 This batch supersedes the layout/input, egg-pose and Mirrorback rules in [the previous update](playtester-layout-pets-2026-09-05.md).
 
 ## Host update

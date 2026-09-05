@@ -95,11 +95,11 @@ export class MenuEntrySwapperPlugin {
         }
         return undefined;
     }
-    applyWidgetEntries<T extends SimpleMenuEntry>(entries: T[], widget: { groupId?: number; uid?: number; itemId?: number }, shift: boolean, configure: boolean): T[] {
+    applyWidgetEntries<T extends SimpleMenuEntry>(entries: T[], widget: { groupId?: number; uid?: number; itemId?: number }, shift: boolean, configure: boolean, editModifier = shift): T[] {
         const key = this.widgetKey(widget);
         if (!key) return entries;
         return this.apply(entries.map(entry => ({ ...entry, menuSwapKey: key,
-            actionIndex: entry.actionIndex ?? 0 })), shift, configure) as T[];
+            actionIndex: entry.actionIndex ?? 0 })), shift, configure, editModifier) as T[];
     }
     getWidgetChoice<T extends SimpleMenuEntry>(entries: T[], widget: { groupId?: number; uid?: number; itemId?: number }, shift: boolean): T | undefined {
         if (!this.state.config.enabled) return undefined;
@@ -110,7 +110,7 @@ export class MenuEntrySwapperPlugin {
         return desired ? entries.find(entry => clean(entry.option) === clean(desired) &&
             !["cancel", "examine", "inspect"].includes(clean(entry.option))) : undefined;
     }
-    apply(entries: SimpleMenuEntry[], shift: boolean, configure: boolean): SimpleMenuEntry[] {
+    apply(entries: SimpleMenuEntry[], shift: boolean, configure: boolean, editModifier = shift): SimpleMenuEntry[] {
         const config = this.state.config;
         if (!config.enabled || entries.some(e =>
             (e.action === MenuAction.Use || e.action === MenuAction.Cast) && e.actionIndex === undefined
@@ -149,7 +149,7 @@ export class MenuEntrySwapperPlugin {
                 result[top] = shift ? { ...selected, shiftClick: true } : selected;
                 if (index !== top) result[index] = anchor;
             }
-            if (configure && shift) {
+            if (configure && editModifier) {
                 for (const mode of ["left", "shift"] as const) {
                     result.push({
                         option: mode === "left" ? "Swap left-click" : "Swap shift-click",

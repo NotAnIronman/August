@@ -128,8 +128,9 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
         const hasSelectedItem =
             ClientState.isItemSelected === 1 && (ClientState.selectedItemId | 0) > 0;
         const selectedItemName = String(ClientState.selectedSpellName || "");
-        const anchorX = picked ? pickX : inputManager.mouseX;
-        const anchorY = picked ? pickY : inputManager.mouseY;
+        // Actions belong to the press position, not a later move/leave/focus event.
+        const anchorX = picked ? pickX : leftClicked ? inputManager.leftClickX : inputManager.mouseX;
+        const anchorY = picked ? pickY : leftClicked ? inputManager.leftClickY : inputManager.mouseY;
         const anchorInSceneViewport = host.osrsClient.camera.containsScreenPoint(anchorX, anchorY);
 
         // Only build world menu entries (NPCs, objects, Walk here) when mouse is NOT

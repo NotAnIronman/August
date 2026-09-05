@@ -136,6 +136,7 @@ export function buildSimpleMenuEntries(host: WebGLOsrsRendererHost,
             transformEntries: entries => client.menuEntrySwapperPlugin.apply(
                 entries, client.inputManager.shiftDown === true,
                 client.menuOpen || client.inputManager.pickX !== -1,
+                client.inputManager.shiftDown === true || client.inputManager.controlDown === true,
             ),
         });
         client.menuActiveSimpleEntries = simple;

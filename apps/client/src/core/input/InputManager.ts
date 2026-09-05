@@ -241,6 +241,8 @@ export class InputManager {
     keyEvents: { keyTyped: number; keyPressed: number; code: string }[] = [];
     /** Shift key state */
     shiftDown: boolean = false;
+    /** Mouse snapshots also capture Ctrl when the game missed its keydown. */
+    controlDown: boolean = false;
 
     // === OSRS Internal Key State (for CS2 KEYHELD/KEYPRESSED opcodes) ===
 
@@ -639,6 +641,7 @@ export class InputManager {
         const [x, y] = getMousePos(this.element, event);
         // Keep modifier state in sync even if key events were missed due to focus.
         this.shiftDown = event.shiftKey === true;
+        this.controlDown = event.ctrlKey === true;
         this.idleTime = 0;
         this.lastInputTimeMs = this.nowMs();
         this.clickX = x;
@@ -663,8 +666,8 @@ export class InputManager {
 
         // Right click
         if (event.button === 2) {
-            // Cancel the initiating gesture too: Chromium/Brave can open its
-            // canvas image menu for a modified secondary-button press.
+            // Cancel ordinary secondary gestures. Brave/Firefox deliberately
+            // reserve Shift-right-click for their native menu; use Ctrl to edit swaps.
             event.preventDefault();
             this.clickMode1 = ClickMode.RIGHT;
             this.clickMode2 = ClickMode.RIGHT;
@@ -693,6 +696,7 @@ export class InputManager {
         const [x, y] = getMousePos(this.element, event);
         // Keep modifier state in sync even if key events were missed due to focus.
         this.shiftDown = event.shiftKey === true;
+        this.controlDown = event.ctrlKey === true;
         this.idleTime = 0;
         this.lastInputTimeMs = this.nowMs();
         this.clickMode2 = ClickMode.NONE;
@@ -714,6 +718,7 @@ export class InputManager {
         const [x, y] = getMousePos(this.element, event);
         // Keep modifier state in sync even if key events were missed due to focus.
         this.shiftDown = event.shiftKey === true;
+        this.controlDown = event.ctrlKey === true;
         this.idleTime = 0;
         this.lastInputTimeMs = this.nowMs();
         this.mouseX = x;
@@ -795,6 +800,7 @@ export class InputManager {
 
         const [x, y] = getMousePos(this.element, event);
         this.shiftDown = event.shiftKey === true;
+        this.controlDown = event.ctrlKey === true;
         this.idleTime = 0;
         this.lastInputTimeMs = this.nowMs();
         this.clickMode2 = ClickMode.NONE;
@@ -1003,6 +1009,7 @@ export class InputManager {
         const osrsKeyCode = toOsrsKeyCode(keyCode);
 
         // Track shift state
+        this.controlDown = event.ctrlKey === true;
         if (event.shiftKey) {
             this.shiftDown = true;
         }
@@ -1061,6 +1068,7 @@ export class InputManager {
         const keyCode = event.keyCode;
 
         // Clear shift state
+        this.controlDown = event.ctrlKey === true;
         if (keyCode === 16) {
             // VK_SHIFT
             this.shiftDown = false;
@@ -1080,7 +1088,11 @@ export class InputManager {
         this.keys.delete(event.code);
     };
 
-    private onFocusOut = () => {
+    private onFocusOut = (event: FocusEvent) => {
+        // focusout bubbles: canvas <-> input wrapper is still inside the game.
+        // Resetting here erased the pointer/held state immediately after mousedown.
+        const surface = this.eventElement ?? this.element;
+        if (event.relatedTarget && surface?.contains(event.relatedTarget as Node)) return;
         // Clear all key states on focus loss (OSRS: focusLost)
         for (let i = 0; i < 128; i++) {
             this.keyArray[i] = 0;
@@ -1091,6 +1103,7 @@ export class InputManager {
         }
         this.osrsKeyPressedThisFrame.clear();
         this.shiftDown = false;
+        this.controlDown = false;
         this.keys.clear();
         ClientState.setKeybindState(81, false);
         ClientState.setKeybindState(82, false);

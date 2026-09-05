@@ -7,9 +7,11 @@ import { ClientScriptLoader } from "@client/engine/cs2/ClientScriptLoader";
 import { Cs2Vm, createScriptEvent } from "@client/engine/cs2/Cs2Vm";
 import { WidgetManager } from "@client/ui/widgets/WidgetManager";
 import { WidgetPacketQueue } from "@client/engine/game/widgets/WidgetPacketQueue";
+import { WidgetTransmitProcessor } from "@client/engine/game/widgets/WidgetTransmitProcessor";
 import { PlayerWidgetManager, getDefaultInterfaces } from "@server/widgets/WidgetManager";
 import { PlayerVarpState } from "@server/game/state/PlayerVarpState";
 import { applyClientSetting } from "@server/widgets/clientSettings";
+import { mountLoginGameframe } from "@server/widgets/loginGameframe";
 import { getMainmodalUid, getRootInterfaceId } from "@server/widgets/viewport";
 import { getDesktopTabChild } from "@server/widgets/viewport/desktop";
 import { HEALTH_ORB_TIMER_VARPS, HEALTH_ORB_CURE_WIDGETS } from "@august/protocol/ui/healthOrb";
@@ -41,7 +43,13 @@ manager.onLoadListener = (_id, w) => {
     if (vm.lastError) scriptErrors.push(vm.lastError);
 };
 manager.onSubChangeInvoker = w => { vm.invokeEventHandler(w, "onSubChange"); assert.equal(vm.lastError, null); };
+manager.onResizeInvoker = w => { vm.invokeEventHandler(w, "onResize"); if (vm.lastError) scriptErrors.push(vm.lastError); };
 const consumed: any[] = [];
+const transmits = new WidgetTransmitProcessor({
+    getWidgetManager: () => manager, getCs2Vm: () => vm,
+    getTransmitCycles: () => ({changedVarpCount:0}),
+    executeScriptListener: (w: any,args: any[]) => vm.runScriptEvent(createScriptEvent({widget:w,args})),
+} as never);
 const queue = new WidgetPacketQueue(() => manager, () => scripts, p => {
     consumed.push(p);
     if (p.action === "set_root") {
@@ -49,8 +57,12 @@ const queue = new WidgetPacketQueue(() => manager, () => scripts, p => {
         vars.setVarbit(4607, p.groupId === 164 ? 1 : 0);
         vars.setVarcInt(170, p.groupId === 164 ? 1 : 0);
         manager.setRootInterface(p.groupId);
+        transmits.triggerInitialVarTransmitForGroup(p.groupId);
     }
-    if (p.action === "open_sub") manager.openSubInterface(p.targetUid, p.groupId, p.type);
+    if (p.action === "open_sub") {
+        manager.openSubInterface(p.targetUid, p.groupId, p.type);
+        transmits.triggerInitialVarTransmitForGroup(p.groupId);
+    }
 });
 const player: any = { id: 1, displayMode: 1, widgets: new PlayerWidgetManager(), varps: new PlayerVarpState() };
 player.varps.deserialize(undefined);
@@ -59,12 +71,32 @@ const emit = (p: any) => { sent++; queue.enqueue(p); };
 player.widgets.setDispatcher(emit);
 const services: any = { viewport: { getDefaultInterfaces, getMainmodalUid }, system: { getCurrentTick: () => 1 },
     dialog: { getInterfaceService: () => ({ triggerCloseHooksForEntries() {} }), queueWidgetEvent: (_id: number,p: any) => emit(p),
-        openSubInterface: (_p: any,targetUid: number,groupId: number,type: number,opts: any) => player.widgets.open(groupId,{...opts,targetUid,type}) } };
+        openSubInterface: (p: any,targetUid: number,groupId: number,type: number,opts: any) => p.widgets.open(groupId,{...opts,targetUid,type}) } };
+// Reproduce the old production login: packets mount all tabs in the client,
+// but bypass the server registry. Resizing then leaves only an empty root.
+const legacyPlayer = { ...player, widgets: new PlayerWidgetManager() };
+legacyPlayer.widgets.setDispatcher(emit);
 emit({action:"set_root",groupId:161});
-for (const m of getDefaultInterfaces(1)) player.widgets.open(m.groupId, m);
+for (const m of getDefaultInterfaces(1)) emit({action:"open_sub",...m});
+queue.flush();
+assert(manager.interfaceParents.size > 0,"old login initially displays its interfaces");
+applyClientSetting(legacyPlayer,services,0,2);
+queue.flush();
+assert.equal(manager.interfaceParents.size,0,"untracked login reproduces the empty gameframe after switching");
+
+emit({action:"set_root",groupId:161});
+mountLoginGameframe(player, getDefaultInterfaces(1), {
+    currentTick: 1, queue: emit, getSideJournalBootstrap: () => ({}), applySideJournal: () => {},
+});
+for (const m of getDefaultInterfaces(1)) {
+    assert(player.widgets.isOpen(m.groupId), "login must record every permanent mount for the first layout switch");
+    assert.equal(player.widgets.getByGroup(m.groupId)?.modal, false, "gameframe tabs are not modal dialogs");
+}
 for (const mode of [2,0,1,2,1,0]) {
     applyClientSetting(player,services,0,mode);
     queue.flush();
+    manager.resize(mode === 0 ? 765 : 1100, mode === 0 ? 503 : 800);
+    manager.triggerResize();
     assert.equal(consumed.length,sent,"full packet transaction must drain, including chat and every tab");
     assert.equal(manager.rootInterface,getRootInterfaceId(mode));
     for (const m of getDefaultInterfaces(mode)) assert.equal(manager.getSubInterface(m.targetUid)?.group,m.groupId);
