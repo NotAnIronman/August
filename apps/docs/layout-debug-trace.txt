@@ -1,0 +1,61 @@
+LAYOUT SELECTION DEBUG TRACE
+
+Copy this file to your host machine, or commit and push it from your development
+machine, then pull it on the host. Copying it into the game folder does NOT run it.
+
+1. Open the game in a desktop browser on your host machine and log in.
+2. Open Developer Tools (F12), then select Console.
+3. Copy ONLY the JavaScript between BEGIN JAVASCRIPT and END JAVASCRIPT below.
+4. Paste it into the Console and press Enter.
+5. Confirm "LAYOUT trace enabled" appears.
+6. In the game's All Settings menu, select Fixed - Classic layout.
+7. Copy the Console lines beginning with LAYOUT and send them back.
+
+No rebuild or server restart is needed. Run this once per page load.
+Refreshing the page removes the trace. This adds logging without changing
+the intended behavior of the original setting handler.
+
+BEGIN JAVASCRIPT
+
+(() => {
+  const c = window.osrsClient;
+  const r = c?.widgetActionRouter;
+  if (!r) {
+    console.log("LAYOUT client unavailable: log into the game and select its page context in Console, then retry.");
+    return;
+  }
+  const original = r.prepareClientSettingAction.bind(r);
+
+  r.prepareClientSettingAction = event => {
+    const commit = original(event);
+    if (event.widget?.groupId !== 134) return commit;
+
+    console.log("LAYOUT click", JSON.stringify({
+      option: event.option,
+      handler: event.widget.eventHandlers?.onOp ?? event.widget.onOp,
+      recognized: !!commit
+    }));
+
+    if (!commit) return commit;
+    return () => {
+      const result = commit();
+      setTimeout(() => console.log("LAYOUT state",
+        c.cs2Vm.context.windowMode,
+        c.varManager.getVarbit(4607),
+        c.widgetManager.rootInterface
+      ), 700);
+      return result;
+    };
+  };
+  console.log("LAYOUT trace enabled");
+})();
+
+END JAVASCRIPT
+
+LAYOUT state reports, in order:
+- Client window mode (1 = fixed, 2 = resizable).
+- Modern-layout flag (0 = classic, 1 = modern).
+- Current root interface, if exposed by the widget manager.
+
+If only "LAYOUT trace enabled" appears after selecting a layout, report that
+too; the absence of a click trace is useful. Include any errors that appear.
