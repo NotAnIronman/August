@@ -324,6 +324,7 @@ interface CombatEngagement {
 export class MultiCombatSystem {
     // Track who is attacking whom
     private engagements: Map<Actor, CombatEngagement[]> = new Map();
+    private lastCleanupTick = Number.NaN;
 
     // Ticks until combat engagement expires (16 ticks = ~10 seconds)
     private static readonly COMBAT_ENGAGEMENT_TIMEOUT = 16;
@@ -391,7 +392,8 @@ export class MultiCombatSystem {
         // Check if defender is already in combat with someone else
         const defenderEngagements = this.getActiveEngagements(defender, currentTick);
         for (const engagement of defenderEngagements) {
-            if (engagement.attacker !== attacker) {
+            const opponent = engagement.attacker === defender ? engagement.defender : engagement.attacker;
+            if (opponent !== attacker) {
                 return {
                     allowed: false,
                     reason: "That target is already in combat.",
@@ -402,7 +404,8 @@ export class MultiCombatSystem {
         // Check if attacker is already in combat with someone else
         const attackerEngagements = this.getActiveEngagements(attacker, currentTick);
         for (const engagement of attackerEngagements) {
-            if (engagement.defender !== defender) {
+            const opponent = engagement.attacker === attacker ? engagement.defender : engagement.attacker;
+            if (opponent !== defender) {
                 return {
                     allowed: false,
                     reason: "You are already under attack!",
@@ -469,6 +472,10 @@ export class MultiCombatSystem {
      * Clean up expired engagements
      */
     private cleanupEngagements(currentTick: number): void {
+        // Validation runs for every combatant; sweep the global registry once
+        // per tick instead of once per actor/attack in that tick.
+        if (this.lastCleanupTick === currentTick) return;
+        this.lastCleanupTick = currentTick;
         for (const [actor, engagements] of this.engagements) {
             const active = engagements.filter(
                 (e) => currentTick - e.lastAttackTick < MultiCombatSystem.COMBAT_ENGAGEMENT_TIMEOUT,

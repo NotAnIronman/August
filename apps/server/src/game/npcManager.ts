@@ -249,6 +249,7 @@ export class NpcManager {
     >();
     private readonly lifetimeExpiryTicks = new Map<number, number>();
     private currentTick = 0;
+    private readonly aggressionClaims = new Set<number>();
 
     // NPC indices are 16-bit (0..65534, with 65535 reserved as a sentinel).
     private nextId = 1;
@@ -937,6 +938,10 @@ export class NpcManager {
         this.processNpcLifetimes(this.currentTick);
         this.processNpcDeaths(currentTick);
         this.processNpcRespawns(currentTick);
+        // Reserve acquisition only within this search pass. A chasing NPC
+        // blocked behind a wall must not lock a player forever without attacking;
+        // persistent engagement is owned by the combat engine's legal swings.
+        this.aggressionClaims.clear();
         const statusEvents: NpcStatusEvent[] = [];
         const aggressionEvents: NpcAggressionEvent[] = [];
         const roamBudget = { remaining: 24 };
@@ -1041,7 +1046,7 @@ export class NpcManager {
                 const combatTargetId = npc.getCombatTargetPlayerId();
                 const effectMovementFrozen = interceptFrozenCombatMovement(npc, currentTick);
                 const movementFrozen = spawnAnimationLocked || effectMovementFrozen || npc.isImmovable;
-                if (!movementFrozen && this.queueOverlapEscape(npc, getNearbyPlayers)) {
+                if (!movementFrozen && !shouldRecoverToSpawn && this.queueOverlapEscape(npc, getNearbyPlayers)) {
                     // A player can briefly stack on an NPC because their paths
                     // are synchronized independently. Every NPC footprint
                     // recovers one step per tick instead of becoming safespotted.
@@ -1441,6 +1446,12 @@ export class NpcManager {
                 first.distance - second.distance || first.priority - second.priority,
         );
         for (const candidate of candidates) {
+            // Overlap correction must obey the same home boundary as ordinary
+            // movement; otherwise repeated walk-under clicks can push an NPC forever.
+            const outsideHome = npc.isInCombat(this.currentTick)
+                ? npc.isTileOutsideCombatLeash(candidate.x, candidate.y)
+                : npc.isTileOutsideRoamArea(candidate.x, candidate.y);
+            if (outsideHome || npc.isRecoveringToSpawn()) continue;
             if (
                 this.pathService.canNpcStep(
                     { x: npc.tileX, y: npc.tileY, plane: npc.level },
@@ -1593,6 +1604,7 @@ export class NpcManager {
                     validTargets[Math.floor(Math.random() * validTargets.length)] ??
                     validTargets[0];
                 npc.engageCombat(target.id, currentTick, { tileX: target.x, tileY: target.y });
+                this.aggressionClaims.add(target.id);
                 return {
                     npcId: npc.id,
                     targetPlayerId: target.id,
@@ -1669,7 +1681,8 @@ export class NpcManager {
             return false;
         }
 
-        if (!npcInMultiCombat && player.inCombat) {
+        const bothInMulti = npcInMultiCombat && multiCombatSystem.isMultiCombat(player.x, player.y, player.level);
+        if (!bothInMulti && (player.inCombat || this.aggressionClaims.has(player.id))) {
             return false;
         }
 

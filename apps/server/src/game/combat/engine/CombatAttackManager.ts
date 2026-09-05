@@ -1,6 +1,7 @@
 import { NpcState } from "@server/game/npc";
 import { PlayerState } from "@server/game/player";
 import { AttackType } from "@server/game/combat/AttackType";
+import { multiCombatSystem } from "@server/game/combat/MultiCombatZones";
 import type { CombatAttack, CombatAttackTraits } from "@server/game/combat/model/CombatAttack";
 import { npcCombatEntityRef, playerCombatEntityRef } from "@server/game/combat/model/CombatEntityRef";
 import { CombatAttributes } from "@server/game/combat/state/CombatAttributes";
@@ -55,6 +56,10 @@ export class CombatAttackManager {
 
         const resolvedTraits = this.resolveAutocastTraits(attacker, traits);
         const speedTicks = this.attackSpeed(resolvedTraits.speedTicks);
+        // Claim single combat before the next actor can prepare a swing, not
+        // when delayed projectile/hit damage eventually arrives.
+        if (!multiCombatSystem.canAttack(attacker, target, clock).allowed) return null;
+        multiCombatSystem.recordEngagement(attacker, target, clock);
         const previousAttackClock = attacker.combatAttributes.get(CombatAttributes.ATTACK_DELAY);
         const nextAttackClock = options.preserveAttackDelay
             ? previousAttackClock

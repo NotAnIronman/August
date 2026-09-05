@@ -680,6 +680,10 @@ export class MovementService {
         }
         this.services.interfaceManager.closeInterruptibleInterfaces(player);
         try {
+            this.services.players?.clearAllInteractions(sock);
+            player.resetInteractions();
+            player.clearForcedOrientation();
+            player.pendingFaceTile = undefined;
             player.clearInteraction();
             player.stopAnimation();
         } catch (err) { logger.warn("[movement] failed to clear interaction state", err); }

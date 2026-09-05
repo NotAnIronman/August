@@ -1,0 +1,71 @@
+// Copy this entire file into the browser's developer Console after logging in.
+// Right-click a broken object. Copy the WORLD MENU report back here.
+// Read-only diagnostics: no password, account storage or packet contents are logged.
+// Run window.stopWorldMenuTrace() or refresh to remove the temporary hooks.
+(() => {
+    window.stopWorldMenuTrace?.();
+    const client = window.osrsClient;
+    const renderer = client?.renderer;
+    const picker = renderer?.sceneRaycaster;
+    if (!client || !renderer || !picker) {
+        console.warn("World menu trace: log in first, then run this again.");
+        return;
+    }
+    const originalRaycast = picker.raycast;
+    let hits = [];
+    let lastError;
+    const wrappedRaycast = function (...args) {
+        try {
+            hits = originalRaycast.apply(this, args);
+            lastError = undefined;
+            return hits;
+        } catch (error) {
+            lastError = String(error);
+            throw error;
+        }
+    };
+    picker.raycast = wrappedRaycast;
+    const report = event => {
+        if (event.button !== 2) return;
+        setTimeout(() => {
+            const input = client.inputManager;
+            const ids = [...new Set(hits.filter(hit => hit.interactType === 1).map(hit => hit.interactId))];
+            const definitions = ids.map(id => {
+                try {
+                    const base = client.locTypeLoader.load(id);
+                    const resolved = base.transforms ? base.transform(client.varManager, client.locTypeLoader) : base;
+                    return { id, baseName: base.name, resolvedId: resolved?.id, name: resolved?.name,
+                        actions: resolved?.actions, transforms: base.transforms,
+                        transformVarbit: base.transformVarbit, transformVarp: base.transformVarp };
+                } catch (error) { return { id, error: String(error) }; }
+            });
+            const maps = renderer.mapManager?.visibleMaps ?? [];
+            const report = {
+                activeClientUnchanged: window.osrsClient === client,
+                input: { x: input.mouseX, y: input.mouseY, pointerLock: input.isPointerLock?.() },
+                uiBlocked: client.isPointOverWidget(input.mouseX, input.mouseY),
+                regionBlocked: renderer.isMouseInUIRegion(input.mouseX, input.mouseY),
+                plane: renderer.getPlayerRawPlane?.(),
+                menuSource: renderer.canvas?.__ui?.menu?.source,
+                hitCount: hits.length,
+                objectHits: hits.filter(hit => hit.interactType === 1).slice(0, 20),
+                definitions,
+                objectMenu: client.menuEntries?.filter(entry => entry.targetType === 3)
+                    .map(entry => ({ option: entry.option, id: entry.targetId, x: entry.mapX, y: entry.mapY })),
+                visibleMapCount: renderer.mapManager?.visibleMapCount,
+                mapObjects: maps.slice(0, renderer.mapManager?.visibleMapCount ?? 0).map(map => ({
+                    id: map?.id, objectCounts: map?.tileLocIdsByLevel?.map(ids => ids.length),
+                })),
+                lastError,
+            };
+            console.log("WORLD MENU " + JSON.stringify(report));
+        }, 150);
+    };
+    window.addEventListener("pointerdown", report, true);
+    window.stopWorldMenuTrace = () => {
+        if (picker.raycast === wrappedRaycast) picker.raycast = originalRaycast;
+        window.removeEventListener("pointerdown", report, true);
+        delete window.stopWorldMenuTrace;
+    };
+    console.log("World menu trace enabled. Right-click a broken object.");
+})();

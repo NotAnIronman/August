@@ -1,6 +1,7 @@
 import { vec3 } from "gl-matrix";
 import { ClientSettingId } from "@august/protocol/ui/clientSettings";
 import { sendClientSetting } from "@client/core/network/server-connection/outgoing/movement";
+import { getCompactLayoutSelection } from "@client/engine/game/widgets/CompactLayoutSettings";
 
 import { directionToDelta } from "@august/game-model/movement/Direction";
 import { ChatMessageType } from "@august/protocol/chat/ChatMessageType";
@@ -281,6 +282,8 @@ import { createBrowserInteractHighlightPluginPersistence } from "@client/feature
 import { InteractHighlightPlugin } from "@client/features/plugins/interacthighlight/InteractHighlightPlugin";
 import { createBrowserNotesPluginPersistence } from "@client/features/plugins/notes/BrowserNotesPluginPersistence";
 import { NotesPlugin } from "@client/features/plugins/notes/NotesPlugin";
+import { MenuEntrySwapperPlugin } from "@client/features/plugins/menuentryswapper/MenuEntrySwapperPlugin";
+import { createBrowserMenuEntrySwapperPersistence } from "@client/features/plugins/menuentryswapper/BrowserMenuEntrySwapperPersistence";
 import { createBrowserTileMarkersPluginPersistence } from "@client/features/plugins/tilemarkers/BrowserTileMarkersPluginPersistence";
 import { TileMarkersPlugin } from "@client/features/plugins/tilemarkers/TileMarkersPlugin";
 import { ResolveTilePlaneFn } from "@client/engine/game/scene/PlaneResolver";
@@ -507,6 +510,7 @@ export class OsrsClient {
     readonly groundItemsPlugin: GroundItemsPlugin;
     readonly interactHighlightPlugin: InteractHighlightPlugin;
     readonly notesPlugin: NotesPlugin;
+    readonly menuEntrySwapperPlugin = new MenuEntrySwapperPlugin(createBrowserMenuEntrySwapperPersistence());
     readonly tileMarkersPlugin: TileMarkersPlugin;
     readonly tileHighlightManager: TileHighlightManager = new TileHighlightManager();
     private sidebarPluginVisibility: Required<SidebarPluginVisibilityOptions> = {
@@ -1272,14 +1276,19 @@ export class OsrsClient {
         });
     }
 
+    private requestDisplayMode(mode: number): void {
+        // Mobile keeps its own game frame; desktop choices must not desync its UI.
+        if (this.widgetManager.rootInterface === 601) return;
+        if (!Number.isInteger(mode) || mode < 0 || mode > 2) return;
+        this.cs2Vm.context.windowMode = mode === 0 ? 1 : 2;
+        this.cs2Vm.context.defaultWindowMode = mode === 0 ? 1 : 2;
+        this.varManager.setVarbit(4607, mode === 2 ? 1 : 0);
+        sendClientSetting(ClientSettingId.DisplayMode, mode);
+    }
+
     private initWidgetActionRouter(): void {
         this.widgetActionRouter = new WidgetActionRouter({
-            requestDisplayMode: (mode) => {
-                this.cs2Vm.context.windowMode = mode === 0 ? 1 : 2;
-                this.cs2Vm.context.defaultWindowMode = mode === 0 ? 1 : 2;
-                this.varManager.setVarbit(4607, mode === 2 ? 1 : 0);
-                sendClientSetting(ClientSettingId.DisplayMode, mode);
-            },
+            requestDisplayMode: (mode) => this.requestDisplayMode(mode),
             getWidgetManager: () => this.widgetManager,
             getCs2Vm: () => this.cs2Vm,
             getVarManager: () => this.varManager,
@@ -1377,6 +1386,12 @@ export class OsrsClient {
         inventoriesMap.set(620, this.collectionInventory); // collection_transmit
 
         this.cs2Vm = new Cs2Vm({
+            // Compact settings can invoke native listeners directly, bypassing
+            // WidgetActionRouter (unlike the separate All Settings dropdown).
+            prepareWidgetEvent: (widget, eventType, event) => {
+                const mode = getCompactLayoutSelection(widget, eventType, event);
+                return mode === undefined ? undefined : () => this.requestDisplayMode(mode);
+            },
             widgetManager: this.widgetManager,
             varManager: this.varManager,
             objTypeLoader: this.objTypeLoader,

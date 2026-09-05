@@ -9,6 +9,7 @@ import type { Actor } from "@server/game/actor";
 import { NpcState } from "@server/game/npc";
 import { PlayerState } from "@server/game/player";
 import { AttackType } from "@server/game/combat/AttackType";
+import { multiCombatSystem } from "@server/game/combat/MultiCombatZones";
 import type { CombatAttackTraits } from "@server/game/combat/model/CombatAttack";
 import type { CombatEntityRef } from "@server/game/combat/model/CombatEntityRef";
 import { CombatAttributes } from "@server/game/combat/state/CombatAttributes";
@@ -32,7 +33,7 @@ export interface CombatInteractionResult {
     readonly target?: CombatEntity;
     readonly traits?: CombatAttackTraits;
     readonly range?: CombatRangeValidation;
-    readonly reason?: CombatTargetInvalidReason | "missing_target" | "missing_traits";
+    readonly reason?: CombatTargetInvalidReason | "missing_target" | "missing_traits" | "single_combat";
 }
 
 interface CombatRouteState {
@@ -106,6 +107,10 @@ export class CombatInteractionProcessor {
             return { status: "ended", reason: targetResolution.reason };
         }
         const target = targetResolution.entity;
+        if (!multiCombatSystem.canAttack(attacker, target, currentMapClock).allowed) {
+            this.endInteraction(attacker);
+            return { status: "ended", target, reason: "single_combat" };
+        }
         const pairFailure = this.targetResolver.validatePair(attacker, target);
         if (pairFailure) {
             this.endInteraction(attacker);

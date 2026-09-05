@@ -11,6 +11,7 @@ import type { GroundItemsPluginConfig } from "@client/features/plugins/groundite
 import type { InteractHighlightPluginConfig } from "@client/features/plugins/interacthighlight/types";
 import type { TileMarkersPluginConfig } from "@client/features/plugins/tilemarkers/types";
 import "@client/features/sidebar/SidebarShell.css";
+import { MenuEntrySwapperPanel } from "@client/features/plugins/menuentryswapper/SidebarPlugin";
 import type { SidebarStore } from "@client/features/sidebar/SidebarStore";
 import type { ClientSidebarEntryData, SidebarPanelId } from "@client/features/sidebar/entries";
 import type { SidebarRailIconRenderer } from "@client/features/sidebar/pluginTypes";
@@ -961,6 +962,8 @@ function PluginHubPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Element
     );
     const notesGetSnapshot = useCallback(() => notesPlugin.getState(), [notesPlugin]);
     const notesState = useSyncExternalStore(notesSubscribe, notesGetSnapshot, notesGetSnapshot);
+    const menuSwapper = osrsClient.menuEntrySwapperPlugin;
+    const menuSwapperState = useSyncExternalStore(menuSwapper.subscribe, menuSwapper.getState, menuSwapper.getState);
 
     const interactHighlightPlugin = osrsClient.interactHighlightPlugin;
     const interactHighlightSubscribe = useCallback(
@@ -1008,6 +1011,13 @@ function PluginHubPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Element
     const pluginToggles = useMemo<PluginHubToggle[]>(
         () => [
             {
+                id: "menu_entry_swapper",
+                name: "Menu Entry Swapper",
+                description: "Saved left-click and shift-click actions. Configure in its sidebar panel.",
+                enabled: menuSwapperState.config.enabled,
+                setEnabled: enabled => menuSwapper.setConfig({ enabled }),
+            },
+            {
                 id: "ground_items",
                 name: "Ground Items",
                 description: "Highlights, filters, and recolors item labels.",
@@ -1047,6 +1057,8 @@ function PluginHubPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Element
         [
             groundItemsPlugin,
             groundItemsState.config.enabled,
+            menuSwapper,
+            menuSwapperState.config.enabled,
             interactHighlightPlugin,
             interactHighlightState.config.enabled,
             notesPlugin,
@@ -1126,6 +1138,7 @@ export interface SidebarShellProps {
 
 const DEFAULT_PANEL_RENDERERS: Record<string, SidebarPanelRenderer> = {
     plugin_hub: (ctx) => <PluginHubPanel osrsClient={ctx.osrsClient} />,
+    menu_entry_swapper: (ctx) => <MenuEntrySwapperPanel plugin={ctx.osrsClient.menuEntrySwapperPlugin} />,
     ground_items: (ctx) => <GroundItemsPanel osrsClient={ctx.osrsClient} />,
     interact_highlight: (ctx) => <InteractHighlightPanel osrsClient={ctx.osrsClient} />,
     tile_markers: (ctx) => <TileMarkersPanel osrsClient={ctx.osrsClient} />,

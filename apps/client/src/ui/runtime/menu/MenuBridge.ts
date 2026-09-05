@@ -186,6 +186,7 @@ export function worldEntriesToSimple(
         menuState?: MenuState;
         registerWithState?: boolean;
         resetMenuState?: boolean;
+        transformEntries?: (entries: SimpleMenuEntry[]) => SimpleMenuEntry[];
     } = {},
 ): SimpleMenuEntry[] {
     const toEvt = opts.toCssEvent;
@@ -238,7 +239,8 @@ export function worldEntriesToSimple(
             },
         };
     });
-    const list = normalizeMenuEntries(intermediate);
+    const normalized = normalizeMenuEntries(intermediate);
+    const list = opts.transformEntries?.(normalized) ?? normalized;
     if (register && opts.menuState) {
         const state = opts.menuState;
         for (const entry of list) {

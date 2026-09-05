@@ -506,6 +506,7 @@ export function buildPlayerMenuEntries(
         targetName: targetName,
         targetLevel: level,
         actionIndex: 2, // OPPLAYER3 - Follow
+        deprioritized: true,
         onClick: () => callbacks.onFollowPlayer(serverId),
     });
 
@@ -517,6 +518,7 @@ export function buildPlayerMenuEntries(
         targetName: targetName,
         targetLevel: level,
         actionIndex: 1, // OPPLAYER2 - Trade with
+        deprioritized: true,
         onClick: () => callbacks.onTradePlayer(serverId),
     });
 

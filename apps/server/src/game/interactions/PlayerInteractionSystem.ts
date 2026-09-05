@@ -310,17 +310,9 @@ export class PlayerInteractionSystem {
      * interactingIndex just like the reference client expects.
      */
     clearAllInteractions(ws: WebSocket): void {
-        const st = this.interactions.get(ws);
-        if (st) {
-            // Clear RSMod-style attributes on the player
-            const me = this.players.get(ws);
-            if (me) {
-                me.removeCombatTarget();
-                me.combat.setInteractingNpc(null);
-                me.combat.setInteractingPlayer(null);
-            }
-
-        }
+        // A rejected click can leave actor-facing intent without a map entry.
+        // Always clear it, including manual spell and direct combat targets.
+        this.players.get(ws)?.resetInteractions();
         this.interactions.delete(ws);
         this.pendingLocInteractions.delete(ws);
     }

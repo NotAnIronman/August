@@ -1,6 +1,7 @@
 import { GROUND_ITEMS_SIDEBAR_PLUGIN } from "@client/features/plugins/grounditems/SidebarPlugin";
 import { INTERACT_HIGHLIGHT_SIDEBAR_PLUGIN } from "@client/features/plugins/interacthighlight/SidebarPlugin";
 import { NOTES_SIDEBAR_PLUGIN } from "@client/features/plugins/notes/SidebarPlugin";
+import { MENU_ENTRY_SWAPPER_SIDEBAR_PLUGIN } from "@client/features/plugins/menuentryswapper/SidebarPlugin";
 import { PLUGIN_HUB_SIDEBAR_PLUGIN } from "@client/features/plugins/pluginhub/SidebarPlugin";
 import { TILE_MARKERS_SIDEBAR_PLUGIN } from "@client/features/plugins/tilemarkers/SidebarPlugin";
 import type { SidebarStore } from "@client/features/sidebar/SidebarStore";
@@ -31,6 +32,7 @@ const DEFAULT_CLIENT_SIDEBAR_PLUGINS: ReadonlyArray<ClientSidebarPluginDefinitio
     TILE_MARKERS_SIDEBAR_PLUGIN,
     INTERACT_HIGHLIGHT_SIDEBAR_PLUGIN,
     NOTES_SIDEBAR_PLUGIN,
+    MENU_ENTRY_SWAPPER_SIDEBAR_PLUGIN,
 ]);
 
 function toEntryDefinition(

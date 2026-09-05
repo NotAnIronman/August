@@ -133,6 +133,10 @@ export function buildSimpleMenuEntries(host: WebGLOsrsRendererHost,
             menuState,
             registerWithState: true,
             resetMenuState: false,
+            transformEntries: entries => client.menuEntrySwapperPlugin.apply(
+                entries, client.inputManager.shiftDown === true,
+                client.menuOpen || client.inputManager.pickX !== -1,
+            ),
         });
         client.menuActiveSimpleEntries = simple;
         if (opts.shouldFreeze) {

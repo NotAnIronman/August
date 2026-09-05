@@ -1720,6 +1720,19 @@ export class WebGLMapSquare {
         this.npcEntityIds = newNpcEntityIds;
     }
 
+    private refreshLocInteractionMetadata(mapData: SdMapData): void {
+        // These arrays may alias the original load payload. Never clear them in
+        // place: that can erase the incoming index as well as the current map.
+        // Replace even when no previous index exists so refresh can recover it.
+        this.tileLocOffsetsByLevel = mapData.tileLocOffsetsByLevel.slice();
+        this.tileLocIdsByLevel = mapData.tileLocIdsByLevel.slice();
+        this.tileLocTypeRotByLevel = mapData.tileLocTypeRotByLevel.slice();
+        this.itemLayerHeightsByLevel = mapData.itemLayerHeightsByLevel.slice();
+        this.locIdsAtLocalBuffer.length = 0;
+        this.locTypeRotsAtLocalBuffer.length = 0;
+        this.ambientSoundEmitters = undefined;
+    }
+
     private refreshLocSceneMetadata(mapData: SdMapData): void {
         const collisionLevelCount = Math.min(
             this.collisionMaps.length,
@@ -1774,24 +1787,7 @@ export class WebGLMapSquare {
             }
         }
 
-        if (this.tileLocOffsetsByLevel && this.tileLocIdsByLevel && this.tileLocTypeRotByLevel) {
-            this.tileLocOffsetsByLevel.length = 0;
-            this.tileLocIdsByLevel.length = 0;
-            this.tileLocTypeRotByLevel.length = 0;
-            for (let level = 0; level < mapData.tileLocOffsetsByLevel.length; level++) {
-                this.tileLocOffsetsByLevel.push(mapData.tileLocOffsetsByLevel[level]);
-                this.tileLocIdsByLevel.push(mapData.tileLocIdsByLevel[level]);
-                this.tileLocTypeRotByLevel.push(mapData.tileLocTypeRotByLevel[level]);
-            }
-            this.locIdsAtLocalBuffer.length = 0;
-            this.locTypeRotsAtLocalBuffer.length = 0;
-        }
-        if (this.itemLayerHeightsByLevel) {
-            this.itemLayerHeightsByLevel.length = 0;
-            for (let level = 0; level < mapData.itemLayerHeightsByLevel.length; level++) {
-                this.itemLayerHeightsByLevel.push(mapData.itemLayerHeightsByLevel[level]);
-            }
-        }
+        this.refreshLocInteractionMetadata(mapData);
         this.ambientSoundEmitters = undefined;
     }
 
@@ -2136,24 +2132,7 @@ export class WebGLMapSquare {
             }
         }
 
-        if (this.tileLocOffsetsByLevel && this.tileLocIdsByLevel && this.tileLocTypeRotByLevel) {
-            this.tileLocOffsetsByLevel.length = 0;
-            this.tileLocIdsByLevel.length = 0;
-            this.tileLocTypeRotByLevel.length = 0;
-            for (let level = 0; level < mapData.tileLocOffsetsByLevel.length; level++) {
-                this.tileLocOffsetsByLevel.push(mapData.tileLocOffsetsByLevel[level]);
-                this.tileLocIdsByLevel.push(mapData.tileLocIdsByLevel[level]);
-                this.tileLocTypeRotByLevel.push(mapData.tileLocTypeRotByLevel[level]);
-            }
-            this.locIdsAtLocalBuffer.length = 0;
-            this.locTypeRotsAtLocalBuffer.length = 0;
-        }
-        if (this.itemLayerHeightsByLevel) {
-            this.itemLayerHeightsByLevel.length = 0;
-            for (let level = 0; level < mapData.itemLayerHeightsByLevel.length; level++) {
-                this.itemLayerHeightsByLevel.push(mapData.itemLayerHeightsByLevel[level]);
-            }
-        }
+        this.refreshLocInteractionMetadata(mapData);
 
         const loadTime = time ?? this.timeLoaded;
 

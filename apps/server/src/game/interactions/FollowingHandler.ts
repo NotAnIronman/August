@@ -8,7 +8,6 @@ import { hasDirectReachToArea } from "@server/pathfinding/DirectReach";
 import { PathService } from "@server/pathfinding/PathService";
 import {
     ExactRouteStrategy,
-    RectAdjacentRouteStrategy,
     RouteStrategy,
 } from "@server/pathfinding/engine/RouteStrategy";
 import { logger } from "@server/observability/logger";
@@ -92,12 +91,13 @@ export class FollowingHandler {
         if (!me) return { ok: false, message: "player not found" };
         const target = this.players.getById(targetId);
         if (!target) return { ok: false, message: "target not found" };
+        if (me.id === target.id) return { ok: false, message: "invalid_target" };
 
         // Block interactions during tutorial
         if (!me.canInteract() || !LockStateChecks.canPlayerInteract(me.lock)) {
             return { ok: false, message: "interaction_blocked" };
         }
-        if (me.level !== target.level) {
+        if (me.level !== target.level || me.worldViewId !== target.worldViewId) {
             return { ok: false, message: "target_not_reachable" };
         }
 
@@ -150,7 +150,7 @@ export class FollowingHandler {
                 continue;
             }
             if (
-                me.level !== target.level ||
+                me.level !== target.level || me.worldViewId !== target.worldViewId ||
                 !LockStateChecks.canPlayerInteract(me.lock)
             ) {
                 this.interactions.delete(ws);
@@ -225,7 +225,7 @@ export class FollowingHandler {
 
                     // Add calculated positions as fallbacks
                     const opts = this.getFollowCandidates(tx, ty, fwd.dx, fwd.dy);
-                    candidates.push(opts.behind, opts.twoBehind, opts.backLeft, opts.backRight);
+                    candidates.push(opts.behind, opts.backLeft, opts.backRight);
 
                     const key = (o: { x: number; y: number }) => `${o.x},${o.y}`;
                     const used = new Set<string>([
@@ -250,61 +250,13 @@ export class FollowingHandler {
                         this.isFollowingWithMode(wsTarget, me.id, FollowInteractionKind.Follow);
                     if (!targetFollowingMe) {
                         st.swirlIndex = 0;
-
-                        // CRITICAL: If we're on the target's tile, we need to move!
-                        const onTargetTile = px === tx && py === ty;
-
-                        const maintainFacing =
-                            !onTargetTile &&
-                            !targetMoved &&
-                            !targetTurned &&
-                            st.lastTx === tx &&
-                            st.lastTy === ty &&
-                            st.slotX === px &&
-                            st.slotY === py;
-                        if (maintainFacing && edgeReachable) continue;
-
-                        if (!edgeReachable || (behind.x === tx && behind.y === ty)) {
-                            candidates = ring.slice();
-                            enforceSingleStep = true;
-                        } else {
-                            st.slotX = behind.x;
-                            st.slotY = behind.y;
-                            const strategy = new RectAdjacentRouteStrategy(
-                                behind.x,
-                                behind.y,
-                                1,
-                                1,
-                            );
-                            const arrived = strategy.hasArrived(px, py, me.level);
-                            if (!arrived || onTargetTile) {
-                                const routed = this.routePlayerToTile(
-                                    me,
-                                    behind,
-                                    this.resolveRunMode(me, st.modifierFlags),
-                                );
-                                if (!routed) {
-                                    candidates = ring.slice();
-                                    enforceSingleStep = true;
-                                } else {
-                                    st.lastTx = tx;
-                                    st.lastTy = ty;
-                                    st.lastRot = trot;
-                                    st.lastSector = tsec;
-                                    st.slotX = behind.x;
-                                    st.slotY = behind.y;
-                                    continue;
-                                }
-                            } else {
-                                st.lastTx = tx;
-                                st.lastTy = ty;
-                                st.lastRot = trot;
-                                st.lastSector = tsec;
-                                st.slotX = behind.x;
-                                st.slotY = behind.y;
-                                continue;
-                            }
-                        }
+                        // Follow the tile the target just vacated, not its facing
+                        // direction (which can change independently of movement).
+                        candidates = [
+                            { x: target.followX, y: target.followZ },
+                            behind,
+                            ...ring,
+                        ];
                     } else {
                         const ringSwirl = this.getSwirlRing(tx, ty, st.swirlDir);
                         const slotIdx = st.swirlIndex % ringSwirl.length;
@@ -324,55 +276,25 @@ export class FollowingHandler {
             }
 
             const wantsRun = this.resolveRunMode(me, st.modifierFlags);
-            const maxAttempts = Math.min(8, candidates.length);
+            const maxAttempts = candidates.length;
             let routed = false;
 
-            // CRITICAL: If we're on the same tile, force a direct step without pathfinding
-            // The pathfinder fails because collision is blocked by the target player
-            if (px === tx && py === ty) {
-                // Calculate "behind" position based on target's facing direction
-                // This ensures we move behind them, not in front
-                const forceTile = behind;
-
-                // Verify behind is not the same as target tile (shouldn't happen but safety check)
-                if (forceTile.x === tx && forceTile.y === ty && candidates.length > 0) {
-                    // Fallback to first ring candidate if behind calculation failed
-                    const fallback = candidates[0];
-                    me.setPath([{ x: fallback.x, y: fallback.y }], wantsRun);
-                    st.slotX = fallback.x;
-                    st.slotY = fallback.y;
-                } else {
-                    // Apply a direct single-step path to behind position
-                    me.setPath([{ x: forceTile.x, y: forceTile.y }], wantsRun);
-                    st.slotX = forceTile.x;
-                    st.slotY = forceTile.y;
-                }
-
-                st.lastTx = tx;
-                st.lastTy = ty;
-                st.lastRot = trot;
-                st.lastSector = tsec;
-                continue;
-            }
-
-            let earlyExit = false;
             for (let i = 0; i < maxAttempts; i++) {
                 const tile = candidates[i];
                 if (!tile) continue;
 
                 // CRITICAL: Skip if this candidate is the target's current tile
                 // This prevents followers from stopping on top of the target
-                if (tile.x === tx && tile.y === ty) {
+                if (tile.x === tx && tile.y === ty ||
+                    Math.max(Math.abs(tile.x - tx), Math.abs(tile.y - ty)) !== 1 ||
+                    !this.hasDirectReach(tile, { x: tx, y: ty }, 1, 1, me.level)) {
                     continue;
                 }
 
                 // Check if we're currently on the target's tile
                 const onTargetTile = px === tx && py === ty;
 
-                const strategy: RouteStrategy =
-                    st.kind === FollowInteractionKind.Trade
-                        ? this.createExactRouteStrategy(tile)
-                        : new RectAdjacentRouteStrategy(tile.x, tile.y, 1, 1);
+                const strategy: RouteStrategy = this.createExactRouteStrategy(tile);
                 // CRITICAL: If we're on the target's tile, force movement even if "arrived"
                 // Don't use hasArrived check because it returns true for adjacent positions
                 if (!onTargetTile && strategy.hasArrived(px, py, me.level)) {
@@ -405,8 +327,7 @@ export class FollowingHandler {
 
                 if (enforceSingleStep) {
                     if (steps.length > 1) {
-                        earlyExit = true;
-                        break;
+                        continue;
                     }
                 }
 
@@ -417,56 +338,7 @@ export class FollowingHandler {
                 break;
             }
 
-            if (earlyExit) {
-                st.lastTx = tx;
-                st.lastTy = ty;
-                st.lastRot = trot;
-                st.lastSector = tsec;
-                continue;
-            }
-
-            if (
-                !routed &&
-                st.kind === FollowInteractionKind.Follow &&
-                st.slotX != null &&
-                st.slotY != null
-            ) {
-                // Skip if fallback slot is target's current tile
-                if (st.slotX === tx && st.slotY === ty) {
-                    // Skip fallback
-                } else {
-                    const strategy = new RectAdjacentRouteStrategy(st.slotX, st.slotY, 1, 1);
-                    const arrived = strategy.hasArrived(px, py, me.level);
-                    if (!arrived) {
-                        const lastPath = this.pathService.findPathSteps(
-                            {
-                                from: { x: px, y: py, plane: me.level },
-                                to: { x: st.slotX, y: st.slotY },
-                                size: 1,
-                            },
-                            { maxSteps: 128, routeStrategy: strategy },
-                        );
-                        const lastSteps = this.extractValidatedStrategyPathSteps(
-                            me,
-                            lastPath,
-                            strategy,
-                        );
-                        if (lastSteps && lastSteps.length > 0) {
-                            // Check if fallback path goes through target
-                            const fallbackThroughTarget = lastSteps.some(
-                                (step) => step.x === tx && step.y === ty,
-                            );
-
-                            if (!fallbackThroughTarget) {
-                                this.applyPathSteps(me, lastSteps, wantsRun);
-                                routed = true;
-                            }
-                        }
-                    } else {
-                        routed = true;
-                    }
-                }
-            }
+            if (!routed) me.clearPath();
 
             st.lastTx = tx;
             st.lastTy = ty;

@@ -12,6 +12,31 @@
 
 Rag and Bone Man I/II are not currently authored in the quest registry. Their bone drops therefore remain disabled. Their eventual implementation must also account for individual bones already handed in. This was a targeted audit of the reported drops, not certification of every imported quest item.
 
+## Layout dropdown follow-up
+
+The uploaded live trace showed the compact Settings tab (group 116), with
+onClick script 4568 and onOp script 4569. The original layout bridge only
+covered All Settings (group 134, script 3852); it did not cover this compact
+dropdown. Script 4569 updates its label, closes the list and schedules a
+refresh, but has no layout-setting implementation for setting 12.
+
+Compact layout selections now use a native widget-event completion hook and
+the same desktop layout request as All Settings. The bridge matches group 116,
+script 4569, enum 3509, setting 12 and one-based option children 1–3. It ignores
+other settings and non-primary operations. Mobile retains root 601.
+
+The cache-backed regression reproduces the original snap-back with the bridge
+disabled, then verifies all three modes retain their selection with it enabled,
+including legacy listener arrays. All 47 standard client test files, client
+app/test typechecks, and two focused server layout/protocol tests pass.
+The follow-up production client build succeeded (`main.f8b4af6f.js`).
+
+This follow-up changes client code only. Rebuild the client on the hosting
+machine after syncing source changes, then hard-refresh the browser. Generated
+build files are not transferred by Git. The uploaded trace is preserved in
+`apps/docs/layout-debug-trace.txt`. Live playtesting of this follow-up is still
+required; the automated reproduction is not a claim of live PC/phone testing.
+
 ## Reported object IDs
 
 Read directly from the project's revision-237 object cache:

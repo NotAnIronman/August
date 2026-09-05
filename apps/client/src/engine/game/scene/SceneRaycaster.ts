@@ -849,7 +849,8 @@ export class SceneRaycaster {
 
         const locModelLoader = this.getInteractLocModelLoader();
         if (!locModelLoader) {
-            this.locModelMeshCache.set(key, null);
+            // Loader readiness is temporary (initialization/cache switches).
+            // Negative-caching here permanently disables this object's picking.
             return undefined;
         }
 

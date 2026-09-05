@@ -165,6 +165,12 @@ export interface ClanMember {
 }
 
 export interface Cs2Context {
+    /** Capture a native setting before its listener removes the transient widget. */
+    prepareWidgetEvent?: (
+        widget: WidgetNode,
+        eventType: WidgetEventType,
+        event?: Partial<ScriptEvent>,
+    ) => (() => void) | undefined;
     widgetManager: WidgetManager;
     varManager: VarManager;
     loadScript: (id: number) => Script | null;
@@ -2136,6 +2142,17 @@ export class Cs2Vm {
      * @param event Optional ScriptEvent with full event context for magic number substitution
      */
     invokeEventHandler(
+        widget: WidgetNode,
+        eventType: WidgetEventType,
+        event?: Partial<ScriptEvent>,
+    ): boolean {
+        const commit = this.context.prepareWidgetEvent?.(widget, eventType, event);
+        const handled = this.invokeEventHandlerInternal(widget, eventType, event);
+        if (handled) commit?.();
+        return handled;
+    }
+
+    private invokeEventHandlerInternal(
         widget: WidgetNode,
         eventType: WidgetEventType,
         event?: Partial<ScriptEvent>,

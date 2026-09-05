@@ -383,6 +383,7 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                             mapY: localY,
                             playerServerId: sid | 0,
                             actionIndex: 2, // OPPLAYER3 - Follow
+                            deprioritized: true, // Walk here is the ordinary player left-click.
                             onClick: () => {
                                 try {
                                     host.osrsClient.playerInteractionSystem.beginFollow(sid | 0);
