@@ -3,6 +3,24 @@ import type { PersistentSubState } from "@server/game/state/PersistentSubState";
 import { getFollowerDefinitionByItemId } from "@server/game/followers/followerDefinitions";
 
 export type PendingPetReward = { itemId: number; quantity: number };
+export type PetDropSource = { bossNpcTypeId: number; bossName: string; killcount: number };
+export type FirstPetDrop = PetDropSource & { petNpcTypeId: number };
+
+export function sanitizeFirstPetDrops(value: unknown): FirstPetDrop[] {
+    if (!Array.isArray(value)) return [];
+    const first = new Map<number, FirstPetDrop>();
+    for (const entry of value) {
+        if (!entry || !Number.isSafeInteger(entry.petNpcTypeId) || entry.petNpcTypeId <= 0
+            || !Number.isSafeInteger(entry.bossNpcTypeId) || entry.bossNpcTypeId <= 0
+            || !Number.isSafeInteger(entry.killcount) || entry.killcount < 1
+            || typeof entry.bossName !== "string" || !entry.bossName.trim()) continue;
+        if (!first.has(entry.petNpcTypeId)) first.set(entry.petNpcTypeId, {
+            petNpcTypeId: entry.petNpcTypeId, bossNpcTypeId: entry.bossNpcTypeId,
+            bossName: entry.bossName.trim().slice(0, 100), killcount: entry.killcount,
+        });
+    }
+    return [...first.values()];
+}
 
 export class PlayerFollowerPersistState implements PersistentSubState<
     PlayerFollowerPersistentEntry | undefined
@@ -10,6 +28,22 @@ export class PlayerFollowerPersistState implements PersistentSubState<
     private state?: PlayerFollowerPersistentEntry;
     private activeNpcId?: number;
     private pendingRewards: PendingPetReward[] = [];
+    private firstPetDrops: FirstPetDrop[] = [];
+
+    getFirstPetDrops(): FirstPetDrop[] { return this.firstPetDrops.map(entry => ({ ...entry })); }
+    setFirstPetDrops(value: unknown): void { this.firstPetDrops = sanitizeFirstPetDrops(value); }
+    getFirstPetDrop(itemId: number): FirstPetDrop | undefined {
+        const id = getFollowerDefinitionByItemId(itemId)?.npcTypeId;
+        return this.firstPetDrops.find(entry => entry.petNpcTypeId === id);
+    }
+    recordFirstPetDrop(itemId: number, source: PetDropSource): boolean {
+        const petNpcTypeId = getFollowerDefinitionByItemId(itemId)?.npcTypeId;
+        if (!petNpcTypeId || this.getFirstPetDrop(itemId)) return false;
+        const valid = sanitizeFirstPetDrops([{ ...source, petNpcTypeId }]);
+        if (!valid.length) return false;
+        this.firstPetDrops.push(valid[0]);
+        return true;
+    }
 
     getPendingRewards(): readonly PendingPetReward[] {
         return this.pendingRewards;

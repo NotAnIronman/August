@@ -504,6 +504,12 @@ export class ClientBinaryEncoder {
         return this.buffer.toPacket(ClientMessageId.CLIENT_SETTING);
     }
 
+    encodePetExamine(npcId: number): Uint8Array {
+        this.buffer.reset();
+        this.buffer.writeInt(npcId);
+        return this.buffer.toPacket(ClientMessageId.PET_EXAMINE);
+    }
+
     // ========================================
     // DEBUG
     // ========================================
@@ -638,6 +644,8 @@ export function encodeClientMessage(msg: { type: string; payload: any }): Uint8A
             return clientEncoder.encodeVarpTransmit(payload.varpId, payload.value);
         case "client_setting":
             return clientEncoder.encodeClientSetting(payload.setting, payload.value);
+        case "pet_examine":
+            return clientEncoder.encodePetExamine(payload.npcId);
 
         case "resume_countdialog":
             return clientEncoder.encodeResumeCountdialog(payload.amount);

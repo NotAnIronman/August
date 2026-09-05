@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 
 import { ClientMessageId } from "@august/protocol/transport/messages/ClientMessage";
 import { decodeClientPacket } from "@server/network/packet/ClientBinaryDecoder";
+assert.deepEqual(decodeClientPacket(new Uint8Array([ClientMessageId.PET_EXAMINE, 0, 0, 4, 210])),
+    { type: "pet_examine", payload: { npcId: 1234 } });
+assert.equal(decodeClientPacket(new Uint8Array([ClientMessageId.PET_EXAMINE, 0, 0, 4])), null);
 
 const validHello = new Uint8Array([
     ClientMessageId.HELLO,

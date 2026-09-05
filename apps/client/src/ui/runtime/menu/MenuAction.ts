@@ -6,6 +6,8 @@
  * binary encoding.
  */
 import { ClientState, MOUSE_CROSS_YELLOW } from "@client/engine/game/ClientState";
+import { getFollowerDefinitionByNpcTypeId } from "@august/custom-content/npcs/followerDefinitions";
+import { send } from "@client/core/network/server-connection/connection/send";
 import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { OsrsClientPacket, createPacket, queuePacket } from "@client/core/network/packet/index";
 import { MenuTargetType } from "@august/osrs-engine/MenuEntry";
@@ -893,6 +895,10 @@ export function menuAction(
         const examineNpcId =
             npcExamineIdResolver?.(identifier) ?? (Number.isFinite(identifier) ? identifier : -1);
         if (examineNpcId >= 0) {
+            if (getFollowerDefinitionByNpcTypeId(examineNpcId)) {
+                send({ type: "pet_examine", payload: { npcId: identifier } });
+                return;
+            }
             const pkt = createPacket(OsrsClientPacket.EXAMINE_NPC);
             pkt.packetBuffer.writeShortAdd(examineNpcId);
             queuePacket(pkt);

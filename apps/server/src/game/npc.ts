@@ -1,4 +1,5 @@
 import { Actor } from "@server/game/actor";
+import type { CombatAttack } from "@server/game/combat/model/CombatAttack";
 import { EntityType } from "@server/game/collision/EntityCollisionService";
 import type { AttackType } from "@server/game/combat/AttackType";
 import type {
@@ -275,8 +276,16 @@ export class NpcState extends Actor {
     incomingPlayerFlatArmourModifier?: number;
     /** Content-controlled opt-out for NPC hit-react/block animations. */
     suppressDefenceAnimation = false;
+    suppressAnimations = false;
+
+    override queueOneShotSeq(seqId: number | undefined, delay = 0, opts?: { interruptible?: boolean }): void {
+        if (!this.suppressAnimations || seqId === -1) super.queueOneShotSeq(seqId, delay, opts);
+    }
     /** A short encounter window in which landed player hits use their max hit. */
     forcePlayerMaxHit = false;
+    forceMaxHitForAttack?: (player: PlayerState, attack?: CombatAttack) => boolean;
+    transformPlayerHit?: (player: PlayerState, damage: number, tick: number) => number;
+    onPlayerHit?: (player: PlayerState, damage: number, attackType: AttackType, tick: number) => void;
     /**
      * When true, TickPhaseService's Moon-boss occupancy rule (the 3x3
      * player-collision reservation around this NPC, keyed by typeId

@@ -155,7 +155,7 @@ export class NpcHitHandler {
         // than by inflating NPC defence, so a hit still lands but is visibly
         // reduced to the intended amount.
         const incomingDamageMultiplier = Math.max(0, npc.incomingPlayerDamageMultiplier);
-        const resolvedRawDamage = npc.forcePlayerMaxHit && rawMaxHit > 0 ? rawMaxHit : rawDamage;
+        const resolvedRawDamage = (npc.forcePlayerMaxHit || (!isMagicAttack && npc.forceMaxHitForAttack?.(player))) && rawMaxHit > 0 ? rawMaxHit : rawDamage;
         const damageCap = npc.incomingPlayerDamageCap;
         const capDamage = (value: number): number =>
             damageCap === undefined ? value : Math.min(value, Math.max(0, Math.trunc(damageCap)));
@@ -181,6 +181,8 @@ export class NpcHitHandler {
             data.hit?.magicImpactEffectsScheduled === true;
 
         // Apply hitsplat to NPC
+        damage = npc.transformPlayerHit?.(player, damage, hitsplatTick) ?? damage;
+        const hpBefore = npc.getHitpoints();
         const instakillDamage = applyDeveloperInstakillDamage(player, damage);
         const appliedDamage = this.services.interceptNpcLethalHit(
             player,
@@ -197,6 +199,7 @@ export class NpcHitHandler {
             hitsplatTick,
             maxHit,
         );
+        npc.onPlayerHit?.(player, Math.max(0, hpBefore - npcHitsplat.hpCurrent), attackTypeHint ?? AttackType.Melee, hitsplatTick);
         if (npcHitsplat.hpCurrent > 0 && !npc.suppressDefenceAnimation && !(isMagicAttack && magicImpactEffectsScheduled)) {
             const npcCombatSeq = this.services.getNpcCombatSequences(npc.typeId);
             if (npcCombatSeq?.block !== undefined) {
@@ -344,7 +347,7 @@ export class NpcHitHandler {
 
         // Death sequence
         const deathSeq = this.services.getNpcCombatSequences(npc.typeId)?.death;
-        if (deathSeq !== undefined && deathSeq >= 0) {
+        if (!npc.suppressAnimations && deathSeq !== undefined && deathSeq >= 0) {
             npc.queueOneShotSeq(deathSeq);
             this.services.broadcastNpcSequence(npc, deathSeq);
             npc.popPendingSeq();

@@ -107,6 +107,7 @@ export function exportPersistentVars(player: PlayerState): PlayerPersistentVars 
         snapshot.follower = followerSnapshot;
     }
     const pendingPetRewards = player.followers.getPendingRewards();
+    snapshot.firstPetDrops = player.followers.getFirstPetDrops();
     if (pendingPetRewards.length) snapshot.pendingPetRewards = pendingPetRewards.map(reward => ({ ...reward }));
     const instanceGrave = player.instanceGrave.serialize();
     if (instanceGrave) snapshot.instanceGrave = instanceGrave;
@@ -249,5 +250,6 @@ export function applyPersistentVars(player: PlayerState, state?: PlayerPersisten
     player.collectionLog.deserialize(state.collectionLog);
     player.followers.deserialize(state.follower);
     player.followers.setPendingRewards(state.pendingPetRewards);
+    player.followers.setFirstPetDrops(state.firstPetDrops);
     player.instanceGrave.deserialize(state.instanceGrave);
 }

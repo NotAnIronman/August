@@ -433,6 +433,8 @@ export class TickPhaseService {
                 }
             }
             const regenTimer = player.skillSystem.takeHitpointRegenTimerSync(frame.tick);
+            const orbStatus = player.skillSystem.takeHealthOrbStatusSync();
+            if (orbStatus !== undefined) this.svc.variableService.queueVarp(player.id, 102, orbStatus);
             if (regenTimer) {
                 this.svc.variableService.queueVarp(player.id, VARP_MAP_CLOCK, frame.tick);
                 this.svc.broadcastService.queueClientScript(

@@ -704,6 +704,8 @@ function decodeClientPacketUnchecked(
 
         case ClientMessageId.CLIENT_SETTING:
             return { type: "client_setting", payload: { setting: reader.readByte(), value: reader.readByte() } };
+        case ClientMessageId.PET_EXAMINE:
+            return { type: "pet_examine", payload: { npcId: reader.readInt() } };
 
         case ClientMessageId.DEBUG: {
             const jsonStr = reader.readString();

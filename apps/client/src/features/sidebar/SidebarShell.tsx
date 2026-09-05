@@ -1004,8 +1004,8 @@ function PluginHubPanel({ osrsClient }: { osrsClient: OsrsClient }): JSX.Element
         value: BossHealthBarStyle;
         label: string;
     }> = [
-        { value: "modern", label: "Modern" },
         { value: "oldschool", label: "Oldschool" },
+        { value: "modern", label: "Modern" },
     ];
 
     const pluginToggles = useMemo<PluginHubToggle[]>(

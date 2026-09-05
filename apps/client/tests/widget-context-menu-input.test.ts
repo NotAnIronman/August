@@ -17,6 +17,31 @@ assert.equal(nativeInput.clickMode1, ClickMode.RIGHT, "in-game menu still receiv
 nativeInput.onContextMenu({ preventDefault: () => prevented++ });
 assert.equal(prevented, 2, "contextmenu default is also cancelled");
 
+const previousWindow = globalThis.window;
+const previousDocument = globalThis.document;
+try {
+    Object.assign(globalThis, { window: new EventTarget(), document: new EventTarget() });
+    const surface = Object.assign(new EventTarget(), { contains: (target: unknown) => target === surface });
+    const canvas = Object.assign(new EventTarget(), { style: { pointerEvents: "auto" }, parentElement: surface,
+        width: 800, height: 600, getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 300 }) });
+    const input = new InputManager();
+    input.init(canvas as unknown as HTMLElement);
+    assert.equal(canvas.style.pointerEvents, "none", "image canvas is no longer the browser gesture target");
+    const down = Object.assign(new Event("mousedown", { cancelable: true }), { button: 2, shiftKey: true, clientX: 100, clientY: 100 });
+    surface.dispatchEvent(down);
+    assert(down.defaultPrevented);
+    assert.equal(input.clickMode1, ClickMode.RIGHT);
+    assert.equal(input.clickX, 200, "surface input retains canvas buffer coordinate scaling");
+    const context = new Event("contextmenu", { cancelable: true });
+    surface.dispatchEvent(context);
+    assert(context.defaultPrevented);
+    input.cleanUp();
+    assert.equal(canvas.style.pointerEvents, "auto", "teardown restores original hit testing");
+    const later = Object.assign(new Event("mousedown", { cancelable: true }), { button: 2 });
+    surface.dispatchEvent(later);
+    assert.equal(later.defaultPrevented, false, "teardown removes surface handlers");
+} finally { Object.assign(globalThis, { window: previousWindow, document: previousDocument }); }
+
 function createDeps(options: {
     worldMenuOpen?: boolean;
     widgetMenuOpen?: boolean;

@@ -294,12 +294,10 @@ function showPopup(services: ScriptServices, player: PlayerState, popup: LevelUp
 
 function enqueuePopup(services: ScriptServices, player: PlayerState, popup: LevelUpPopup): void {
     const playerId = player.id;
-    let queue = popupQueues.get(playerId);
-    if (!queue) {
-        queue = [];
-        popupQueues.set(playerId, queue);
-    }
-    queue.push(popup);
+    // The overlay describes the latest achievement, not a backlog that blocks
+    // newer levels until the player dismisses every previous notification.
+    const queue = [popup];
+    popupQueues.set(playerId, queue);
 
     if (popup.kind === "skill") {
         const skillName = getSkillName((popup.skillId ?? 0) as SkillId);

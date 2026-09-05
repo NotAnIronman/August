@@ -83,6 +83,7 @@ const augustClientMessages: readonly WireRow[] = [
     ["MAP_EDIT", ClientMessageId.MAP_EDIT, 195, -1],
     ["FRIENDS_CHAT_ACTION", ClientMessageId.FRIENDS_CHAT_ACTION, 196, -1],
     ["CLIENT_SETTING", ClientMessageId.CLIENT_SETTING, 197, 2],
+    ["PET_EXAMINE", ClientMessageId.PET_EXAMINE, 198, 4],
     ["HELLO", ClientMessageId.HELLO, 200, -1],
     ["PING", ClientMessageId.PING, 201, 4],
     ["HANDSHAKE", ClientMessageId.HANDSHAKE, 202, -1],

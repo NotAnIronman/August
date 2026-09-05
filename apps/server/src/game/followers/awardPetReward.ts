@@ -1,5 +1,7 @@
 import { getFollowerDefinitionByItemId } from "@server/game/followers/followerDefinitions";
 import type { PlayerState } from "@server/game/player";
+import type { PetDropSource } from "@server/game/state/PlayerFollowerPersistState";
+import { logger } from "@server/observability/logger";
 import type { ScriptServices } from "@server/game/scripts/types";
 
 type PetRewardServices = Pick<ScriptServices, "followers" | "inventory" | "banking" | "collectionLog" | "messaging">;
@@ -36,8 +38,15 @@ function deliverPetReward(
 }
 
 /** New acquisitions only; returns false for an item that is not a supported pet. */
-export function awardPetReward(player: PlayerState, itemId: number, quantity: number, services: PetRewardServices): boolean {
+export function awardPetReward(player: PlayerState, itemId: number, quantity: number, services: PetRewardServices, source?: PetDropSource): boolean {
     if (!getFollowerDefinitionByItemId(itemId) || !Number.isSafeInteger(quantity) || quantity <= 0) return false;
+    const family = getFollowerDefinitionByItemId(itemId)!.npcTypeId;
+    const previouslyOwned = player.collectionLog.getObtainedItems().some(entry =>
+        getFollowerDefinitionByItemId(entry.itemId)?.npcTypeId === family);
+    if (source && !previouslyOwned && player.followers.recordFirstPetDrop(itemId, source)) {
+        logger.info(`[pet:first-drop] player=${player.id} pet=${itemId} boss=${source.bossNpcTypeId} kc=${source.killcount}`);
+        services.messaging.sendGameMessage(player, `Your first ${source.bossName} pet was obtained at ${source.killcount} killcount.`);
+    }
     const remaining = deliverPetReward(player, itemId, quantity, services);
     if (remaining > 0) {
         player.followers.deferReward(itemId, remaining);

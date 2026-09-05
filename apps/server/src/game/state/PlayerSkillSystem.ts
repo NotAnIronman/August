@@ -485,6 +485,15 @@ export class PlayerSkillSystem {
         return poisonDamage === undefined ? 0 : Math.max(0, Math.floor(poisonDamage));
     }
 
+    takeHealthOrbStatusSync(): number | undefined {
+        // Cache 237 script 446 uses positive values for poison and >= 1m for venom.
+        const value = this.status.venomEffect ? 1_000_000 + this.status.venomEffect.stage
+            : this.status.poisonEffect?.potency ?? 0;
+        if (this.status.lastHealthOrbStatus === value) return undefined;
+        this.status.lastHealthOrbStatus = value;
+        return value;
+    }
+
     inflictDisease(
         potency: number,
         currentTick: number,

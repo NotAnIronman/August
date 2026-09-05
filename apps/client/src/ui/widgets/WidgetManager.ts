@@ -848,6 +848,23 @@ export class WidgetManager {
         return false;
     }
 
+    /** Loaded cache objects can outlive their mount; they must not run queued events. */
+    isEventWidgetActive(widget: WidgetNode): boolean {
+        if (this.getWidgetByUid(widget.uid) !== widget || this.isEffectivelyHidden(widget.uid)) return false;
+        let groupId = widget.groupId;
+        const visited = new Set<number>();
+        while (groupId !== this.rootInterface) {
+            if (visited.has(groupId)) return false;
+            visited.add(groupId);
+            const containerUid = this.groupToContainerUid.get(groupId);
+            if (containerUid === undefined || this.interfaceParents.get(containerUid)?.group !== groupId) return false;
+            const container = this.widgetByUid.get(containerUid);
+            if (!container) return false;
+            groupId = container.groupId;
+        }
+        return true;
+    }
+
     /**
      * PERF: Conditional ensureLayout that respects visibility culling.
      * Use this during render traversal to skip hidden widgets.

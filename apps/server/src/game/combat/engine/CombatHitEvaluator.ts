@@ -377,7 +377,9 @@ export class CombatHitEvaluator {
                       ),
               )
             : attackRoll;
-        const hitChance = special.guaranteedHit
+        const forceMaxHit = target instanceof NpcState && attacker instanceof PlayerState
+            && target.forceMaxHitForAttack?.(attacker, attack) === true;
+        const hitChance = special.guaranteedHit || forceMaxHit
             ? HIT_CHANCE_SCALE
             : usesFixedAccuracyRoll
               ? this.calculateFixedAttackRollHitChance(resolvedAttackRoll, defenceRoll)
@@ -385,7 +387,7 @@ export class CombatHitEvaluator {
                 ? calculateFangHitChance(attackRoll, defenceRoll)
                 : calculateHitChance(attackRoll, defenceRoll);
         const accuracyRollCount = Math.max(1, Math.trunc(special.accuracyRollCount ?? 1));
-        const guaranteedAccuracyRolls = special.guaranteedHit
+        const guaranteedAccuracyRolls = special.guaranteedHit || forceMaxHit
             ? accuracyRollCount
             : special.guaranteedFirstAccuracyRoll === true && hitIndex === 0
               ? 1
@@ -463,7 +465,7 @@ export class CombatHitEvaluator {
         }
         const maxHit = Math.max(0, maximumDamage);
         const landed = successfulAccuracyRolls > 0;
-        const rolledDamage = landed
+        const rolledDamage = forceMaxHit ? maxHit : landed
             ? minimumDamage + Math.floor(this.nextRandom() * (maximumDamage - minimumDamage + 1))
             : 0;
         const damage = this.applyProtectionPrayer(

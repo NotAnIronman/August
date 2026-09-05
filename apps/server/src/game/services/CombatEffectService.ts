@@ -429,7 +429,7 @@ export class CombatEffectService {
         seqId: number | undefined,
         opts?: { yieldToExisting?: boolean; delayCycles?: number },
     ): void {
-        if (seqId === undefined || seqId < 0) return;
+        if (npc.suppressAnimations || seqId === undefined || seqId < 0) return;
         const frame = this.svc.activeFrame;
         if (!frame) return;
         const id = npc.id;

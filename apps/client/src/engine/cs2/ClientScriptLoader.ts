@@ -66,6 +66,26 @@ export class ClientScriptLoader {
         return promise;
     }
 
+    /** Check the entire INVOKE graph before running scripts with UI side effects. */
+    isProgramReady(scriptId: number, visited = new Set<number>()): boolean {
+        if (visited.has(scriptId)) return true;
+        visited.add(scriptId);
+        const script = this.load(scriptId);
+        if (!script) {
+            // Unknown optional scripts were historically no-ops. Only an archive
+            // advertised by JS5 can still be downloading and should block packets.
+            return !this.deps.getCacheSystem().getIndex(IndexType.DAT2.clientScript).archiveExists(scriptId);
+        }
+        let ready = true;
+        for (let pc = 0; pc < script.instructions.length; pc++) {
+            if (script.instructions[pc] === 40) {
+                // Check every branch so missing downloads start together.
+                ready = this.isProgramReady(script.intOperands[pc], visited) && ready;
+            }
+        }
+        return ready;
+    }
+
     loadIfExists(scriptId: number): Cs2Script | null {
         const cached = this.cache.get(scriptId);
         if (cached) {

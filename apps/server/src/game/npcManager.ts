@@ -66,7 +66,7 @@ type GroundItemSpawner = (
     quantity: number,
     tile: { x: number; y: number; level: number },
     tick: number,
-    options?: { ownerId?: number; isMonsterDrop?: boolean; privateTicks?: number },
+    options?: { ownerId?: number; isMonsterDrop?: boolean; privateTicks?: number; petDropSource?: import("@server/game/state/PlayerFollowerPersistState").PetDropSource },
     worldViewId?: number,
 ) => void;
 
@@ -76,6 +76,7 @@ export interface PendingNpcDrop {
     tile: { x: number; y: number; level: number };
     ownerId?: number;
     isMonsterDrop: boolean;
+    petDropSource?: import("@server/game/state/PlayerFollowerPersistState").PetDropSource;
     worldViewId?: number;
     isWilderness: boolean;
 }
@@ -342,7 +343,7 @@ export class NpcManager {
         const npcType = this.loadNpcTypeById(spawn.id);
         if (!npcType) return;
 
-        const idleSeqId = Math.max(0, Math.trunc(spawn.idleSeqId ?? npcType.getIdleSeqId(this.basTypeLoader)));
+        const idleSeqId = Math.max(-1, Math.trunc(spawn.idleSeqId ?? npcType.getIdleSeqId(this.basTypeLoader)));
         const walkSeqId = npcType.getWalkSeqId(this.basTypeLoader);
         const size = Math.max(1, Math.trunc(spawn.size ?? npcType.size));
         const rotationSpeed = Math.max(1, npcType.rotationSpeed);
@@ -1729,6 +1730,7 @@ export class NpcManager {
                         {
                             ownerId: drop.ownerId,
                             isMonsterDrop: drop.isMonsterDrop,
+                            petDropSource: drop.petDropSource,
                             privateTicks: drop.isWilderness ? 0 : undefined,
                         },
                         drop.worldViewId,

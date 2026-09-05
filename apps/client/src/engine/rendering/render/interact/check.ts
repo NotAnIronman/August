@@ -477,6 +477,9 @@ export function checkInteractions(host: WebGLOsrsRendererHost, ): void {
                 }
                 if (npcType.name === "null" && !host.osrsClient.debugId) return;
                 if (npcType.isFollower && (ClientState.followerIndex | 0) !== (sid | 0)) {
+                    menuEntries.push({ option: "Examine", targetId: npcType.id,
+                        targetType: MenuTargetType.NPC, npcServerId: sid,
+                        targetName: npcType.name, targetLevel: npcType.combatLevel });
                     return;
                 }
 

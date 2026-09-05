@@ -45,6 +45,7 @@ const persistentFieldCoverage = {
     collectionLog: true,
     follower: true,
     pendingPetRewards: true,
+    firstPetDrops: true,
     instanceGrave: true,
     playTimeSeconds: true,
 } as const satisfies Record<keyof PlayerPersistentVars, true>;

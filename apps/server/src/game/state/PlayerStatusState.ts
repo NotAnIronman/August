@@ -18,6 +18,8 @@ export class PlayerStatusState {
     lastHitpointCapeRegenUiInterval: number = -1;
 
     poisonEffect?: PoisonEffectState;
+    /** Last status sent to the native health orb (varp 102); not persistent. */
+    lastHealthOrbStatus?: number;
     venomEffect?: VenomEffectState;
     diseaseEffect?: DiseaseEffectState;
     regenEffect?: RegenerationEffectState;

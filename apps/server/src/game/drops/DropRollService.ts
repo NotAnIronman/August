@@ -1,4 +1,6 @@
 import type { PendingNpcDrop } from "@server/game/npcManager";
+import { EncounterRegistry } from "@server/game/encounters/EncounterRegistry";
+import { getFollowerDefinitionByItemId } from "@server/game/followers/followerDefinitions";
 import { isInWilderness } from "@server/game/combat/MultiCombatZones";
 import { NpcDropRegistry } from "@server/game/drops/NpcDropRegistry";
 import { resolveDropTable } from "@server/game/drops/dropTableResolver";
@@ -321,12 +323,16 @@ function toPendingDrop(
     const resolvedItemId = context.transformItemId
         ? context.transformItemId(context.npcTypeId, itemId, recipient)
         : itemId;
+    const boss = EncounterRegistry.shared.findByNpcTypeId(context.npcTypeId)?.killcount;
+    const killcount = boss && recipient.player?.collectionLog.getCategoryStat(boss.collectionLogStructId)?.count1;
     return {
         itemId: resolvedItemId,
         quantity: quantity,
         tile: { ...context.tile },
         ownerId: recipient.ownerId,
         isMonsterDrop: true,
+        ...(boss && killcount && getFollowerDefinitionByItemId(resolvedItemId)
+            ? { petDropSource: { bossNpcTypeId: context.npcTypeId, bossName: boss.name, killcount } } : {}),
         isWilderness: context.isWilderness,
         worldViewId: context.worldViewId,
     };

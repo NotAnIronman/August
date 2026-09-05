@@ -73,6 +73,7 @@ const ANIM = Object.freeze({
 });
 
 type Special = "acid-ball" | "acid-splatter" | "acid-drip";
+import { configureMirrorback, configureMirrorbackRedirection } from "./mirrorback";
 type AraxyteKind = "acidic" | "mirrorback" | "ruptura";
 interface AraxxorState {
     readonly generation: number;
@@ -212,6 +213,7 @@ function configureAraxxorBoss(boss: NpcState, services: ScriptServices, showSpaw
     // keeps the active attack animation readable rather than being overwritten
     // whenever the player lands a hit.
     boss.suppressDefenceAnimation = true;
+    configureMirrorbackRedirection(boss, services);
     if (showSpawn) services.npc.queueNpcSeq(boss, ANIM.spawn);
     boss.onHealthChange((change) => {
         if (change.reason === "reset") { states.delete(boss); return; }
@@ -274,14 +276,14 @@ function spawnEgg(npc: NpcState, target: PlayerState, services: ScriptServices, 
         id: eggId, x: tile.x, y: tile.y, level: npc.level, size: 1,
         worldViewId: npc.worldViewId,
         ownerPlayerId: instance?.access === "solo" ? target.id : undefined,
-        idleSeqId: ANIM.eggIdle, wanderRadius: 0, isAggressive: false, isImmovable: true,
+        idleSeqId: -1, wanderRadius: 0, isAggressive: false, isImmovable: true,
         respawns: false,
     });
     if (!egg) return;
     state.eggIds.set(eggIndex % EGG_TILES.length, egg);
     runtime.ownNpc(egg.id);
     egg.suppressDefenceAnimation = true;
-    services.npc.queueNpcSeq(egg, ANIM.eggSpawn);
+    egg.suppressAnimations = true;
 }
 
 function spawnEggRing(npc: NpcState, target: PlayerState, services: ScriptServices): void {
@@ -303,7 +305,6 @@ function hatchEgg(npc: NpcState, target: PlayerState, services: ScriptServices, 
     const runtime = services.encounters.ensure(npc);
     if (!runtime) return;
     const generation = runtime.generation;
-    services.npc.queueNpcSeq(egg, ANIM.eggHatch);
     let hatchTaskId = -1;
     hatchTaskId = services.scheduler.after(1, () => {
         if (runtime.generation !== generation) return;
@@ -324,6 +325,7 @@ function hatchEgg(npc: NpcState, target: PlayerState, services: ScriptServices, 
                 lifetimeTicks: 80,
             });
             if (add) {
+                if (addId === MIRRORBACK_ID) configureMirrorback(add, services);
                 add.suppressDrops = true;
                 if (eggDamage > 0) add.applyDamage(eggDamage);
                 runtime.ownNpc(add.id);
@@ -489,6 +491,7 @@ function awardNid(player: PlayerState, corpse: NpcState, services: ScriptService
     // The common monster-reward path logs and summons pets, or stores them safely.
     services.groundItems.spawn(NID_ID, 1, { x: corpse.tileX, y: corpse.tileY, level: corpse.level }, {
         ownerId: player.id, isMonsterDrop: true, worldViewId: corpse.worldViewId,
+        petDropSource: { bossNpcTypeId: ARAXXOR_ID, bossName: "Araxxor", killcount: player.collectionLog.getCategoryStat(995)?.count1 ?? 0 },
     });
 }
 

@@ -225,6 +225,7 @@ export interface GroundItemFacade {
             privateTicks?: number;
             durationTicks?: number;
             isMonsterDrop?: boolean;
+            petDropSource?: import("@server/game/state/PlayerFollowerPersistState").PetDropSource;
             isWilderness?: boolean;
             isConsumable?: boolean;
             worldViewId?: number;

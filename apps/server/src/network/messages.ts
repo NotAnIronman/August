@@ -646,6 +646,7 @@ export type ClientToServer =
       }
     | { type: "varp_transmit"; payload: { varpId: number; value: number } }
     | { type: "client_setting"; payload: { setting: number; value: number } }
+    | { type: "pet_examine"; payload: { npcId: number } }
     | { type: "spell_cast_npc"; payload: SpellCastNpcPayload }
     | { type: "spell_cast_player"; payload: SpellCastPlayerPayload }
     | { type: "spell_cast_loc"; payload: SpellCastLocPayload }

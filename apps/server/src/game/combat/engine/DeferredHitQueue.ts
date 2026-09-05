@@ -156,6 +156,10 @@ export class DeferredHitQueue {
                 }
             }
             const style = this.resolveStyle(pending.hitsplatType);
+            if (target instanceof NpcState && source instanceof PlayerState && target.transformPlayerHit) {
+                damage = this.nonNegativeInteger(target.transformPlayerHit(source, damage, clock), "encounter damage");
+            }
+            const hpBefore = target instanceof NpcState ? target.getHitpoints() : target.skillSystem.getHitpointsCurrent();
             if (target instanceof NpcState) {
                 const hitpointsBefore = target.getHitpoints();
                 if (
@@ -212,6 +216,9 @@ export class DeferredHitQueue {
                 appliedClock: clock,
             });
             applied.push(hit);
+            if (target instanceof NpcState && source instanceof PlayerState) {
+                target.onPlayerHit?.(source, Math.max(0, hpBefore - result.hpCurrent), pending.attackType, clock);
+            }
 
             // Attack type is already resolved by the combat engine. Preserve all
             // gameplay styles, misses, and status splats; only successful normal

@@ -18,10 +18,10 @@ type BossHealthBarPreferencesPersistence = BrowserJsonPersistence<
 type BossHealthBarPreferencesListener = () => void;
 
 export const BOSS_HEALTH_BAR_PREFERENCES_STORAGE_KEY = "osrs.plugin.boss_health_bar.v1";
-export const DEFAULT_BOSS_HEALTH_BAR_STYLE: BossHealthBarStyle = "modern";
+export const DEFAULT_BOSS_HEALTH_BAR_STYLE: BossHealthBarStyle = "oldschool";
 
 export function normalizeBossHealthBarStyle(value: unknown): BossHealthBarStyle {
-    return value === "oldschool" ? "oldschool" : DEFAULT_BOSS_HEALTH_BAR_STYLE;
+    return value === "modern" || value === "oldschool" ? value : DEFAULT_BOSS_HEALTH_BAR_STYLE;
 }
 
 /**

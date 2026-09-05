@@ -53,6 +53,7 @@ export type SpawnGroundItemOptions = {
     durationTicks?: number;
     /** If true, uses monster drop timing (200 ticks) */
     isMonsterDrop?: boolean;
+    petDropSource?: import("@server/game/state/PlayerFollowerPersistState").PetDropSource;
     /** If true, item is in wilderness (immediate visibility for non-consumables) */
     isWilderness?: boolean;
     /** If true, item is a consumable (food/potion) - fast despawn in wilderness */
@@ -200,7 +201,7 @@ export class GroundItemManager {
             const owner = this.svc.players?.getById(opts.ownerId);
             const services = this.svc.scriptRuntime?.getServices();
             if (owner && services) {
-                if (awardPetReward(owner, itemId, quantity, services)) return undefined;
+                if (awardPetReward(owner, itemId, quantity, services, opts.petDropSource)) return undefined;
             }
         }
         const key = this.tileKey(tile.x, tile.y, tile.level, worldViewId);

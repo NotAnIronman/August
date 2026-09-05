@@ -1,4 +1,5 @@
 import fs from "fs";
+import { sanitizeFirstPetDrops } from "@server/game/state/PlayerFollowerPersistState";
 import type { StatementSync } from "node:sqlite";
 import path from "path";
 
@@ -630,6 +631,8 @@ export function mergePlayerPersistentVars(
         }
     }
 
+    const firstPetDrops = pick("firstPetDrops");
+    if (Array.isArray(firstPetDrops)) result.firstPetDrops = sanitizeFirstPetDrops(firstPetDrops);
     const pendingPets = pick("pendingPetRewards");
     if (Array.isArray(pendingPets)) {
         result.pendingPetRewards = pendingPets.flatMap(reward => {

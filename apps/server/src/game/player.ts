@@ -225,6 +225,7 @@ export interface PlayerPersistentVars {
     };
     follower?: PlayerFollowerPersistentEntry;
     pendingPetRewards?: Array<{ itemId: number; quantity: number }>;
+    firstPetDrops?: import("@server/game/state/PlayerFollowerPersistState").FirstPetDrop[];
     instanceGrave?: InstanceGraveSnapshot;
     playTimeSeconds?: number;
 }

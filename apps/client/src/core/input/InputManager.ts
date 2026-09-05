@@ -301,11 +301,20 @@ export class InputManager {
         return this.mouseWheelDown ? this.mouseWheelY : -1;
     }
 
+    private eventElement?: HTMLElement;
+    private previousPointerEvents = "";
+
     init(element: HTMLElement) {
         if (this.element) {
             this.cleanUp();
         }
         this.element = element;
+        // Keep canvas coordinates/focus, but hit-test the surrounding input surface.
+        // Canvas targets expose native image gestures in browsers such as Brave.
+        this.previousPointerEvents = element.style.pointerEvents;
+        this.eventElement = element.parentElement ?? element;
+        if (this.eventElement !== element) element.style.pointerEvents = "none";
+        element = this.eventElement;
 
         window.addEventListener("gamepadconnected", this.onGamepadConnected);
         window.addEventListener("gamepaddisconnected", this.onGamepadDisconnected);
@@ -322,12 +331,15 @@ export class InputManager {
         element.addEventListener("touchstart", this.onTouchStart, nonPassive);
         element.addEventListener("touchmove", this.onTouchMove, nonPassive);
         element.addEventListener("touchend", this.onTouchEnd, nonPassive);
-        element.addEventListener("contextmenu", this.onContextMenu);
+        element.addEventListener("contextmenu", this.onContextMenu, true);
+        element.addEventListener("auxclick", this.onContextMenu, true);
         element.addEventListener("focusout", this.onFocusOut);
     }
 
     cleanUp() {
         if (!this.element) return;
+        const canvas = this.element;
+        this.element = this.eventElement ?? canvas;
 
         window.removeEventListener("gamepadconnected", this.onGamepadConnected);
         window.removeEventListener("gamepaddisconnected", this.onGamepadDisconnected);
@@ -343,10 +355,13 @@ export class InputManager {
         this.element.removeEventListener("touchstart", this.onTouchStart);
         this.element.removeEventListener("touchmove", this.onTouchMove);
         this.element.removeEventListener("touchend", this.onTouchEnd);
-        this.element.removeEventListener("contextmenu", this.onContextMenu);
+        this.element.removeEventListener("contextmenu", this.onContextMenu, true);
+        this.element.removeEventListener("auxclick", this.onContextMenu, true);
         this.element.removeEventListener("focusout", this.onFocusOut);
         this.removeDocumentGrab();
         this.touchAdapter.destroy();
+        canvas.style.pointerEvents = this.previousPointerEvents;
+        this.eventElement = undefined;
 
         this.element = undefined;
     }
@@ -753,7 +768,7 @@ export class InputManager {
     private onDocGrabMove = (event: MouseEvent) => {
         if (!this.element) return;
         // If the event target is within our element, the element's own onMouseMove handles it.
-        if (this.element.contains(event.target as Node)) return;
+        if ((this.eventElement ?? this.element).contains(event.target as Node)) return;
 
         const [x, y] = getMousePos(this.element, event);
         this.idleTime = 0;
@@ -767,7 +782,7 @@ export class InputManager {
         this.removeDocumentGrab();
         if (!this.element) return;
         // If released inside our element, the element's own onMouseUp handles it.
-        if (this.element.contains(event.target as Node)) return;
+        if ((this.eventElement ?? this.element).contains(event.target as Node)) return;
 
         const [x, y] = getMousePos(this.element, event);
         this.shiftDown = event.shiftKey === true;

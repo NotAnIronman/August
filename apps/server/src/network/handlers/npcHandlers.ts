@@ -4,6 +4,19 @@ import { normalizeModifierFlags, resolveRunWithModifier } from "@server/network/
 import type { MessageRouter } from "@server/network/MessageRouter";
 
 export function registerNpcHandlers(router: MessageRouter, services: MessageHandlerServices): void {
+    router.register("pet_examine", (ctx) => {
+        const viewer = ctx.player;
+        const npc = services.getNpcById(ctx.payload.npcId);
+        const follower = npc?.getFollowerState();
+        if (!viewer || !npc || !follower || npc.level !== viewer.level || npc.worldViewId !== viewer.worldViewId
+            || Math.max(Math.abs(npc.tileX - viewer.tileX), Math.abs(npc.tileY - viewer.tileY)) > 20) return;
+        const owner = services.getPlayerById(follower.ownerPlayerId);
+        if (!owner) return;
+        const first = owner.followers.getFirstPetDrop(follower.itemId);
+        services.sendGameMessage(viewer, first
+            ? `${owner.name} received this pet at ${first.killcount} ${first.bossName} killcount.`
+            : `${owner.name}'s pet. Its acquisition killcount was not recorded.`);
+    });
     router.register("npc_interact", (ctx) => {
         try {
             // Starting an interaction should consume any stale queued walk click.
@@ -11,6 +24,8 @@ export function registerNpcHandlers(router: MessageRouter, services: MessageHand
             const { npcId, opNum, modifierFlags: rawModifierFlags } = ctx.payload;
             const npc = services.getNpcById(npcId);
             const player = ctx.player;
+            const follower = npc?.getFollowerState();
+            if (follower && follower.ownerPlayerId !== player?.id) return;
             if (!npc) {
                 logger.info?.(`[npc] interact target ${npcId} not found`);
                 return;

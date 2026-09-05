@@ -1,4 +1,5 @@
 import { vec3 } from "gl-matrix";
+import { WidgetPacketQueue } from "@client/engine/game/widgets/WidgetPacketQueue";
 import { ClientSettingId } from "@august/protocol/ui/clientSettings";
 import { sendClientSetting } from "@client/core/network/server-connection/outgoing/movement";
 import { getCompactLayoutSelection } from "@client/engine/game/widgets/CompactLayoutSettings";
@@ -873,6 +874,7 @@ export class OsrsClient {
     }
 
     private unsubscribeWidgetEvents?: () => void;
+    private widgetPacketQueue?: WidgetPacketQueue;
     private unsubscribeNpcInfo?: () => void;
     private unsubscribeCombat?: () => void;
     private unsubscribePlayerSync?: () => void;
@@ -2219,7 +2221,7 @@ export class OsrsClient {
         });
         this.npcMovementSync = new NpcMovementSync(this.npcEcs);
         this.widgetSessionManager = new WidgetSessionManager();
-        this.unsubscribeWidgetEvents = subscribeWidgetEvents((payload) => {
+        this.widgetPacketQueue = new WidgetPacketQueue(() => this.widgetManager, () => this.clientScripts, (payload) => {
             if (payload.action !== "set_text" && (payload as any).uid !== 10616865) {
                 clientDebugLog("[OsrsClient] widget event", payload);
             }
@@ -2262,13 +2264,17 @@ export class OsrsClient {
                     });
                 }
             } else if (payload?.action === "set_root") {
+                this.scriptEvents = [];
+                this.scriptEvents2 = [];
+                this.scriptEvents3 = [];
+                this.scriptRetryGeneration++;
+                this.pendingScriptRetries.clear();
                 clientDebugLog("[OsrsClient] Server setting root interface", payload.groupId);
                 const fixed = payload.groupId === 548;
                 this.cs2Vm.context.windowMode = fixed ? 1 : 2;
                 this.cs2Vm.context.defaultWindowMode = fixed ? 1 : 2;
                 this.varManager?.setVarbit(4607, payload.groupId === 164 ? 1 : 0);
                 this.renderer.canvas.closest(".game-viewport")?.classList.toggle("game-viewport-fixed", fixed);
-                this.renderer.forceResize();
                 if (this.widgetManager) {
                     // Set varc 170 (display mode) based on the root interface
                     // Enum 185 maps: 0->1137 (161 widgets), 1->1101, 2->1067, 3->1175, 4->1293
@@ -2303,6 +2309,8 @@ export class OsrsClient {
                         }
                     }
                     this.widgetManager.setRootInterface(payload.groupId);
+                    // Resize the new root, never invoke the detached layout's handlers.
+                    this.renderer.forceResize();
                     // PERF: Clear CS2 handler caches when switching root interfaces
                     // This prevents memory leaks from stale cached widget references
                     this.cs2Vm.clearHandlerCaches();
@@ -2914,6 +2922,7 @@ export class OsrsClient {
                 }
             }
         });
+        this.unsubscribeWidgetEvents = subscribeWidgetEvents(this.widgetPacketQueue.enqueue);
         this.unsubscribeNpcInfo = subscribeNpcInfo((payload: NpcInfoPayload) => {
             try {
                 this.applyNpcInfo(payload);
@@ -3939,6 +3948,7 @@ export class OsrsClient {
     }
 
     updateWidgets() {
+        this.widgetPacketQueue?.flush();
         // Clear stale widget interaction state before building this frame's menus.
         // A previous interaction can otherwise leave the UI in a state where
         // right-click menus are never allowed to open again.
@@ -4199,11 +4209,7 @@ export class OsrsClient {
      * Check if a widget is still valid (exists in the widget tree and not hidden)
      */
     private isWidgetValid(widget: any): boolean {
-        if (!widget) return false;
-        // Widget is invalid if it's been removed or hidden
-        // In OSRS this checks if the widget still exists in the parent's children array
-        // For now, just check if it's not hidden
-        return !widget.hidden;
+        return !!widget && this.widgetManager.isEventWidgetActive(widget);
     }
 
     clearSelectedSpell(): void {
@@ -8242,6 +8248,7 @@ export class OsrsClient {
 
         // Full reset only - clear persistent session state when going back to login screen
         if (fullReset) {
+            this.widgetPacketQueue?.clear();
             // Clear chat history to prevent memory leak across sessions
             try {
                 chatHistory.clear();
@@ -8277,6 +8284,7 @@ export class OsrsClient {
     dispose(): void {
         if (this.disposed) return;
         this.disposed = true;
+        this.widgetPacketQueue?.clear();
         this.phasedLoadingGeneration++;
         clientDebugLog("[OsrsClient] Disposing...");
         // Stop render/input loops immediately and abort login-owned network/image

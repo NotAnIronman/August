@@ -87,7 +87,7 @@ export function clearSessionCaches(host: WebGLOsrsRendererHost, ): void {
 export async function cleanUp(host: WebGLOsrsRendererHost, ): Promise<void> {
 
         cleanUpRenderer(host);
-        host.canvas.removeEventListener("touchstart", host.onCanvasTouchStart, true);
+        (host.canvas.parentElement ?? host.canvas).removeEventListener("touchstart", host.onCanvasTouchStart, true);
         if (isMobileMode && typeof window !== "undefined") {
             window.removeEventListener("resize", host.onMobileLoginViewportChange);
             window.removeEventListener("orientationchange", host.onMobileLoginViewportChange);

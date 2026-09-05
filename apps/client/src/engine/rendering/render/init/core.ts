@@ -15,7 +15,7 @@ import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/host
 export async function init(host: WebGLOsrsRendererHost, ): Promise<void> {
 
         await initRenderer(host);
-        host.canvas.addEventListener("touchstart", host.onCanvasTouchStart, {
+        (host.canvas.parentElement ?? host.canvas).addEventListener("touchstart", host.onCanvasTouchStart, {
             passive: false,
             capture: true,
         });

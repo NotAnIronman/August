@@ -13,8 +13,9 @@ type StoredPreferences = {
 
 assert.equal(normalizeBossHealthBarStyle("modern"), "modern");
 assert.equal(normalizeBossHealthBarStyle("oldschool"), "oldschool");
-assert.equal(normalizeBossHealthBarStyle("unknown"), "modern");
-assert.equal(normalizeBossHealthBarStyle(undefined), "modern");
+assert.equal(normalizeBossHealthBarStyle("unknown"), "oldschool");
+assert.equal(normalizeBossHealthBarStyle(undefined), "oldschool");
+assert.equal(new BossHealthBarPreferences().getSnapshot(), "oldschool");
 
 let saved: StoredPreferences | undefined;
 const preferences = new BossHealthBarPreferences({
@@ -53,6 +54,6 @@ const defaultsInvalidPersistedValues = new BossHealthBarPreferences({
     load: () => ({ version: 1, style: "future-style" as BossHealthBarStyle }),
     save: () => undefined,
 });
-assert.equal(defaultsInvalidPersistedValues.getSnapshot(), "modern");
+assert.equal(defaultsInvalidPersistedValues.getSnapshot(), "oldschool");
 
 console.log("Boss health bar preferences regression test passed");
