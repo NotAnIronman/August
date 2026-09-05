@@ -1012,6 +1012,7 @@ export class LoginHandshakeService {
                             const p = this.svc.players?.get(ws);
                             if (!p) continue;
                             const ap = packet as AppearanceSetPacket;
+                            const firstDesign = p.account.accountStage === 0;
 
                             const appearance = this.svc.appearanceService.getOrCreateAppearance(p);
                             appearance.gender = ap.gender === 1 ? 1 : 0;
@@ -1028,15 +1029,7 @@ export class LoginHandshakeService {
                             p.markAppearanceDirty();
                             this.svc.playerAppearanceManager!.queueAppearanceSnapshot(p);
 
-                            p.account.accountStage = 1;
-                            try {
-                                const key = p.__saveKey;
-                                if (key && key.length > 0) {
-                                    this.svc.playerPersistence.saveSnapshot(key, p);
-                                }
-                            } catch (err) {
-                                logger.warn("[handshake] failed to save after design", err);
-                            }
+                            if (firstDesign) p.account.accountStage = 1;
 
                             try {
                                 p.widgets.close(679);
@@ -1045,7 +1038,11 @@ export class LoginHandshakeService {
                             }
 
                             try {
-                                this.svc.gamemode.onPostDesignComplete?.(p);
+                                if (firstDesign) {
+                                    this.svc.gamemode.onPostDesignComplete?.(p);
+                                    this.svc.inventoryService.sendInventorySnapshotImmediate(ws, p);
+                                }
+                                if (p.__saveKey) this.svc.playerPersistence.saveSnapshot(p.__saveKey, p);
                                 const spawn = this.svc.gamemode.getSpawnLocation(p);
                                 this.svc.movementService.teleportPlayer(
                                     p,
@@ -1070,6 +1067,7 @@ export class LoginHandshakeService {
                                 });
                             } catch (err) {
                                 logger.warn("[handshake] post-design spawn failed", err);
+                                if (firstDesign && !p.account.starterLoadoutGranted) p.account.accountStage = 0;
                             }
 
                             if (this.svc.gamemode.isTutorialActive(p)) {

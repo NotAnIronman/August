@@ -30,6 +30,15 @@ assert.equal(deferredRaycaster.getLocModelMesh(deferredLoc, deferredModelType, 0
 Object.assign(deferredClient, { textureLoader: client.textureLoader });
 assert(deferredRaycaster.getLocModelMesh(deferredLoc, deferredModelType, 0),
     "objects probed before loaders are ready become pickable when loading finishes");
+const streamingRaycaster = new SceneRaycaster({}, client);
+const actualLoader = streamingRaycaster.getInteractLocModelLoader();
+const getAnimated = actualLoader.getModelAnimated.bind(actualLoader);
+let modelReady = false;
+actualLoader.getModelAnimated = (...args: any[]) => modelReady ? getAnimated(...args) : undefined;
+assert.equal(streamingRaycaster.getLocModelMesh(deferredLoc, deferredModelType, 0), undefined);
+modelReady = true;
+assert(streamingRaycaster.getLocModelMesh(deferredLoc, deferredModelType, 0),
+    "JS5 model miss must be retried after the model arrives, without reloading the client");
 for (const id of [1276, 1281, 7452, 10060]) {
     const loc = raycaster.getResolvedLocType(id, new Map());
     assert(loc, `object ${id} resolves`);

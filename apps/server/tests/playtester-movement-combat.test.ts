@@ -49,17 +49,24 @@ assert.equal((manager as any).checkNpcAggression(aggressive(21), 100, () => near
 assert((manager as any).checkNpcAggression(aggressive(22, 2875, 5355), 100, () => nearby(2876, 5355)),
     "multi permits another aggressive target acquisition");
 const escape = (target: NpcState) => (manager as any).queueOverlapEscape(target, () => [{
-    id: 500, x: target.tileX, y: target.tileY, level: 0,
+    id: target.getCombatTargetPlayerId() ?? 500, x: target.tileX, y: target.tileY, level: 0,
 }]);
 const roamer = npc(7);
-roamer.x = (roamer.spawnX + 2) * 128 + 64;
-assert(escape(roamer));
-assert(roamer.getPathQueue().every(tile => !roamer.isTileOutsideRoamArea(tile.x, tile.y)), "walk-under cannot push past idle boundary");
+roamer.teleport(roamer.spawnX + 2, roamer.spawnY, roamer.spawnLevel);
+assert.equal(escape(roamer), false, "non-combat players cannot body-push wandering NPCs");
+assert.equal(roamer.hasPath(), false);
 const fighter = npc(8);
 fighter.engageCombat(player.id, 0);
-fighter.x = (fighter.spawnX + 7) * 128 + 64;
+fighter.teleport(fighter.spawnX + 7, fighter.spawnY, fighter.spawnLevel);
+assert.equal(escape(fighter), false, "first overlap tick leaves mutual melee routing in control");
 assert(escape(fighter));
 assert(fighter.getPathQueue().every(tile => !fighter.isTileOutsideCombatLeash(tile.x, tile.y)), "overlap escape obeys combat leash");
+const pushedFighter = npc(99);
+pushedFighter.engageCombat(player.id, 0);
+pushedFighter.teleport(pushedFighter.spawnX + 2, pushedFighter.spawnY, pushedFighter.spawnLevel);
+escape(pushedFighter); escape(pushedFighter);
+assert.equal(pushedFighter.getPathQueue()[0]?.x, pushedFighter.tileX - 1,
+    "equal-distance combat escape steps back toward home instead of chasing the player's eastward push");
 
 const follower = new PlayerState(2, 3200, 3200, 0, mode);
 const leader = new PlayerState(3, 3203, 3200, 0, mode);

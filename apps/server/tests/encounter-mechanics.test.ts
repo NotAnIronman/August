@@ -198,4 +198,29 @@ testRegistryIsolation();
 testFloorHazard();
 testSpawnAdds();
 
+const permanentRuntime = createRuntime();
+const permanentHarness = createHarness();
+const permanent = spawnFloorHazard(permanentRuntime, permanentHarness.services, {
+    tiles: [{ x: 50, y: 50, level: 0 }], liveTicks: "encounter", tickInterval: 2,
+    hazardDamage: 5, players: [{ id: 7, tileX: 50, tileY: 50, level: 0, worldViewId: 1 }] as never,
+});
+for (let id = 1; id <= 20; id++) permanentHarness.runTask(id, id * 2);
+assert.equal(permanentHarness.damages.length, 20, "permanent hazards keep pulsing beyond normal lifetime");
+assert(permanent.isActive);
+permanentRuntime.dispose();
+assert.equal(permanent.isActive, false);
+assert.deepEqual(permanentHarness.cancelled, [21], "only one future pulse exists; encounter cleanup cancels it");
+
+const overlapRuntime = createRuntime();
+const overlapHarness = createHarness();
+let clearedTells = 0;
+(overlapHarness.services as any).location = { replaceTemporaryLoc() {}, clearTemporaryLoc() { clearedTells++; } };
+const tellParams = { tiles: [{ x: 50, y: 50, level: 0 }], tell: { locId: 56358 }, players: [] };
+const longPatch = spawnFloorHazard(overlapRuntime, overlapHarness.services, { ...tellParams, liveTicks: "encounter" });
+const shortPatch = spawnFloorHazard(overlapRuntime, overlapHarness.services, { ...tellParams, liveTicks: 1 });
+shortPatch.cancel();
+assert.equal(clearedTells, 0, "temporary acid cannot erase overlapping permanent poison");
+longPatch.cancel();
+assert.equal(clearedTells, 1);
+
 console.log("encounter mechanic tests passed");

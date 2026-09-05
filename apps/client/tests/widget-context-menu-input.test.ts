@@ -1,7 +1,21 @@
 import assert from "node:assert/strict";
+import { InputManager, ClickMode } from "@client/core/input/InputManager";
 
 import { WidgetInputController } from "@client/engine/game/widgets/WidgetInputController";
 import { shouldSkipWidgetPointerInput } from "@client/engine/game/widgets/input/widgetClickGuard";
+
+const nativeInput = new InputManager() as any;
+nativeInput.element = { width: 800, height: 600,
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+nativeInput.installDocumentGrab = () => {};
+let prevented = 0;
+nativeInput.onMouseDown({ button: 2, shiftKey: true, clientX: 100, clientY: 100,
+    preventDefault: () => prevented++ });
+assert.equal(prevented, 1, "modified right-button press cancels the browser gesture");
+assert.equal(nativeInput.shiftDown, true);
+assert.equal(nativeInput.clickMode1, ClickMode.RIGHT, "in-game menu still receives the right click");
+nativeInput.onContextMenu({ preventDefault: () => prevented++ });
+assert.equal(prevented, 2, "contextmenu default is also cancelled");
 
 function createDeps(options: {
     worldMenuOpen?: boolean;

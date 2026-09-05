@@ -288,6 +288,7 @@ export function widgetEntriesToSimple(
         scheduleRender: () => void;
         menuState?: MenuState;
         label?: TargetLabelOptions;
+        transformEntries?: (entries: SimpleMenuEntry[]) => SimpleMenuEntry[];
     },
 ): SimpleMenuEntry[] {
     const { ui, chosenWidget, scheduleRender, menuState } = ctx;
@@ -435,7 +436,7 @@ export function widgetEntriesToSimple(
     // Widget-derived menu entries are already provided in OSRS display order (top-to-bottom).
     // normalizeMenuEntries expects OSRS insertion order (reverse-render semantics) and would invert
     // widget ops like minimap orbs.
-    const ordered = list;
+    const ordered = ctx.transformEntries ? ctx.transformEntries(list) : list;
     if (menuState) {
         for (const entry of ordered) {
             const idx = menuState.add({

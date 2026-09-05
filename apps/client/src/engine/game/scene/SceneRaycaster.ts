@@ -864,7 +864,9 @@ export class SceneRaycaster {
             !model.indices2 ||
             !model.indices3
         ) {
-            this.locModelMeshCache.set(key, null);
+            // ModelLoader returns undefined while JS5 is fetching a missing
+            // model group. Never make a streaming miss a permanent unpickable
+            // object: the render worker and main-thread picker load separately.
             return undefined;
         }
 

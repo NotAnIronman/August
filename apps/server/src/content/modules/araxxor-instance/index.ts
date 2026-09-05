@@ -84,6 +84,8 @@ interface AraxxorState {
     nextEggAt: number;
     eggIndex: number;
     readonly eggIds: Map<number, NpcState>;
+    eggsSpawned: boolean;
+    readonly cleaveTiles: Set<string>;
     enraged: boolean;
 }
 const states = new WeakMap<NpcState, AraxxorState>();
@@ -107,7 +109,7 @@ function stateFor(npc: NpcState, services: ScriptServices): AraxxorState {
                 ? ["mirrorback", "ruptura", "acidic"] as const
                 : ["ruptura", "acidic", "mirrorback"] as const;
         const special = eggPattern[0] === "acidic" ? "acid-ball" : eggPattern[0] === "mirrorback" ? "acid-splatter" : "acid-drip";
-        state = { generation, startedAt: services.system.getCurrentTick(), normalAttacks: 0, standardAttacks: 0, special, eggPattern, nextEggAt: 3, eggIndex: 0, eggIds: new Map(), enraged: false };
+        state = { generation, startedAt: services.system.getCurrentTick(), normalAttacks: 0, standardAttacks: 0, special, eggPattern, nextEggAt: 3, eggIndex: 0, eggIds: new Map(), eggsSpawned: false, cleaveTiles: new Set(), enraged: false };
         states.set(npc, state);
     }
     return state;
@@ -151,7 +153,7 @@ function registerEncounters(registry: IScriptRegistry): void {
                 attack.melee({ id: "melee", speedTicks: 6, maxHit: 38, animationId: ANIM.melee, effects: { venomDamage: 6 } }),
                 attack.magic({ id: "magic", preferredDistance: 1, speedTicks: 6, maxHit: 21, animationId: ANIM.magic, effects: { venomDamage: 6, prayerDrainFraction: 0.09 } }),
                 attack.ranged({ id: "ranged", preferredDistance: 1, speedTicks: 6, maxHit: 34, animationId: ANIM.ranged, effects: { venomDamage: 6, defenceDrainFraction: 0.09 } }),
-                attack.melee({ id: "enraged-melee", speedTicks: 4, maxHit: 38, animationId: ANIM.enragedMelee, effects: { venomDamage: 6 } }),
+                attack.melee({ id: "enraged-melee", rangeTiles: 2, preferredDistance: 1, speedTicks: 4, maxHit: 38, animationId: ANIM.enragedMelee, effects: { venomDamage: 6 } }),
                 attack.magic({ id: "enraged-magic", preferredDistance: 1, speedTicks: 4, maxHit: 21, animationId: ANIM.slowRanged, effects: { venomDamage: 6, prayerDrainFraction: 0.09 } }),
                 attack.ranged({ id: "enraged-ranged", preferredDistance: 1, speedTicks: 4, maxHit: 34, animationId: ANIM.ranged, effects: { venomDamage: 6, defenceDrainFraction: 0.09 } }),
             ],
@@ -284,6 +286,8 @@ function spawnEgg(npc: NpcState, target: PlayerState, services: ScriptServices, 
 
 function spawnEggRing(npc: NpcState, target: PlayerState, services: ScriptServices): void {
     const state = stateFor(npc, services);
+    if (state.eggsSpawned) return;
+    state.eggsSpawned = true;
     for (let index = 0; index < EGG_TILES.length; index += 1) spawnEgg(npc, target, services, state, index);
 }
 
@@ -291,7 +295,7 @@ function hatchEgg(npc: NpcState, target: PlayerState, services: ScriptServices, 
     const slot = eggIndex % EGG_TILES.length;
     const egg = state.eggIds.get(slot);
     state.eggIds.delete(slot);
-    if (!egg) { spawnEgg(npc, target, services, state, slot); return; }
+    if (!egg || egg.getHitpoints() <= 0 || services.combat.getNpc(egg.id) !== egg) return;
     const kind = state.eggPattern[eggIndex % state.eggPattern.length]!;
     const addId = kind === "mirrorback" ? MIRRORBACK_ID : kind === "ruptura" ? RUPTURA_ID : ACIDIC_ARAXYTE_ID;
     const tile = EGG_TILES[slot]!;
@@ -326,9 +330,6 @@ function hatchEgg(npc: NpcState, target: PlayerState, services: ScriptServices, 
                 services.npc.engageCombat(add, target);
             }
         }
-        // Each hatching slot is immediately replenished, keeping a visible
-        // six-egg ring throughout the encounter and ready for its next turn.
-        if (services.combat.getNpc(npc.id) === npc && inLair(target, services)) spawnEgg(npc, target, services, state, slot);
     }, { kind: "npc", id: npc.id });
     runtime.ownTask(hatchTaskId);
 }
@@ -338,21 +339,33 @@ function araxxorAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     if (!inLair(target, services)) return;
     const state = stateFor(npc, services);
     const runtime = services.encounters.ensure(npc);
-    if (state.eggIds.size === 0) spawnEggRing(npc, target, services);
+    if (!state.eggsSpawned) spawnEggRing(npc, target, services);
     if (!state.enraged && npc.getHitpoints() <= 255) { state.enraged = true; services.npc.queueNpcForcedChat(npc, "Araxxor becomes enraged!"); }
     state.normalAttacks += 1;
     // Araxxor performs six standard attacks, then a special. The egg clock
     // counts only those standard attacks (first hatch at 3, then every 6).
     if (state.normalAttacks <= 6) {
         state.standardAttacks += 1;
-        if (state.standardAttacks >= state.nextEggAt) {
+        if (state.eggIndex < EGG_TILES.length && state.standardAttacks >= state.nextEggAt) {
             state.eggIndex += 1;
             state.nextEggAt += 6;
             hatchEgg(npc, target, services, state, state.eggIndex - 1);
         }
         // In the final quarter Araxxor's normal clock is four ticks, and its
         // melee becomes a three-tile cleave that leaves acid behind.
-        if (state.enraged && event.attack.traits.type === AttackType.Melee) acidPatches(npc, target, services, 3, true);
+        if (state.enraged && event.attack.traits.type === AttackType.Melee && runtime) {
+            const room = services.instances.get(target.id);
+            const tiles = enrageCleaveTiles(npc, target).filter(tile => !state.cleaveTiles.has(`${tile.x},${tile.y},${tile.level}`));
+            if (room && tiles.length > 0) {
+                for (const tile of tiles) state.cleaveTiles.add(`${tile.x},${tile.y},${tile.level}`);
+                runtime.runMechanic("araxxor-cleave", "stack", () => spawnFloorHazard(runtime, services, {
+                    id: "araxxor-cleave", tiles,
+                    tell: { locId: ACID_TELL_LOC_ID, locShape: 10 }, hazardTime: 1,
+                    liveTicks: "encounter", tickInterval: 2, hazardDamage: rng => 4 + rng.nextInt(8),
+                    players: services.instances.getMemberPlayers(room.id), appliesTo: "all-members",
+                }));
+            }
+        }
         return;
     }
     state.normalAttacks = 0;
@@ -383,38 +396,67 @@ function araxxorAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     return NpcAttackDecision.Prevent;
 }
 
+/** A three-wide strip through the target, perpendicular to the cardinal attack direction. */
+export function enrageCleaveTiles(npc: Pick<NpcState, "tileX" | "tileY" | "size">, target: Pick<PlayerState, "tileX" | "tileY" | "level">) {
+    const dx = target.tileX - (npc.tileX + (npc.size - 1) / 2);
+    const dy = target.tileY - (npc.tileY + (npc.size - 1) / 2);
+    const eastWest = Math.abs(dx) >= Math.abs(dy);
+    return [-1, 0, 1].map(offset => ({ x: target.tileX + (eastWest ? 0 : offset), y: target.tileY + (eastWest ? offset : 0), level: target.level }));
+}
+
+const armedRupturas = new WeakSet<NpcState>();
 function rupturaAttack(event: NpcAttackEvent): NpcAttackDecision | void {
     const { npc, target, services, tick } = event;
+    if (armedRupturas.has(npc)) return NpcAttackDecision.Prevent;
     const distance = Math.max(Math.abs(npc.tileX - target.tileX), Math.abs(npc.tileY - target.tileY));
     if (distance > 1) return;
+    armedRupturas.add(npc);
+    services.npc.stopNpcMovement(npc);
+    services.npc.stopNpcMovement(npc, 4);
+    const runtime = services.encounters.ensure(npc);
+    const generation = runtime?.generation;
+    let taskId = -1;
+    taskId = services.scheduler.after(3, (explosionTick) => {
+        runtime?.releaseTask(taskId);
+        if (runtime?.generation !== generation || services.combat.getNpc(npc.id) !== npc || npc.getHitpoints() <= 0) return;
+        explodeRuptura(npc, target, services, explosionTick);
+    }, { kind: "npc", id: npc.id });
+    runtime?.ownTask(taskId);
+    return NpcAttackDecision.Prevent;
+}
+
+function explodeRuptura(npc: NpcState, target: PlayerState, services: ScriptServices, tick: number): void {
     const healthFraction = npc.getHitpoints() / Math.max(1, npc.getMaxHitpoints());
     const explosionDamage = (range: number): number => {
         const fullHealth = range <= 0 ? 80 : range === 1 ? 64 : Math.max(33, 80 - range * 16);
         return Math.max(1, Math.floor(fullHealth * healthFraction));
     };
     services.npc.queueNpcSeq(npc, ANIM.rupturaExplode);
-    services.combat.applyNpcDamageToPlayer(npc, target, HITMARK_DAMAGE, explosionDamage(distance), tick);
+    const room = services.instances.get(target.id);
+    for (const player of room ? services.instances.getMemberPlayers(room.id) : [target]) {
+        const distance = Math.max(Math.abs(npc.tileX - player.tileX), Math.abs(npc.tileY - player.tileY));
+        if (distance <= 2 && player.worldViewId === npc.worldViewId && player.level === npc.level) {
+            services.combat.applyNpcDamageToPlayer(npc, player, HITMARK_DAMAGE, explosionDamage(distance), tick);
+        }
+    }
 
     // Ruptura's blast is intentionally useful: it damages Araxxor and any
     // nearby live araxyte/egg using the player as the credited source, so
     // normal death handling and hitsplats remain intact.
     const araxxor = services.npc.findNearbyNpc(target, ARAXXOR_ID, 30);
-    const blastTargets = [
-        araxxor,
-        services.npc.findNearbyNpc(target, MIRRORBACK_ID, 30),
-        services.npc.findNearbyNpc(target, ACIDIC_ARAXYTE_ID, 30),
-        services.npc.findNearbyNpc(target, MIRRORBACK_EGG_ID, 30),
-        services.npc.findNearbyNpc(target, ACIDIC_ARAXYTE_EGG_ID, 30),
-        services.npc.findNearbyNpc(target, RUPTURA_EGG_ID, 30),
-    ];
+    const bossRuntime = araxxor && services.encounters.getByNpcRuntimeId(araxxor.id);
+    const blastTargets = bossRuntime
+        ? [...bossRuntime.snapshotOwnedResources().npcRuntimeIds].map(id => services.combat.getNpc(id))
+        : [araxxor];
     for (const victim of blastTargets) {
         if (!victim || victim.id === npc.id || victim.worldViewId !== npc.worldViewId) continue;
-        const victimDistance = Math.max(Math.abs(npc.tileX - victim.tileX), Math.abs(npc.tileY - victim.tileY));
+        if (victim.level !== npc.level || victim.getHitpoints() <= 0) continue;
+        // Distance to the footprint, not the south-west anchor of a 7x7 boss.
+        const victimDistance = Math.max(0, victim.tileX - npc.tileX, npc.tileX - (victim.tileX + victim.size - 1), victim.tileY - npc.tileY, npc.tileY - (victim.tileY + victim.size - 1));
         if (victimDistance > 7) continue;
         services.combat.applyPlayerDamageToNpc(target, victim, HITMARK_DAMAGE, explosionDamage(victimDistance), tick);
     }
     services.npc.removeNpc(npc.id);
-    return NpcAttackDecision.Prevent;
 }
 
 function escape({ player, services }: LocInteractionEvent): void {

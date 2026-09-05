@@ -4,6 +4,7 @@ export type PreferredGameMode = "vanilla" | "leagues";
 
 export interface AccountPersistSnapshot {
     accountStage?: number;
+    starterLoadoutGranted?: boolean;
     accountCreationTimeMs?: number;
     playTimeSeconds?: number;
     /** Soft mode choice after char create (leagues-v host). */
@@ -12,6 +13,7 @@ export interface AccountPersistSnapshot {
 
 export class PlayerAccountState implements PersistentSubState<AccountPersistSnapshot> {
     accountStage: number = 1;
+    starterLoadoutGranted = false;
     preferredMode: PreferredGameMode | undefined;
     private creationTimeMs: number = Date.now();
     private lifetimePlayTimeSecondsBase: number = 0;
@@ -46,6 +48,7 @@ export class PlayerAccountState implements PersistentSubState<AccountPersistSnap
     serialize(): AccountPersistSnapshot {
         const snapshot: AccountPersistSnapshot = {
             accountStage: Number.isFinite(this.accountStage) ? this.accountStage : 1,
+            starterLoadoutGranted: this.starterLoadoutGranted,
             accountCreationTimeMs: Math.max(
                 0,
                 Number.isFinite(this.creationTimeMs) ? Math.floor(this.creationTimeMs) : 0,
@@ -59,6 +62,7 @@ export class PlayerAccountState implements PersistentSubState<AccountPersistSnap
     }
 
     deserialize(data: AccountPersistSnapshot | undefined): void {
+        this.starterLoadoutGranted = data?.starterLoadoutGranted === true;
         if (!data) {
             this.accountStage = 1;
             this.preferredMode = undefined;

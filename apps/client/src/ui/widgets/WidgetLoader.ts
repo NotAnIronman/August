@@ -1,5 +1,6 @@
 import { CacheIndex } from "@august/osrs-engine/cache/CacheIndex";
 import { CacheSystem } from "@august/osrs-engine/cache/CacheSystem";
+import { isGroupMissingError } from "@august/osrs-engine/cache/js5/GroupMissingError";
 import { IndexType } from "@august/osrs-engine/cache/IndexType";
 import { ByteBuffer } from "@august/osrs-engine/io/ByteBuffer";
 import { FONT_BOLD_12, FONT_PLAIN_11 } from "@august/protocol/ui/fonts";
@@ -613,6 +614,9 @@ export class WidgetLoader {
                         widgets.set(uid, widget);
                     }
                 } catch (e) {
+                    // A streaming miss is not malformed data. Do not cache an
+                    // empty/partial gameframe that can only recover on reload.
+                    if (isGroupMissingError(e)) return undefined;
                     // Skip malformed widget
                     console.error(`[WidgetLoader] Failed to decode widget ${groupId}:${fileId}`, e);
                     continue;

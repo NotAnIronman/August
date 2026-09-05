@@ -284,6 +284,7 @@ export class LeaguesVGamemode extends VanillaGamemode {
     }
 
     onPostDesignComplete(player: PlayerState): void {
+        super.onPostDesignComplete(player);
         if (this.isTutorialActive(player)) {
             player.teleport(TUTORIAL_SPAWN.x, TUTORIAL_SPAWN.y, TUTORIAL_SPAWN.level);
         }

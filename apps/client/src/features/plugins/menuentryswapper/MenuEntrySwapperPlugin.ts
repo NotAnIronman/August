@@ -33,7 +33,7 @@ export class MenuEntrySwapperPlugin {
     private sanitize(input?: Partial<MenuEntrySwapperConfig>): MenuEntrySwapperConfig {
         const swaps: Record<string, MenuSwapPreference> = {};
         for (const [key, value] of Object.entries(input?.swaps ?? {}).slice(0, 2000)) {
-            if (!/^[234]:\d+$/.test(key) || !value || typeof value.name !== "string") continue;
+            if (!/^(?:[234]|inventory|spell):\d+$/.test(key) || !value || typeof value.name !== "string") continue;
             swaps[key] = {
                 name: value.name.slice(0, 120),
                 left: typeof value.left === "string" ? value.left.slice(0, 80) : undefined,
@@ -74,6 +74,7 @@ export class MenuEntrySwapperPlugin {
         } });
     }
     private key(entry: SimpleMenuEntry): string | undefined {
+        if (entry.menuSwapKey && /^(inventory|spell):\d+$/.test(entry.menuSwapKey)) return entry.menuSwapKey;
         if (entry.targetType !== MenuTargetType.NPC && entry.targetType !== MenuTargetType.LOC &&
             entry.targetType !== MenuTargetType.OBJ) return undefined;
         if (!Number.isSafeInteger(entry.targetId) || entry.targetId! < 0) return undefined;
@@ -81,7 +82,33 @@ export class MenuEntrySwapperPlugin {
     }
     private isOperation(entry: SimpleMenuEntry): boolean {
         return this.key(entry) !== undefined && typeof entry.actionIndex === "number" &&
-            entry.actionIndex >= 0 && !entry.deprioritized && clean(entry.option) !== "attack";
+            entry.actionIndex >= 0 && !entry.deprioritized &&
+            !["attack", "examine", "inspect", "cancel"].includes(clean(entry.option));
+    }
+    widgetKey(widget: { groupId?: number; uid?: number; itemId?: number }): string | undefined {
+        const group = widget.groupId ?? ((widget.uid ?? 0) >>> 16);
+        if (group === 149 && (widget.itemId ?? -1) > 0) return `inventory:${widget.itemId}`;
+        // Current-cache spellbook buttons may be dynamic item-backed children.
+        if ([218, 388, 389].includes(group)) {
+            const id = (widget.itemId ?? -1) > 0 ? widget.itemId! : widget.uid;
+            if (id !== undefined && id >= 0) return `spell:${id}`;
+        }
+        return undefined;
+    }
+    applyWidgetEntries<T extends SimpleMenuEntry>(entries: T[], widget: { groupId?: number; uid?: number; itemId?: number }, shift: boolean, configure: boolean): T[] {
+        const key = this.widgetKey(widget);
+        if (!key) return entries;
+        return this.apply(entries.map(entry => ({ ...entry, menuSwapKey: key,
+            actionIndex: entry.actionIndex ?? 0 })), shift, configure) as T[];
+    }
+    getWidgetChoice<T extends SimpleMenuEntry>(entries: T[], widget: { groupId?: number; uid?: number; itemId?: number }, shift: boolean): T | undefined {
+        if (!this.state.config.enabled) return undefined;
+        const key = this.widgetKey(widget);
+        const saved = key && this.state.config.swaps[key];
+        if (!saved) return undefined;
+        const desired = shift ? saved.shift ?? saved.left : saved.left;
+        return desired ? entries.find(entry => clean(entry.option) === clean(desired) &&
+            !["cancel", "examine", "inspect"].includes(clean(entry.option))) : undefined;
     }
     apply(entries: SimpleMenuEntry[], shift: boolean, configure: boolean): SimpleMenuEntry[] {
         const config = this.state.config;
@@ -92,7 +119,10 @@ export class MenuEntrySwapperPlugin {
         // Keep entity ordering: swaps must not promote an NPC behind another NPC.
         const groups = new Map<string, SimpleMenuEntry[]>();
         for (const entry of entries) {
-            if (!this.isOperation(entry)) continue;
+            // Attack is a valid anchor, but never a swappable choice. Otherwise
+            // a saved Pickpocket remains below the NPC's default Attack action.
+            if (!this.isOperation(entry) && !(this.key(entry) &&
+                clean(entry.option) === "attack" && !entry.deprioritized)) continue;
             const groupKey = `${this.key(entry)}:${entry.npcServerId}:${entry.mapX}:${entry.mapY}`;
             const group = groups.get(groupKey) ?? [];
             group.push(entry);
@@ -112,7 +142,7 @@ export class MenuEntrySwapperPlugin {
                 });
                 desired = preset?.option;
             }
-            const selected = desired && group.find(e => clean(e.option) === clean(desired));
+            const selected = desired && group.find(e => this.isOperation(e) && clean(e.option) === clean(desired));
             if (selected) {
                 const top = result.indexOf(anchor);
                 const index = result.indexOf(selected);
@@ -125,7 +155,7 @@ export class MenuEntrySwapperPlugin {
                         option: mode === "left" ? "Swap left-click" : "Swap shift-click",
                         target: anchor.target,
                         opcode: MenuOpcode.Custom,
-                        subEntries: group.map(entry => ({
+                        subEntries: group.filter(entry => this.isOperation(entry)).map(entry => ({
                             option: entry.option,
                             opcode: MenuOpcode.Custom,
                             onClick: (_x, _y, ctx) => {

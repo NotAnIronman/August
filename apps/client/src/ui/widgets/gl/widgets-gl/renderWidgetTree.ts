@@ -495,6 +495,8 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                                 const mapped = widgetEntriesToSimple(candEntries, {
                                     ui,
                                     chosenWidget: w,
+                                    transformEntries: (rows: any[]) => ClientState.isSpellSelected || ClientState.isItemSelected === 1 ? rows :
+                                        (opts.game as any)?.osrsClient?.menuEntrySwapperPlugin?.applyWidgetEntries(rows, w, inputManager?.shiftDown === true, true) ?? rows,
                                     scheduleRender,
                                     menuState,
                                     label: {
@@ -658,6 +660,8 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                 const mapped = widgetEntriesToSimple(entries, {
                     ui,
                     chosenWidget: chosen,
+                    transformEntries: (rows: any[]) => ClientState.isSpellSelected || ClientState.isItemSelected === 1 ? rows :
+                        (opts.game as any)?.osrsClient?.menuEntrySwapperPlugin?.applyWidgetEntries(rows, chosen, inputManager?.shiftDown === true, true) ?? rows,
                     scheduleRender,
                     menuState,
                     label: {
@@ -1612,6 +1616,9 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                     if (inputManager?.shiftDown === true && hasDropAction) {
                         primaryOptionText = "Drop";
                     }
+                    const swap = !ClientState.isSpellSelected && ClientState.isItemSelected !== 1 &&
+                        (opts.game as any)?.osrsClient?.menuEntrySwapperPlugin?.getWidgetChoice(entries, w, inputManager?.shiftDown === true);
+                    if (swap) { primaryOptionText = swap.option; primaryTarget = swap.target; }
                     if (profileWidgetRender) {
                         clickPrimaryResolveMs += performance.now() - clickPrimaryResolveStartMs;
                     }

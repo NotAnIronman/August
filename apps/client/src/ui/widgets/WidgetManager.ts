@@ -132,6 +132,23 @@ export class WidgetManager {
     canvasWidth: number = 0;
     canvasHeight: number = 0;
     private pendingRootOnLoad: number = -1;
+    private readonly pendingSubInterfaces = new Map<number, { groupId: number; type: number }>();
+
+    /** Retry cache-streaming misses without discarding the server's mount request. */
+    retryPendingInterfaces(): void {
+        let initialized = false;
+        if (this.pendingRootOnLoad === this.rootInterface && this.canvasWidth > 0 && this.canvasHeight > 0) {
+            const root = this.getGroup(this.rootInterface);
+            if (!root) return;
+            this.pendingRootOnLoad = -1;
+            this.initializeRoot(root);
+            initialized = true;
+        }
+        for (const [uid, mount] of [...this.pendingSubInterfaces]) {
+            this.openSubInterface(uid, mount.groupId, mount.type);
+        }
+        if (initialized) this.triggerOnSubChange();
+    }
 
     /** Reference to the main client */
     osrsClient: any = null;
@@ -495,8 +512,8 @@ export class WidgetManager {
                 this.canvasHeight > 0
             ) {
                 const pending = this.groups.get(this.pendingRootOnLoad);
-                this.pendingRootOnLoad = -1;
                 if (pending) {
+                    this.pendingRootOnLoad = -1;
                     this.initializeRoot(pending);
                     this.triggerOnSubChange();
                 }
@@ -1131,6 +1148,7 @@ export class WidgetManager {
      * Only use this for complete client reset (e.g., logout, reconnect).
      */
     clear(): void {
+        this.pendingSubInterfaces.clear();
         // Clear all widget group data
         this.groups.clear();
         this.widgetByUid.clear();
@@ -1452,6 +1470,7 @@ export class WidgetManager {
      * Does NOT clear widget caches - loaded groups persist in memory
      */
     setRootInterface(groupId: number): WidgetGroupInstance | undefined {
+        this.pendingSubInterfaces.clear();
         // Do NOT clear all caches here. Widgets stay loaded in memory.
         // Only clear special widget references and interface parents for the new root.
 
@@ -1472,7 +1491,7 @@ export class WidgetManager {
         this.invalidateAll();
 
         this.rootInterface = groupId;
-        this.pendingRootOnLoad = -1;
+        this.pendingRootOnLoad = groupId;
 
         const instance = this.getGroup(groupId);
         if (!instance) {
@@ -1480,6 +1499,7 @@ export class WidgetManager {
         }
 
         if (this.canvasWidth > 0 && this.canvasHeight > 0) {
+            this.pendingRootOnLoad = -1;
             this.initializeRoot(instance);
         } else {
             this.pendingRootOnLoad = groupId;
@@ -1510,6 +1530,11 @@ export class WidgetManager {
      * @param type interface parent type (0=modal, 1=overlay, 3=tab/sidemodal replacement)
      */
     openSubInterface(targetUid: number, groupId: number, type: number = 0): void {
+        if (!this.getWidgetByUid(targetUid) || !this.getGroup(groupId)) {
+            this.pendingSubInterfaces.set(targetUid, { groupId, type });
+            return;
+        }
+        this.pendingSubInterfaces.delete(targetUid);
         const targetWidget = this.getWidgetByUid(targetUid);
         if (!targetWidget) {
             console.warn(
@@ -1644,6 +1669,7 @@ export class WidgetManager {
      * Close a sub-interface mounted at a widget
      */
     closeSubInterface(targetUid: number): void {
+        this.pendingSubInterfaces.delete(targetUid);
         const parent = this.interfaceParents.get(targetUid);
         if (!parent) return;
 

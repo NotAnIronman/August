@@ -1234,6 +1234,7 @@ export class OsrsClient {
             getObjTypeLoader: () => this.objTypeLoader,
             getInventory: () => this.inventory,
             getSettings: () => this.settings,
+            getMenuEntrySwapper: () => this.menuEntrySwapperPlugin,
             getMinimapZoomEnabled: () => this.minimapZoomEnabled,
             getMenuOpen: () => this.menuOpen,
             getMenuJustClosed: () => this.menuJustClosed,
@@ -3949,6 +3950,7 @@ export class OsrsClient {
         }
 
         const rootInterface = widgetManager.rootInterface;
+        widgetManager.retryPendingInterfaces();
         if (rootInterface !== -1 && this.renderer && this.renderer.canvas) {
             // Use dimensions from widgetManager (set by renderer on resize)
             const width = widgetManager.canvasWidth;
@@ -4089,6 +4091,7 @@ export class OsrsClient {
         }
 
         const widgetUid = typeof widget?.uid === "number" ? widget.uid : -1;
+        const rootAtRequest = this.widgetManager.rootInterface;
         const key = `${scriptId}:${widgetUid}`;
         if (this.pendingScriptRetries.has(key)) return;
 
@@ -4097,6 +4100,7 @@ export class OsrsClient {
         void this.clientScripts.loadWithRetry(scriptId).then((script) => {
             this.pendingScriptRetries.delete(key);
             if (generation !== this.scriptRetryGeneration) return;
+            if (rootAtRequest !== this.widgetManager.rootInterface) return;
             if (widgetUid >= 0 && this.widgetManager.getWidgetByUid(widgetUid) !== widget) return;
             if (!script) {
                 console.warn(`[widget:onLoad] Script ${scriptId} not found in cache`);

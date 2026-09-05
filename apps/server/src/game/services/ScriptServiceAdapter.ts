@@ -990,15 +990,22 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                 });
                 return result;
             },
-            applyPlayerDamageToNpc: (player, npc, style, damage, tick) =>
-                deps.combatEffectService?.applyPlayerDamageToNpc(
+            applyPlayerDamageToNpc: (player, npc, style, damage, tick) => {
+                const result = deps.combatEffectService?.applyPlayerDamageToNpc(
                     player,
                     npc,
                     damage,
                     style,
                     tick ?? deps.getCurrentTick(),
                     AttackType.Melee,
-                ),
+                );
+                if (result) deps.activeFrame()?.hitsplats.push({
+                    targetType: "npc", targetId: npc.id, damage: result.amount, style: result.style,
+                    sourceType: "player", sourcePlayerId: player.id,
+                    hpCurrent: result.hpCurrent, hpMax: result.hpMax,
+                });
+                return result;
+            },
             applyNpcHitsplat: (npc, style, damage, tick, maxHit) => {
                 const currentTick = tick ?? deps.getCurrentTick();
                 const result = deps.combatEffectApplicator.applyNpcHitsplat(

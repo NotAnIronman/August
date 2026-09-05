@@ -21,6 +21,7 @@ export function exportPersistentVars(player: PlayerState): PlayerPersistentVars 
     }
     const accountSnapshot = player.account.serialize();
     snapshot.accountStage = accountSnapshot.accountStage;
+    snapshot.starterLoadoutGranted = accountSnapshot.starterLoadoutGranted;
     if (accountSnapshot.preferredMode) {
         snapshot.preferredMode = accountSnapshot.preferredMode;
     }
@@ -123,6 +124,7 @@ export function applyPersistentVars(player: PlayerState, state?: PlayerPersisten
     }
     player.account.deserialize({
         accountStage: state.accountStage,
+        starterLoadoutGranted: state.starterLoadoutGranted,
         accountCreationTimeMs: state.accountCreationTimeMs,
         playTimeSeconds: state.playTimeSeconds,
         preferredMode: state.preferredMode,

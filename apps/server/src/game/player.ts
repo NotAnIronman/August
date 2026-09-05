@@ -165,6 +165,7 @@ export type { CollectionLogUnlockEntry } from "@server/game/state/PlayerCollecti
 const DEFAULT_MAX_COMBAT_STYLE_SLOT = 3;
 
 export interface PlayerPersistentVars {
+    starterLoadoutGranted?: boolean;
     preferredDisplayMode?: number;
     varps?: Record<number, number>;
     varbits?: Record<number, number>;

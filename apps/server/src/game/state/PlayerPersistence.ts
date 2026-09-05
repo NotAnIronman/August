@@ -474,6 +474,8 @@ export function mergePlayerPersistentVars(
         result.accountStage = accountStage;
     }
     const preferredMode = pick("preferredMode");
+    const starterLoadoutGranted = pick("starterLoadoutGranted");
+    if (typeof starterLoadoutGranted === "boolean") result.starterLoadoutGranted = starterLoadoutGranted;
     if (preferredMode === "vanilla" || preferredMode === "leagues") {
         result.preferredMode = preferredMode;
     }

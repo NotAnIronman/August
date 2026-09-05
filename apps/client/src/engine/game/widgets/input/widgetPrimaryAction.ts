@@ -175,6 +175,14 @@ export function createPrimaryWidgetActionResolver(
                             : undefined;
                 }
             }
+            // Explicit saved choices override the generic shift-drop preference,
+            // but never interrupt an active item/spell target selection.
+            const swap = !hasSelection && deps.getMenuEntrySwapper?.().getWidgetChoice(derived, w, isShiftHeld);
+            if (swap) {
+                entryOption = swap.option;
+                entryTarget = swap.target;
+                entryOpIndex = swap.opIndex;
+            }
         } catch {}
         const fallbackActionFromWidgetActions = (): string | undefined => {
             const actions: Array<string | null | undefined> = Array.isArray(w?.actions)

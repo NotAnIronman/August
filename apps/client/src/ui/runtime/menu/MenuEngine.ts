@@ -4,6 +4,8 @@ import { MenuOpcode } from "@client/ui/runtime/menu/MenuState";
 
 export type SimpleMenuEntry = {
     option: string;
+    /** Stable inventory/spell identity for user menu preferences; never sent as an opcode. */
+    menuSwapKey?: string;
     target?: string;
     onClick?: (gx?: number, gy?: number, ctx?: MenuClickContext) => void;
     action?: MenuAction; // canonical action (optional; inferred if absent)

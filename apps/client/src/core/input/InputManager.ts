@@ -639,6 +639,9 @@ export class InputManager {
 
         // Right click
         if (event.button === 2) {
+            // Cancel the initiating gesture too: Chromium/Brave can open its
+            // canvas image menu for a modified secondary-button press.
+            event.preventDefault();
             this.clickMode1 = ClickMode.RIGHT;
             this.clickMode2 = ClickMode.RIGHT;
         }

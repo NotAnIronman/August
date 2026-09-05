@@ -1345,6 +1345,7 @@ export class NpcManager {
     ): boolean {
         if (
             !getNearbyPlayers ||
+            npc.getCombatTargetPlayerId() === undefined ||
             npc.isPlayerFollower() ||
             npc.hasPath() ||
             npc.isDead(this.currentTick)
@@ -1362,6 +1363,7 @@ export class NpcManager {
             size - 1,
         ).find(
             (player) =>
+                player.id === npc.getCombatTargetPlayerId() &&
                 player.level === npc.level &&
                 player.x >= npc.tileX &&
                 player.x <= maxX &&
@@ -1443,7 +1445,12 @@ export class NpcManager {
             },
         ].sort(
             (first, second) =>
-                first.distance - second.distance || first.priority - second.priority,
+                first.distance - second.distance ||
+                // Break equal escape distances toward home, not always east.
+                // Repeated walk-under cannot create an eastward conveyor belt.
+                (Math.abs(first.x - npc.spawnX) + Math.abs(first.y - npc.spawnY)) -
+                    (Math.abs(second.x - npc.spawnX) + Math.abs(second.y - npc.spawnY)) ||
+                first.priority - second.priority,
         );
         for (const candidate of candidates) {
             // Overlap correction must obey the same home boundary as ordinary

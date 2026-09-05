@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 
 import { WidgetManager } from "@client/ui/widgets/WidgetManager";
+import { WidgetLoader } from "@client/ui/widgets/WidgetLoader";
+import { GroupMissingError } from "@august/osrs-engine/cache/js5/GroupMissingError";
 
 const root: any = {
     uid: 900 << 16,
@@ -70,3 +72,34 @@ manager.resize(801, 600);
 assert.equal(rootLoads, 1);
 
 console.log("Widget root onLoad race test passed");
+
+let ready = false;
+const streaming = new WidgetManager({} as never, { ...loader,
+    loadWidgetGroup: (id: number) => ready ? loader.loadWidgetGroup(id) : undefined,
+} as never);
+let streamingLoads = 0;
+streaming.onLoadListener = () => streamingLoads++;
+streaming.resize(800, 600);
+streaming.setRootInterface(900);
+streaming.openSubInterface(root.uid, 901);
+streaming.resize(801, 600); // resizing during streaming must not lose pending onLoad
+assert.equal(streaming.getSubInterface(root.uid), undefined);
+ready = true;
+streaming.retryPendingInterfaces();
+assert.equal(streaming.getSubInterface(root.uid)?.group, 901, "cold-cache mounts recover without a reload");
+assert.equal(streamingLoads, 2, "root and sub onLoad both run after assets arrive");
+streaming.retryPendingInterfaces();
+assert.equal(streamingLoads, 2, "successful mounts are not replayed every frame");
+
+let fileReady = false;
+const cacheLoader = Object.assign(Object.create(WidgetLoader.prototype), {
+    loadedWidgets: new Map(),
+    interfacesIndex: { getFileIds: () => [0, 1], getFile: (_group: number, file: number) => {
+        if (file === 1 && !fileReady) throw new GroupMissingError(3, 900, 0, 1);
+        return { data: new Uint8Array([file]) };
+    } },
+    decodeWidget: (uid: number) => ({ ...root, uid }),
+}) as WidgetLoader;
+assert.equal(cacheLoader.loadWidgetGroup(900), undefined, "do not cache partially downloaded root definitions");
+fileReady = true;
+assert.equal(cacheLoader.loadWidgetGroup(900)?.widgets.size, 2);

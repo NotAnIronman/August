@@ -11,6 +11,7 @@ const persistentFieldCoverage = {
     varbits: true,
     gamemodeData: true,
     accountStage: true,
+    starterLoadoutGranted: true,
     accountCreationTimeMs: true,
     preferredMode: true,
     appearance: true,
@@ -51,6 +52,7 @@ const persistentFieldCoverage = {
 assert.ok(Object.keys(persistentFieldCoverage).length > 0);
 
 const valid = mergePlayerPersistentVars(undefined, {
+    starterLoadoutGranted: true,
     pendingPetRewards: [{ itemId: 29836, quantity: 1 }],
     bankQuantityCustom: 250,
     quickPrayers: ["piety", "protect_from_magic"],
@@ -62,6 +64,8 @@ const valid = mergePlayerPersistentVars(undefined, {
 });
 
 assert.equal(valid?.bankQuantityCustom, 250, "custom bank quantity must survive persistence");
+assert.equal(valid?.starterLoadoutGranted, true);
+assert.equal(mergePlayerPersistentVars(undefined, { starterLoadoutGranted: "true" } as never)?.starterLoadoutGranted, undefined);
 assert.deepEqual(valid?.pendingPetRewards, [{ itemId: 29836, quantity: 1 }]);
 assert.deepEqual(mergePlayerPersistentVars(undefined, {
     pendingPetRewards: [{ itemId: -1, quantity: 1 }, { itemId: 29836, quantity: NaN }],

@@ -17,9 +17,9 @@ export function MenuEntrySwapperPanel({ plugin }: { plugin: MenuEntrySwapperPlug
     ] as const;
     return <div className="rl-sidebar-panel-content rl-sidebar-scrollable">
         <div className="rl-sidebar-panel-title">Menu Entry Swapper</div>
-        <p className="rl-sidebar-panel-copy">Hold Shift and right-click an NPC, object or ground item.
+        <p className="rl-sidebar-panel-copy">Hold Shift and right-click an NPC, object, ground item, inventory item or spell.
             Choose Swap left-click or Swap shift-click. Preferences save on this browser.
-            Attack priorities and selected spells/items are unchanged.</p>
+            Saved non-combat choices can replace Attack. Active spell/item targeting is unchanged.</p>
         {toggles.map(([key, label]) => <label className="rl-sidebar-check" key={key}>
             <input type="checkbox" checked={config[key]}
                 onChange={event => plugin.setConfig({ [key]: event.target.checked })} />

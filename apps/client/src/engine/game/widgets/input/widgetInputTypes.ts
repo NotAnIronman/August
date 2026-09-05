@@ -56,6 +56,7 @@ export type WidgetInputControllerDeps = {
     getObjTypeLoader: () => ObjTypeLoader | undefined;
     getInventory: () => Inventory;
     getSettings: () => { shiftClickEnabled: boolean };
+    getMenuEntrySwapper?: () => import("@client/features/plugins/menuentryswapper/MenuEntrySwapperPlugin").MenuEntrySwapperPlugin;
     getMinimapZoomEnabled: () => boolean;
     getMenuOpen: () => boolean;
     getMenuJustClosed: () => boolean;

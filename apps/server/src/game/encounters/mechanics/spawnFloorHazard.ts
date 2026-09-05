@@ -17,6 +17,11 @@ export interface FloorHazardTile {
     readonly level: number;
 }
 
+type SharedLocTell = { locId: number; owners: number };
+// Identical overlapping tells share a visual. A short-lived patch must not
+// erase an encounter-long poison patch when its own timer expires.
+const sharedLocTells = new WeakMap<ScriptServices, Map<string, SharedLocTell>>();
+
 export type FloorHazardTargetMode = "none" | "current-target" | "all-members" | "random";
 
 /** The visible warning placed before a floor hazard resolves. Any combination is valid. */
@@ -60,7 +65,8 @@ export interface FloorHazardParams {
     readonly hazardTime?: number;
     /** Legacy alias for hazardTime. */
     readonly telegraphTicks?: number;
-    readonly liveTicks: number;
+    /** "encounter" persists until the owning encounter is reset or removed. */
+    readonly liveTicks: number | "encounter";
     /** Damage dealt when not dodged. */
     readonly hazardDamage?: number | ((rng: EncounterRandom) => number);
     /** Legacy alias for hazardDamage. */
@@ -132,7 +138,9 @@ export function spawnFloorHazard(
     const targets = resolvePlayers(params);
     const taskIds = new Set<number>();
     const markerIds = new Set<number>();
-    const locTellTiles: Array<{ tile: FloorHazardTile; shape: number }> = [];
+    const locTellTiles: Array<{ tile: FloorHazardTile; shape: number; key: string; tell: SharedLocTell }> = [];
+    let tellOwners = sharedLocTells.get(services);
+    if (!tellOwners) { tellOwners = new Map(); sharedLocTells.set(services, tellOwners); }
     let handle!: MechanicHandle;
     const finish = (): void => {
         handle.cancel();
@@ -142,7 +150,10 @@ export function spawnFloorHazard(
         taskIds.clear();
         for (const markerId of markerIds) services.npc.removeNpc(markerId);
         markerIds.clear();
-        for (const { tile, shape } of locTellTiles) {
+        for (const { tile, shape, key, tell } of locTellTiles) {
+            tell.owners--;
+            if (tell.owners > 0 || tellOwners.get(key) !== tell) continue;
+            tellOwners.delete(key);
             services.location.clearTemporaryLoc({ worldViewId: source.worldViewId }, 0, tile, tile.level, shape);
         }
         locTellTiles.length = 0;
@@ -176,11 +187,18 @@ export function spawnFloorHazard(
             }
             if (tell?.locId !== undefined && tell.locId > 0) {
                 const shape = Math.max(0, Math.trunc(tell.locShape ?? 10));
-                services.location.replaceTemporaryLoc(
-                    { worldViewId: source.worldViewId }, 0, tell.locId, tile, tile.level,
-                    { newShape: shape, newRotation: tell.locRotation ?? 0 },
-                );
-                locTellTiles.push({ tile, shape });
+                const key = `${source.worldViewId}:${tile.level}:${tile.x}:${tile.y}:${shape}`;
+                let shared = tellOwners.get(key);
+                if (!shared || shared.locId !== tell.locId) {
+                    services.location.replaceTemporaryLoc(
+                        { worldViewId: source.worldViewId }, 0, tell.locId, tile, tile.level,
+                        { newShape: shape, newRotation: tell.locRotation ?? 0 },
+                    );
+                    shared = { locId: tell.locId, owners: 0 };
+                    tellOwners.set(key, shared);
+                }
+                shared.owners++;
+                locTellTiles.push({ tile, shape, key, tell: shared });
             }
             if (params.projectileId !== undefined) {
                 services.projectiles.launch({
@@ -194,11 +212,12 @@ export function spawnFloorHazard(
         }
 
         const interval = Math.max(1, Math.trunc(params.tickInterval ?? 1));
-        const pulses = Math.max(1, Math.ceil(Math.max(1, params.liveTicks) / interval));
-        for (let pulse = 0; pulse < pulses; pulse += 1) {
+        const permanent = params.liveTicks === "encounter";
+        const pulses = permanent ? 1 : Math.max(1, Math.ceil(Math.max(1, params.liveTicks as number) / interval));
+        const schedulePulse = (pulse: number, delay: number): void => {
             let taskId = -1;
             taskId = services.scheduler.after(
-                hazardTime + pulse * interval,
+                delay,
                 (tick) => runMechanicCallback(runtime, handle, id, () => {
                     taskIds.delete(taskId);
                     if (!handle.isActive) return;
@@ -224,12 +243,14 @@ export function spawnFloorHazard(
                             }
                         }
                     }
-                    if (pulse === pulses - 1) finish();
+                    if (permanent) schedulePulse(0, interval);
+                    else if (pulse === pulses - 1) finish();
                 }),
                 { kind: "npc", id: source.id },
             );
             taskIds.add(taskId);
-        }
+        };
+        for (let pulse = 0; pulse < pulses; pulse += 1) schedulePulse(pulse, hazardTime + pulse * interval);
     } catch (error) {
         handle.cancel();
         throw error;

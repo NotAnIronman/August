@@ -10,6 +10,7 @@ import type {
     GamemodeUiController,
 } from "@server/game/gamemodes/GamemodeDefinition";
 import type { PlayerState } from "@server/game/player";
+import { grantStarterLoadout } from "@server/content/gamemodes/vanilla/data/starterLoadout";
 import {
     getProviderRegistry,
     resetProviderRegistry,
@@ -223,6 +224,10 @@ export class VanillaGamemode extends BaseGamemode {
         if (!services) return;
 
         handleSailingPlayerRestore(player, services);
+    }
+
+    onPostDesignComplete(player: PlayerState): void {
+        grantStarterLoadout(player);
     }
 
     getGamemodeServices(): Record<string, unknown> {
