@@ -1,61 +1,113 @@
-LAYOUT SELECTION DEBUG TRACE
+LAYOUT SELECTION DEBUG TRACE - VERSION 2
 
 Copy this file to your host machine, or commit and push it from your development
 machine, then pull it on the host. Copying it into the game folder does NOT run it.
 
-1. Open the game in a desktop browser on your host machine and log in.
+1. Refresh the game page to remove the previous trace, then log in.
 2. Open Developer Tools (F12), then select Console.
 3. Copy ONLY the JavaScript between BEGIN JAVASCRIPT and END JAVASCRIPT below.
 4. Paste it into the Console and press Enter.
-5. Confirm "LAYOUT trace enabled" appears.
+5. Confirm "LAYOUT v2 enabled" appears.
 6. In the game's All Settings menu, select Fixed - Classic layout.
 7. Copy the Console lines beginning with LAYOUT and send them back.
 
-No rebuild or server restart is needed. Run this once per page load.
-Refreshing the page removes the trace. This adds logging without changing
-the intended behavior of the original setting handler.
+No rebuild or server restart is needed. Refreshing removes the trace.
+You can also stop it by running window.__stopLayoutTrace() in Console.
+This logs widget/script identifiers and layout state, not passwords or chat.
+It does not change the behavior of the original setting handlers.
 
 BEGIN JAVASCRIPT
 
 (() => {
+  window.__stopLayoutTrace?.();
   const c = window.osrsClient;
   const r = c?.widgetActionRouter;
-  if (!r) {
+  if (!r || !c.cs2Vm) {
     console.log("LAYOUT client unavailable: log into the game and select its page context in Console, then retry.");
     return;
   }
-  const original = r.prepareClientSettingAction.bind(r);
-
-  r.prepareClientSettingAction = event => {
-    const commit = original(event);
-    if (event.widget?.groupId !== 134) return commit;
-
-    console.log("LAYOUT click", JSON.stringify({
-      option: event.option,
-      handler: event.widget.eventHandlers?.onOp ?? event.widget.onOp,
-      recognized: !!commit
-    }));
-
-    if (!commit) return commit;
-    return () => {
-      const result = commit();
-      setTimeout(() => console.log("LAYOUT state",
-        c.cs2Vm.context.windowMode,
-        c.varManager.getVarbit(4607),
-        c.widgetManager.rootInterface
-      ), 700);
-      return result;
+  const undo = [];
+  const timers = new Set();
+  const log = (label, data) => console.log("LAYOUT v2 " + label, JSON.stringify(data));
+  const state = () => {
+    const active = window.osrsClient;
+    return {
+      originalClientStillActive: active === c,
+      root: active?.widgetManager?.rootInterface,
+      windowMode: active?.cs2Vm?.context.windowMode,
+      modern: active?.varManager?.getVarbit(4607)
     };
   };
-  console.log("LAYOUT trace enabled");
+  const describe = widget => ({
+    group: widget?.groupId,
+    uidGroup: typeof widget?.uid === "number" ? widget.uid >>> 16 : undefined,
+    uid: widget?.uid,
+    child: widget?.childIndex,
+    onOp: widget?.eventHandlers?.onOp?.scriptId ?? widget?.onOp?.[0],
+    onClick: widget?.eventHandlers?.onClick?.scriptId ?? widget?.onClick?.[0]
+  });
+  const observe = callback => {
+    try { callback(); } catch (error) {
+      console.log("LAYOUT v2 trace error", String(error));
+    }
+  };
+  const wrap = (object, key, callback) => {
+    const original = object[key];
+    if (typeof original !== "function") return;
+    const wrapped = function (...args) {
+      observe(() => callback(args));
+      return original.apply(this, args);
+    };
+    object[key] = wrapped;
+    undo.push(() => { if (object[key] === wrapped) object[key] = original; });
+  };
+
+  // Prototype hooks also catch newly created routers/VMs of the same class.
+  wrap(Object.getPrototypeOf(r), "prepareClientSettingAction", ([event]) => {
+    log("route", { option: event.option, source: event.source, ...describe(event.widget) });
+  });
+  wrap(Object.getPrototypeOf(c.cs2Vm), "invokeEventHandler", ([widget, type]) => {
+    if (type === "onClick" || type === "onOp") {
+      log("handler", { type, ...describe(widget) });
+    }
+  });
+  wrap(Object.getPrototypeOf(c), "executeScriptListener", ([widget, listener]) => {
+    if (listener === widget?.onOp || listener === widget?.onClick) {
+      log("legacy handler", { script: listener?.[0], ...describe(widget) });
+    }
+  });
+  wrap(Object.getPrototypeOf(c.cs2Vm), "execute", ([script, ints]) => {
+    if (script?.id === 3852) log("native dropdown", { script: script.id, ints: Array.from(ints ?? []) });
+  });
+  wrap(r.deps, "requestDisplayMode", ([mode]) => log("request", { mode }));
+
+  const pointer = event => {
+    observe(() => log("pointer", { element: event.target?.tagName, ...state() }));
+    const timer = setTimeout(() => {
+      timers.delete(timer);
+      observe(() => log("state after click", state()));
+    }, 800);
+    timers.add(timer);
+  };
+  document.addEventListener("pointerup", pointer, true);
+  window.__stopLayoutTrace = () => {
+    document.removeEventListener("pointerup", pointer, true);
+    timers.forEach(clearTimeout);
+    undo.reverse().forEach(restore => restore());
+    delete window.__stopLayoutTrace;
+    console.log("LAYOUT v2 stopped");
+  };
+  log("enabled", state());
 })();
 
 END JAVASCRIPT
 
-LAYOUT state reports, in order:
-- Client window mode (1 = fixed, 2 = resizable).
-- Modern-layout flag (0 = classic, 1 = modern).
-- Current root interface, if exposed by the widget manager.
+State fields:
+- windowMode: 1 = fixed, 2 = resizable.
+- modern: 0 = classic, 1 = modern.
+- root: current root interface (548 fixed, 161 classic, 164 modern, 601 mobile).
+- originalClientStillActive: false means the game replaced its client instance.
 
-If only "LAYOUT trace enabled" appears after selecting a layout, report that
-too; the absence of a click trace is useful. Include any errors that appear.
+Copy ALL lines starting with LAYOUT v2 from opening the layout dropdown through
+selecting Fixed - Classic. If you see only pointer/state lines, or only the
+enabled line, report that too. Include any errors that appear.
