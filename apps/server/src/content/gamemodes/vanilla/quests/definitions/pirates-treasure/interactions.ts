@@ -437,6 +437,7 @@ export function registerPiratesTreasureInteractions(
                 distance > 1 ||
                 player.level !== TREASURE_TILE.level
             ) {
+                executeSavedDig(event);
                 return;
             }
             const gardener = event.services.npc.spawnNpc({
@@ -463,3 +464,4 @@ export function registerPiratesTreasureInteractions(
         "dig",
     );
 }
+import { executeSavedDig } from "@server/content/gamemodes/vanilla/scripts/content/dig";

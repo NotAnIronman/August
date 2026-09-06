@@ -1,5 +1,6 @@
 import { VARBIT_ACTIVE_SPELLBOOK } from "@august/game-model/state/vars";
 import { PlayerRaidState } from "@server/game/state/PlayerRaidState";
+import { PlayerMoonState } from "@server/game/state/PlayerMoonState";
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import { PrayerName } from "@august/osrs-engine/prayer/prayers";
 import { SKILL_IDS, SkillId } from "@august/osrs-engine/skill/skills";
@@ -229,10 +230,12 @@ export interface PlayerPersistentVars {
     firstPetDrops?: import("@server/game/state/PlayerFollowerPersistState").FirstPetDrop[];
     instanceGrave?: InstanceGraveSnapshot;
     raidCheckpoint?: import("@server/game/state/PlayerRaidState").RaidCheckpoint | null;
+    moonProgress?: number;
     playTimeSeconds?: number;
 }
 
 export class PlayerState extends Actor {
+    readonly moons = new PlayerMoonState();
     [key: symbol]: unknown;
 
     readonly gamemodeState: Map<string, unknown> = new Map();

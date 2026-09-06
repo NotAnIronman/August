@@ -20,16 +20,21 @@ export const GEM_RECIPES: readonly CraftingRecipe[] = [
     gem("cut_onyx", "Onyx", 67, 167.5, 6571, 6573), gem("cut_zenyte", "Zenyte", 89, 200, 19496, 19493),
 ];
 
-const leather = (id: string, name: string, level: number, xp: number, input: number, output: number): CraftingRecipe => ({ id, name, level, xp, inputs: [{ itemId: input, quantity: 1 }], outputItemId: output, toolItemIds: [1733, 1734], animation: 1249, delayTicks: 3 });
+const leather = (id: string, name: string, level: number, xp: number, input: number, output: number, quantity = 1): CraftingRecipe => ({ id, name, level, xp, inputs: [{ itemId: input, quantity }], outputItemId: output, toolItemIds: [1733, 1734], animation: 1249, delayTicks: 3 });
 export const LEATHER_RECIPES: readonly CraftingRecipe[] = [
     leather("leather_gloves", "Leather gloves", 1, 13.8, 1741, 1059), leather("leather_boots", "Leather boots", 7, 16.3, 1741, 1061),
     leather("leather_cowl", "Leather cowl", 9, 18.5, 1741, 1167), leather("leather_vamb", "Leather vambraces", 11, 22, 1741, 1063),
     leather("leather_body", "Leather body", 14, 25, 1741, 1129), leather("leather_chaps", "Leather chaps", 18, 27, 1741, 1095),
     leather("hard_body", "Hard leather body", 28, 35, 1743, 1131),
-    leather("green_vamb", "Green d'hide vambraces", 57, 62, 1745, 1065), leather("green_chaps", "Green d'hide chaps", 60, 124, 1745, 1099), leather("green_body", "Green d'hide body", 63, 186, 1745, 1135),
-    leather("blue_vamb", "Blue d'hide vambraces", 66, 70, 2505, 2487), leather("blue_chaps", "Blue d'hide chaps", 68, 140, 2505, 2493), leather("blue_body", "Blue d'hide body", 71, 210, 2505, 2499),
-    leather("red_vamb", "Red d'hide vambraces", 73, 78, 2507, 2489), leather("red_chaps", "Red d'hide chaps", 75, 156, 2507, 2495), leather("red_body", "Red d'hide body", 77, 234, 2507, 2501),
-    leather("black_vamb", "Black d'hide vambraces", 79, 86, 2509, 2491), leather("black_chaps", "Black d'hide chaps", 82, 172, 2509, 2497), leather("black_body", "Black d'hide body", 84, 258, 2509, 2503),
+    leather("green_vamb", "Green d'hide vambraces", 57, 62, 1745, 1065), leather("green_chaps", "Green d'hide chaps", 60, 124, 1745, 1099, 2), leather("green_body", "Green d'hide body", 63, 186, 1745, 1135, 3),
+    leather("blue_vamb", "Blue d'hide vambraces", 66, 70, 2505, 2487), leather("blue_chaps", "Blue d'hide chaps", 68, 140, 2505, 2493, 2), leather("blue_body", "Blue d'hide body", 71, 210, 2505, 2499, 3),
+    leather("red_vamb", "Red d'hide vambraces", 73, 78, 2507, 2489), leather("red_chaps", "Red d'hide chaps", 75, 156, 2507, 2495, 2), leather("red_body", "Red d'hide body", 77, 234, 2507, 2501, 3),
+    leather("black_vamb", "Black d'hide vambraces", 79, 86, 2509, 2491), leather("black_chaps", "Black d'hide chaps", 82, 172, 2509, 2497, 2), leather("black_body", "Black d'hide body", 84, 258, 2509, 2503, 3),
+    // https://oldschool.runescape.wiki/w/Hueycoatl_hide
+    leather("hueycoatl_vamb", "Hueycoatl hide vambraces", 76, 95, 30085, 30082),
+    leather("hueycoatl_coif", "Hueycoatl hide coif", 76, 190, 30085, 30073, 2),
+    leather("hueycoatl_chaps", "Hueycoatl hide chaps", 77, 190, 30085, 30079, 2),
+    leather("hueycoatl_body", "Hueycoatl hide body", 78, 285, 30085, 30076, 3),
 ];
 
 const jewellery = (id: string, name: string, level: number, xp: number, bar: number, output: number, gemId?: number): CraftingRecipe => ({

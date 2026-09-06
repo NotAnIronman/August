@@ -314,6 +314,7 @@ export interface MessageHandlerServices {
         allowJoinFallback?: boolean,
     ) => boolean;
     handleFriendsChatMessage: (player: PlayerState, text: string) => boolean;
+    handlePrivateMessage?: (player: PlayerState, recipient: string, text: string) => void;
     queueChatMessage: (msg: {
         messageType: "game" | "public" | "server";
         text: string;

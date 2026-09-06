@@ -123,6 +123,16 @@ export class CombatHitEvaluator {
         this.random = options.random ?? Math.random;
     }
 
+    /** Encounter-granted melee counters use the same gear, stance and prayer formula as combat. */
+    playerMeleeMaximum(player: PlayerState, npc: NpcState, tick: number): number {
+        return this.evaluate({
+            attacker: { type: CombatEntityType.Player, id: player.id },
+            target: { type: CombatEntityType.Npc, id: npc.id },
+            attackClock: tick,
+            traits: { type: AttackType.Melee, style: this.resolvePlayerAttackStyle(player), speedTicks: 4, rangeTiles: 1, weaponId: player.combat.weaponItemId },
+        }).maxHit;
+    }
+
     evaluate(attack: CombatAttack): CombatHitEvaluation {
         return this.evaluateRoll(attack, {
             energyCostPercent: 0,
@@ -309,7 +319,7 @@ export class CombatHitEvaluator {
             "special attack damage",
         );
         const accuracyMultiplierStages = special.accuracyMultiplierStages;
-        const attackRoll =
+        let attackRoll =
             accuracyMultiplierStages && accuracyMultiplierStages.length > 0
                 ? accuracyMultiplierStages.reduce(
                       (roll, multiplier, stageIndex) =>
@@ -326,6 +336,7 @@ export class CombatHitEvaluator {
                       calculateAttackRoll(rolls.effectiveAttack, rolls.attackBonus) *
                           accuracyMultiplier,
                   );
+        if (this.isTwinflameStandardSpell(attack)) attackRoll = Math.floor(attackRoll * 1.1);
         const defenceRoll = Math.floor(
             calculateDefenceRoll(rolls.effectiveDefence, rolls.defenceBonus) *
                 this.nonNegativeMultiplier(
@@ -896,15 +907,22 @@ export class CombatHitEvaluator {
         }
 
         baseDamage ??= Math.max(0, Math.floor(effectiveMagic / 3));
-        return this.applyMagicDamageBonuses(baseDamage, player, bonuses);
+        return this.applyMagicDamageBonuses(baseDamage, player, bonuses, this.isTwinflameStandardSpell(attack) ? 10 : 0);
+    }
+
+    private isTwinflameStandardSpell(attack: CombatAttack): boolean {
+        if (attack.traits.weaponId !== 30634 || attack.traits.type !== AttackType.Magic || !attack.traits.spellId) return false;
+        const spell = getSpellData(attack.traits.spellId);
+        return !!spell && (spell.spellbook === "standard" || /^(Wind|Water|Earth|Fire) (Strike|Bolt|Blast|Wave|Surge)$/i.test(spell.name ?? ""));
     }
 
     private applyMagicDamageBonuses(
         baseDamage: number,
         player: PlayerState,
         bonuses: readonly number[],
+        conditionalPercent = 0,
     ): number {
-        const equipmentPercent = Math.max(0, this.bonusAt(bonuses, MAGIC_DAMAGE_BONUS_INDEX));
+        const equipmentPercent = Math.max(0, this.bonusAt(bonuses, MAGIC_DAMAGE_BONUS_INDEX)) + conditionalPercent;
         const prayerPercent = Math.max(
             0,
             (this.getPrayerMultiplier(player, "magic_damage") - 1) * 100,

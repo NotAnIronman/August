@@ -60,6 +60,16 @@ const services = {
 } as any;
 
 const service = new FriendsChatService(services, "", database);
+const privatePacket = encodeClientMessage({type: "chat", payload: {messageType: "private", recipient: ranked.name, text: "Private hello"}});
+assert.deepEqual(decodeClientPacket(privatePacket), {type: "chat", payload: {messageType: "private", recipient: ranked.name, text: "Private hello"}});
+service.handlePrivateMessage(owner as any, ranked.name, "Private hello");
+assert.deepEqual(messages.splice(0).map(m=>[m.chatType,m.targetPlayerIds]), [[3,[ranked.id]],[6,[owner.id]]]);
+database.prepare("INSERT INTO social_ignores VALUES (?, ?, ?)").run("rankedfriend", "channelowner", owner.name);
+service.handlePrivateMessage(owner as any, ranked.name, "Not delivered");
+assert.equal(messages.length,1);
+assert.deepEqual(messages[0].targetPlayerIds,[owner.id]);
+messages.length=0;
+database.prepare("DELETE FROM social_ignores").run();
 
 const setupOpens: Array<{ groupId: number; options: Record<string, unknown> }> = [];
 const setupPlayer = {

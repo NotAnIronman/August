@@ -1008,17 +1008,15 @@ function rollSingleAmmoConsumption(
     if (hasAssembler && roll < 0.8) {
         return { consumed: false, ammoId, quantityUsed: 0, dropped: false, broke: false };
     }
-    if (hasAccumulator && roll < 0.72) {
+    if (hasAccumulator && roll < 0.8) {
         return { consumed: false, ammoId, quantityUsed: 0, dropped: false, broke: false };
     }
-    if (hasAvas && !hasAccumulator && !hasAssembler && roll < 0.6) {
+    if (hasAvas && !hasAccumulator && !hasAssembler && roll < 0.8) {
         return { consumed: false, ammoId, quantityUsed: 0, dropped: false, broke: false };
     }
 
-    const dropped =
-        (!hasAvas && roll < 0.8) ||
-        (hasAccumulator && roll >= 0.72 && roll < 0.92) ||
-        (hasAvas && !hasAccumulator && !hasAssembler && roll >= 0.6 && roll < 0.9);
+    // August: every Ava's device retrieves 80%; the remaining 20% breaks.
+    const dropped = !hasAvas && roll < 0.8;
     return {
         consumed: true,
         ammoId,
@@ -1147,11 +1145,9 @@ export class AmmoSystem {
                 // 80% retrieved, 20% break
                 return roll >= 0.8;
             case AvasDeviceType.Accumulator:
-                // 72% retrieved, 28% consumed
-                return roll >= 0.72;
+                return roll >= 0.8;
             case AvasDeviceType.Attractor:
-                // 60% retrieved, 40% consumed
-                return roll >= 0.6;
+                return roll >= 0.8;
             default:
                 return true;
         }

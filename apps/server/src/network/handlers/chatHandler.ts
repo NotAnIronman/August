@@ -333,6 +333,10 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                 services.handleFriendsChatMessage(sender, text);
                 return;
             }
+            if (payload.messageType === "private") {
+                services.handlePrivateMessage?.(sender, payload.recipient ?? "", text);
+                return;
+            }
 
             // Handle :: commands
             if (text.startsWith("::")) {

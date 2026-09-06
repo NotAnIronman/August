@@ -99,7 +99,9 @@ export class TheatreRuns {
         if (!run || this.live(run)?.id !== instanceId || run.access !== "party" ||
             run.started || run.completedRooms !== 0 || run.roomIndex !== 0 ||
             run.roster.length >= 5 || run.roster.includes(account(player))) return false;
-        if (!this.instances.join(player,instanceId)) return false;
+        // The checkpoint is persisted after joining. Treat this as an internal
+        // raid transfer so ordinary teleport cleanup cannot detach the new member.
+        if (!player.raidProgress.internally(() => this.instances.join(player,instanceId))) return false;
         try {
             run.roster.push(account(player));
             this.store.save(run);

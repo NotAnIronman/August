@@ -659,11 +659,12 @@ function decodeClientPacketUnchecked(
         case ClientMessageId.CHAT: {
             const messageTypeVal = reader.readByte();
             const messageType =
-                messageTypeVal === 2 ? "friends_chat" : messageTypeVal === 1 ? "game" : "public";
+                messageTypeVal === 3 ? "private" : messageTypeVal === 2 ? "friends_chat" : messageTypeVal === 1 ? "game" : "public";
             const text = reader.readString();
+            const recipient = messageTypeVal === 3 ? reader.readString() : undefined;
             return {
                 type: "chat",
-                payload: { text, messageType },
+                payload: { text, messageType, ...(recipient !== undefined ? {recipient} : {}) },
             };
         }
 

@@ -48,10 +48,15 @@ const persistentFieldCoverage = {
     firstPetDrops: true,
     instanceGrave: true,
     raidCheckpoint: true,
+    moonProgress: true,
     playTimeSeconds: true,
 } as const satisfies Record<keyof PlayerPersistentVars, true>;
 
 assert.ok(Object.keys(persistentFieldCoverage).length > 0);
+assert.equal(mergePlayerPersistentVars(undefined, {moonProgress: 5})?.moonProgress, 5);
+assert.equal(mergePlayerPersistentVars({moonProgress: 5}, {})?.moonProgress, 5);
+assert.equal(mergePlayerPersistentVars({moonProgress: 5}, {moonProgress: 0})?.moonProgress, 0);
+assert.equal(mergePlayerPersistentVars(undefined, {moonProgress: 8})?.moonProgress, 0);
 
 const valid = mergePlayerPersistentVars(undefined, {
     starterLoadoutGranted: true,

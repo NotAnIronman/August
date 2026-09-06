@@ -174,6 +174,24 @@ export class FriendsChatService {
         return true;
     }
 
+    handlePrivateMessage(player: PlayerState, rawRecipient: string, text: string): void {
+        const name = cleanName(rawRecipient);
+        const recipient = name ? this.svc.players?.getConnectedPlayerByName(name) : undefined;
+        const senderKey = normalizePlayerAccountName(player.name);
+        const recipientKey = recipient && normalizePlayerAccountName(recipient.name);
+        if (!recipient || !senderKey || !recipientKey || this.isIgnored(recipientKey, senderKey)) {
+            this.gameMessage(player, "That player is unavailable.");
+            return;
+        }
+        const message = String(text ?? "").replace(/<[^>]*>/g, "").trim().slice(0, 160);
+        if (!message) return;
+        // Explicit recipients only: private messages must never reach public broadcast.
+        this.svc.messagingService.queueChatMessage({messageType: "game", chatType: 3,
+            from: player.name, text: message, targetPlayerIds: [recipient.id]});
+        this.svc.messagingService.queueChatMessage({messageType: "game", chatType: 6,
+            from: recipient.name, text: message, targetPlayerIds: [player.id]});
+    }
+
     handleWidgetAction(
         player: PlayerState,
         groupId: number,

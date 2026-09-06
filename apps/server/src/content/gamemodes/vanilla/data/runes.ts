@@ -43,6 +43,8 @@ const COMBINATION_RUNES: CombinationRune[] = [
 ];
 
 const STAFF_SUBSTITUTIONS: StaffSubstitution[] = [
+    { itemIds: [30634], negatesRune: RUNE_IDS.WATER },
+    { itemIds: [30634], negatesRune: RUNE_IDS.FIRE },
     // Air rune providers
     { itemIds: [1381, 1397, 1405], negatesRune: RUNE_IDS.AIR },
     { itemIds: [21198, 12000], negatesRune: RUNE_IDS.AIR },

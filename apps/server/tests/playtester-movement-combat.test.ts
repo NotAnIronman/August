@@ -39,6 +39,12 @@ multi.recordEngagement(a, outsider, 10);
 assert.equal(multi.canAttack(c, outsider, 10).allowed, false, "both actors must be inside multi");
 
 const manager = new NpcManager({} as never, { canNpcStep: () => true } as never, {} as never, {} as never);
+const enormousRadius = new NpcState(88,13021,1,-1,-1,32,{x:3201,y:3200,level:0},
+    {maxHitpoints:10,combatLevel:100,isAggressive:true,aggressionRadius:2_147_483_647});
+const started = performance.now();
+assert((manager as any).checkNpcAggression(enormousRadius,100,()=>[{id:999,x:3200,y:3200,level:0,combatLevel:3,inCombat:false,
+    aggressionState:{entryTick:100,aggressionExpired:false,tile1:{x:3200,y:3200},tile2:{x:3200,y:3200}}}]));
+assert(performance.now()-started<1000,"malformed aggression radius must not scan billions of empty tiles");
 const aggressive = (id: number, x = 3201, y = 3200) => new NpcState(id, 1, 1, -1, -1, 32,
     { x, y, level: 0 }, { maxHitpoints: 10, combatLevel: 100, isAggressive: true });
 const nearby = (x = 3200, y = 3200) => [{ id: 90, x, y, level: 0, combatLevel: 3, inCombat: false,
@@ -99,6 +105,7 @@ assert.equal(follow.startFollowing(socket, leader.id, FollowInteractionKind.Foll
     "following cannot cross private world views");
 leader.worldViewId = follower.worldViewId;
 assert(follow.startFollowing(socket, leader.id, FollowInteractionKind.Follow).ok);
+assert.deepEqual(follower.getInteractionTarget(),{type:"player",id:leader.id},"follow stores the target so later clearing emits an update");
 follow.updateFollowing(1);
 assert.deepEqual(follower.getPathQueue().at(-1), { x: 3202, y: 3200 }, "follower fills the extra one-tile gap");
 blocked = true;

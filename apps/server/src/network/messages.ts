@@ -742,7 +742,8 @@ export type ClientToServer =
           type: "chat";
           payload: {
               text: string;
-              messageType?: "public" | "game" | "friends_chat";
+              messageType?: "public" | "game" | "friends_chat" | "private";
+              recipient?: string;
               chatType?: number;
               colorId?: number;
               effectId?: number;

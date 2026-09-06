@@ -10,6 +10,9 @@ import {
 import { registerBankWidgetHandlers } from "@server/content/gamemodes/vanilla/banking/bankWidgets";
 
 export function registerBankingHandlers(registry: IScriptRegistry, services: ScriptServices): void {
+    registry.registerLocInteraction(4483, ({ player, services }) => {
+        services.banking?.openBank?.(player, { mode: "bank" });
+    });
     registry.registerNpcAction("bank", ({ player, services }) => {
         services.banking?.openBank?.(player, { mode: "bank" });
     });

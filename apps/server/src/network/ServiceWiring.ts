@@ -275,6 +275,7 @@ export function registerMessageHandlers(svc: ServerServices, router: MessageRout
             svc.friendsChatService.handleNameInput(player, value, allowJoinFallback),
         handleFriendsChatMessage: (player, text) =>
             svc.friendsChatService.handleChat(player, text),
+        handlePrivateMessage: (player, recipient, text) => svc.friendsChatService.handlePrivateMessage(player, recipient, text),
         queueChatMessage: (msg) => svc.messagingService.queueChatMessage(msg),
         getPublicChatPlayerType: (player) => svc.authService.getPublicChatPlayerType(player),
         eventBus: svc.eventBus,

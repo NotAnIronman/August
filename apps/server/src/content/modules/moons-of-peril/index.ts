@@ -3,6 +3,9 @@ import { logger } from "@server/observability/logger";
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import { INSTANCE_GRAVE_RECLAIM_LOC_ID } from "@server/game/death/InstanceGravePresentation";
 import { AttackType } from "@server/game/combat/AttackType";
+import { CombatHitEvaluator } from "@server/game/combat/engine/CombatHitEvaluator";
+import { CombatEntityType } from "@server/game/combat/model/CombatEntityRef";
+import { getAttackAnimation } from "@server/game/combat/WeaponDataProvider";
 import { HITMARK_DAMAGE, HITMARK_HEAL } from "@server/game/combat/HitEffects";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { faceAngleRs } from "@august/osrs-engine/geometry";
@@ -19,6 +22,7 @@ import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifec
 import { secondsToTicks } from "@server/game/scripts/timing";
 import type { NpcState } from "@server/game/npc";
 import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
+import { lunarChestRollCount, rollLunarCommonReward } from "./LunarChestRewards";
 
 const CHEST = 51346, CRATE = 51371, SAPLING = 51365, STOVE = 51362;
 // 51368 is the cache's actionable "Fishing spot". Keep 51367 too because it
@@ -47,6 +51,15 @@ type Run = {
     instanceId: string;
 };
 const runs = new Map<number, Run>();
+function restoredRun(player: PlayerState): Run | undefined {
+    const existing = runs.get(player.id);
+    if (existing?.owner === player) return existing;
+    runs.delete(player.id);
+    if (!player.moons.defeated.size) return;
+    const run: Run = {owner: player, killed: player.moons.defeated, instanceId: ""};
+    runs.set(player.id, run);
+    return run;
+}
 
 const MOON_IDLE_SEQUENCES: Record<Moon, number> = { blood: 10999, eclipse: 11016, blue: 10999 };
 // Blue Moon's melee/ranged/magic attacks were unified onto the 11004 triple
@@ -279,9 +292,13 @@ function restartGlyphCycle(npc: NpcState, player: PlayerState, services: ScriptS
     setGlyphDamageMode(npc, state, isOnGlyph(player, npc, state));
 }
 
-function playerIsFacingNpc(player: PlayerState, npc: NpcState): boolean {
+export function playerIsFacingNpc(player: PlayerState, npc: NpcState): boolean {
+    // Clients face interaction targets directly; player.rot is not kept in sync
+    // with that interpolation and must not reject a visibly correct counter.
+    const target = player.getInteractionTarget();
+    if (target?.type === "npc" && target.id === npc.id) return true;
     const targetRotation = faceAngleRs(player.tileX, player.tileY, npc.tileX + 1, npc.tileY + 1) & 2047;
-    let delta = ((player.rot & 2047) - targetRotation) & 2047;
+    let delta = ((player.getOrientation() & 2047) - targetRotation) & 2047;
     if (delta > 1024) delta = 2048 - delta;
     return delta <= 256;
 }
@@ -297,10 +314,16 @@ function startBloodSpecial(npc: NpcState, player: PlayerState, services: ScriptS
         const jaguar = services.npc.spawnNpc({
             id: BLOOD_JAGUAR_NPC_ID, x: npc.spawnX + dx, y: npc.spawnY + dy, level: npc.level,
             worldViewId: npc.worldViewId, ownerPlayerId: player.id, wanderRadius: 0,
-            isAggressive: true, aggressionRadius: 2_147_483_647,
-            combatLeashRadius: 2_147_483_647, respawns: false,
+            isAggressive: true, aggressionRadius: 30,
+            combatLeashRadius: 60, retreatInteractionRange: 60, respawns: false,
         });
         if (!jaguar) continue;
+        const instance = services.instances.get(player.id);
+        if (!instance || !services.instances.attachNpc(instance.id, jaguar)) {
+            services.npc.removeNpc(jaguar.id);
+            continue;
+        }
+        jaguar.suppressDrops = true;
         jaguar.suppressDefenceAnimation = true;
         special.childIds.add(jaguar.id);
         specialChildOwners.set(jaguar.id, npc);
@@ -329,8 +352,8 @@ function moonJaguarAttack(event: NpcAttackEvent): NpcAttackDecision | void {
 }
 
 function startEclipseSpecial(npc: NpcState, player: PlayerState, services: ScriptServices, special: MoonSpecialState): void {
-    // Eclipse remains targetable during this special: facing her at each
-    // teleport grants a max-hit window instead of locking combat out.
+    // Eclipse remains targetable: correctly facing each teleport grants one
+    // counter directly, rather than opening and immediately closing a hit window.
     npc.isUnattackable = false;
     const state = glyphStates.get(npc);
     if (!state) return;
@@ -347,7 +370,15 @@ function startEclipseSpecial(npc: NpcState, player: PlayerState, services: Scrip
         services.scheduler.after(4, (tick) => {
             if (!special.active || player.worldViewId !== npc.worldViewId) return;
             if (playerIsFacingNpc(player, npc)) {
-                npc.forcePlayerMaxHit = true;
+                const evaluator = new CombatHitEvaluator({
+                    resolveEntity: ref => ref.type === CombatEntityType.Player ? player : npc,
+                    getEquipmentBonuses: p => services.equipment.computeEquipmentStatBonuses?.(p) ?? [],
+                    random: () => 0,
+                });
+                const damage = evaluator.playerMeleeMaximum(player, npc, tick);
+                services.animation.playPlayerSeq(player, getAttackAnimation(player.combat.weaponItemId, player.combat.styleSlot));
+                services.combat.applyPlayerDamageToNpc(player, npc, HITMARK_DAMAGE, damage, tick);
+                if (!special.active || npc.getHitpoints() <= 0) return;
             } else {
                 services.npc.engageCombat(npc, player);
                 services.npc.queueNpcSeq(npc, MOON_MELEE_SEQUENCES.eclipse);
@@ -672,7 +703,7 @@ function spawnMoon(player: PlayerState, services: ScriptServices, moon: Moon): v
 
 function createRun(player: PlayerState, services: ScriptServices, first: Moon, access: "solo" | "party" = "solo"): void {
     if (services.instances.get(player.id)) { services.messaging.sendGameMessage(player, "You are already inside an instance."); return; }
-    const existing = runs.get(player.id);
+    const existing = restoredRun(player);
     // An escape interrupts an active Moon. Clear its transient actor before
     // rebuilding the room so a re-entry always creates a fresh boss.
     if (existing?.active) {
@@ -694,7 +725,7 @@ function createRun(player: PlayerState, services: ScriptServices, first: Moon, a
     const room = services.instances.create(player, { definitionId: "moons-of-peril", access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party", templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
     if (!room) { services.messaging.sendGameMessage(player, "The Moon chamber is unavailable right now."); return; }
     resetBlueBrazierBaseline(player, services);
-    runs.set(player.id, { owner: player, killed: new Set(), instanceId: room.id }); services.instances.markStarted(room.id); spawnMoon(player, services, first);
+    runs.set(player.id, { owner: player, killed: player.moons.defeated, instanceId: room.id }); services.instances.markStarted(room.id); spawnMoon(player, services, first);
 }
 
 /** Rebuild a fresh room when an early chest choice sends a player back in. */
@@ -731,25 +762,28 @@ function chooseMoonPiece(player: PlayerState, moon: Moon): number {
     return pool[Math.floor(Math.random() * pool.length)]!;
 }
 function reward(player: PlayerState, services: ScriptServices): void {
-    const run = runs.get(player.id); if (!run || run.killed.size === 0) { services.messaging.sendGameMessage(player, "This chest seems empty."); return; }
+    const run = restoredRun(player); if (!run || run.killed.size === 0) { services.messaging.sendGameMessage(player, "This chest seems empty."); return; }
     const count = run.killed.size;
-    const resources = [{ itemId: 28899, quantity: 60 + count * 20 }, { itemId: 1939, quantity: 400 + count * 150 }, { itemId: 571, quantity: 60 + count * 30 }, { itemId: 6034, quantity: 20 + count * 10 }, { itemId: 1761, quantity: 20 + count * 10 }, { itemId: 205, quantity: 30 + count * 10 }, { itemId: 209, quantity: 20 + count * 8 }, { itemId: 28991, quantity: 100 + count * 75 }];
     const rewards: Array<{ itemId: number; quantity: number }> = [];
     let uniqueAwarded = false;
     for (const moon of run.killed) {
         if (Math.random() < 1 / 56) { appendReward(rewards, chooseMoonPiece(player, moon), 1); uniqueAwarded = true; }
     }
     if (!uniqueAwarded) {
-        const rolls = count === 1 ? 1 : count === 2 ? 3 : 6;
-        for (let roll = 0; roll < rolls; roll += 1) { const resource = resources[Math.floor(Math.random() * resources.length)]!; appendReward(rewards, noteBulkReward(services, resource.itemId, resource.quantity), resource.quantity); }
+        const rolls = lunarChestRollCount(count);
+        for (let roll = 0; roll < rolls; roll += 1) {
+            const resource = rollLunarCommonReward();
+            appendReward(rewards, noteBulkReward(services, resource.itemId, resource.quantity), resource.quantity);
+        }
     }
     for (const item of rewards) addOrDrop(player, services, item.itemId, item.quantity);
     services.inventory.snapshotInventoryImmediate(player); for (const item of rewards) services.collectionLog.trackCollectionLogItem(player, item.itemId);
-    openRewardDisplay(player, services, "Lunar chest", rewards); services.messaging.sendGameMessage(player, `You search the Lunar chest after defeating ${count} Moon${count === 1 ? "" : "s"}.`); runs.delete(player.id);
+    openRewardDisplay(player, services, "Lunar chest", rewards); services.messaging.sendGameMessage(player, `You search the Lunar chest after defeating ${count} Moon${count === 1 ? "" : "s"}.`);
+    player.moons.defeated.clear(); runs.delete(player.id); services.appearance.savePlayerSnapshot(player);
 }
 
 function searchChest(player: PlayerState, services: ScriptServices): void {
-    const run = runs.get(player.id);
+    const run = restoredRun(player);
     if (!run || run.killed.size === 0) return reward(player, services);
     if (run.killed.size === 3) return reward(player, services);
     services.dialog.openDialogOptions(player, { id: "lunar-chest-choice", title: "The Lunar chest awaits.", options: ["Loot chest", "Next boss", "Cancel"], modal: true, onSelect: choice => {
@@ -1006,7 +1040,30 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     });
     for (const [moon, def] of Object.entries(MOONS) as Array<[Moon, typeof MOONS[Moon]]>) {
         registry.registerNpcAttack(def.id, moonGlyphAttack);
-        registry.registerNpcPreDeath(def.id, event => { const player = event.killer, run = player && runs.get(player.id); if (!player || !run || run.active !== moon || event.npc.ownerPlayerId !== player.id) return NpcPreDeathDecision.Allow; stopMoonSpecial(event.npc, event.services); const glyphState = glyphStates.get(event.npc); if (glyphState) { glyphState.tickTaskActive = false; if (glyphState.markerId !== undefined) event.services.npc.removeNpc(glyphState.markerId); } run.killed.add(moon); run.active = undefined; run.npcId = undefined; event.services.scheduler.after(7, () => { if (player.worldViewId !== event.npc.worldViewId) return; if (run.killed.size === 3) servicesAfter(event, player, CHEST_TILE); else { event.services.instances.leave(player, MOONS[def.next].outside); event.services.messaging.sendGameMessage(player, `${moon[0].toUpperCase()}${moon.slice(1)} Moon defeated. Choose another Moon statue to continue this run.`); } }, { kind: "player", id: player.id }); return NpcPreDeathDecision.Allow; });
+        registry.registerNpcPreDeath(def.id, event => {
+            const player = event.killer, run = player && runs.get(player.id);
+            if (!player || !run || run.active !== moon || event.npc.ownerPlayerId !== player.id) return NpcPreDeathDecision.Allow;
+            stopMoonSpecial(event.npc, event.services);
+            const glyphState = glyphStates.get(event.npc);
+            if (glyphState) {
+                glyphState.tickTaskActive = false;
+                if (glyphState.markerId !== undefined) event.services.npc.removeNpc(glyphState.markerId);
+            }
+            run.killed.add(moon);
+            run.active = undefined;
+            run.npcId = undefined;
+            // Commit completion now, not only when the player logs out or claims loot.
+            event.services.appearance.savePlayerSnapshot(player);
+            event.services.scheduler.after(7, () => {
+                if (player.worldViewId !== event.npc.worldViewId) return;
+                if (run.killed.size === 3) servicesAfter(event, player, CHEST_TILE);
+                else {
+                    event.services.instances.leave(player, MOONS[def.next].outside);
+                    event.services.messaging.sendGameMessage(player, `${moon[0].toUpperCase()}${moon.slice(1)} Moon defeated. Choose another Moon statue to continue this run.`);
+                }
+            }, { kind: "player", id: player.id });
+            return NpcPreDeathDecision.Allow;
+        });
     }
 }
 function servicesAfter(event: { services: ScriptServices }, player: PlayerState, tile: { x: number; y: number; level: number }): void { event.services.instances.leave(player, tile); event.services.messaging.sendGameMessage(player, "All three Moons have been defeated. You may now search the Lunar chest."); }

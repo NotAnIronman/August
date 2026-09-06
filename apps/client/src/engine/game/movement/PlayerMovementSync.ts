@@ -399,7 +399,7 @@ export class PlayerMovementSync {
             const ecsIndex = state.ecsIndex;
             if (!(ecsIndex >= 0)) continue;
 
-            const interactionOrientation = this.computeInteractionOrientation(ecsIndex);
+            const interactionOrientation = this.playerEcs.isMoving(ecsIndex) ? undefined : this.computeInteractionOrientation(ecsIndex);
             if (interactionOrientation !== undefined) {
                 const rot = interactionOrientation & 2047;
                 this.playerEcs.setTargetRot(ecsIndex, rot);

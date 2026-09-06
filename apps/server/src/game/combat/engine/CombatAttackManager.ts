@@ -116,7 +116,7 @@ export class CombatAttackManager {
             ...traits,
             type: AttackType.Magic,
             rangeTiles: Math.max(10, Math.trunc(traits.rangeTiles)),
-            speedTicks: 5,
+            speedTicks: traits.weaponId === 30634 ? 6 : 5,
             spellId,
             autocast: true,
         };

@@ -4836,6 +4836,16 @@ export const weaponDataEntries: WeaponDataEntry[] = [
         hitSounds: staffHitSounds,
     },
     {
+        itemId: 30634,
+        name: "Twinflame staff",
+        equipmentType: "staff",
+        combatCategory: CombatCategory.MAGIC_STAFF,
+        animOverrides: magicStaffAnimOverrides,
+        attackSpeed: 6,
+        hitDelay: 1,
+        hitSounds: staffHitSounds,
+    },
+    {
         itemId: 1383,
         name: "Staff of water",
         equipmentType: "staff",

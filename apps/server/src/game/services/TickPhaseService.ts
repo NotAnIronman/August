@@ -565,7 +565,7 @@ export class TickPhaseService {
                 }
             }
 
-            const currentInMulti = multiCombatSystem.isMultiCombat(tileX, tileY, player.level);
+            const currentInMulti = multiCombatSystem.isMultiCombat(tileX, tileY, player.level, player.worldViewId);
             const previousInMulti = player.combat.lastInMultiCombat ?? false;
 
             if (currentInMulti !== previousInMulti) {

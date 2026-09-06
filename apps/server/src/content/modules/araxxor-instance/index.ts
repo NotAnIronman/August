@@ -1,5 +1,6 @@
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { AttackType } from "@server/game/combat/AttackType";
+import { partyLootEligibility, includeLethalContribution } from "@server/game/combat/PartyLootEligibility";
 import { HITMARK_DAMAGE, HITMARK_VENOM } from "@server/game/combat/HitEffects";
 import { isDeveloperGodmodeEnabled, isDeveloperInstakillEnabled } from "@server/game/dev/DeveloperFlags";
 import { VARP_COLLECTION_CATEGORY_COUNT } from "@server/game/collectionlog";
@@ -92,11 +93,13 @@ interface AraxxorState {
 const states = new WeakMap<NpcState, AraxxorState>();
 interface AraxxorCorpse {
     readonly owner: PlayerState;
-    readonly drops: readonly PendingNpcDrop[];
+    readonly instanceId: string;
+    readonly claims: Map<string, { drops: readonly PendingNpcDrop[]; resolved: boolean }>;
     readonly venomEligible: boolean;
     resolved: boolean;
 }
 const corpses = new WeakMap<NpcState, AraxxorCorpse>();
+const corpseAccount = (player: PlayerState) => (player.__saveKey || player.name || String(player.id)).trim().toLowerCase();
 
 function stateFor(npc: NpcState, services: ScriptServices): AraxxorState {
     const runtime = services.encounters.ensure(npc);
@@ -497,13 +500,15 @@ function awardNid(player: PlayerState, corpse: NpcState, services: ScriptService
 
 function finishCorpse(corpse: NpcState, services: ScriptServices): void {
     const state = corpses.get(corpse);
+    if (!state || state.resolved) return;
     if (state) state.resolved = true;
     services.npc.removeNpc(corpse.id);
     if (!state) return;
     // A completed Harvest/Destroy begins a genuinely fresh life. It does not
     // revive the corpse or retain its old encounter runtime/attack target.
     services.scheduler.after(2, () => {
-        const owner = state.owner;
+        const owner = services.instances.getMemberPlayers(state.instanceId).find(p => p.worldViewId === corpse.worldViewId);
+        if (!owner) return;
         const instance = services.instances.get(owner.id);
         if (!instance || instance.definitionId !== INSTANCE_ID || owner.worldViewId !== corpse.worldViewId) return;
         const boss = services.npc.spawnNpc({
@@ -522,35 +527,49 @@ function finishCorpse(corpse: NpcState, services: ScriptServices): void {
             // original room spawn.
             spawnEggRing(boss, owner, services);
         }
-    }, { kind: "npc", id: corpse.id });
+    }, { kind: "instance", id: state.instanceId });
+}
+
+function finishClaim(npc: NpcState, services: ScriptServices): void {
+    const state = corpses.get(npc);
+    if (state && [...state.claims.values()].every(claim => claim.resolved)) finishCorpse(npc, services);
+}
+
+function claimedDrop(player: PlayerState, npc: NpcState, services: ScriptServices, drop: PendingNpcDrop): void {
+    spawnCorpseDrop(npc, services, { ...drop, ownerId: player.id, tile: {x: npc.tileX, y: npc.tileY, level: npc.level}, worldViewId: npc.worldViewId });
+    services.collectionLog.trackCollectionLogItem(player, drop.itemId);
 }
 
 function harvestCorpse({ player, npc, services }: { player: PlayerState; npc: NpcState; services: ScriptServices }): void {
     const state = corpses.get(npc);
-    if (!state || state.owner.id !== player.id || state.resolved) return;
-    for (const drop of state.drops) spawnCorpseDrop(npc, services, drop);
+    const claim = state?.claims.get(corpseAccount(player));
+    if (!state || !claim || claim.resolved || state.resolved || player.worldViewId !== npc.worldViewId || player.level !== npc.level) return;
+    claim.resolved = true;
+    for (const drop of claim.drops) claimedDrop(player, npc, services, drop);
     if (state.venomEligible && !player.collectionLog.hasItem(COAGULATED_VENOM_ID)) {
-        spawnCorpseDrop(npc, services, { itemId: COAGULATED_VENOM_ID, quantity: 1, tile: { x: npc.tileX, y: npc.tileY, level: npc.level }, ownerId: player.id, isMonsterDrop: true, isWilderness: false, worldViewId: npc.worldViewId });
+        claimedDrop(player, npc, services, { itemId: COAGULATED_VENOM_ID, quantity: 1, tile: { x: npc.tileX, y: npc.tileY, level: npc.level }, ownerId: player.id, isMonsterDrop: true, isWilderness: false, worldViewId: npc.worldViewId });
     }
     awardNid(player, npc, services, 1 / 3000);
     services.messaging.sendGameMessage(player, "You harvest Araxxor's corpse.");
-    finishCorpse(npc, services);
+    finishClaim(npc, services);
 }
 
 function destroyCorpse({ player, npc, services }: { player: PlayerState; npc: NpcState; services: ScriptServices }): void {
     const state = corpses.get(npc);
-    if (!state || state.owner.id !== player.id || state.resolved) return;
+    const claim = state?.claims.get(corpseAccount(player));
+    if (!state || !claim || claim.resolved || state.resolved || player.worldViewId !== npc.worldViewId || player.level !== npc.level) return;
     services.dialog.openDialogOptions(player, {
         id: "araxxor-destroy-corpse", title: "Destroy Araxxor's corpse?",
         options: ["Yes - sacrifice normal loot", "No"], modal: true,
         onSelect: choice => {
-            if (choice !== 0 || state.resolved) return;
+            if (choice !== 0 || state.resolved || claim.resolved || player.worldViewId !== npc.worldViewId || player.level !== npc.level) return;
+            claim.resolved = true;
             // Destroy keeps the elite-clue roll but forfeits every normal and
             // unique reward; Nid's independent chance doubles to 1/1,500.
-            for (const drop of state.drops) if (drop.itemId === ELITE_CLUE_ID) spawnCorpseDrop(npc, services, drop);
+            for (const drop of claim.drops) if (drop.itemId === ELITE_CLUE_ID) claimedDrop(player, npc, services, drop);
             awardNid(player, npc, services, 1 / 1500);
             services.messaging.sendGameMessage(player, "You destroy Araxxor's corpse, sacrificing its normal loot.");
-            finishCorpse(npc, services);
+            finishClaim(npc, services);
         },
     });
 }
@@ -558,14 +577,20 @@ function destroyCorpse({ player, npc, services }: { player: PlayerState; npc: Np
 function becomeCorpse(event: Parameters<IScriptRegistry["registerNpcPreDeath"]>[1] extends (event: infer E) => unknown ? E : never): NpcPreDeathDecision | void {
     if (event.npc.typeId !== ARAXXOR_ID || !event.killer || !inLair(event.killer, event.services)) return;
     const fight = stateFor(event.npc, event.services);
-    const drops = event.services.combat.rollNpcDrops(event.npc, event.services.combat.getDropEligibility(event.npc))
+    const instance = event.services.instances.get(event.killer.id);
+    if (!instance) return;
+    const originalEligibility = includeLethalContribution(event.services.combat.getDropEligibility(event.npc), event.killer,
+        Math.min(event.hit.proposedDamage, event.hit.hitpointsBefore), event.tick);
+    const eligibility = instance.access === "party" ? partyLootEligibility(event.npc, originalEligibility,
+        event.services.instances.getMemberPlayers(instance.id), instance.memberPlayerIds.length)
+        : {...originalEligibility, eligibleLooters: [event.killer], primaryLooter: event.killer};
+    const drops = (eligibility.eligibleLooters.length ? event.services.combat.rollNpcDrops(event.npc, eligibility) : [])
         // Coagulated venom and Nid are governed by the corpse choice/timer,
         // not by a generic death roll.
         .filter(drop => drop.itemId !== COAGULATED_VENOM_ID && drop.itemId !== NID_ID && drop.itemId !== NID_VARIANT_ID);
     // Do not use replaceNpc here. replaceNpc deliberately transfers a
     // compatible encounter runtime and its target, which is correct for a
     // combat phase transformation but wrong for a lootable dead body.
-    const instance = event.services.instances.get(event.killer.id);
     // Eggs belong to a single Araxxor life. Remove every surviving anchor
     // before the corpse is created so the next life begins with one clean ring.
     const runtime = event.services.encounters.getByNpcRuntimeId(event.npc.id);
@@ -585,6 +610,7 @@ function becomeCorpse(event: Parameters<IScriptRegistry["registerNpcPreDeath"]>[
         respawns: false, lifetimeTicks: 500,
     });
     if (!corpse) return;
+    if (!event.services.instances.attachNpc(instance.id, corpse)) { event.services.npc.removeNpc(corpse.id); return; }
     event.services.npc.disengageCombat(event.npc);
     event.services.npc.removeNpc(event.npc.id);
     corpse.setUnattackable(true);
@@ -593,11 +619,15 @@ function becomeCorpse(event: Parameters<IScriptRegistry["registerNpcPreDeath"]>[
     event.services.npc.queueNpcSeq(corpse, ANIM.death);
     corpses.set(corpse, {
         owner: event.killer,
-        drops,
+        instanceId: instance.id,
+        claims: new Map(eligibility.eligibleLooters.map(player => [corpseAccount(player), {drops: drops.filter(drop => drop.ownerId === player.id), resolved: false}])),
         venomEligible: event.tick - fight.startedAt <= VENOM_TIME_LIMIT_TICKS,
         resolved: false,
     });
-    recordAraxxorKill(event.killer, event.services);
+    for (const player of eligibility.eligibleLooters) recordAraxxorKill(player, event.services);
+    // One absent/unclaimed member must not permanently strand the party's next kill.
+    event.services.scheduler.after(500, () => finishCorpse(corpse, event.services), {kind: "instance", id: instance.id});
+    if (!eligibility.eligibleLooters.length) finishCorpse(corpse, event.services);
     return NpcPreDeathDecision.Prevent;
 }
 

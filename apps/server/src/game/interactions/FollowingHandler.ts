@@ -106,6 +106,9 @@ export class FollowingHandler {
         // CRITICAL: Clear any existing path that might walk onto the target's tile
         // This prevents the player from walking onto the target before following logic runs
         me.clearPath();
+        // Store the same target that deriveInteractionIndex sends. Clearing a
+        // follow must then dirty the actor mask and send an explicit target reset.
+        me.setInteraction("player", target.id);
 
         const swirlDir: 1 | -1 = ((me.id ^ target.id) & 1) === 0 ? 1 : -1;
         this.interactions.set(ws, {

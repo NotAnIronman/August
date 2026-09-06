@@ -1,5 +1,6 @@
 import fs from "fs";
 import { sanitizeRaidCheckpoint } from "@server/game/state/PlayerRaidState";
+import { sanitizeMoonProgress } from "@server/game/state/PlayerMoonState";
 import { sanitizeFirstPetDrops } from "@server/game/state/PlayerFollowerPersistState";
 import type { StatementSync } from "node:sqlite";
 import path from "path";
@@ -681,6 +682,8 @@ export function mergePlayerPersistentVars(
     // Explicit null must replace older progress, not merge it back after abandonment.
     const raidCheckpoint = pick("raidCheckpoint");
     if (raidCheckpoint !== undefined) result.raidCheckpoint = sanitizeRaidCheckpoint(raidCheckpoint) ?? null;
+    const moonProgress = pick("moonProgress");
+    if (moonProgress !== undefined) result.moonProgress = sanitizeMoonProgress(moonProgress);
 
     return result;
 }

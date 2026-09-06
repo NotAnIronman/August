@@ -22,6 +22,10 @@ import {
     type EnchantedBoltEffect,
     getArrowVisual,
     getEnchantedBoltEffect,
+    AmmoType,
+    getAmmoType,
+    calculateAmmoConsumption,
+    isDarkBowWeapon,
 } from "@server/game/combat/AmmoSystem";
 import { AttackType } from "@server/game/combat/AttackType";
 import { combatEffectApplicator } from "@server/game/combat/CombatEffectApplicator";
@@ -155,6 +159,7 @@ export class CombatHitProcessor {
     private readonly deferredHits: DeferredHitQueue;
     /** Legacy definitions are retained per swing so their hit effects resolve at impact time. */
     private readonly legacySpecials = new WeakMap<CombatAttack, FallbackSpecialAttackDefinition>();
+    private readonly twinflameEchoes = new WeakSet<CombatAttack>();
 
     constructor(
         private readonly services: ServerServices,
@@ -348,6 +353,11 @@ export class CombatHitProcessor {
             const travelDelayTicks = this.resolveTravelDelay(profile, context);
             const resolvedAttack = specialAttack ?? dragonfireAttack ?? normalAttack;
             const visuals = this.resolveVisuals(profile, context, resolvedAttack);
+            if (attacker instanceof PlayerState && attack.traits.type === AttackType.Ranged &&
+                !this.consumeQuiverShot(attacker, target, attack.traits.weaponId ?? 0, clock)) {
+                rejectedAttacks++;
+                continue;
+            }
             const damageType = resolvedAttack?.damageType ?? attack.traits.type;
 
             this.playAttackVisuals(context, profile, visuals, travelDelayTicks, resolvedAttack);
@@ -473,12 +483,8 @@ export class CombatHitProcessor {
 
         if (
             targeting.requiresMultiCombat === true &&
-            (!multiCombatSystem.isMultiCombat(attacker.tileX, attacker.tileY, attacker.level) ||
-                !multiCombatSystem.isMultiCombat(
-                    primaryTarget.tileX,
-                    primaryTarget.tileY,
-                    primaryTarget.level,
-                ))
+            (!multiCombatSystem.actorInMultiCombat(attacker) ||
+                !multiCombatSystem.actorInMultiCombat(primaryTarget))
         ) {
             return 0;
         }
@@ -769,12 +775,8 @@ export class CombatHitProcessor {
         primaryTarget: CombatEntity,
     ): boolean {
         return (
-            multiCombatSystem.isMultiCombat(attacker.tileX, attacker.tileY, attacker.level) &&
-            multiCombatSystem.isMultiCombat(
-                primaryTarget.tileX,
-                primaryTarget.tileY,
-                primaryTarget.level,
-            )
+            multiCombatSystem.actorInMultiCombat(attacker) &&
+            multiCombatSystem.actorInMultiCombat(primaryTarget)
         );
     }
 
@@ -809,7 +811,7 @@ export class CombatHitProcessor {
         if (!this.isAlive(candidate, currentMapClock)) return false;
         if (candidate.level !== primaryTarget.level) return false;
         if (candidate.worldViewId !== primaryTarget.worldViewId) return false;
-        if (!multiCombatSystem.isMultiCombat(candidate.tileX, candidate.tileY, candidate.level)) {
+        if (!multiCombatSystem.actorInMultiCombat(candidate)) {
             return false;
         }
 
@@ -1438,6 +1440,7 @@ export class CombatHitProcessor {
         this.updateCombatState(hit);
         this.awardCombatExperience(hit, frame);
         this.handleDeath(hit);
+        this.queueTwinflameEcho(hit);
 
         const profile = this.plugins.getById(hit.pending.profileId);
         if (!profile?.onHitApplied || !hit.source) return;
@@ -1450,6 +1453,21 @@ export class CombatHitProcessor {
         });
         this.invokePlugin(profile.id, "onHitApplied", () => profile.onHitApplied?.(hit, context));
         this.queueDueSaradominSwordLightnings(hit.appliedClock);
+    }
+
+    private queueTwinflameEcho(hit: AppliedCombatHit): void {
+        const original = hit.pending.attack;
+        if (!(hit.source instanceof PlayerState) || original.traits.weaponId !== 30634 ||
+            original.traits.type !== AttackType.Magic || this.twinflameEchoes.has(original) ||
+            hit.hpCurrent <= 0 || hit.amount <= 0) return;
+        const spell = original.traits.spellId ? getSpellData(original.traits.spellId) : undefined;
+        if (!spell || !/^(Wind|Water|Earth|Fire) (Bolt|Blast|Wave)$/i.test(spell.name ?? "")) return;
+        const attack = {...original, traits: {...original.traits}};
+        this.twinflameEchoes.add(attack);
+        this.deferredHits.enqueue({attack, source: attack.attacker, target: attack.target,
+            damage: Math.floor(hit.amount * 0.4), maxHit: Math.floor(hit.pending.maxHit * 0.4),
+            landed: true, hitsplatType: DeferredHitsplatType.Normal, attackType: AttackType.Magic,
+            revealClock: hit.appliedClock + 1, profileId: hit.pending.profileId});
     }
 
     private applyEncounterAttackEffects(hit: AppliedCombatHit): void {
@@ -1699,6 +1717,36 @@ export class CombatHitProcessor {
         }
     }
 
+    private consumeQuiverShot(player: PlayerState, target: CombatEntity, weaponId: number, tick: number): boolean {
+        const type = getAmmoType(weaponId);
+        if (type !== AmmoType.Arrow && type !== AmmoType.Bolt && type !== AmmoType.Javelin) return true;
+        const equip = player.appearance.equip;
+        const quantities = player.appearance.equipQty ?? (player.appearance.equipQty = Array(equip.length).fill(0));
+        const ammoId = equip[EquipmentSlot.AMMO] ?? -1;
+        const quantity = quantities[EquipmentSlot.AMMO] ?? 0;
+        const result = calculateAmmoConsumption(weaponId, ammoId, quantity,
+            equip[EquipmentSlot.CAPE] ?? -1, target.tileX, target.tileY, Math.random);
+        if (result.error || quantity < (isDarkBowWeapon(weaponId) ? 2 : 1)) {
+            player.resetInteractions();
+            this.services.messagingService.queueChatMessage({messageType: "game",
+                text: result.error === "Incompatible ammunition" ? "You cannot use that ammunition with this weapon." : "You do not have enough ammunition.",
+                targetPlayerIds: [player.id]});
+            return false;
+        }
+        if (result.quantityUsed > 0) {
+            quantities[EquipmentSlot.AMMO] = quantity - result.quantityUsed;
+            if (quantities[EquipmentSlot.AMMO] <= 0) equip[EquipmentSlot.AMMO] = -1;
+            player.markEquipmentDirty();
+            player.markAppearanceDirty();
+        }
+        if (result.dropped && (result.dropQuantity ?? 0) > 0) {
+            this.services.groundItems.spawn(ammoId, result.dropQuantity!,
+                {x: target.tileX, y: target.tileY, level: target.level}, tick,
+                {ownerId: player.id, privateTicks: 100}, player.worldViewId);
+        }
+        return true;
+    }
+
     private consumeToxicBlowpipeShot(player: PlayerState, currentMapClock: number): boolean {
         const state = player.equipment.getBlowpipeChargeState();
         if (state.scales <= 0 || state.dartCount <= 0 || state.dartId <= 0) {
@@ -1716,20 +1764,9 @@ export class CombatHitProcessor {
 
         const capeId = player.appearance.equip[EquipmentSlot.CAPE] ?? -1;
         const dartRoll = Math.random();
-        const dartRetrieved = AVAS_ASSEMBLER_ITEM_IDS.has(capeId)
-            ? dartRoll < 0.8
-            : AVAS_ACCUMULATOR_ITEM_IDS.has(capeId)
-              ? dartRoll < 0.72
-              : capeId === AVAS_ATTRACTOR_ITEM_ID
-                ? dartRoll < 0.6
-                : false;
-        const dartDropped = !dartRetrieved
-            ? AVAS_ACCUMULATOR_ITEM_IDS.has(capeId)
-                ? dartRoll < 0.92
-                : capeId === AVAS_ATTRACTOR_ITEM_ID
-                  ? dartRoll < 0.9
-                  : !AVAS_ASSEMBLER_ITEM_IDS.has(capeId) && dartRoll < 0.8
-            : false;
+        const hasAvas = AVAS_ASSEMBLER_ITEM_IDS.has(capeId) || AVAS_ACCUMULATOR_ITEM_IDS.has(capeId) || capeId === AVAS_ATTRACTOR_ITEM_ID;
+        const dartRetrieved = hasAvas && dartRoll < 0.8;
+        const dartDropped = !hasAvas && dartRoll < 0.8;
         const dartConsumed = !dartRetrieved;
         const scaleConsumed = Math.random() >= 1 / 3;
 

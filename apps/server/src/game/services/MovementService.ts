@@ -139,6 +139,12 @@ export class MovementService {
 
         try {
             this.services.actionScheduler.cancelInterruptibleActions(player.id);
+            const socket = this.services.players?.getSocketByPlayerId(player.id);
+            if (socket) this.services.players?.clearAllInteractions(socket);
+            player.resetInteractions();
+            player.clearForcedOrientation();
+            player.pendingFaceTile = undefined;
+            player._pendingFace = undefined;
             player.clearInteraction();
             player.stopAnimation();
             player.clearWalkDestination();

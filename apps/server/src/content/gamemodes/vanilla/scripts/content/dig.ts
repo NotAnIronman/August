@@ -240,10 +240,7 @@ function submitEditorInput(player: PlayerState, services: ScriptServices, text: 
  * Dig option; clue, quest, and easter-egg behavior can be added as named
  * handlers without turning object transports into a catch-all system.
  */
-export function registerDigHandlers(registry: IScriptRegistry, services: ScriptServices): void {
-    registerPlayerScopedCollections(registry, services, editorStates);
-
-    const dig = ({ player, services: svc }: ItemOnItemEvent): void => {
+export function executeSavedDig({ player, services: svc }: ItemOnItemEvent): void {
         const tile = { x: player.tileX, y: player.tileY, level: player.level };
         const rule = findRule(readCatalog(), tile);
         if (!rule) {
@@ -253,12 +250,15 @@ export function registerDigHandlers(registry: IScriptRegistry, services: ScriptS
         if (rule.animationId !== undefined) svc.animation.playPlayerSeq(player, rule.animationId);
         svc.movement.teleportPlayer(player, rule.to.x, rule.to.y, rule.to.level);
         if (rule.message) svc.messaging.sendGameMessage(player, rule.message);
-    };
+}
+
+export function registerDigHandlers(registry: IScriptRegistry, services: ScriptServices): void {
+    registerPlayerScopedCollections(registry, services, editorStates);
     // The live client exposes Dig for a spade even in revisions where the
     // server's item metadata has no inventory-action entry. Register both so
     // the normal labelled action and that metadata-free packet are handled.
-    registry.registerItemAction(SPADE_ID, dig, "dig");
-    registry.registerItemAction(SPADE_ID, dig);
+    registry.registerItemAction(SPADE_ID, executeSavedDig, "dig");
+    registry.registerItemAction(SPADE_ID, executeSavedDig);
 
     const command: CommandHandler = ({ player, args }) => {
         const action = args[0]?.toLowerCase();

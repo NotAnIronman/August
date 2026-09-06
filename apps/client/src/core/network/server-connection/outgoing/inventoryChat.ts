@@ -92,8 +92,9 @@ export function sendGroundItemAction(payload: GroundItemActionPayload): void {
 
 export function sendChat(
     text: string,
-    messageType: "public" | "game" | "friends_chat" = "public",
+    messageType: "public" | "game" | "friends_chat" | "private" = "public",
     chatType: number = 0,
+    recipient?: string,
 ): void {
     if (!state.socket || state.socket.readyState !== WebSocket.OPEN) {
         console.warn("[sendChat] Dropped: socket not open");
@@ -115,6 +116,7 @@ export function sendChat(
         payload: {
             text: payloadText,
             messageType,
+            recipient,
             chatType: chatType | 0,
             colorId: formatting.colorId | 0,
             effectId: formatting.effectId | 0,

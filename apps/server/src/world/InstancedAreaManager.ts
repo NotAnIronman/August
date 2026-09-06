@@ -5,6 +5,7 @@ import {
     packTemplateChunk,
 } from "@august/game-model/world/instance/InstanceTypes";
 import type { ServerServices } from "@server/game/ServerServices";
+import { multiCombatSystem } from "@server/game/combat/MultiCombatZones";
 import {
     InstanceBossHealthBarLifecycle,
     deriveBossHealthBarMarkers,
@@ -231,6 +232,7 @@ export class InstancedAreaManager {
             started: false,
         };
         this.instancesById.set(runtime.id, runtime);
+        multiCombatSystem.setPartyWorldView(worldViewId, access === "party");
         this.instanceIdByPlayer.set(player.id, runtime.id);
         player.worldViewId = worldViewId;
         if (player.raidProgress && spec.definitionId?.startsWith("theatre-of-blood:"))
@@ -552,6 +554,7 @@ export class InstancedAreaManager {
         for (const npcId of runtime.npcRuntimeIds) this.services.npcManager?.removeNpc(npcId);
         this.services.groundItems.removeByWorldView(runtime.worldViewId);
         this.services.pathService?.removeWorldViewCollision(runtime.worldViewId);
+        multiCombatSystem.setPartyWorldView(runtime.worldViewId, false);
         this.instancesById.delete(runtime.id);
     }
 

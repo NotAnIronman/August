@@ -21,7 +21,10 @@ const svc: any = {
     scriptScheduler:{cancelOwner:()=>{}},groundItems:{removeByWorldView:()=>{}},locationService:{},
     players:{getById:(id:number)=>players.get(id)},
     movementService:{
-        teleportToInstance:(p:PlayerState,x:number,y:number,level:number)=>Object.assign(p,{tileX:x,tileY:y,level}),
+        teleportToInstance:(p:PlayerState,x:number,y:number,level:number)=>{
+            assert(p.raidProgress.isInternal,"every Theatre join must bypass ordinary teleport cleanup, even before the first checkpoint exists");
+            Object.assign(p,{tileX:x,tileY:y,level});
+        },
         teleportPlayer:(p:PlayerState,x:number,y:number,level:number)=>Object.assign(p,{tileX:x,tileY:y,level}),
     },
 };

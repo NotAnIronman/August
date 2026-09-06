@@ -465,10 +465,11 @@ export class ClientBinaryEncoder {
     // CHAT/VARPS
     // ========================================
 
-    encodeChat(text: string, messageType?: "public" | "game" | "friends_chat"): Uint8Array {
+    encodeChat(text: string, messageType?: "public" | "game" | "friends_chat" | "private", recipient?: string): Uint8Array {
         this.buffer.reset();
-        this.buffer.writeByte(messageType === "friends_chat" ? 2 : messageType === "game" ? 1 : 0);
+        this.buffer.writeByte(messageType === "private" ? 3 : messageType === "friends_chat" ? 2 : messageType === "game" ? 1 : 0);
         this.buffer.writeString(text);
+        if (messageType === "private") this.buffer.writeString(recipient ?? "");
         return this.buffer.toPacket(ClientMessageId.CHAT);
     }
 
@@ -635,7 +636,7 @@ export function encodeClientMessage(msg: { type: string; payload: any }): Uint8A
             return clientEncoder.encodeTradeAction(payload);
 
         case "chat":
-            return clientEncoder.encodeChat(payload.text, payload.messageType);
+            return clientEncoder.encodeChat(payload.text, payload.messageType, payload.recipient);
 
         case "friends_chat_action":
             return clientEncoder.encodeFriendsChatAction(payload);

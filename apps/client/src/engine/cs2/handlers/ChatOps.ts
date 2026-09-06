@@ -152,9 +152,9 @@ export function registerChatOps(handlers: HandlerMap): void {
     // Pops: recipient (string), message (string)
     handlers.set(Opcodes.CHAT_SENDPRIVATE, (ctx) => {
         ctx.stringStackSize -= 2;
-        const _recipient = ctx.stringStack[ctx.stringStackSize];
-        const _message = ctx.stringStack[ctx.stringStackSize + 1];
-        // Server would handle the private message packet
+        const recipient = ctx.stringStack[ctx.stringStackSize];
+        const message = ctx.stringStack[ctx.stringStackSize + 1];
+        if (recipient?.trim() && message?.trim()) sendChat(message, "private", 0, recipient);
     });
 
     // CHAT_SENDCLAN (5010): Used by the modern Clan channels, which are separate

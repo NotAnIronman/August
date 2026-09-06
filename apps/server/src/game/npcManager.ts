@@ -1565,7 +1565,7 @@ export class NpcManager {
         const npcInWilderness = isInWilderness(npc.tileX, npc.tileY);
 
         // Check if NPC is in multi-combat zone
-        const npcInMultiCombat = multiCombatSystem.isMultiCombat(npc.tileX, npc.tileY, npc.level);
+        const npcInMultiCombat = multiCombatSystem.actorInMultiCombat(npc);
 
         // Get players within aggression radius
         const nearbyPlayers = getNearbyPlayers(
@@ -1588,17 +1588,10 @@ export class NpcManager {
             }
         }
 
-        // RSMod parity: scan the square around the NPC in tile order and stop at the
-        // first tile containing any valid targets, then choose randomly from that tile.
-        const radius = Math.max(0, npc.aggressionRadius);
-        for (let dx = -radius; dx <= radius; dx++) {
-            for (let dy = -radius; dy <= radius; dy++) {
-                const bucket = playersByTile.get(
-                    tileKey(npc.tileX + dx, npc.tileY + dy, npc.level),
-                );
-                if (!bucket || bucket.length === 0) {
-                    continue;
-                }
+        // Preserve x/y tile-order selection, but visit only occupied tiles.
+        // Iterating radius squared can hang the tick thread on malformed content.
+        const occupied = [...playersByTile.values()].sort((a,b)=>a[0].x-b[0].x || a[0].y-b[0].y);
+        for (const bucket of occupied) {
                 const validTargets = bucket.filter((player) =>
                     this.canNpcAggroPlayer(
                         npc,
@@ -1621,7 +1614,6 @@ export class NpcManager {
                     npcId: npc.id,
                     targetPlayerId: target.id,
                 };
-            }
         }
 
         return undefined;
@@ -1693,7 +1685,7 @@ export class NpcManager {
             return false;
         }
 
-        const bothInMulti = npcInMultiCombat && multiCombatSystem.isMultiCombat(player.x, player.y, player.level);
+        const bothInMulti = npcInMultiCombat && multiCombatSystem.isMultiCombat(player.x, player.y, player.level, npc.worldViewId);
         if (!bothInMulti && (player.inCombat || this.aggressionClaims.has(player.id))) {
             return false;
         }

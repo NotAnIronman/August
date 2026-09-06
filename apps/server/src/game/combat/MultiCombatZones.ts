@@ -333,6 +333,12 @@ interface CombatEngagement {
 }
 
 export class MultiCombatSystem {
+    private readonly partyWorldViews = new Set<number>();
+
+    setPartyWorldView(worldViewId: number, enabled: boolean): void {
+        if (enabled) this.partyWorldViews.add(worldViewId);
+        else this.partyWorldViews.delete(worldViewId);
+    }
     // Track who is attacking whom
     private engagements: Map<Actor, CombatEngagement[]> = new Map();
     private lastCleanupTick = Number.NaN;
@@ -343,7 +349,8 @@ export class MultiCombatSystem {
     /**
      * Check if a position is in a multi-combat zone
      */
-    isMultiCombat(x: number, y: number, plane: number): boolean {
+    isMultiCombat(x: number, y: number, plane: number, worldViewId?: number): boolean {
+        if (worldViewId !== undefined && this.partyWorldViews.has(worldViewId)) return true;
         // First check rectangle zones
         for (const zone of MULTI_COMBAT_ZONES) {
             if (
@@ -374,7 +381,7 @@ export class MultiCombatSystem {
      * Check if actor is in multi-combat zone
      */
     actorInMultiCombat(actor: Actor): boolean {
-        return this.isMultiCombat(actor.tileX, actor.tileY, actor.level);
+        return this.isMultiCombat(actor.tileX, actor.tileY, actor.level, (actor as Actor & {worldViewId?: number}).worldViewId);
     }
 
     /**
