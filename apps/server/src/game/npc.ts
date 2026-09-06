@@ -1112,6 +1112,13 @@ export class NpcState extends Actor {
         return this.maxHitpoints;
     }
 
+    /** Encounter setup only: set party-scaled HP before allowing combat. */
+    configureHitpoints(maxHitpoints: number): void {
+        if (!Number.isFinite(maxHitpoints) || maxHitpoints < 1) throw new Error("Invalid NPC hitpoints");
+        this.maxHitpoints = Math.trunc(maxHitpoints);
+        this.commitHitpoints(this.maxHitpoints, "reset", true);
+    }
+
     applyDamage(amount: number): { current: number; max: number } {
         // Do not rely only on interaction handlers for developer/presentation
         // NPCs: delayed hits, splash damage and future mechanics all converge

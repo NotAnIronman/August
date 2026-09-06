@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { PlayerState } from "@server/game/player";
 import type { InstanceFacade } from "@server/game/scripts/serviceInterfaces";
 import { THEATRE_OUTSIDE, THEATRE_ROOMS, theatreRoomGeometry, type TheatreRoomId } from "./rooms";
+import { rollTheatreRewards, validTheatreRewards, type TheatreChestReward } from "./rewards";
+import { VAULT_COPY, VAULT_ENTRANCE, VAULT_SCENE_BASE, vaultDefinition } from "./vault";
 
 export interface TheatreRunRecord {
     version: 1;
@@ -12,10 +14,14 @@ export interface TheatreRunRecord {
     completedRooms: number;
     started: boolean;
     instanceId?: string;
+    vaultInstanceId?: string;
+    rewards?: TheatreChestReward[];
 }
 export interface TheatreRunStore {
     load(id: string): TheatreRunRecord | undefined;
     save(run: TheatreRunRecord): void;
+    /** Atomically saves the claim flag AND the receiving player's inventory/log/pet queue. */
+    claim?(run: TheatreRunRecord, player: PlayerState): void;
 }
 export function sanitizeTheatreRun(value: unknown): TheatreRunRecord | undefined {
     const r = value as TheatreRunRecord | undefined;
@@ -25,9 +31,13 @@ export function sanitizeTheatreRun(value: unknown): TheatreRunRecord | undefined
         new Set(r.roster).size !== r.roster.length || typeof r.started !== "boolean" ||
         !Number.isInteger(r.roomIndex) || r.roomIndex < 0 || r.roomIndex > 5 ||
         !Number.isInteger(r.completedRooms) || r.completedRooms < r.roomIndex || r.completedRooms > r.roomIndex + 1 ||
-        (r.instanceId !== undefined && (typeof r.instanceId !== "string" || r.instanceId.length > 80))) return;
+        (r.instanceId !== undefined && (typeof r.instanceId !== "string" || r.instanceId.length > 80)) ||
+        (r.vaultInstanceId !== undefined && (r.completedRooms!==6 || typeof r.vaultInstanceId!=="string" || r.vaultInstanceId.length>80)) ||
+        (r.rewards !== undefined && (r.completedRooms!==6 || !validTheatreRewards(r.rewards,r.roster.length)))) return;
     return {version:1,id:r.id,access:r.access,roster:[...r.roster],roomIndex:r.roomIndex,
-        completedRooms:r.completedRooms,started:r.started,instanceId:r.instanceId};
+        completedRooms:r.completedRooms,started:r.started,instanceId:r.instanceId,
+        ...(r.vaultInstanceId!==undefined?{vaultInstanceId:r.vaultInstanceId}:{}),
+        ...(r.rewards?{rewards:structuredClone(r.rewards)}:{})};
 }
 const account = (p: PlayerState) => (p.__saveKey || p.name).trim().toLowerCase();
 const definition = (run: TheatreRunRecord) => `theatre-of-blood:${run.id}:${run.roomIndex}`;
@@ -101,7 +111,8 @@ export class TheatreRuns {
         const checkpoint = player.raidProgress.checkpoint;
         if (!checkpoint || checkpoint.status !== "disconnected" || this.instances.get(player.id)) return false;
         const run = this.store.load(checkpoint.runId);
-        if (!run || !run.roster.includes(account(player)) || run.access !== checkpoint.access || run.completedRooms >= 6) return false;
+        if (!run || !run.roster.includes(account(player)) || run.access !== checkpoint.access) return false;
+        if (run.completedRooms===6) return this.transferToVault(player,run);
         try {
             const live = this.live(run);
             if (live) {
@@ -126,6 +137,44 @@ export class TheatreRuns {
         const room = run && this.live(run);
         if (run && run.roster.includes(account(player)) && room?.memberPlayerIds.includes(player.id)) return run;
     }
+    vaultCurrent(player:PlayerState):TheatreRunRecord|undefined {
+        const c=player.raidProgress.checkpoint, instance=this.instances.get(player.id);
+        if(!c || c.status!=="active" || !instance || instance.worldViewId!==player.worldViewId)return;
+        const run=this.store.load(c.runId);
+        if(run?.completedRooms===6 && run.roster.includes(account(player)) && instance.id===run.vaultInstanceId &&
+            instance.definitionId===vaultDefinition(run.id) && instance.memberPlayerIds.includes(player.id))return run;
+    }
+    private transferToVault(player:PlayerState,run:TheatreRunRecord):boolean {
+        // Upgrade an already-completed pre-vault record once, before transferring.
+        if(!run.rewards){run.rewards=rollTheatreRewards(run.roster.length);this.store.save(run);}
+        const existing=run.vaultInstanceId?this.instances.getById(run.vaultInstanceId):undefined;
+        try {
+            if(existing?.definitionId===vaultDefinition(run.id)) {
+                if(!player.raidProgress.internally(()=>this.instances.join(player,existing.id)))return false;
+            } else {
+                const vault=player.raidProgress.internally(()=>this.instances.create(player,{
+                    definitionId:vaultDefinition(run.id),access:run.access,maxPlayers:run.roster.length,joinInProgress:true,
+                    sceneBase:VAULT_SCENE_BASE,templateChunks:this.instances.buildTemplate([VAULT_COPY]),
+                    destination:VAULT_ENTRANCE,exit:THEATRE_OUTSIDE,
+                }));
+                if(!vault)return false;
+                run.vaultInstanceId=vault.id;this.store.save(run);
+            }
+            this.savePlayer(player,run);
+        } catch(error){this.suspend([player]);throw error;}
+        return true;
+    }
+    enterVault(player:PlayerState):boolean {
+        const run=this.current(player);
+        return !!run && run.completedRooms===6 && this.transferToVault(player,run);
+    }
+    leaveVault(player:PlayerState):boolean {
+        if(!this.vaultCurrent(player))return false;
+        const checkpoint=player.raidProgress.checkpoint!;
+        player.raidProgress.clear();
+        try{player.raidProgress.persist?.();}catch(error){player.raidProgress.set(checkpoint);throw error;}
+        this.instances.leave(player,THEATRE_OUTSIDE);return true;
+    }
     startRoom(instanceId: string, roomId: TheatreRoomId): boolean {
         const room = this.instances.getById(instanceId);
         const id = room?.definitionId?.split(":")[1];
@@ -144,6 +193,7 @@ export class TheatreRuns {
         if (!run || !run.started || this.live(run)?.id !== instanceId ||
             THEATRE_ROOMS[run.roomIndex].id !== roomId || run.completedRooms !== run.roomIndex) return false;
         run.completedRooms++;
+        if(run.completedRooms===6)run.rewards=rollTheatreRewards(run.roster.length);
         this.store.save(run);
         for (const player of this.instances.getMemberPlayers(instanceId)) {
             if (player.raidProgress.checkpoint?.runId === run.id) this.savePlayer(player,run);
@@ -155,16 +205,7 @@ export class TheatreRuns {
         if (!run || run.completedRooms !== run.roomIndex + 1) return false;
         const members = this.instances.getMemberPlayers(run.instanceId!).filter(p => this.current(p)?.id === run.id);
         if (run.completedRooms === 6) {
-            // Final completion is durable and idempotent. Loot comes in the reward
-            // implementation, never from an entrance/exit or development preview.
-            let saveError: unknown;
-            for (const member of members) {
-                member.raidProgress.clear();
-                this.instances.leave(member,THEATRE_OUTSIDE);
-                try { member.raidProgress.persist?.(); } catch (error) { saveError = error; }
-            }
-            if (saveError) throw saveError;
-            return true;
+            return this.enterVault(player);
         }
         const next = {...run,roomIndex:run.completedRooms,started:false};
         const room = this.createRoom(player,next);

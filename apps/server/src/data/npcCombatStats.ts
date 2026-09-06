@@ -10,6 +10,7 @@ import path from "path";
 import type { AttackType } from "@server/game/combat/AttackType";
 import { referencePath, serverGeneratedDataPath } from "@server/paths";
 import { logger } from "@server/observability/logger";
+import { THEATRE_COMBAT_STATS } from "./theatreCombatStats";
 
 export interface NpcCombatStats {
     name: string;
@@ -83,6 +84,7 @@ function resolveNpcAggressionIndexPath(): string | undefined {
  * attack cadence, and hitpoint syncing) instead of using ad-hoc damage.
  */
 const AUTHORED_NPC_COMBAT_STATS: Readonly<Record<number, NpcCombatStats>> = {
+    ...THEATRE_COMBAT_STATS,
     1672: { name: "Ahrim the Blighted", combatLevel: 98, hitpoints: 100, attackLevel: 1, strengthLevel: 1, defenceLevel: 100, magicLevel: 100, rangedLevel: 1, attackSpeed: 4, attackType: "magic" as AttackType, maxHit: 20, aggressive: true, magicBonus: 90, defenceBonuses: { stab: 0, slash: 0, crush: 0, magic: 100, ranged: 0 }, species: ["undead"], isBoss: true },
     1673: { name: "Dharok the Wretched", combatLevel: 115, hitpoints: 100, attackLevel: 100, strengthLevel: 100, defenceLevel: 100, magicLevel: 1, rangedLevel: 1, attackSpeed: 4, attackType: "melee" as AttackType, attackStyle: "slash", maxHit: 29, aggressive: true, attackBonus: 110, strengthBonus: 80, defenceBonuses: { stab: 100, slash: 100, crush: 100, magic: 0, ranged: 100 }, species: ["undead"], isBoss: true },
     1674: { name: "Guthan the Infested", combatLevel: 115, hitpoints: 100, attackLevel: 100, strengthLevel: 100, defenceLevel: 100, magicLevel: 1, rangedLevel: 1, attackSpeed: 4, attackType: "melee" as AttackType, attackStyle: "crush", maxHit: 26, aggressive: true, attackBonus: 70, strengthBonus: 60, defenceBonuses: { stab: 100, slash: 100, crush: 100, magic: 0, ranged: 100 }, species: ["undead"], isBoss: true },

@@ -136,6 +136,16 @@ const MULTI_COMBAT_ZONES: CombatZone[] = [
         isMultiCombat: true,
         name: "Theatre of Blood",
     },
+    // The native room copies preserve these coordinates/planes in instances.
+    // Nylo lies south of the original Theatre rectangle; Xarpus is on plane 1.
+    {
+        minX: 3276, minY: 4229, maxX: 3315, maxY: 4287,
+        plane: 0, isMultiCombat: true, name: "Theatre of Blood - Nylocas",
+    },
+    {
+        minX: 3151, minY: 4370, maxX: 3189, maxY: 4404,
+        plane: 1, isMultiCombat: true, name: "Theatre of Blood - Xarpus",
+    },
 
     // Nightmare arena
     {

@@ -27,6 +27,25 @@ try {
     assert.equal(reopened.theatreRuns.load("missing-run"),undefined);
     assert.throws(()=>reopened.theatreRuns.save({...run,completedRooms:99}),/Invalid Theatre/);
 
+    const completed={...run,roomIndex:5,completedRooms:6,rewards:[
+        {unique:true,claimed:false,items:[{itemId:22477,quantity:1}],pet:false},
+        {unique:false,claimed:false,items:[{itemId:565,quantity:1500}],pet:false},
+    ]};
+    persistence.theatreRuns.save(completed);
+    const claiming=structuredClone(completed);claiming.rewards[0].claimed=true;
+    const claimant={__saveKey:"alice",exportPersistentVars:()=>({inventory:[{itemId:22477,quantity:1}]})} as PlayerState;
+    const badClaimant={__saveKey:"alice",exportPersistentVars:()=>{throw new Error("snapshot failure");}} as unknown as PlayerState;
+    assert.throws(()=>persistence.theatreRuns.claim!(claiming,badClaimant),/snapshot failure/);
+    assert.equal(persistence.theatreRuns.load(run.id)!.rewards![0].claimed,false,"failed player write rolls back the claimed flag");
+    assert.equal(persistence.hasKey("alice"),false);
+    persistence.theatreRuns.claim!(claiming,claimant);
+    assert.equal(reopened.theatreRuns.load(run.id)!.rewards![0].claimed,true);
+    assert.equal(persistence.hasKey("alice"),true,"inventory and flag committed atomically");
+    assert.throws(()=>persistence.theatreRuns.claim!(claiming,claimant),/already claimed/);
+    const bobClaim=structuredClone(completed);bobClaim.rewards[1].claimed=true;
+    persistence.theatreRuns.claim!(bobClaim,{__saveKey:"bob",exportPersistentVars:()=>({inventory:[{itemId:565,quantity:1500}]})} as PlayerState);
+    assert(persistence.theatreRuns.load(run.id)!.rewards!.every(r=>r.claimed),"a teammate claim cannot overwrite another claim with stale data");
+
     const savedState: PlayerPersistentVars = {
         accountStage: 2,
         runEnergy: 7_500,

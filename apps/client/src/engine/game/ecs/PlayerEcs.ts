@@ -1914,6 +1914,9 @@ export class PlayerEcs {
                             // Stage 2: interpolate from start→end over (endCycle-startCycle).
                             let shouldUpdate =
                                 currentCycle === endCycle ||
+                                // Explicit forced walking should interpolate smoothly,
+                                // not pause position between its six-cycle gait frames.
+                                (this.animSeqId[i] | 0) === 819 ||
                                 (this.animSeqId[i] | 0) === -1 ||
                                 ((this.animSeqDelay?.[i] ?? 0) | 0) !== 0;
 

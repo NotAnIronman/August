@@ -298,7 +298,13 @@ export class PlayerAnimController {
         }
 
         if (frame >= frameCount) {
-            frame -= seqType.frameStep | 0;
+            // The server may explicitly request the standard walk while forcing
+            // a player across blocked tiles. Walk 819 has no action-loop offset;
+            // keep its normal gait looping until that forced movement finishes.
+            const ecsIndex = this.playerEcs.getIndexForServerId(serverId);
+            const forcedWalk = state.seqId === 819 && ecsIndex !== undefined &&
+                this.playerEcs.isForcedMovementActive(ecsIndex, this.playerEcs.getClientCycle());
+            frame -= forcedWalk ? frameCount : seqType.frameStep | 0;
             loopCounter = (loopCounter + 1) | 0;
             const maxLoops = Math.max(0, seqType.maxLoops | 0);
             if (loopCounter >= maxLoops) {

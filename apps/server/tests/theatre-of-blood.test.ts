@@ -109,8 +109,15 @@ for(let i=1;i<6;i++) {
     assert(runs.startRoom(room.id,THEATRE_ROOMS[i].id));
     assert(runs.completeRoom(room.id,THEATRE_ROOMS[i].id));
     assert(runs.advance(a));
-    assert.equal(manager.get(a.id)?.id,manager.get(b.id)?.id,"party moves together");
+    if(i===5){assert.notEqual(manager.get(a.id)?.id,manager.get(b.id)?.id,"vault entry is individual");assert(runs.enterVault(b));}
+    assert.equal(manager.get(a.id)?.id,manager.get(b.id)?.id,"party shares the same room/vault");
 }
+assert.equal(runs.vaultCurrent(a)!.rewards!.length,2);
+const rewardBefore=structuredClone(runs.vaultCurrent(a)!.rewards);
+b=disconnect(b);assert(runs.resume(b));
+assert.equal(manager.get(a.id)?.id,manager.get(b.id)?.id,"reconnecting to a completed raid joins the shared vault");
+assert.deepEqual(runs.vaultCurrent(b)!.rewards,rewardBefore,"reconnect never rerolls rewards");
+assert(runs.leaveVault(a));assert(runs.leaveVault(b));
 assert(!a.raidProgress.checkpoint && !b.raidProgress.checkpoint);
 assert.deepEqual([a.tileX,a.tileY,a.level],[THEATRE_OUTSIDE.x,THEATRE_OUTSIDE.y,0]);
 const solo = manager.get(other.id)!;

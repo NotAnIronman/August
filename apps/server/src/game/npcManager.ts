@@ -519,9 +519,10 @@ export class NpcManager {
         if (
             combatStats?.attackSpeed !== undefined &&
             Number.isFinite(combatStats.attackSpeed) &&
-            combatStats.attackSpeed >= 1 &&
-            combatStats.attackSpeed <= 12
+            combatStats.attackSpeed >= 1
         ) {
+            // Reviewed profiles can legitimately exceed 12 ticks (Verzik P1:
+            // 14). Only the untyped cache-param fallback needs that heuristic.
             return Math.trunc(combatStats.attackSpeed);
         }
         // Try cache param 14 (attack speed param in some cache versions)

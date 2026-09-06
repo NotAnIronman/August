@@ -9,6 +9,7 @@ import type { ObjTypeLoader } from "@august/osrs-engine/config/objtype/ObjTypeLo
 import { CustomObjTypeLoader } from "@august/custom-content/items/CustomObjTypeLoader";
 import { CustomNpcTypeLoader } from "@august/custom-content/npcs/CustomNpcTypeLoader";
 import { ThievingLocTypeLoader } from "@august/custom-content/locs/ThievingLocTypeLoader";
+import { TheatreLocTypeLoader } from "@august/custom-content/locs/TheatreLocTypeLoader";
 
 export type { CacheLoaderFactory } from "@august/osrs-engine/cache/loader/CacheLoaderFactory";
 
@@ -27,7 +28,7 @@ export function getCacheLoaderFactory(
 ): CacheLoaderFactory {
     const factory = createCacheLoaderFactory(cacheInfo, cacheSystem, {
         decorateObjTypeLoader: decorateCustomObjTypeLoader,
-        decorateLocTypeLoader: (base, info) => new ThievingLocTypeLoader(base, info),
+        decorateLocTypeLoader: (base, info) => new TheatreLocTypeLoader(new ThievingLocTypeLoader(base, info), info),
     });
     const getBaseNpcLoader = factory.getNpcTypeLoader.bind(factory);
     factory.getNpcTypeLoader = () => new CustomNpcTypeLoader(getBaseNpcLoader(), cacheInfo);

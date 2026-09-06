@@ -15,6 +15,7 @@ let dialog:any,created:any,current:any;
 let creations=0;
 const player:any={id:1,tileX:3677,tileY:3219,level:0,worldViewId:-1,raidProgress:new PlayerRaidState()};
 const services:any={
+    combat:{registerOnNpcKilled:()=>()=>{}},
     data:{getLocDefinition:(id:number)=>locs.load(id)},system:{isDeveloper:()=>developer},
     instances:{theatreRuns:{},get:()=>current,buildTemplate:buildInstanceTemplate,create:(_p:any,spec:any)=>{
         creations++;created=spec;current={definitionId:spec.definitionId};return current;

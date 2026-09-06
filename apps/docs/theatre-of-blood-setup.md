@@ -1,9 +1,11 @@
 # Theatre of Blood setup
 
 The base room instances, party progression, disconnect recovery and progress-loss confirmations
-are implemented, along with instance-scoped boss placement and arena entry. Bosses are currently
-stationary, non-combat presentation NPCs; attacks, add waves and final loot are not installed
-yet. Ordinary exit clicks cannot complete an unfinished room.
+are implemented, along with instance-scoped boss placement and arena entry. Bosses now become
+attackable after entry/confirmation, with normal-mode combat profiles. They remain stationary
+damage/accuracy test targets: their outgoing attacks, add waves and phase transitions
+are not installed yet. Terminal prep-target kills now complete rooms; ordinary exit clicks
+cannot complete an unfinished room. The post-Verzik vault and normal-mode rewards are installed.
 
 ## Entrance and rooms
 
@@ -27,7 +29,9 @@ Every room copies all four cache planes. Maiden, Bloat, Nylo and Sotetseg enter 
 plane 0 but stand on plane-1 bridge surfaces; omitting those surfaces leaves players beneath
 the stairs. Xarpus remains on logical plane 1 and includes the lower pit and its height base.
 Bridge collision is shifted once during scene linking, just as in the non-instanced map.
-Xarpus skeleton **32741** is retained as a reference; no skeleton interaction is invented yet.
+Searching Xarpus skeleton **32741**, at **3171,4397,1** (two-tile footprint), gives
+**Dawnbringer (22516)** if the player has a free inventory slot and is not already carrying it.
+This is available in normal and development rooms; it is a supply, not a completion reward.
 The supplied six-boss order takes precedence over the conflicting Nylo/Verzik exit labels.
 
 Developer accounts have **Preview rooms (development)** in the entrance menu. The preview
@@ -36,14 +40,14 @@ exit returns outside. Normal accounts do not receive this menu.
 
 ## Boss placement and arena entry
 
-| Room | Initial NPC ID | Spawn X / Y / plane |
-| --- | --- | --- |
-| Maiden | 8360 | 3165 / 4446 / 0 |
-| Bloat | 8359 | 3301 / 4447 / 0 |
-| Nylo | 8354 | 3296 / 4249 / 0 |
-| Sotetseg | 8387 | 3279 / 4327 / 0 |
-| Xarpus | 8338 | 3169 / 4385 / 1 |
-| Verzik | 14795 (Talk-to form) | 3168 / 4321 / 0 |
+| Room | NPC ID | Spawn X / Y / plane | Facing |
+| --- | --- | --- | --- |
+| Maiden | 8360 | 3162 / 4444 / 0 | East (90 degrees clockwise from cache default) |
+| Bloat | 8359 | 3299 / 4447 / 0 | Cache default |
+| Nylo | 8355 (melee form) | 3294 / 4247 / 0 | Cache default |
+| Sotetseg | 8388 (combat form) | 3278 / 4326 / 0 | Cache default |
+| Xarpus | 8340 (combat form) | 3169 / 4386 / 1 | South (180 degrees from cache default) |
+| Verzik | 14795 Talk-to; 8370 combat | 3168 / 4326 / 0 | Cache default |
 
 Each room spawns one shared boss when its first member arrives. NPC visibility and cleanup
 belong to the instance, not the first entrant, so reconnects and party joins do not duplicate it.
@@ -53,7 +57,47 @@ completion or rewards. Uncleared normal arenas cannot be exited through the barr
 previews permit reverse/exit crossings for inspection.
 
 Verzik has no 32755 barrier. Arrivals and reconnects at **3168,4297,0** force-walk six tiles north
-to **3168,4303,0**. This does **not** start the encounter: **Talk-to Verzik** starts it.
+to **3168,4303,0**, with the walking gait looping throughout the move. This does **not** start
+the encounter. **Talk-to Verzik**, continue the short authored greeting, then choose
+**Yes, let's begin.** to replace her conversation form with the attackable throne form.
+**Not yet**, walking away, leaving the instance or a superseded dialogue cannot start it.
+Concurrent party confirmations cannot create multiple combat forms.
+
+### Combat baseline
+
+Profiles are kept in `apps/server/src/data/theatreCombatStats.ts` and flow through the normal
+NPC loader, accuracy, damage and HP systems. Sources are the OSRS Wiki pages for
+[Maiden](https://oldschool.runescape.wiki/w/The_Maiden_of_Sugadinti),
+[Bloat](https://oldschool.runescape.wiki/w/Pestilent_Bloat),
+[Nylo](https://oldschool.runescape.wiki/w/Nylocas_Vasilias),
+[Sotetseg](https://oldschool.runescape.wiki/w/Sotetseg),
+[Xarpus](https://oldschool.runescape.wiki/w/Xarpus) and
+[Verzik](https://oldschool.runescape.wiki/w/Verzik_Vitur), cross-checked with the
+[Wiki-maintained DPS dataset](https://github.com/weirdgloop/osrs-dps-calc/blob/main/cdn/json/monsters.json)
+on 2026-09-05. No network access is needed at runtime.
+
+| Boss | Base HP | Attack | Strength | Defence | Magic | Ranged |
+| --- | --- | --- | --- | --- | --- | --- |
+| Maiden | 3500 | 350 | 350 | 200 | 350 | 350 |
+| Bloat | 2000 | 250 | 340 | 100 | 150 | 180 |
+| Nylo | 2500 | 400 | 350 | 50 | 50 | 350 |
+| Sotetseg | 4000 | 250 | 250 | 200 | 250 | 250 |
+| Xarpus | 5000 | 1 | 1 | 250 | 220 | 100 |
+| Verzik phase 1 | 2000 | 400 | 400 | 20 | 400 | 400 |
+
+Attack/defence bonuses, baseline max hits and cadences are also installed. Bloat retains its
+undead attribute; the spawned bosses are immune to poison and venom. HP follows
+[normal Theatre scaling](https://oldschool.runescape.wiki/w/Theatre_of_Blood/Strategies):
+75% for 1–3 players, 87.5% for four and 100% for five, rounded down. Scaling is finalized at
+start using the saved roster (not online count). Rejoining an active fight does not heal it.
+Developer previews use the normal minimum scale. No custom solo/duo scale is added.
+All six room floors are multi-combat, including Nylo's southern map section and Xarpus's plane 1.
+
+Outgoing attacks are deliberately suppressed only for these instance-owned test bosses until
+their real mechanics are installed. Generic retaliation would be incorrect for these encounters.
+Killing a prep target now completes that room. A full normal run can award loot for testing;
+do not treat this as a finished or balanced encounter. Development previews never award loot.
+When phase mechanics are added, completion must move to the terminal phase death only.
 
 `arenas.ts` also records Maiden add markers at X 3175/3179/3183/3187, left Y4435 and right
 Y4457, plus Nylo left 3311,4249, middle 3295,4233 and right 3280,4249. These are markers only;
@@ -118,9 +162,9 @@ browser storage is unavailable. It replaces the old Client graphics debug checkb
 
 ## Host smoke test
 
-For this boss-placement/entry batch, sync all changed **and new** files and **restart the game
-server**. No client rebuild is required if the previous rendering fixes are already deployed.
-If catching up from before those fixes, rebuild the client and hard-refresh the browser too. No cache
+For this combat-prep batch, sync all changed **and new** files, **rebuild the client**,
+**restart the game server** and hard-refresh the browser. The walking-animation fix changes
+client code; a server restart alone does not deploy it. No cache
 rebuild or account-storage clearing is needed. The Theatre table is created automatically in
 the existing database.
 
@@ -151,8 +195,13 @@ the existing database.
    outside: the player should walk through and see one encounter-start message. Double-click
    and repeat with another party member; verify no duplicate boss or overlapping movement.
 10. Enter Verzik and verify the walk ends at 3168,4303 without starting. Walk to Verzik and
-    Talk-to to start. Repeat after disconnect/rejoin. Her current form is for conversation,
-    not combat. No room should award kills, completion or loot in this placement phase.
+    Talk-to and select Not yet; confirm she stays conversational. Talk again and confirm
+    Yes, let's begin; verify she now has Attack and takes damage. Repeat after disconnect/rejoin.
+11. Attack each boss after entry and check HP/damage. In a four-player party Maiden should
+    have 3062 HP; a solo/duo/trio should have 2625. Reconnect a party member after dealing damage
+    and verify it is not healed. Boss-specific attacks remain deferred; killing the target opens progression.
+12. Search the skeleton in Xarpus preview, verify item 22516, then search again while carrying
+    or wearing it. Verify no duplicate. Repeat with a full inventory; nothing should be lost.
 
 Automated coverage includes every padded tile, the real instance lifecycle, party room transfer,
 disconnect/reconnect with new player IDs, full-party reconstruction, ordered completion, durable
@@ -162,3 +211,49 @@ rooms' render bounds, player selection, camera heights and bridge flags. Arena t
 actual cache boss models/actions and barrier spans/planes, zone-driven spawning, party reuse,
 crossing cancellation, stale callbacks, developer isolation and Verzik's manual start. Live terrain,
 collision and visual transitions still need the host smoke test; boss combat awaits encounter work.
+
+## Reward vault
+
+Verzik's confirmed death creates **Stairs (32995)** at **3168,4326,0**. Climb to a separate,
+party-shared vault at **3237,4307,0**. All four source planes are copied, with scene origin
+3216,4296. Party members enter individually and keep their original roster/chest slots;
+eligible reconnects restore the same vault (or reconstruct it after the last member disconnects).
+Neither reconnecting nor opening a chest rerolls rewards.
+
+| Slot | Chest tile | Own ordinary / unique | Teammate ordinary / unique |
+| --- | --- | --- | --- |
+| 1 | 3234,4331,0 | 32992 / 32993 | 32990 / 32991 |
+| 2 | 3227,4328,0 | 32992 / 32993 | 32990 / 32991 |
+| 3 | 3242,4328,0 | 32992 / 32993 | 32990 / 32991 |
+| 4 | 3227,4323,0 | 32992 / 32993 | 32990 / 32991 |
+| 5 | 3241,4323,0 | 32992 / 32993 | 32990 / 32991 |
+
+Only occupied roster slots spawn chests. Shared forms provide collision; persistent owner-only
+overrides select the personal model/menu. Teammate forms have no Open action on either client
+or server. Server validation also checks account, run, world view, exact chest, visible model,
+plane and adjacency. Claimed chests become **32994** (ordinary) or **41746** (unique) for everyone.
+The native **Teleport crystal (32996)** at **3246,4315,0**, option **Use**, returns to **3677,3219,0**.
+Leaving without claiming requires the existing progress-loss confirmation.
+
+Rewards follow the [normal Monumental chest table](https://oldschool.runescape.wiki/w/Monumental_chest),
+checked 2026-09-05: one team unique pre-roll at 1/9.1, the 19-weight normal unique table,
+three common rolls per non-unique recipient with noted resources, plus normal elite clue and
+Lil' zik rolls. No hard-mode kits/dust or entry-mode modifiers are included.
+**Current prep baseline is deathless and equally weighted across the saved roster.** Death penalties,
+skipped-room eligibility, MVP scoring and Combat Achievement clue modifiers are future encounter
+integration, not implemented accuracy claims. Ordinary existing elite clues suppress another clue
+at claim time. Rewards are rolled and saved once with final completion.
+
+Chest claims commit the claimed flag, inventory, collection log and deferred pet delivery together
+in one SQLite transaction. A failed save or insufficient inventory space rolls back the entire claim.
+Nothing spills on the ground. Existing pet delivery handles auto-follow/inventory/bank on the next
+tick. Theatre log completions currently count successful reward claims; first Lil' zik provenance
+uses that count. Duplicate Open/Search and reconnect cannot award another claim.
+
+Host test: finish Verzik in a development preview to inspect the stairs/vault and an empty chest.
+For actual loot, finish all six prep targets in a normal run. Test two accounts: each should have
+Open only on their own chest; opening one must change its model for both players. Repeat with
+full inventory, double clicks, one disconnected member, and everyone disconnected before claiming.
+Finally use the crystal. **Rebuild the client, restart the server, and hard-refresh**: the shared
+cache decorator now removes Open from teammate chest forms. Database updates are automatic;
+do not replace or delete the existing database.

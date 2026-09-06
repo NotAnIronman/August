@@ -22,7 +22,7 @@ function preview(player: PlayerState, services: ScriptServices, index: number): 
     services.instances.create(player, {definitionId:`theatre-preview:${index}`,access:"solo",
         sceneBase:g.sceneBase,templateChunks:services.instances.buildTemplate([g.copy]),
         destination:g.room.entrance,exit:THEATRE_OUTSIDE});
-    message(player,services,`${g.room.name} development preview: boss placement and arena entry only; no checkpoint or rewards.`);
+    message(player,services,`${g.room.name} development preview: combat targets and arena entry; no checkpoint or completion rewards.`);
 }
 function entry(player: PlayerState, services: ScriptServices): void {
     if (!outside(player,services)) return;
@@ -45,7 +45,7 @@ function entry(player: PlayerState, services: ScriptServices): void {
             if (!outside(player,services) || player.raidProgress.checkpoint) return;
             if (choice === 0 || choice === 1) {
                 if (!runs.create(player,choice === 0 ? "solo" : "party")) message(player,services,"The Theatre could not be opened.");
-                else message(player,services,"Pass the arena barrier to begin. Boss placement and entry are available; combat mechanics are not installed yet.");
+                else message(player,services,"Pass the arena barrier to begin. Bosses can take damage; their attack mechanics are not installed yet.");
             } else if (choice === 2) {
                 const rooms = services.instances.listJoinable().filter(room=>{
                     if (!room.definitionId?.startsWith("theatre-of-blood:")) return false;
