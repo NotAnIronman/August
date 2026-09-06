@@ -153,6 +153,8 @@ export interface CombatAutocastActionData {
 }
 
 type CombatPlayerHitBase = {
+    /** Weapon snapshot from attack commitment, not equipment worn at impact. */
+    weaponItemId?: number;
     twinflameEchoPending?: boolean;
     twinflameEcho?: boolean;
     damage?: number;

@@ -337,6 +337,7 @@ export class CombatHitEvaluator {
                           accuracyMultiplier,
                   );
         if (this.isTwinflameStandardSpell(attack)) attackRoll = Math.floor(attackRoll * 1.1);
+        attackRoll = Math.floor(attackRoll * (1 + this.elementalWeaknessPercent(attack) / 100));
         const defenceRoll = Math.floor(
             calculateDefenceRoll(rolls.effectiveDefence, rolls.defenceBonus) *
                 this.nonNegativeMultiplier(
@@ -907,7 +908,17 @@ export class CombatHitEvaluator {
         }
 
         baseDamage ??= Math.max(0, Math.floor(effectiveMagic / 3));
-        return this.applyMagicDamageBonuses(baseDamage, player, bonuses, this.isTwinflameStandardSpell(attack) ? 10 : 0);
+        return this.applyMagicDamageBonuses(baseDamage, player, bonuses, this.isTwinflameStandardSpell(attack) ? 10 : 0)
+            + Math.floor(baseDamage * this.elementalWeaknessPercent(attack) / 100);
+    }
+
+    private elementalWeaknessPercent(attack: CombatAttack): number {
+        if (attack.attacker.type !== CombatEntityType.Player || attack.traits.type !== AttackType.Magic || !attack.traits.spellId) return 0;
+        const target = this.options.resolveEntity(attack.target);
+        if (!(target instanceof NpcState) || !target.elementalWeakness) return 0;
+        const spell = getSpellData(attack.traits.spellId);
+        const match = /^(Wind|Water|Earth|Fire) (Strike|Bolt|Blast|Wave|Surge)$/i.exec(spell?.name ?? "");
+        return match?.[1].toLowerCase() === target.elementalWeakness.element ? Math.max(0,target.elementalWeakness.percent) : 0;
     }
 
     private isTwinflameStandardSpell(attack: CombatAttack): boolean {

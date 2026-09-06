@@ -28,6 +28,7 @@ export class CombatConsumableManager {
         const existingAttackDelay = store.get(CombatAttributes.ATTACK_DELAY);
 
         store.set(CombatAttributes.FOOD_DELAY, clock + STANDARD_CONSUMABLE_DELAY_TICKS);
+        store.set(CombatAttributes.COUNTER_FOOD_DELAY, clock + STANDARD_CONSUMABLE_DELAY_TICKS);
         store.set(
             CombatAttributes.ATTACK_DELAY,
             Math.max(existingAttackDelay, clock) + STANDARD_CONSUMABLE_DELAY_TICKS,
@@ -46,6 +47,7 @@ export class CombatConsumableManager {
     applyComboFoodAttackDelay(player: PlayerState, currentMapClock: number): void {
         const clock = this.mapClock(currentMapClock);
         const store = player.combatAttributes;
+        store.set(CombatAttributes.COUNTER_FOOD_DELAY, Math.max(clock,store.get(CombatAttributes.COUNTER_FOOD_DELAY))+COMBO_FOOD_ATTACK_DELAY_TICKS);
         store.set(
             CombatAttributes.ATTACK_DELAY,
             Math.max(store.get(CombatAttributes.ATTACK_DELAY), clock) +

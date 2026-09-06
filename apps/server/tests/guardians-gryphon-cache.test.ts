@@ -17,6 +17,7 @@ import { PathService } from "@server/pathfinding/PathService";
 import { GUARDIANS_DROP_TABLE, GRYPHON_DROP_TABLE } from "@server/content/gamemodes/vanilla/data/guardiansGryphonDrops";
 import { getItemDefinition } from "@server/data/items";
 import { getCacheLoaderFactory as rawFactory } from "@august/osrs-engine/cache/loader/CacheLoaderFactory";
+import { GuardiansEncounter } from "@server/content/modules/guardians-gryphon/GuardiansEncounter";
 const data = loadCache(loadCacheList(loadCacheInfos()).latest);
 const factory = getCacheLoaderFactory(data.info, CacheSystem.fromFiles("dat2", data.files));
 const raw = rawFactory(data.info, CacheSystem.fromFiles("dat2", data.files));
@@ -89,6 +90,18 @@ for (const room of BOSS_ROOMS) {
     }
     for(const boss of room.bosses)assert(queue.some(p=>Math.max(boss.x-p.x,p.x-(boss.x+3),boss.y-p.y,p.y-(boss.y+3))===1),
         `${room.name}: entry can walk to ${boss.id}, not become stuck in the staircase`);
+    if(room.id==="grotesque-guardians") {
+        const actors=room.bosses.map(spawn=>manager.spawnTransientNpc({...spawn,level:0,respawns:false,isAggressive:false,worldViewId:4000})!);
+        const mechanics=new GuardiansEncounter(actors[0],actors[1],"test",room,{system:{getCurrentTick:()=>0},
+            equipment:{},npc:{disengageCombat(){}},instances:{getMemberPlayers:()=>[]},movement:{getPathService:()=>paths}} as never);
+        const centers:{x:number;y:number}[]=[];
+        for(let i=0;i<5;i++){
+            const tile=(mechanics as any).floorTile(centers,2);
+            assert(tile,"the native roof has five reachable, nonoverlapping party prison locations");
+            assert(reachable.has(`${tile.x},${tile.y}`));centers.push(tile);
+        }
+        mechanics.dispose();for(const actor of actors)manager.removeNpc(actor.id);
+    }
 }
 for(const table of [GUARDIANS_DROP_TABLE,GRYPHON_DROP_TABLE])for(const entry of [...table.always??[],...table.pools?.flatMap(p=>p.entries)??[]]) {
     const id=entry.itemId!;

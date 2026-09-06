@@ -109,6 +109,7 @@ export class NpcCombatInteractionHandler {
         }
 
         // Starting combat cancels any active skill actions
+        npc.onPlayerAttackClick?.(me, currentTick);
         this.interruptSkillActions(me.id);
         this.replaceInteractionState(ws, me);
 

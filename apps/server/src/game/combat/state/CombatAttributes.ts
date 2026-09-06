@@ -13,6 +13,7 @@ export const CombatAttributes = Object.freeze({
     COMBAT_TARGET: combatAttribute<CombatEntityRef | null>("combat.target", () => null),
     ATTACK_DELAY: combatAttribute<number>("combat.attack_delay", () => -1),
     FOOD_DELAY: combatAttribute<number>("combat.food_delay", () => -1),
+    COUNTER_FOOD_DELAY: combatAttribute<number>("combat.counter_food_delay", () => -1),
     POTION_DELAY: combatAttribute<number>("combat.potion_delay", () => -1),
     AUTO_RETALIATE_ENABLED: combatAttribute<boolean>("combat.auto_retaliate_enabled", () => true),
     SPECIAL_ATTACK_ENERGY: combatAttribute<number>("combat.special_attack_energy", () => 100),

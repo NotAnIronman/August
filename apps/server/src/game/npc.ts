@@ -291,6 +291,12 @@ export class NpcState extends Actor {
     forceMaxHitForAttack?: (player: PlayerState, attack?: CombatAttack) => boolean;
     transformPlayerHit?: (player: PlayerState, damage: number, tick: number) => number;
     onPlayerHit?: (player: PlayerState, damage: number, attackType: AttackType, tick: number) => void;
+    /** Final impact-time encounter gate, including delayed/echo hits. */
+    filterPlayerDamage?: (player: PlayerState, damage: number, type: AttackType, tick: number, weaponId?: number) => number;
+    /** Explicit attack input only; auto-attacks must not satisfy click-counter mechanics. */
+    onPlayerAttackClick?: (player: PlayerState, tick: number) => void;
+    /** Encounter-owned elemental weakness, applied at the normal spell roll. */
+    elementalWeakness?: { element: "wind" | "water" | "earth" | "fire"; percent: number };
     /**
      * When true, TickPhaseService's Moon-boss occupancy rule (the 3x3
      * player-collision reservation around this NPC, keyed by typeId

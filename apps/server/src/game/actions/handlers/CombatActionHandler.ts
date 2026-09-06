@@ -1314,6 +1314,7 @@ export class CombatActionHandler {
 
             const hitData = {
                 npcId: npc.id,
+                weaponItemId,
                 damage,
                 maxHit,
                 style,

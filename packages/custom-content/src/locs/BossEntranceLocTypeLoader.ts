@@ -8,10 +8,18 @@ export class BossEntranceLocTypeLoader implements LocTypeLoader {
     private readonly overrides = new Map<number, LocType>();
     constructor(private readonly base: LocTypeLoader, private readonly info: CacheInfo) {}
     load(id: number): LocType {
-        if (this.info.game !== "oldschool" || ![31681,31672,31673,58439].includes(id)) return this.base.load(id);
+        if (this.info.game !== "oldschool" || ![31678,31679,31680,31681,31672,31673,58439].includes(id)) return this.base.load(id);
         let loc = this.overrides.get(id);
         if (!loc) {
             loc = Object.assign(new LocType(id, this.info), this.base.load(id === 58439 ? 58440 : id), { id });
+            if (id >= 31678 && id <= 31680) {
+                // Encounter spheres are collected by walking over them. Keep native
+                // models/animations, but remove collision on BOTH client and server.
+                loc.clipType = 0;
+                loc.blocksProjectile = false;
+                this.overrides.set(id, loc);
+                return loc;
+            }
             loc.transforms = undefined;
             loc.name = id === 58439 ? "Cave entrance" : "Roof entrance";
             loc.actions = id === 31672 ? ["Unlock"] : ["Open", "Peek", "Enter Solo", "Enter Party", "Join Party"];

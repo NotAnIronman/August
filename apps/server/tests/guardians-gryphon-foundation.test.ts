@@ -26,6 +26,7 @@ function harness() {
         return p;
     };
     const services: any = {
+        system:{getCurrentTick:()=>0}, equipment:{},
         instances: { get: (id: number) => [...rooms.values()].find(r => r.memberPlayerIds.includes(id)), getById: (id: string) => rooms.get(id),
             buildTemplate: (copies: any) => copies, create: (p: any, spec: any) => {
                 const room = { ...spec, id: `room-${next++}`, worldViewId: 4000 + next, memberPlayerIds: [p.id], ownerPlayerId: p.id, ownerName: `Player ${p.id}` };
@@ -66,10 +67,10 @@ function harness() {
         npc: { spawnNpc: (spec: any) => {
                 spawns.push(spec);
                 const n = { ...spec, typeId: spec.id, id: next++, tileX: spec.x, tileY: spec.y,
-                    getMaxHitpoints: () => GUARDIANS_GRYPHON_COMBAT_STATS[spec.id].hitpoints, suppressDrops: false };
+                    getMaxHitpoints: () => GUARDIANS_GRYPHON_COMBAT_STATS[spec.id].hitpoints, getHitpoints:()=>0, suppressDrops: false, clearPath(){}, size:4 };
                 npcs.push(n);
                 return n;
-            }, removeNpc: () => true },
+            }, removeNpc: () => true, disengageCombat(){} },
         messaging: { sendGameMessage: (_p: any, message: string) => messages.push(message) },
         variables: { sendVarbit: () => { }, queueVarp: () => { } }, inventory: { snapshotInventoryImmediate: () => { } }, appearance: { savePlayerSnapshot: () => saves++ },
         dialog: { openDialogOptions: (_p: any, d: any) => dialog = d }, movement: { teleportPlayer: () => { } },

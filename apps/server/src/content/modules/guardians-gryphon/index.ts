@@ -12,6 +12,9 @@ import { getFollowerDefinitionByItemId } from "@server/game/followers/followerDe
 import { VARBIT_GUARDIANS_UNLOCKED } from "@august/game-model/world/BossAccess";
 import { BOSS_ROOMS, roomGeometry, type FoundationRoom } from "./rooms";
 import { encounterEligibility } from "./rewards";
+import { GuardiansEncounter, HAMMERS } from "./GuardiansEncounter";
+import { GryphonEncounter } from "./GryphonEncounter";
+import { hp } from "./EncounterSupport";
 export { VARBIT_GUARDIANS_UNLOCKED };
 export const BRITTLE_KEY = 21724;
 export function unlockGuardians(player: PlayerState, services: ScriptServices): boolean {
@@ -37,6 +40,8 @@ interface RoomLife {
     readonly defeated: Set<NpcState>;
     readonly records: DropEligibility[];
     rewarded: boolean;
+    mechanics: GuardiansEncounter | GryphonEncounter;
+    started: boolean;
 }
 export function register(registry: IScriptRegistry, services: ScriptServices): void {
     // Provider-local state: no cross-instance or hot-reload reward leakage.
@@ -48,7 +53,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
             registerOwnedEncounter(registry, defineBoss({ id: `${room.id}-${spawn.id}`, npcTypeIds: [spawn.id],
                 maxHealth: stats.hitpoints, bossHealthBar: { name: stats.name, npcTypeId: spawn.id },
                 // Completion/KC is encounter-owned: the two Guardians are one kill.
-                immunities: { poison: true, venom: true },
+                immunities: { poison: true, venom: true, ...(spawn.id===7882?{burn:true}:{}) },
                 movement: { wanderRadius: 0, aggressionRadius: 24, aggressionToleranceTicks: 2147483647,
                     combatLeashRadius: 35, retreatInteractionRange: 40 },
                 attacks: spawn.id === 7852 ? [attack.ranged({ maxHit: 15, speedTicks: 6, animation: "attack", rangeTiles: 10 })]
@@ -65,7 +70,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
                 ownerPlayerId: instance.access === "solo" ? instance.ownerPlayerId : undefined,
                 wanderRadius: 0, respawns: false, isAggressive: true, isUnattackable: false,
                 aggressionRadius: 24, aggressionToleranceTicks: 2147483647, combatLeashRadius: 35,
-                retreatInteractionRange: 40, immunities: { poison: true, venom: true } });
+                retreatInteractionRange: 40, immunities: { poison: true, venom: true, ...(spawn.id===7882?{burn:true}:{}) } });
             if (!npc || !services.instances.attachNpc(instance.id, npc)) {
                 if (npc)
                     services.npc.removeNpc(npc.id);
@@ -79,8 +84,23 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
             }
             npcs.push(npc);
         }
-        lives.set(instance.worldViewId, { room, instanceId: instance.id, npcs, defeated: new Set(), records: [], rewarded: false });
+        const mechanics=room.rewardNpcId===7882
+            ?new GuardiansEncounter(npcs.find(n=>n.typeId===7882)!,npcs.find(n=>n.typeId===7852)!,instance.id,room,services)
+            :new GryphonEncounter(npcs[0],instance.id,room,services);
+        lives.set(instance.worldViewId, { room, instanceId: instance.id, npcs, defeated: new Set(), records: [], rewarded: false, mechanics, started:false });
     };
+    for(const room of BOSS_ROOMS)for(const spawn of room.bosses) {
+        registry.registerNpcAttack(spawn.id,({npc})=>lives.get(npc.worldViewId)?.npcs.includes(npc)?"prevent":undefined);
+        if(room.rewardNpcId!==7882)continue;
+        registry.registerNpcPreDeath(spawn.id,({npc,killer})=>{
+            const life=lives.get(npc.worldViewId);
+            return life?.npcs.includes(npc)&&life.mechanics instanceof GuardiansEncounter&&life.mechanics.preventDeath(npc,killer)?"prevent":undefined;
+        });
+        for(const hammer of HAMMERS)registry.registerItemOnNpc(hammer,spawn.id,({player,target,source})=>{
+            const life=lives.get(target.worldViewId);
+            if(life?.npcs.includes(target)&&life.mechanics instanceof GuardiansEncounter)life.mechanics.finish(target,player,source.itemId);
+        });
+    }
     for (const room of BOSS_ROOMS) {
         const geometry = roomGeometry(room);
         const entry = defineBossRoom({ id: room.id, doorLocId: room.door, sceneBase: geometry.sceneBase,
@@ -135,6 +155,7 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
         if (life.defeated.size !== life.npcs.length || life.rewarded)
             return;
         life.rewarded = true;
+        life.mechanics.dispose();
         const instance = services.instances.getById(life.instanceId);
         if (!instance)
             return;
@@ -182,14 +203,31 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
     if (unregister)
         registry.registerCleanup(unregister);
     registry.registerTickHandler(() => {
-        for (const [view, life] of lives)
-            if (!services.instances.getById(life.instanceId))
+        for (const [view, life] of lives) {
+            const instance=services.instances.getById(life.instanceId);
+            if (!instance) {
+                life.mechanics.dispose();
                 lives.delete(view);
+                continue;
+            }
+            if(life.rewarded)continue;
+            const members=services.instances.getMemberPlayers(life.instanceId).filter(p=>p.worldViewId===view&&hp(p)>0);
+            if(members.length)life.started=true;
+            else if(life.started) {
+                life.mechanics.dispose();
+                for(const npc of life.npcs)services.npc.removeNpc(npc.id);
+                lives.delete(view);
+                spawnLife(life.room,instance);
+                continue;
+            } else continue;
+            life.mechanics.tick(services.system.getCurrentTick());
+        }
     });
     registry.registerCleanup(() => {
         for (const task of tasks)
             services.scheduler.cancel(task);
         for (const life of lives.values()) {
+            life.mechanics.dispose();
             for (const player of services.instances.getMemberPlayers(life.instanceId)) {
                 services.messaging.sendGameMessage(player, "This encounter was reloaded. Please enter again.");
                 services.instances.leave(player, life.room.outside);

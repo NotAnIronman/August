@@ -316,7 +316,9 @@ export class CombatEffectService {
         if (!npc.isCombatTargetable(tick)) return undefined;
         if (npc.getHitpoints() <= 0 || npc.isDead(tick)) return undefined;
 
-        const proposedDamage = applyDeveloperInstakillDamage(player, Math.max(0, Math.trunc(damage)));
+        const rawDamage = applyDeveloperInstakillDamage(player, Math.max(0, Math.trunc(damage)));
+        const attackType=damageType===AttackType.Ranged?AttackType.Ranged:damageType===AttackType.Magic?AttackType.Magic:AttackType.Melee;
+        const proposedDamage = npc.filterPlayerDamage?.(player,rawDamage,attackType,tick)??rawDamage;
         const hitpointsBefore = npc.getHitpoints();
         const prevented =
             proposedDamage >= hitpointsBefore &&

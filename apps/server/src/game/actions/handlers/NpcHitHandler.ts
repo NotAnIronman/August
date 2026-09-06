@@ -184,7 +184,9 @@ export class NpcHitHandler {
         // Apply hitsplat to NPC
         if(!data.twinflameEcho)damage = npc.transformPlayerHit?.(player, damage, hitsplatTick) ?? damage;
         const hpBefore = npc.getHitpoints();
-        const instakillDamage = applyDeveloperInstakillDamage(player, damage);
+        const developerDamage = applyDeveloperInstakillDamage(player, damage);
+        const instakillDamage = npc.filterPlayerDamage?.(player, developerDamage,
+            attackTypeHint ?? AttackType.Melee, hitsplatTick, data.weaponItemId) ?? developerDamage;
         const appliedDamage = this.services.interceptNpcLethalHit(
             player,
             npc,

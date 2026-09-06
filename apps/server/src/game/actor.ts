@@ -84,7 +84,16 @@ export const RUN_ENERGY_MAX = 10000;
 export abstract class Actor {
     readonly id: number;
     readonly isPlayer: boolean = false; // Override to true in PlayerState
-    readonly size: number;
+    private footprintSize: number;
+    get size(): number { return this.footprintSize; }
+    /** Keep footprint and fine-coordinate centre consistent across NPC phase morphs. */
+    setFootprintSize(size: number): void {
+        if (!Number.isInteger(size) || size < 1 || size > 64) throw new RangeError("Invalid actor footprint");
+        this.footprintSize = size;
+        this.x = this.tileX * 128 + size * 64;
+        this.y = this.tileY * 128 + size * 64;
+        this.clearPath();
+    }
     tileX: number;
     tileY: number;
     level: number;
@@ -188,7 +197,7 @@ export abstract class Actor {
         this.tileX = spawnTileX;
         this.tileY = spawnTileY;
         this.level = level;
-        this.size = Math.max(1, size);
+        this.footprintSize = Math.max(1, size);
         // Reference: player-movement.md (resetPath:50)
         // World coordinates = tile * 128 + modelRadius * 64
         // For 1x1 actors, modelRadius = 1, so: tile * 128 + 64

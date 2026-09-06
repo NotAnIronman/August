@@ -162,6 +162,10 @@ export class DeferredHitQueue {
                 damage = this.nonNegativeInteger(target.transformPlayerHit(source, damage, clock), "encounter damage");
             }
             const hpBefore = target instanceof NpcState ? target.getHitpoints() : target.skillSystem.getHitpointsCurrent();
+            if (target instanceof NpcState && source instanceof PlayerState && target.filterPlayerDamage) {
+                damage = this.nonNegativeInteger(target.filterPlayerDamage(source, damage,
+                    pending.attackType, clock, pending.attack.traits.weaponId), "encounter impact gate");
+            }
             if (target instanceof NpcState) {
                 const hitpointsBefore = target.getHitpoints();
                 if (
