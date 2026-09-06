@@ -31,8 +31,9 @@ assert.equal(root.rawWidth,512);assert.equal(root.rawHeight,334);
 frame.input.clickMode2=0;resize.process(frame,wm,{} as any);
 assert.equal(buildRewardPanel().root?.rawWidth,350,"new panel does not inherit another modal's dimensions");
 assert.equal(panel.widgets.get((group<<16)|850)?.yPositionMode,2,"chest is bottom-left anchored");
-assert.equal(panel.widgets.get((group<<16)|863)?.spriteId,2523,"native world-map grip");
-for(const [id,label,sprite] of [[852,"Collect to inventory",1226],[854,"Collect to bank",1227]] as const) {
+assert.equal(panel.widgets.get((group<<16)|863)?.spriteId,4552,"requested cache grip");
+assert.equal(panel.widgets.get((group<<16)|863)?.spriteAngle,16384,"90 degree rotation");
+for(const [id,label,sprite] of [[852,"Collect to inventory",1226],[854,"Collect to bank",1227],[858,"Destroy remaining loot",1235]] as const) {
  assert(deriveMenuEntriesForWidget(panel.widgets.get((group<<16)|id)).some(e=>e.option===label));
  assert.equal(panel.widgets.get((group<<16)|(id+1))?.spriteId,sprite);
 }

@@ -3,7 +3,7 @@ import {
     type BrowserJsonPersistence,
 } from "@client/core/storage/localStorage";
 
-export type BossHealthBarStyle = "modern" | "oldschool";
+export type BossHealthBarStyle = "modern" | "oldschool" | "none";
 
 interface StoredBossHealthBarPreferences {
     readonly version: 1;
@@ -21,7 +21,7 @@ export const BOSS_HEALTH_BAR_PREFERENCES_STORAGE_KEY = "osrs.plugin.boss_health_
 export const DEFAULT_BOSS_HEALTH_BAR_STYLE: BossHealthBarStyle = "oldschool";
 
 export function normalizeBossHealthBarStyle(value: unknown): BossHealthBarStyle {
-    return value === "modern" || value === "oldschool" ? value : DEFAULT_BOSS_HEALTH_BAR_STYLE;
+    return value === "modern" || value === "oldschool" || value === "none" ? value : DEFAULT_BOSS_HEALTH_BAR_STYLE;
 }
 
 /**

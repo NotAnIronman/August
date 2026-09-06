@@ -118,11 +118,10 @@ export function register(registry: IScriptRegistry, services: ScriptServices): v
             registry.registerLocInteraction(room.exitId, ({ player, services: eventServices }) => {
                 if (entry.leave(player, eventServices))
                     return;
-                // The requested return tile is on the public roof. Its existing
-                // staircase must still let players descend to the unlocked gate.
+                // The source roof's staircase must also return to the Slayer Tower gate.
                 if (room.rewardNpcId === 7882 && player.worldViewId === -1 && player.level === 0 &&
-                    Math.max(Math.abs(player.tileX - room.outside.x), Math.abs(player.tileY - room.outside.y)) <= 8)
-                    eventServices.movement.teleportPlayer(player, room.gate.x + 1, room.gate.y, room.gate.level);
+                    Math.max(Math.abs(player.tileX - room.inside.x), Math.abs(player.tileY - room.inside.y)) <= 8)
+                    eventServices.movement.teleportPlayer(player, room.outside.x, room.outside.y, room.outside.level);
             }, action);
     }
     const unregister = services.combat.registerOnNpcKilled?.((_killer, npc) => {

@@ -1153,8 +1153,9 @@ export class ServerBinaryEncoder {
         this.buffer.writeShort(tile.x);
         this.buffer.writeShort(tile.y);
         this.buffer.writeByte(level);
-        this.buffer.writeByte(oldRotation ?? 0);
-        this.buffer.writeByte(newRotation ?? 0);
+        // 255 means preserve the cache orientation; zero is a real west-facing rotation.
+        this.buffer.writeByte(oldRotation ?? 255);
+        this.buffer.writeByte(newRotation ?? 255);
         this.buffer.writeBoolean(newTile !== undefined);
         if (newTile) {
             this.buffer.writeShort(newTile.x);

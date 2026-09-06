@@ -1,7 +1,7 @@
 import type { InstanceAreaCopy } from "@server/world/InstancedAreaManager";
 export const BOSS_ROOMS = [
     { id: "grotesque-guardians", name: "Grotesque Guardians", door: 31681, exitId: 31674, logId: 489,
-        outside: { x: 1697, y: 4567, level: 0 }, inside: { x: 1696, y: 4567, level: 0 },
+        outside: { x: 3427, y: 3541, level: 2 }, inside: { x: 1696, y: 4567, level: 0 },
         gate: { x: 3426, y: 3542, level: 2 },
         bounds: { minX: 1673, maxX: 1720, minY: 4552, maxY: 4597 },
         bosses: [{ id: 7882, x: 1689, y: 4573 }, { id: 7852, x: 1701, y: 4573 }], rewardNpcId: 7882 },

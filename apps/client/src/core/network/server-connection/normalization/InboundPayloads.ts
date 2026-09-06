@@ -12,12 +12,12 @@ import type {
     TradePartyViewState,
 } from "@client/core/network/server-connection/types/index";
 
-export function sanitizeInventorySlotMessage(raw: any): InventorySlotMessage {
+export function sanitizeInventorySlotMessage(raw: any, capacity = INVENTORY_SLOT_COUNT): InventorySlotMessage {
     const slot = typeof raw?.slot === "number" ? raw.slot | 0 : 0;
     const itemId = typeof raw?.itemId === "number" ? raw.itemId | 0 : -1;
     const quantity = typeof raw?.quantity === "number" ? raw.quantity | 0 : 0;
     return {
-        slot: Math.max(0, Math.min(INVENTORY_SLOT_COUNT - 1, slot)),
+        slot: Math.max(0, Math.min(capacity - 1, slot)),
         itemId,
         quantity,
     };

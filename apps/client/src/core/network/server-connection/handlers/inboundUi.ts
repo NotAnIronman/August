@@ -52,7 +52,7 @@ export function handleInboundUi(msg: any): boolean {
         if (!payload) return true;
         if (payload.kind === "snapshot") {
             const slots = Array.isArray(payload.slots)
-                ? payload.slots.map((slot: any) => sanitizeInventorySlotMessage(slot))
+                ? payload.slots.map((slot: any) => sanitizeInventorySlotMessage(slot, 2048))
                 : [];
             emitCollectionLog({ kind: "snapshot", slots });
         } else if (payload.kind === "category_completion") {

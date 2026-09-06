@@ -3,6 +3,7 @@ import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import { MenuTargetType,OsrsMenuEntry } from "@august/osrs-engine/MenuEntry";
 import { getMapIndexFromTile } from "@august/osrs-engine/map/MapFileIndex";
 import { ClientState } from "@client/engine/game/ClientState";
+import { resolveWorldTileMap } from "@client/engine/game/scene/WorldTileMap";
 import type { GroundItemOverlayEntry } from "@client/engine/game/data/ground/GroundItemStore";
 import {
     resolveCollisionSamplePlaneForLocal,
@@ -258,9 +259,7 @@ export function getPreferredMapForWorldTile(host: WebGLOsrsRendererHost, tileX: 
                 }
             }
         }
-        return host.mapManager.getMap(getMapIndexFromTile(tileX), getMapIndexFromTile(tileY)) as
-            | WebGLMapSquare
-            | undefined;
+        return resolveWorldTileMap(host.mapManager, tileX, tileY);
     
 }
 

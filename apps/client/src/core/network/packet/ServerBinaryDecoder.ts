@@ -1526,8 +1526,8 @@ function decodeServerPacketUnchecked(
                     level,
                     oldTile: tile,
                     newTile,
-                    oldRotation,
-                    newRotation,
+                    oldRotation: oldRotation === 255 ? undefined : oldRotation,
+                    newRotation: newRotation === 255 ? undefined : newRotation,
                 },
             };
         }

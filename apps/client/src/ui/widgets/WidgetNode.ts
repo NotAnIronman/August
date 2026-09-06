@@ -161,6 +161,8 @@ export interface WidgetNode {
     verticalFlip?: boolean;
     horizontalFlip?: boolean;
     spriteAngle?: number;
+    /** Presentation offset applied after cache alignment, including CS2 repositions. */
+    layoutOffsetY?: number;
     spriteTiling?: boolean;
 
     // Content - Single item (type 5 sprite widgets, etc.)

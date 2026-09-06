@@ -6,6 +6,7 @@ export type WidgetLike = {
     // raw (decoded) values
     rawX?: number;
     rawY?: number;
+    layoutOffsetY?: number;
     rawWidth?: number;
     rawHeight?: number;
     // computed layout relative to parent (after alignment)
@@ -122,6 +123,7 @@ export function alignPosition(w: WidgetLike, parentW: number, parentH: number) {
                 ((((w.rawY as number) | 0) * (parentH | 0)) >> 14)) |
             0;
     }
+    w.y = (w.y ?? 0) + (w.layoutOffsetY ?? 0);
 }
 
 /**

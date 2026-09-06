@@ -33,14 +33,15 @@ export function buildRewardPanel() {
     for (const [background,button,icon,x,label,sprite] of [
         [848,852,853,138,"Collect to inventory",1226],
         [849,854,855,184,"Collect to bank",1227],
+        [846,858,859,230,"Destroy remaining loot",1235],
     ] as const) {
         add(background,{type:5,spriteId:761,rawX:x,rawY:18,yPositionMode:2,rawWidth:40,rawHeight:40});
         add(button,{type:3,filled:false,opacity:255,rawX:x,rawY:18,yPositionMode:2,rawWidth:40,rawHeight:40,
             actions:[label],flags:2,noClickThrough:true});
         add(icon,{type:5,spriteId:sprite,rawX:x+5,rawY:27,yPositionMode:2,rawWidth:29,rawHeight:22});
     }
-    HANDLES.forEach((id,i) => add(id,{type:5,spriteId:2523,rawWidth:8,rawHeight:8,rawX:3,rawY:3,
-        xPositionMode:i%2===0?0:2,yPositionMode:i<2?0:2,flippedH:i%2===0,flippedV:i<2,noClickThrough:true}));
+    HANDLES.forEach((id,i) => add(id,{type:5,spriteId:4552,spriteAngle:16384,rawWidth:26,rawHeight:26,rawX:0,rawY:0,
+        xPositionMode:i%2===0?0:2,yPositionMode:i<2?0:2,noClickThrough:true}));
     return built;
 }
 

@@ -1,7 +1,7 @@
 
 import type { ClientGroundItemStack } from "@client/engine/game/data/ground/GroundItemStore";
 import { WebGLMapSquare } from "@client/engine/rendering/WebGLMapSquare";
-import { decodeGroundItemMapId,getGroundItemMapId } from "@client/engine/rendering/ground/GroundItemMapKey";
+import { getGroundItemMapId } from "@client/engine/rendering/ground/GroundItemMapKey";
 import { buildGroundItemGeometry } from "@client/engine/rendering/ground/GroundItemMeshBuilder";
 import { RENDER_CONSTANTS } from "@client/engine/rendering/render/constants";
 import type { WebGLOsrsRendererHost } from "@client/engine/rendering/render/hostInterface";
@@ -16,8 +16,13 @@ export function updateGroundItemMeshes(host: WebGLOsrsRendererHost, stacks: Clie
 
             // Check if this ground item falls within a WorldView overlay
             let mapId: number;
+            const preferredMap = host.getPreferredMapForWorldTile(tileX, tileY);
             const wv = host.osrsClient.worldViewManager.findWorldViewAt(tileX, tileY);
-            if (wv && !wv.isTopLevel()) {
+            if (preferredMap) {
+                // Private instances use a chunk-aligned 104-tile mesh, not the
+                // drop's ordinary 64-tile map square and its terrain heights.
+                mapId = (preferredMap.mapX << 8) + preferredMap.mapY;
+            } else if (wv && !wv.isTopLevel()) {
                 mapId = wv.overlayMapId;
             } else {
                 const mapX = tileX >> 6;
@@ -51,8 +56,8 @@ export function updateGroundItemMeshes(host: WebGLOsrsRendererHost, stacks: Clie
                     host.groundItemStackHashes.delete(key);
                 }
 
-                const { mapX, mapY } = decodeGroundItemMapId(key);
-                const map = host.mapManager.getMap(mapX, mapY) as WebGLMapSquare | undefined;
+                // Preserve overlay IDs instead of masking off their high bits.
+                const map = host.mapManager.mapSquares.get(key) as WebGLMapSquare | undefined;
                 if (map) {
                     if (host.rebuildGroundItemsForMap(map, next)) {
                         // Sparse JS5 models arrive later; leave this map dirty so the next server tick retries it.

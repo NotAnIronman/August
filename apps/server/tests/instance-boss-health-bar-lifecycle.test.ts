@@ -55,6 +55,7 @@ function createPlayer(id: number, name: string): PlayerState {
         name,
         worldViewId: -1,
         instanceNpcIds: new Set<number>(),
+        getCombatTarget: () => null,
     };
     return player as unknown as PlayerState;
 }
@@ -253,6 +254,20 @@ assert.equal(owner.instanceNpcIds.has(firstDynamicBoss.id), true, "a queued resp
 
 assert(instances.join(member, dynamicRoom.id));
 assert.equal(member.instanceNpcIds.has(firstDynamicBoss.id), true);
+const simultaneousBoss = {
+    id: 990, typeId: NEXT_BOSS_TYPE_ID, worldViewId: dynamicRoom.worldViewId,
+    getHitpoints: () => 400, getMaxHitpoints: () => 500,
+} as unknown as import("@server/game/npc").NpcState;
+npcs.set(simultaneousBoss.id, simultaneousBoss);
+assert(instances.attachNpc(dynamicRoom.id, simultaneousBoss));
+owner.getCombatTarget = () => ({type:"npc",id:simultaneousBoss.id});
+member.getCombatTarget = () => ({type:"npc",id:firstDynamicBoss.id});
+instances.syncBossHealthBars();
+assert.equal(bossHudEvents(owner.id).at(-1)?.event.name,"Next Framework Boss");
+assert.equal(bossHudEvents(owner.id).at(-1)?.event.current,400);
+assert.equal(bossHudEvents(member.id).at(-1)?.event.name,"Framework Boss");
+owner.getCombatTarget = () => null; member.getCombatTarget = () => null;
+instances.detachNpc(simultaneousBoss.id);
 firstDynamicHealth = 0;
 instances.syncBossHealthBars();
 assert.equal(

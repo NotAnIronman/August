@@ -13,6 +13,8 @@ type StoredPreferences = {
 
 assert.equal(normalizeBossHealthBarStyle("modern"), "modern");
 assert.equal(normalizeBossHealthBarStyle("oldschool"), "oldschool");
+assert.equal(normalizeBossHealthBarStyle("none"), "none");
+assert.equal(new BossHealthBarPreferences({load:()=>({style:"none"}),save:()=>{}}).getSnapshot(),"none");
 assert.equal(normalizeBossHealthBarStyle("unknown"), "oldschool");
 assert.equal(normalizeBossHealthBarStyle(undefined), "oldschool");
 assert.equal(new BossHealthBarPreferences().getSnapshot(), "oldschool");

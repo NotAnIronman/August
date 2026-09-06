@@ -84,7 +84,7 @@ export function BossHealthHud({
         return () => window.clearTimeout(timer);
     }, [hudStyle, state.active, state.name, state.npcTypeId, state.precisePercent, trailPercent]);
 
-    if (!state.active) return null;
+    if (!state.active || hudStyle === "none") return null;
 
     const nextMarker = getNextBossHealthHudMarker(state.markers, state.precisePercent);
     const cssVariables: BossHealthCssProperties = {

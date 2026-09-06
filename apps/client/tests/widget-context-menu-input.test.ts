@@ -151,12 +151,13 @@ function createDeps(options: {
         leftClickY: -1,
         wheelDeltaY: 0,
         keyEvents: [{ keyTyped: 0, keyPressed: 65 }],
+        keyArray: [],
         isDragging: () => false,
     };
     const widgetManager = {
         rootInterface: 1,
         interfaceParents: new Map(),
-        getAllGroupRoots: () => [{}],
+        getAllGroupRoots: () => [{uid:162<<16,onKey:[1]}],
         getWidgetByUid: () => null,
         getStaticChildrenByParentUid: () => [],
         getWidgetFlags: () => 0,
@@ -183,7 +184,10 @@ function createDeps(options: {
             },
         }),
         getItemSpawnerUi: () => ({ handleSearchKeyEvents: () => false }),
-        getEnterToTypeChat: () => ({}),
+        getEnterToTypeChat: () => ({handleKeyEvent:()=>false,shouldBlockChatboxKeys:()=>false,isUnlocked:false}),
+        executeScriptListener: (_w:unknown,_listener:unknown,event:{keyPressed:number}) => {
+            cs2Vm.inputDialogString += String.fromCharCode(event.keyPressed);
+        },
         getMenuOpen: () => false,
         getMenuJustClosed: () => false,
         setMenuJustClosed: () => {},

@@ -22,12 +22,12 @@ export function reopenPendingLoot(player: PlayerState, services: ScriptServices,
         try {
             reward.items.forEach((item,index) => {
                 if ((slot !== undefined && slot !== index) || item.quantity <= 0) return;
-                const count = destination === "bank"
+                const count = destination === "destroy" ? item.quantity : destination === "bank"
                     ? (services.banking?.addItemToBank?.(player,item.itemId,item.quantity) ? item.quantity : 0)
                     : player.items.addItem(item.itemId,item.quantity,{assureFullInsertion:false}).completed;
                 if (count <= 0) return;
                 item.quantity -= count; moved += count;
-                services.collectionLog.trackCollectionLogItem(player,item.itemId);
+                if(destination !== "destroy")services.collectionLog.trackCollectionLogItem(player,item.itemId);
             });
             if (moved) {
                 if (reward.items.every(i => i.quantity === 0)) player.pendingLoot = pending.filter(r => r !== reward);

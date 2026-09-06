@@ -76,8 +76,10 @@ export class WidgetInputController {
 
         processWidgetMenuWheelInput(this.deps, frame);
         const skipPointerInput = shouldSkipWidgetPointerInput(this.deps);
+        const canvas = this.deps.getRenderer()?.canvas as any;
         if(!skipPointerInput && ClientState.isAltPressed() && input.clickMode3===ClickMode.LEFT &&
-            !frame.hits.some(w=>w.contentType!==1337 && (w.noClickThrough || frame.isInputCaptureWidget(w.uid) || w.actions?.some(Boolean))) && clickGroundItemEdit(frame.mx,frame.my)) {
+            !frame.hits.some(w=>w.contentType!==1337 && (w.noClickThrough || frame.isInputCaptureWidget(w.uid) || w.actions?.some(Boolean))) && clickGroundItemEdit(input.saveClickX,input.saveClickY,
+                Number(canvas?.__uiInputScaleX ?? 1) || 1, Number(canvas?.__uiInputScaleY ?? 1) || 1)) {
             input.clickMode3=ClickMode.NONE;input.clickMode1=ClickMode.NONE;
         }
         // UIKit panels draw their own scrollbars beside IF3 content. Give the

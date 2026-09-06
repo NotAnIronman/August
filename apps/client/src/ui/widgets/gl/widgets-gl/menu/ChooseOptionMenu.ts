@@ -565,16 +565,7 @@ export function drawChooseOptionMenu(
                     globalClient.inputManager.saveClickX = -1;
                     globalClient.inputManager.saveClickY = -1;
                 }
-                // Also clear any pending widget click state to prevent release handlers from firing
-                globalClient.clickedWidget = null;
-                globalClient.clickedWidgetParent = null;
-                globalClient.clickedWidgetHandled = false;
-                globalClient.deferredWidgetAction = null;
-                // Clear drag state to prevent drag actions from continuing after menu closes
-                globalClient.isDraggingWidget = false;
-                globalClient.widgetDragDuration = 0;
-                globalClient.dragClickX = 0;
-                globalClient.dragClickY = 0;
+                globalClient.releaseContextMenuWidgetInput?.();
             }
         } catch {}
         unregisterMenuTargets(ui.__menuTargetCount | 0, ui.__menuSubTargetCount | 0);
@@ -698,21 +689,8 @@ export function drawChooseOptionMenu(
                         inputManager.saveClickY = -1;
                     } catch {}
                 }
-                try {
-                    if (ui.menu) ui.menu.open = false;
-                    ui.menu = undefined;
-                } catch {}
-                ui.__menuRt = undefined;
-                try {
-                    if (typeof (menu as any)?.closeWorldMenu === "function")
-                        (menu as any).closeWorldMenu();
-                    else if (typeof (ui as any)?.closeWorldMenu === "function")
-                        (ui as any).closeWorldMenu();
-                    else if (typeof globalClient?.closeMenu === "function")
-                        globalClient.closeMenu();
-                } catch {}
-                unregisterMenuTargets(ui.__menuTargetCount | 0, ui.__menuSubTargetCount | 0);
-                opts.requestRender();
+                // Hover-dismiss must release widget/bridge capture too.
+                closeAllMenus();
                 return;
             }
         }

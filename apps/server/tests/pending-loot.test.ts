@@ -11,13 +11,14 @@ import { REWARD_DISPLAY_PANEL_GROUP_ID as GROUP } from "@august/protocol/ui/widg
 const p:any={id:1,pendingLoot:[],items:new PlayerInventoryState(),moons:new PlayerMoonState(),
     collectionLog:new PlayerCollectionLogState(),canInteract:()=>true};
 p.items.setItemDefResolver(()=>({stackable:false}));
-let saved:any,fail=false;
+let saved:any,fail=false,confirmation:any;
 const events:any[]=[];
 const services:any={appearance:{savePlayerSnapshotChecked:()=>{
     if(fail)throw Error('disk full');saved=structuredClone({pendingLoot:p.pendingLoot,moonProgress:p.moons.serialize()});
 }},inventory:{snapshotInventory(){}},collectionLog:{trackCollectionLogItem(){},sendCollectionLogSnapshot(){}},
     banking:{addItemToBank:(_p:any,id:number,quantity:number)=>{p.items.bank.push({itemId:id,quantity});return true;}},
     system:{logger:{error(){}}},messaging:{sendGameMessage(){}},dialog:{queueWidgetEvent:(_id:number,e:any)=>events.push(e),
+        openDialogOptions:(_p:any,options:any)=>confirmation=options,
         closeModal:()=>p.modal=undefined,getInterfaceService:()=>({isModalOpen:()=>p.modal===GROUP,openModal:()=>p.modal=GROUP})}};
 const registry=new ScriptRegistry();registerRewardDisplayActions(registry);
 const click=(id:number,op=1)=>registry.findWidgetAction((GROUP<<16)|id,op)?.({player:p,services} as any);
@@ -40,4 +41,14 @@ fail=true;p.moons.defeated.add('blue');
 assert(!storePendingLoot(p,services,'lunar',[{itemId:4151,quantity:1}],()=>p.moons.defeated.clear()));
 assert(p.moons.defeated.has('blue'));assert.equal(p.pendingLoot.length,0);
 assert(events.some(e=>e.action==='set_hidden'&&e.uid===((GROUP<<16)|852)&&e.hidden===false));
+fail=false;
+assert(storePendingLoot(p,services,'lunar',[{itemId:4151,quantity:3}],()=>{}));
+assert(reopenPendingLoot(p,services,'lunar'));
+click(858);assert.equal(p.pendingLoot[0].items[0].quantity,3,"destroy button only asks for confirmation");
+confirmation.onSelect(0);assert.equal(p.pendingLoot[0].items[0].quantity,3,"cancel keeps rewards");
+click(858);fail=true;confirmation.onSelect(1);
+assert.equal(p.pendingLoot[0].items[0].quantity,3,"failed destroy persistence restores rewards");
+fail=false;click(858);confirmation.onSelect(1);
+assert.equal(p.pendingLoot.length,0);assert.deepEqual(saved.pendingLoot,[]);
+assert.equal(p.items.bank[0].quantity,2,"destroy does not deposit rewards");
 console.log('Deferred loot, partial/individual claims, restart, rollback and stale clicks passed');

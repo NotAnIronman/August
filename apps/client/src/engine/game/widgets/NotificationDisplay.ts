@@ -26,6 +26,11 @@ export class NotificationDisplay {
 
         const targetUid = this.findNotificationsContainerUid(root);
         if (targetUid === null) return;
+        const container = widgetManager.getWidgetByUid(targetUid);
+        if (container && container.layoutOffsetY !== 100) {
+            container.layoutOffsetY = 100;
+            widgetManager.invalidateWidget(container, "notification-hud-spacing");
+        }
 
         const mounted = widgetManager.getSubInterface(targetUid);
         if (mounted && (mounted.group | 0) === 660) {

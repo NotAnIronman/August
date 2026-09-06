@@ -65,7 +65,7 @@ export class TheatreVaultController {
         } else if(!this.runs()?.enterVault(player)){this.message(player,"Complete Verzik before entering the vault.");return;}
         this.sync(player);
     }
-    open(event:LocInteractionEvent, destination?: "inventory"|"bank", selected?: number):void {
+    open(event:LocInteractionEvent, destination?: "inventory"|"bank"|"destroy", selected?: number):void {
         const {player,tile}=event;
         if(!player.canInteract() || event.level!==0 || player.level!==0 ||
             ![32992,32993,32994,41746].includes(event.locId) ||
@@ -110,14 +110,14 @@ export class TheatreVaultController {
                 if(item.itemId===ELITE_CLUE && this.services.inventory.findOwnedItemLocation(player,ELITE_CLUE)) {
                     reward.received[i]=item.quantity; moved++; continue;
                 }
-                const completed=destination==="bank"
+                const completed=destination==="destroy" ? left : destination==="bank"
                     ? (this.services.banking?.addItemToBank?.(player,item.itemId,left)?left:0)
                     : player.items.addItem(item.itemId,left,{assureFullInsertion:false}).completed;
                 if(completed<=0)continue;
                 moved+=completed;reward.received[i]+=completed;
                 const obj=this.services.data.getObjType(item.itemId);
                 const logId=obj && obj.noteTemplate>=0?obj.note:item.itemId;
-                if(isCollectionLogItem(logId)){player.collectionLog.addItem(logId,completed);player.collectionLog.recordItemUnlock(logId,getRuneDay());}
+                if(destination!=="destroy" && isCollectionLogItem(logId)){player.collectionLog.addItem(logId,completed);player.collectionLog.recordItemUnlock(logId,getRuneDay());}
             }
             if(!moved) {
                 Object.assign(reward,expectedReward);

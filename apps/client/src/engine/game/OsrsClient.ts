@@ -7938,6 +7938,11 @@ export class OsrsClient {
         this.widgetManager?.invalidateAll?.();
     };
 
+    /** Release the authoritative widget controller, not obsolete fields on the client. */
+    releaseContextMenuWidgetInput = () => {
+        this.widgetInteraction?.clearWidgetInteractionState();
+    };
+
     /** Close every context menu, including any widget-level Choose Option menu. */
     closeMenu = () => {
         this.closeWorldMenu();

@@ -24,7 +24,7 @@ const modelRenderer=new Model2DRenderer(factory.getObjTypeLoader(),factory.getMo
 // Software model projection uses only these canvas operations; capture the actual pixels.
 (globalThis as any).document={createElement:()=>{const c:any={width:0,height:0};c.getContext=()=>({
     createImageData:(w:number,h:number)=>({data:new Uint8ClampedArray(w*h*4)}),putImageData:(i:any)=>c.pixels=i.data});return c;}};
-const width=420,height=180,pixels=Buffer.alloc(width*height*4);
+const width=420,height=205,pixels=Buffer.alloc(width*height*4);
 for(let i=0;i<width*height;i++){pixels.set([65,59,48,255],i*4);}
 const blit=(src:ArrayLike<number>,sw:number,sh:number,x:number,y:number,w:number,h:number)=>{
     for(let dy=0;dy<h;dy++)for(let dx=0;dx<w;dx++){
@@ -38,7 +38,7 @@ for(const [index,id] of [6616,35414,52413].entries()){
     assert(c.pixels.some((v:number,i:number)=>i%4===3&&v>0));
     const scale=Math.min(120/c.width,120/c.height);blit(c.pixels,c.width,c.height,index*140+10,10,Math.floor(c.width*scale),Math.floor(c.height*scale));
 }
-for(const [index,id] of [1227,1226,2523,761].entries()){
+for(const [index,id] of [1227,1226,4552,761,1235,1361].entries()){
     const s=SpriteLoader.loadIntoIndexedSprite(cache.getIndex(IndexType.DAT2.sprites),id)!;assert(s);
     const rgba=new Uint8Array(s.subWidth*s.subHeight*4);
     s.pixels.forEach((p,i)=>{const color=s.palette[p];rgba.set([color>>16&255,color>>8&255,color&255,p?255:0],i*4);});

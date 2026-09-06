@@ -494,12 +494,29 @@ export class InstancedAreaManager {
 
     private enterBossHealthBar(player: PlayerState, runtime: InstanceRuntime): void {
         if (!runtime.bossHealthBar) return;
-        this.bossHealthBars.enter(player, () => this.resolveBossHealthBarSnapshot(runtime));
+        this.bossHealthBars.enter(player, () => this.resolveBossHealthBarSnapshot(runtime, player));
     }
 
     private resolveBossHealthBarSnapshot(
         runtime: InstanceRuntime,
+        player?: PlayerState,
     ): BossHealthBarSnapshot | undefined {
+        // Simultaneous bosses need a per-player HUD, not a shared party target.
+        const target = player?.getCombatTarget();
+        if (target?.type === "npc" && runtime.npcRuntimeIds.has(target.id)) {
+            const npc = this.services.npcManager?.getById(target.id);
+            const definition = npc && EncounterRegistry.shared.findByNpcTypeId(npc.typeId);
+            const metadata = definition?.bossHealthBar;
+            if (npc && definition && metadata && npc.getHitpoints() > 0) {
+                return {
+                    npcTypeId: metadata.npcTypeId ?? npc.typeId,
+                    name: metadata.name,
+                    current: npc.getHitpoints(),
+                    maximum: Math.max(1, npc.getMaxHitpoints()),
+                    markers: deriveBossHealthBarMarkers(definition),
+                };
+            }
+        }
         const healthBar = runtime.bossHealthBar;
         if (!healthBar) return undefined;
         const matchingBosses = [...runtime.npcRuntimeIds]
