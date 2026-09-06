@@ -3,13 +3,14 @@ import type { PlayerState } from "@server/game/player";
 import { getSlayerCategory } from "@server/content/gamemodes/vanilla/slayer/SlayerMonsterCategories";
 import { cancelTask, describeTask } from "@server/content/gamemodes/vanilla/slayer/SlayerService";
 import { slayerTaskTracker } from "@server/content/gamemodes/vanilla/slayer/SlayerTaskTracker";
+import { getSlayerPoints, getSlayerStreak } from "@server/content/gamemodes/vanilla/slayer/SlayerVarbitSync";
 
 const USAGE = "Usage: ::task [cancel]. Shows your current Slayer assignment and points.";
 
 function buildStatusMessage(player: PlayerState): string {
     const task = slayerTaskTracker.getTask(player.id);
-    const points = slayerTaskTracker.getPoints(player.id);
-    const streak = slayerTaskTracker.getStreak(player.id);
+    const points = getSlayerPoints(player);
+    const streak = getSlayerStreak(player);
     if (!task) {
         return `You don't have a Slayer task. Points: ${points} (streak: ${streak}).`;
     }
@@ -33,7 +34,7 @@ export function registerSlayerTaskCommand(registry: IScriptRegistry, _services: 
             const sub = args[0]?.toLowerCase();
             if (sub === "cancel") {
                 if (!slayerTaskTracker.getTask(player.id)) return "You don't have a Slayer task to cancel.";
-                cancelTask(player.id);
+                cancelTask(player);
                 return "Your Slayer task has been cancelled.";
             }
             if (sub === "help") return USAGE;

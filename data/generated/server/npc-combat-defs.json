@@ -3387,11 +3387,24 @@
     },
     "14860": {
       "anims": {
-        "attack": 12552,
-        "melee": 12553,
-        "ranged": 12554,
+        "attack": 12546,
+        "melee": [
+          12553,
+          12546
+        ],
+        "ranged": [
+          12554,
+          12553
+        ],
         "magic": 12555,
-        "death": 12557
+        "death": 12557,
+        "namedSpecials": {
+          "idle": 12548,
+          "walk": 12550,
+          "bite": 12552,
+          "screech": 12554,
+          "flapwing": 12555
+        }
       }
     },
     "15628": {

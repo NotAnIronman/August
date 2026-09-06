@@ -102,6 +102,7 @@ import { registerCombatWidgetHandlers } from "@server/content/gamemodes/vanilla/
 import { registerDiaryJournalWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/diaryJournalWidgets";
 import { achievementTaskTracker } from "@server/content/gamemodes/vanilla/diary-tasks/AchievementTaskTracker";
 import { slayerTaskTracker } from "@server/content/gamemodes/vanilla/slayer";
+import { resetSlayerRewardsPanelState } from "@server/content/gamemodes/vanilla/slayer/SlayerRewardsPanel";
 import { registerDevUIKitMenu } from "@server/content/gamemodes/vanilla/widgets/devUIKitMenu";
 import { registerDevDialogueEditor } from "@server/content/gamemodes/vanilla/widgets/devDialogueEditor";
 import { registerTransportObjectEditor } from "@server/content/gamemodes/vanilla/widgets/transportObjectEditor";
@@ -216,6 +217,7 @@ export class VanillaGamemode extends BaseGamemode {
         // its own persisted diary state is loaded.
         achievementTaskTracker.resetPlayer(player.id);
         slayerTaskTracker.resetPlayer(player.id);
+        resetSlayerRewardsPanelState(player.id);
     }
 
     override serializePlayerState(player: PlayerState): Record<string, unknown> | undefined {

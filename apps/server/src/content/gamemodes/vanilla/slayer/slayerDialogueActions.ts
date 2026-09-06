@@ -3,6 +3,7 @@ import { getSlayerCategory } from "@server/content/gamemodes/vanilla/slayer/Slay
 import { openSlayerRewardsPanel } from "@server/content/gamemodes/vanilla/slayer/SlayerRewardsPanel";
 import { assignTask, cancelTask, describeTask } from "@server/content/gamemodes/vanilla/slayer/SlayerService";
 import { slayerTaskTracker } from "@server/content/gamemodes/vanilla/slayer/SlayerTaskTracker";
+import { getSlayerPoints } from "@server/content/gamemodes/vanilla/slayer/SlayerVarbitSync";
 
 /**
  * Registers the `slayer.*` DialogueActionRegistry keys referenced by the
@@ -54,14 +55,14 @@ export function registerSlayerDialogueActions(services: ScriptServices): void {
 
     if (!actions.has("slayer.cancelTask")) {
         actions.register("slayer.cancelTask", ({ player, services: svc }) => {
-            cancelTask(player.id);
+            cancelTask(player);
             svc.messaging.sendGameMessage(player, "Your Slayer task has been cancelled.");
         });
     }
 
     if (!actions.has("slayer.checkPoints")) {
         actions.register("slayer.checkPoints", ({ player, services: svc }) => {
-            svc.messaging.sendGameMessage(player, `You have ${slayerTaskTracker.getPoints(player.id)} Slayer reward points.`);
+            svc.messaging.sendGameMessage(player, `You have ${getSlayerPoints(player)} Slayer reward points.`);
         });
     }
 
