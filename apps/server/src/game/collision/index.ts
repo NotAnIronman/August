@@ -13,6 +13,8 @@ export {
     EntityType,
     COLLISION_IGNORING_NPCS,
     LINE_OF_SIGHT_BLOCKING_NPCS,
+    TALK_THROUGH_OBSTACLE_NPCS,
     shouldIgnoreEntityCollision,
     shouldBlockLineOfSight,
+    canTalkThroughObstacles,
 } from "@server/game/collision/EntityCollisionService";

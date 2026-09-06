@@ -17,6 +17,7 @@ import "@client/ui/widgets/custom/modelViewerPanel";
 import "@client/ui/widgets/custom/transportObjectPanel";
 import "@client/ui/widgets/custom/digPanel";
 import "@client/ui/widgets/custom/rewardDisplayPanel";
+import "@client/ui/widgets/custom/slayerRewardsPanel";
 import { buildSmithingBarModalGroup } from "@client/ui/widgets/custom/smithing.cs2";
 
 type WidgetGroupLoadResult = { root: WidgetNode | undefined; widgets: Map<number, WidgetNode> };

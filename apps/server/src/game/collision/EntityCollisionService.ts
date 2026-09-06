@@ -127,6 +127,29 @@ export function shouldBlockLineOfSight(npcName: string): boolean {
 }
 
 // =============================================================================
+// NPCs Interactable Through Obstacles (bars, fences, counters)
+// =============================================================================
+
+/**
+ * NPCs whose Talk-to should succeed even when a wall/bars/fence loc sits
+ * between the player and the NPC (RectAdjacentRouteStrategy.hasArrived()
+ * otherwise treats a blocked adjacent tile as "not arrived" and the player
+ * can never path onto a tile the collision map won't let them reach).
+ *
+ * Real OSRS jail/cage NPCs (e.g. Krystilia's cell in Edgeville Dungeon) are
+ * talkable through the bars despite the bars fully blocking movement; this
+ * is the narrow, explicit escape hatch for that case rather than a general
+ * change to adjacency/collision rules.
+ */
+export const TALK_THROUGH_OBSTACLE_NPCS: ReadonlySet<string> = new Set([
+    "krystilia",
+]);
+
+export function canTalkThroughObstacles(npcName: string): boolean {
+    return TALK_THROUGH_OBSTACLE_NPCS.has(npcName.toLowerCase());
+}
+
+// =============================================================================
 
 // =============================================================================
 

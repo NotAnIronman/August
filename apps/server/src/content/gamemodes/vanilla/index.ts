@@ -101,6 +101,7 @@ import { registerCollectionLogWidgetHandlers } from "@server/content/gamemodes/v
 import { registerCombatWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/combatWidgets";
 import { registerDiaryJournalWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/diaryJournalWidgets";
 import { achievementTaskTracker } from "@server/content/gamemodes/vanilla/diary-tasks/AchievementTaskTracker";
+import { slayerTaskTracker } from "@server/content/gamemodes/vanilla/slayer";
 import { registerDevUIKitMenu } from "@server/content/gamemodes/vanilla/widgets/devUIKitMenu";
 import { registerDevDialogueEditor } from "@server/content/gamemodes/vanilla/widgets/devDialogueEditor";
 import { registerTransportObjectEditor } from "@server/content/gamemodes/vanilla/widgets/transportObjectEditor";
@@ -209,15 +210,18 @@ export class VanillaGamemode extends BaseGamemode {
         // from inheriting an old session's in-memory tracker entries before
         // its own persisted diary state is loaded.
         achievementTaskTracker.resetPlayer(player.id);
+        slayerTaskTracker.resetPlayer(player.id);
     }
 
     override serializePlayerState(player: PlayerState): Record<string, unknown> | undefined {
         const achievementDiary = achievementTaskTracker.serializePlayerState(player.id);
-        return achievementDiary ? { achievementDiary } : undefined;
+        const slayer = slayerTaskTracker.serializePlayerState(player.id);
+        return achievementDiary || slayer ? { achievementDiary, slayer } : undefined;
     }
 
     override deserializePlayerState(player: PlayerState, data: Record<string, unknown>): void {
         achievementTaskTracker.deserializePlayerState(player.id, data.achievementDiary);
+        slayerTaskTracker.deserializePlayerState(player.id, data.slayer);
     }
 
     onPlayerRestore(player: PlayerState): void {

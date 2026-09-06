@@ -1,0 +1,2082 @@
+{
+  "2": [
+    "aberrant_spectres"
+  ],
+  "3": [
+    "aberrant_spectres"
+  ],
+  "4": [
+    "aberrant_spectres"
+  ],
+  "5": [
+    "aberrant_spectres"
+  ],
+  "6": [
+    "aberrant_spectres"
+  ],
+  "7": [
+    "aberrant_spectres"
+  ],
+  "8": [
+    "nechryael"
+  ],
+  "11": [
+    "nechryael"
+  ],
+  "23": [
+    "monkeys"
+  ],
+  "24": [
+    "monkeys"
+  ],
+  "25": [
+    "monkeys"
+  ],
+  "26": [
+    "zombies"
+  ],
+  "27": [
+    "zombies"
+  ],
+  "28": [
+    "zombies"
+  ],
+  "29": [
+    "zombies"
+  ],
+  "30": [
+    "zombies"
+  ],
+  "31": [
+    "zombies"
+  ],
+  "32": [
+    "zombies"
+  ],
+  "34": [
+    "zombies"
+  ],
+  "37": [
+    "zombies"
+  ],
+  "38": [
+    "zombies"
+  ],
+  "39": [
+    "zombies"
+  ],
+  "40": [
+    "zombies"
+  ],
+  "41": [
+    "zombies"
+  ],
+  "42": [
+    "zombies"
+  ],
+  "43": [
+    "zombies"
+  ],
+  "44": [
+    "zombies"
+  ],
+  "45": [
+    "zombies"
+  ],
+  "46": [
+    "zombies"
+  ],
+  "47": [
+    "zombies"
+  ],
+  "48": [
+    "zombies"
+  ],
+  "49": [
+    "zombies"
+  ],
+  "50": [
+    "zombies"
+  ],
+  "51": [
+    "zombies"
+  ],
+  "52": [
+    "zombies"
+  ],
+  "54": [
+    "zombies"
+  ],
+  "55": [
+    "zombies"
+  ],
+  "56": [
+    "zombies"
+  ],
+  "57": [
+    "zombies"
+  ],
+  "58": [
+    "zombies"
+  ],
+  "59": [
+    "zombies"
+  ],
+  "60": [
+    "zombies"
+  ],
+  "61": [
+    "zombies"
+  ],
+  "62": [
+    "zombies"
+  ],
+  "63": [
+    "zombies"
+  ],
+  "64": [
+    "zombies"
+  ],
+  "65": [
+    "zombies"
+  ],
+  "66": [
+    "zombies"
+  ],
+  "67": [
+    "zombies"
+  ],
+  "68": [
+    "zombies"
+  ],
+  "70": [
+    "skeletons"
+  ],
+  "71": [
+    "skeletons"
+  ],
+  "72": [
+    "skeletons"
+  ],
+  "73": [
+    "skeletons"
+  ],
+  "74": [
+    "skeletons"
+  ],
+  "75": [
+    "skeletons"
+  ],
+  "76": [
+    "skeletons"
+  ],
+  "77": [
+    "skeletons"
+  ],
+  "78": [
+    "skeletons"
+  ],
+  "79": [
+    "skeletons"
+  ],
+  "80": [
+    "skeletons"
+  ],
+  "81": [
+    "skeletons"
+  ],
+  "82": [
+    "skeletons"
+  ],
+  "83": [
+    "skeletons"
+  ],
+  "85": [
+    "ghosts"
+  ],
+  "86": [
+    "ghosts"
+  ],
+  "87": [
+    "ghosts"
+  ],
+  "88": [
+    "ghosts"
+  ],
+  "89": [
+    "ghosts"
+  ],
+  "90": [
+    "ghosts"
+  ],
+  "91": [
+    "ghosts"
+  ],
+  "92": [
+    "ghosts"
+  ],
+  "93": [
+    "ghosts"
+  ],
+  "95": [
+    "ghosts"
+  ],
+  "97": [
+    "ghosts"
+  ],
+  "99": [
+    "ghosts"
+  ],
+  "100": [
+    "rock_crabs"
+  ],
+  "102": [
+    "rock_crabs"
+  ],
+  "104": [
+    "hellhounds"
+  ],
+  "105": [
+    "hellhounds"
+  ],
+  "106": [
+    "wolves"
+  ],
+  "110": [
+    "wolves"
+  ],
+  "114": [
+    "dogs"
+  ],
+  "240": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "241": [
+    "blue_dragons"
+  ],
+  "242": [
+    "blue_dragons"
+  ],
+  "243": [
+    "blue_dragons"
+  ],
+  "244": [
+    "red_dragons"
+  ],
+  "245": [
+    "red_dragons"
+  ],
+  "246": [
+    "red_dragons"
+  ],
+  "247": [
+    "red_dragons"
+  ],
+  "248": [
+    "red_dragons"
+  ],
+  "249": [
+    "red_dragons"
+  ],
+  "250": [
+    "red_dragons"
+  ],
+  "251": [
+    "red_dragons"
+  ],
+  "260": [
+    "green_dragons"
+  ],
+  "261": [
+    "green_dragons"
+  ],
+  "262": [
+    "green_dragons"
+  ],
+  "263": [
+    "green_dragons"
+  ],
+  "264": [
+    "green_dragons"
+  ],
+  "265": [
+    "blue_dragons"
+  ],
+  "266": [
+    "blue_dragons"
+  ],
+  "267": [
+    "blue_dragons"
+  ],
+  "268": [
+    "blue_dragons"
+  ],
+  "269": [
+    "blue_dragons"
+  ],
+  "274": [
+    "steel_dragons"
+  ],
+  "275": [
+    "steel_dragons"
+  ],
+  "289": [
+    "ghouls"
+  ],
+  "290": [
+    "dwarves"
+  ],
+  "292": [
+    "dwarves"
+  ],
+  "294": [
+    "dwarves"
+  ],
+  "295": [
+    "dwarves"
+  ],
+  "296": [
+    "dwarves"
+  ],
+  "406": [
+    "cave_crawlers"
+  ],
+  "407": [
+    "cave_crawlers"
+  ],
+  "408": [
+    "cave_crawlers"
+  ],
+  "409": [
+    "cave_crawlers"
+  ],
+  "410": [
+    "kurask"
+  ],
+  "411": [
+    "kurask"
+  ],
+  "412": [
+    "gargoyles"
+  ],
+  "414": [
+    "banshees"
+  ],
+  "415": [
+    "abyssal_demons"
+  ],
+  "416": [
+    "abyssal_demons"
+  ],
+  "417": [
+    "basilisks"
+  ],
+  "419": [
+    "cockatrices"
+  ],
+  "421": [
+    "rockslugs"
+  ],
+  "422": [
+    "rockslugs"
+  ],
+  "423": [
+    "dust_devils"
+  ],
+  "427": [
+    "turoth"
+  ],
+  "428": [
+    "turoth"
+  ],
+  "429": [
+    "turoth"
+  ],
+  "430": [
+    "turoth"
+  ],
+  "433": [
+    "pyrefiends"
+  ],
+  "434": [
+    "pyrefiends"
+  ],
+  "435": [
+    "pyrefiends"
+  ],
+  "436": [
+    "pyrefiends"
+  ],
+  "437": [
+    "jellies"
+  ],
+  "438": [
+    "jellies"
+  ],
+  "439": [
+    "jellies"
+  ],
+  "440": [
+    "jellies"
+  ],
+  "441": [
+    "jellies"
+  ],
+  "442": [
+    "jellies"
+  ],
+  "443": [
+    "infernal_mages"
+  ],
+  "444": [
+    "infernal_mages"
+  ],
+  "445": [
+    "infernal_mages"
+  ],
+  "446": [
+    "infernal_mages"
+  ],
+  "447": [
+    "infernal_mages"
+  ],
+  "448": [
+    "crawling_hands"
+  ],
+  "449": [
+    "crawling_hands"
+  ],
+  "450": [
+    "crawling_hands"
+  ],
+  "451": [
+    "crawling_hands"
+  ],
+  "452": [
+    "crawling_hands"
+  ],
+  "453": [
+    "crawling_hands"
+  ],
+  "454": [
+    "crawling_hands"
+  ],
+  "459": [
+    "desert_lizards"
+  ],
+  "460": [
+    "desert_lizards"
+  ],
+  "461": [
+    "desert_lizards"
+  ],
+  "464": [
+    "harpie_bug_swarms"
+  ],
+  "472": [
+    "ghosts"
+  ],
+  "473": [
+    "ghosts"
+  ],
+  "474": [
+    "ghosts"
+  ],
+  "480": [
+    "cave_slimes"
+  ],
+  "481": [
+    "cave_bugs"
+  ],
+  "483": [
+    "cave_bugs"
+  ],
+  "484": [
+    "bloodveld"
+  ],
+  "485": [
+    "bloodveld"
+  ],
+  "486": [
+    "bloodveld"
+  ],
+  "487": [
+    "bloodveld"
+  ],
+  "505": [
+    "ghosts"
+  ],
+  "506": [
+    "ghosts"
+  ],
+  "507": [
+    "ghosts"
+  ],
+  "516": [
+    "black_knights"
+  ],
+  "517": [
+    "black_knights"
+  ],
+  "520": [
+    "chaos_druids"
+  ],
+  "655": [
+    "goblins"
+  ],
+  "656": [
+    "goblins"
+  ],
+  "657": [
+    "goblins"
+  ],
+  "658": [
+    "goblins"
+  ],
+  "659": [
+    "goblins"
+  ],
+  "660": [
+    "goblins"
+  ],
+  "661": [
+    "goblins"
+  ],
+  "662": [
+    "goblins"
+  ],
+  "663": [
+    "goblins"
+  ],
+  "664": [
+    "goblins"
+  ],
+  "665": [
+    "goblins"
+  ],
+  "667": [
+    "goblins"
+  ],
+  "668": [
+    "goblins"
+  ],
+  "936": [
+    "trolls"
+  ],
+  "937": [
+    "trolls"
+  ],
+  "938": [
+    "trolls"
+  ],
+  "939": [
+    "trolls"
+  ],
+  "940": [
+    "trolls"
+  ],
+  "941": [
+    "trolls"
+  ],
+  "942": [
+    "trolls"
+  ],
+  "955": [
+    "kalphites"
+  ],
+  "956": [
+    "kalphites"
+  ],
+  "957": [
+    "kalphites"
+  ],
+  "958": [
+    "kalphites"
+  ],
+  "959": [
+    "kalphites"
+  ],
+  "960": [
+    "kalphites"
+  ],
+  "962": [
+    "kalphites"
+  ],
+  "1020": [
+    "rats"
+  ],
+  "1021": [
+    "rats"
+  ],
+  "1022": [
+    "rats"
+  ],
+  "1038": [
+    "monkeys"
+  ],
+  "1047": [
+    "cave_horrors"
+  ],
+  "1048": [
+    "cave_horrors"
+  ],
+  "1049": [
+    "cave_horrors"
+  ],
+  "1050": [
+    "cave_horrors"
+  ],
+  "1051": [
+    "cave_horrors"
+  ],
+  "1153": [
+    "ogres"
+  ],
+  "1173": [
+    "birds"
+  ],
+  "1174": [
+    "birds"
+  ],
+  "1338": [
+    "birds"
+  ],
+  "1339": [
+    "birds"
+  ],
+  "1401": [
+    "dwarves"
+  ],
+  "1402": [
+    "dwarves"
+  ],
+  "1403": [
+    "dwarves"
+  ],
+  "1404": [
+    "dwarves"
+  ],
+  "1405": [
+    "dwarves"
+  ],
+  "1406": [
+    "dwarves"
+  ],
+  "1407": [
+    "dwarves"
+  ],
+  "1408": [
+    "dwarves"
+  ],
+  "1543": [
+    "gargoyles"
+  ],
+  "1545": [
+    "black_knights"
+  ],
+  "1554": [
+    "birds"
+  ],
+  "1555": [
+    "birds"
+  ],
+  "1685": [
+    "skeletons"
+  ],
+  "1686": [
+    "skeletons"
+  ],
+  "1687": [
+    "skeletons"
+  ],
+  "1688": [
+    "skeletons"
+  ],
+  "1817": [
+    "monkeys"
+  ],
+  "1875": [
+    "trolls"
+  ],
+  "1876": [
+    "trolls"
+  ],
+  "2005": [
+    "lesser_demons"
+  ],
+  "2006": [
+    "lesser_demons"
+  ],
+  "2007": [
+    "lesser_demons"
+  ],
+  "2008": [
+    "lesser_demons"
+  ],
+  "2018": [
+    "lesser_demons"
+  ],
+  "2025": [
+    "greater_demons"
+  ],
+  "2026": [
+    "greater_demons"
+  ],
+  "2027": [
+    "greater_demons"
+  ],
+  "2028": [
+    "greater_demons"
+  ],
+  "2029": [
+    "greater_demons"
+  ],
+  "2030": [
+    "greater_demons"
+  ],
+  "2031": [
+    "greater_demons"
+  ],
+  "2032": [
+    "greater_demons"
+  ],
+  "2048": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "2049": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "2050": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "2051": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "2052": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "2069": [
+    "birds"
+  ],
+  "2070": [
+    "birds"
+  ],
+  "2071": [
+    "birds"
+  ],
+  "2072": [
+    "birds"
+  ],
+  "2074": [
+    "birds"
+  ],
+  "2075": [
+    "fire_giants"
+  ],
+  "2076": [
+    "fire_giants"
+  ],
+  "2077": [
+    "fire_giants"
+  ],
+  "2078": [
+    "fire_giants"
+  ],
+  "2079": [
+    "fire_giants"
+  ],
+  "2080": [
+    "fire_giants"
+  ],
+  "2081": [
+    "fire_giants"
+  ],
+  "2082": [
+    "fire_giants"
+  ],
+  "2083": [
+    "fire_giants"
+  ],
+  "2085": [
+    "ice_giants"
+  ],
+  "2086": [
+    "ice_giants"
+  ],
+  "2087": [
+    "ice_giants"
+  ],
+  "2088": [
+    "ice_giants"
+  ],
+  "2089": [
+    "ice_giants"
+  ],
+  "2090": [
+    "moss_giants"
+  ],
+  "2091": [
+    "moss_giants"
+  ],
+  "2092": [
+    "moss_giants"
+  ],
+  "2093": [
+    "moss_giants"
+  ],
+  "2095": [
+    "ogres"
+  ],
+  "2096": [
+    "ogres"
+  ],
+  "2098": [
+    "hill_giants"
+  ],
+  "2099": [
+    "hill_giants"
+  ],
+  "2100": [
+    "hill_giants"
+  ],
+  "2101": [
+    "hill_giants"
+  ],
+  "2102": [
+    "hill_giants"
+  ],
+  "2103": [
+    "hill_giants"
+  ],
+  "2154": [
+    "tzhaar"
+  ],
+  "2155": [
+    "tzhaar"
+  ],
+  "2156": [
+    "tzhaar"
+  ],
+  "2157": [
+    "tzhaar"
+  ],
+  "2158": [
+    "tzhaar"
+  ],
+  "2159": [
+    "tzhaar"
+  ],
+  "2160": [
+    "tzhaar"
+  ],
+  "2161": [
+    "tzhaar"
+  ],
+  "2162": [
+    "tzhaar"
+  ],
+  "2163": [
+    "tzhaar"
+  ],
+  "2164": [
+    "tzhaar"
+  ],
+  "2165": [
+    "tzhaar"
+  ],
+  "2166": [
+    "tzhaar"
+  ],
+  "2167": [
+    "tzhaar"
+  ],
+  "2168": [
+    "tzhaar"
+  ],
+  "2169": [
+    "tzhaar"
+  ],
+  "2170": [
+    "tzhaar"
+  ],
+  "2171": [
+    "tzhaar"
+  ],
+  "2172": [
+    "tzhaar"
+  ],
+  "2173": [
+    "tzhaar"
+  ],
+  "2174": [
+    "tzhaar"
+  ],
+  "2175": [
+    "tzhaar"
+  ],
+  "2176": [
+    "tzhaar"
+  ],
+  "2177": [
+    "tzhaar"
+  ],
+  "2178": [
+    "tzhaar"
+  ],
+  "2179": [
+    "tzhaar"
+  ],
+  "2186": [
+    "tzhaar"
+  ],
+  "2187": [
+    "tzhaar"
+  ],
+  "2210": [
+    "spiritual_creatures"
+  ],
+  "2211": [
+    "spiritual_creatures"
+  ],
+  "2212": [
+    "spiritual_creatures"
+  ],
+  "2233": [
+    "ogres"
+  ],
+  "2241": [
+    "hobgoblins"
+  ],
+  "2242": [
+    "spiritual_creatures"
+  ],
+  "2243": [
+    "spiritual_creatures"
+  ],
+  "2244": [
+    "spiritual_creatures"
+  ],
+  "2245": [
+    "goblins"
+  ],
+  "2246": [
+    "goblins"
+  ],
+  "2247": [
+    "goblins"
+  ],
+  "2248": [
+    "goblins"
+  ],
+  "2249": [
+    "goblins"
+  ],
+  "2477": [
+    "spiders"
+  ],
+  "2479": [
+    "scorpions"
+  ],
+  "2480": [
+    "scorpions"
+  ],
+  "2481": [
+    "minotaurs"
+  ],
+  "2483": [
+    "minotaurs"
+  ],
+  "2484": [
+    "goblins"
+  ],
+  "2485": [
+    "goblins"
+  ],
+  "2486": [
+    "goblins"
+  ],
+  "2487": [
+    "goblins"
+  ],
+  "2488": [
+    "goblins"
+  ],
+  "2489": [
+    "goblins"
+  ],
+  "2490": [
+    "wolves"
+  ],
+  "2491": [
+    "wolves"
+  ],
+  "2492": [
+    "rats"
+  ],
+  "2501": [
+    "zombies"
+  ],
+  "2502": [
+    "zombies"
+  ],
+  "2503": [
+    "zombies"
+  ],
+  "2504": [
+    "zombies"
+  ],
+  "2505": [
+    "zombies"
+  ],
+  "2506": [
+    "zombies"
+  ],
+  "2507": [
+    "zombies"
+  ],
+  "2508": [
+    "zombies"
+  ],
+  "2509": [
+    "zombies"
+  ],
+  "2510": [
+    "rats"
+  ],
+  "2511": [
+    "rats"
+  ],
+  "2512": [
+    "rats"
+  ],
+  "2513": [
+    "rats"
+  ],
+  "2520": [
+    "skeletons"
+  ],
+  "2521": [
+    "skeletons"
+  ],
+  "2522": [
+    "skeletons"
+  ],
+  "2523": [
+    "skeletons"
+  ],
+  "2524": [
+    "skeletons"
+  ],
+  "2525": [
+    "skeletons"
+  ],
+  "2526": [
+    "skeletons"
+  ],
+  "2527": [
+    "ghosts"
+  ],
+  "2528": [
+    "ghosts"
+  ],
+  "2529": [
+    "ghosts"
+  ],
+  "2530": [
+    "ghosts"
+  ],
+  "2531": [
+    "ghosts"
+  ],
+  "2790": [
+    "cows"
+  ],
+  "2791": [
+    "cows"
+  ],
+  "2792": [
+    "cows"
+  ],
+  "2793": [
+    "cows"
+  ],
+  "2794": [
+    "cows"
+  ],
+  "2795": [
+    "cows"
+  ],
+  "2801": [
+    "cows"
+  ],
+  "2804": [
+    "birds"
+  ],
+  "2805": [
+    "birds"
+  ],
+  "2806": [
+    "birds"
+  ],
+  "2831": [
+    "birds"
+  ],
+  "2834": [
+    "bats"
+  ],
+  "2838": [
+    "bears"
+  ],
+  "2839": [
+    "bears"
+  ],
+  "2840": [
+    "earth_warriors"
+  ],
+  "2841": [
+    "ice_warriors"
+  ],
+  "2842": [
+    "ice_warriors"
+  ],
+  "2848": [
+    "monkeys"
+  ],
+  "2851": [
+    "ice_warriors"
+  ],
+  "2854": [
+    "rats"
+  ],
+  "2855": [
+    "rats"
+  ],
+  "2856": [
+    "rats"
+  ],
+  "2857": [
+    "rats"
+  ],
+  "2858": [
+    "rats"
+  ],
+  "2859": [
+    "rats"
+  ],
+  "2860": [
+    "rats"
+  ],
+  "2861": [
+    "rats"
+  ],
+  "2862": [
+    "rats"
+  ],
+  "2863": [
+    "rats"
+  ],
+  "2864": [
+    "rats"
+  ],
+  "2916": [
+    "waterfiends"
+  ],
+  "2917": [
+    "waterfiends"
+  ],
+  "2918": [
+    "green_dragons"
+  ],
+  "3017": [
+    "spiders"
+  ],
+  "3018": [
+    "spiders"
+  ],
+  "3024": [
+    "scorpions"
+  ],
+  "3028": [
+    "goblins"
+  ],
+  "3029": [
+    "goblins"
+  ],
+  "3030": [
+    "goblins"
+  ],
+  "3031": [
+    "goblins"
+  ],
+  "3032": [
+    "goblins"
+  ],
+  "3033": [
+    "goblins"
+  ],
+  "3034": [
+    "goblins"
+  ],
+  "3035": [
+    "goblins"
+  ],
+  "3036": [
+    "goblins"
+  ],
+  "3045": [
+    "goblins"
+  ],
+  "3046": [
+    "goblins"
+  ],
+  "3049": [
+    "hobgoblins"
+  ],
+  "3050": [
+    "hobgoblins"
+  ],
+  "3051": [
+    "goblins"
+  ],
+  "3052": [
+    "goblins"
+  ],
+  "3053": [
+    "goblins"
+  ],
+  "3054": [
+    "goblins"
+  ],
+  "3073": [
+    "goblins"
+  ],
+  "3074": [
+    "goblins"
+  ],
+  "3075": [
+    "goblins"
+  ],
+  "3076": [
+    "goblins"
+  ],
+  "3133": [
+    "hellhounds"
+  ],
+  "3135": [
+    "werewolves"
+  ],
+  "3136": [
+    "werewolves"
+  ],
+  "3138": [
+    "bloodveld"
+  ],
+  "3139": [
+    "pyrefiends"
+  ],
+  "3140": [
+    "icefiends"
+  ],
+  "3159": [
+    "spiritual_creatures"
+  ],
+  "3160": [
+    "spiritual_creatures"
+  ],
+  "3161": [
+    "spiritual_creatures"
+  ],
+  "3166": [
+    "spiritual_creatures"
+  ],
+  "3167": [
+    "spiritual_creatures"
+  ],
+  "3168": [
+    "spiritual_creatures"
+  ],
+  "3286": [
+    "hobgoblins"
+  ],
+  "3287": [
+    "hobgoblins"
+  ],
+  "3288": [
+    "hobgoblins"
+  ],
+  "3289": [
+    "hobgoblins"
+  ],
+  "3313": [
+    "rats"
+  ],
+  "3316": [
+    "birds"
+  ],
+  "3423": [
+    "bears"
+  ],
+  "3516": [
+    "ghosts"
+  ],
+  "3565": [
+    "skeletons"
+  ],
+  "3661": [
+    "birds"
+  ],
+  "3662": [
+    "birds"
+  ],
+  "3851": [
+    "moss_giants"
+  ],
+  "3912": [
+    "wolves"
+  ],
+  "3972": [
+    "skeletons"
+  ],
+  "3973": [
+    "skeletons"
+  ],
+  "3974": [
+    "skeletons"
+  ],
+  "3975": [
+    "ghosts"
+  ],
+  "3976": [
+    "ghosts"
+  ],
+  "3977": [
+    "ghosts"
+  ],
+  "3978": [
+    "ghosts"
+  ],
+  "3979": [
+    "ghosts"
+  ],
+  "3980": [
+    "zombies"
+  ],
+  "3981": [
+    "zombies"
+  ],
+  "3982": [
+    "lesser_demons"
+  ],
+  "4005": [
+    "dark_beasts"
+  ],
+  "4143": [
+    "trolls"
+  ],
+  "4184": [
+    "crocodiles"
+  ],
+  "4331": [
+    "black_knights"
+  ],
+  "4501": [
+    "brine_rats"
+  ],
+  "4504": [
+    "bats"
+  ],
+  "4562": [
+    "bats"
+  ],
+  "4610": [
+    "rats"
+  ],
+  "4611": [
+    "rats"
+  ],
+  "4612": [
+    "rats"
+  ],
+  "4613": [
+    "rats"
+  ],
+  "4614": [
+    "rats"
+  ],
+  "4615": [
+    "rats"
+  ],
+  "4616": [
+    "rats"
+  ],
+  "4617": [
+    "rats"
+  ],
+  "4618": [
+    "rats"
+  ],
+  "4805": [
+    "hobgoblins"
+  ],
+  "4813": [
+    "icefiends"
+  ],
+  "4902": [
+    "goblins"
+  ],
+  "4903": [
+    "goblins"
+  ],
+  "4904": [
+    "goblins"
+  ],
+  "4905": [
+    "goblins"
+  ],
+  "4906": [
+    "goblins"
+  ],
+  "5170": [
+    "dwarves"
+  ],
+  "5171": [
+    "dwarves"
+  ],
+  "5172": [
+    "dwarves"
+  ],
+  "5173": [
+    "dwarves"
+  ],
+  "5174": [
+    "dwarves"
+  ],
+  "5175": [
+    "dwarves"
+  ],
+  "5192": [
+    "goblins"
+  ],
+  "5193": [
+    "goblins"
+  ],
+  "5195": [
+    "goblins"
+  ],
+  "5196": [
+    "goblins"
+  ],
+  "5197": [
+    "goblins"
+  ],
+  "5198": [
+    "goblins"
+  ],
+  "5199": [
+    "goblins"
+  ],
+  "5200": [
+    "goblins"
+  ],
+  "5201": [
+    "goblins"
+  ],
+  "5202": [
+    "goblins"
+  ],
+  "5203": [
+    "goblins"
+  ],
+  "5204": [
+    "goblins"
+  ],
+  "5205": [
+    "goblins"
+  ],
+  "5206": [
+    "goblins"
+  ],
+  "5207": [
+    "goblins"
+  ],
+  "5208": [
+    "goblins"
+  ],
+  "5237": [
+    "skeletons"
+  ],
+  "5242": [
+    "scorpions"
+  ],
+  "5279": [
+    "monkeys"
+  ],
+  "5370": [
+    "ghosts"
+  ],
+  "5376": [
+    "goblins"
+  ],
+  "5377": [
+    "goblins"
+  ],
+  "5507": [
+    "zombies"
+  ],
+  "5508": [
+    "goblins"
+  ],
+  "5509": [
+    "goblins"
+  ],
+  "5647": [
+    "zombies"
+  ],
+  "5791": [
+    "bats"
+  ],
+  "5824": [
+    "trolls"
+  ],
+  "5825": [
+    "trolls"
+  ],
+  "5829": [
+    "trolls"
+  ],
+  "5830": [
+    "trolls"
+  ],
+  "5842": [
+    "cows"
+  ],
+  "5874": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "5875": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "5876": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "5877": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "5878": [
+    "blue_dragons"
+  ],
+  "5879": [
+    "blue_dragons"
+  ],
+  "5880": [
+    "blue_dragons"
+  ],
+  "5881": [
+    "blue_dragons"
+  ],
+  "5882": [
+    "blue_dragons"
+  ],
+  "5904": [
+    "dwarves"
+  ],
+  "5928": [
+    "werewolves"
+  ],
+  "6219": [
+    "dwarves"
+  ],
+  "6224": [
+    "rats"
+  ],
+  "6225": [
+    "rats"
+  ],
+  "6226": [
+    "rats"
+  ],
+  "6227": [
+    "rats"
+  ],
+  "6228": [
+    "rats"
+  ],
+  "6229": [
+    "rats"
+  ],
+  "6441": [
+    "skeletons"
+  ],
+  "6442": [
+    "skeletons"
+  ],
+  "6443": [
+    "skeletons"
+  ],
+  "6444": [
+    "skeletons"
+  ],
+  "6445": [
+    "skeletons"
+  ],
+  "6446": [
+    "skeletons"
+  ],
+  "6447": [
+    "skeletons"
+  ],
+  "6448": [
+    "skeletons"
+  ],
+  "6449": [
+    "zombies"
+  ],
+  "6450": [
+    "zombies"
+  ],
+  "6451": [
+    "zombies"
+  ],
+  "6452": [
+    "zombies"
+  ],
+  "6453": [
+    "zombies"
+  ],
+  "6454": [
+    "zombies"
+  ],
+  "6455": [
+    "zombies"
+  ],
+  "6456": [
+    "zombies"
+  ],
+  "6457": [
+    "zombies"
+  ],
+  "6458": [
+    "zombies"
+  ],
+  "6459": [
+    "zombies"
+  ],
+  "6460": [
+    "zombies"
+  ],
+  "6461": [
+    "zombies"
+  ],
+  "6462": [
+    "zombies"
+  ],
+  "6463": [
+    "zombies"
+  ],
+  "6464": [
+    "zombies"
+  ],
+  "6465": [
+    "zombies"
+  ],
+  "6466": [
+    "zombies"
+  ],
+  "6596": [
+    "zombies"
+  ],
+  "6597": [
+    "zombies"
+  ],
+  "6598": [
+    "zombies"
+  ],
+  "6607": [
+    "chaos_druids"
+  ],
+  "6741": [
+    "zombies"
+  ],
+  "6824": [
+    "bats"
+  ],
+  "7209": [
+    "dogs"
+  ],
+  "7241": [
+    "abyssal_demons"
+  ],
+  "7242": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "7243": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "7244": [
+    "greater_demons"
+  ],
+  "7245": [
+    "greater_demons"
+  ],
+  "7246": [
+    "greater_demons"
+  ],
+  "7247": [
+    "lesser_demons"
+  ],
+  "7248": [
+    "lesser_demons"
+  ],
+  "7249": [
+    "dust_devils"
+  ],
+  "7251": [
+    "fire_giants"
+  ],
+  "7252": [
+    "fire_giants"
+  ],
+  "7255": [
+    "steel_dragons"
+  ],
+  "7256": [
+    "hellhounds"
+  ],
+  "7261": [
+    "hill_giants"
+  ],
+  "7262": [
+    "moss_giants"
+  ],
+  "7263": [
+    "ghosts"
+  ],
+  "7264": [
+    "ghosts"
+  ],
+  "7265": [
+    "skeletons"
+  ],
+  "7277": [
+    "warped_creatures"
+  ],
+  "7485": [
+    "zombies"
+  ],
+  "7486": [
+    "zombies"
+  ],
+  "7487": [
+    "zombies"
+  ],
+  "7488": [
+    "zombies"
+  ],
+  "7518": [
+    "jellies"
+  ],
+  "7652": [
+    "tzhaar"
+  ],
+  "7656": [
+    "lesser_demons"
+  ],
+  "7657": [
+    "lesser_demons"
+  ],
+  "7664": [
+    "lesser_demons"
+  ],
+  "7679": [
+    "tzhaar"
+  ],
+  "7682": [
+    "tzhaar"
+  ],
+  "7683": [
+    "tzhaar"
+  ],
+  "7684": [
+    "tzhaar"
+  ],
+  "7685": [
+    "tzhaar"
+  ],
+  "7686": [
+    "tzhaar"
+  ],
+  "7687": [
+    "tzhaar"
+  ],
+  "7712": [
+    "dwarves"
+  ],
+  "7713": [
+    "dwarves"
+  ],
+  "7714": [
+    "dwarves"
+  ],
+  "7715": [
+    "dwarves"
+  ],
+  "7721": [
+    "dwarves"
+  ],
+  "7792": [
+    "wyverns"
+  ],
+  "7793": [
+    "wyverns"
+  ],
+  "7794": [
+    "wyverns"
+  ],
+  "7857": [
+    "skeletons"
+  ],
+  "7865": [
+    "lesser_demons"
+  ],
+  "7866": [
+    "lesser_demons"
+  ],
+  "7867": [
+    "lesser_demons"
+  ],
+  "7868": [
+    "green_dragons"
+  ],
+  "7869": [
+    "green_dragons"
+  ],
+  "7870": [
+    "green_dragons"
+  ],
+  "7871": [
+    "greater_demons"
+  ],
+  "7872": [
+    "greater_demons"
+  ],
+  "7873": [
+    "greater_demons"
+  ],
+  "7876": [
+    "black_demons",
+    "wilderness_black_demons"
+  ],
+  "7877": [
+    "hellhounds"
+  ],
+  "7878": [
+    "ice_giants"
+  ],
+  "7879": [
+    "ice_giants"
+  ],
+  "7880": [
+    "ice_giants"
+  ],
+  "7881": [
+    "revenants"
+  ],
+  "7931": [
+    "revenants"
+  ],
+  "7932": [
+    "revenants"
+  ],
+  "7933": [
+    "revenants"
+  ],
+  "7934": [
+    "revenants"
+  ],
+  "7935": [
+    "revenants"
+  ],
+  "7936": [
+    "revenants"
+  ],
+  "7937": [
+    "revenants"
+  ],
+  "7938": [
+    "revenants"
+  ],
+  "7939": [
+    "revenants"
+  ],
+  "7940": [
+    "revenants"
+  ],
+  "7995": [
+    "chaos_druids"
+  ],
+  "8015": [
+    "moss_giants"
+  ],
+  "8016": [
+    "moss_giants"
+  ],
+  "8017": [
+    "moss_giants"
+  ],
+  "8018": [
+    "moss_giants"
+  ],
+  "8067": [
+    "zombies"
+  ],
+  "8068": [
+    "zombies"
+  ],
+  "8069": [
+    "zombies"
+  ],
+  "8070": [
+    "skeletons"
+  ],
+  "8071": [
+    "skeletons"
+  ],
+  "8072": [
+    "skeletons"
+  ],
+  "8139": [
+    "skeletons"
+  ],
+  "8392": [
+    "fire_giants"
+  ],
+  "8393": [
+    "fire_giants"
+  ],
+  "8394": [
+    "fire_giants"
+  ],
+  "8488": [
+    "ice_giants"
+  ],
+  "8489": [
+    "ice_giants"
+  ],
+  "8490": [
+    "ice_giants"
+  ],
+  "8496": [
+    "dwarves"
+  ],
+  "8736": [
+    "moss_giants"
+  ],
+  "9243": [
+    "ghosts"
+  ],
+  "9483": [
+    "rats"
+  ],
+  "9488": [
+    "birds"
+  ],
+  "9609": [
+    "birds"
+  ],
+  "9743": [
+    "werewolves"
+  ],
+  "9744": [
+    "werewolves"
+  ],
+  "9745": [
+    "werewolves"
+  ],
+  "10374": [
+    "hill_giants"
+  ],
+  "10375": [
+    "hill_giants"
+  ],
+  "10376": [
+    "hill_giants"
+  ],
+  "10494": [
+    "birds"
+  ],
+  "10495": [
+    "birds"
+  ],
+  "10496": [
+    "birds"
+  ],
+  "10497": [
+    "birds"
+  ],
+  "10566": [
+    "goblins"
+  ],
+  "10567": [
+    "goblins"
+  ],
+  "10704": [
+    "ghosts"
+  ],
+  "10705": [
+    "ghosts"
+  ],
+  "10706": [
+    "ghosts"
+  ],
+  "10717": [
+    "skeletons"
+  ],
+  "10718": [
+    "skeletons"
+  ],
+  "10719": [
+    "skeletons"
+  ],
+  "10720": [
+    "skeletons"
+  ],
+  "10721": [
+    "skeletons"
+  ],
+  "7278": [
+    "nechryael"
+  ],
+  "7144": [
+    "black_demons"
+  ],
+  "7145": [
+    "black_demons"
+  ],
+  "7147": [
+    "black_demons"
+  ],
+  "7148": [
+    "black_demons"
+  ],
+  "7149": [
+    "black_demons"
+  ],
+  "7098": [
+    "black_demons"
+  ],
+  "3130": [
+    "black_demons"
+  ]
+}

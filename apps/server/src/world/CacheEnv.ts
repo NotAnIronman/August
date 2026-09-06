@@ -2,7 +2,7 @@ import path from "path";
 
 import { CacheFiles } from "@august/osrs-engine/cache/CacheFiles";
 import { CacheIndexDat2 } from "@august/osrs-engine/cache/CacheIndex";
-import { CacheInfo } from "@august/osrs-engine/cache/CacheInfo";
+import { CacheInfo, getLatestCache } from "@august/osrs-engine/cache/CacheInfo";
 import { CacheSystem } from "@august/osrs-engine/cache/CacheSystem";
 import { detectCacheType } from "@august/osrs-engine/cache/CacheType";
 import { IndexType } from "@august/osrs-engine/cache/IndexType";
@@ -40,7 +40,18 @@ export function initCacheEnv(rootDir: string, name?: string): CacheEnv {
     // If name is not provided, read from caches/caches.json and choose latest; default to single entry
     const cachesJsonPath = path.join(cacheRoot, "caches.json");
     const cachesList = readJson<CacheInfo[]>(cachesJsonPath);
-    const selectedName = name ?? cachesList[0]?.name;
+    // Bug fix: this used to take cachesList[0] literally — the raw array
+    // order in caches.json — despite this comment's stated intent to
+    // "choose latest". Every cache-export tool (see tools/cache/client/
+    // load-util.ts -> loadCacheList) already resolves "latest" via
+    // getLatestCache (sorted by revision/timestamp, newest first). With
+    // more than one cache registered and caches.json not happening to list
+    // the newest one first, the server booted a DIFFERENT cache than the
+    // one every committed data/generated/* reference file was exported
+    // from — same npc/item ids, silently different names/definitions.
+    // Aligning this with the tooling's selection makes "which cache did we
+    // boot" match "which cache did we generate reference data from".
+    const selectedName = name ?? getLatestCache(cachesList)?.name ?? cachesList[0]?.name;
     if (!selectedName) throw new Error("No cache name provided and caches.json empty");
 
     const folder = { rootDir: cacheRoot, name: selectedName };

@@ -80,6 +80,13 @@
         "death": 1513
       }
     },
+    "412": {
+      "anims": {
+        "death": 1520,
+        "attack": 1519,
+        "melee": 1519
+      }
+    },
     "421": {
       "anims": {
         "block": 1565,
@@ -2273,6 +2280,73 @@
         "death": 3835
       }
     },
+    "7144": {
+      "anims": {
+        "death": 7229,
+        "namedSpecials": {
+          "swap": 7228
+        },
+        "block": 7224,
+        "magic": 7225,
+        "attack": 7226,
+        "ranged": 7227,
+        "melee": 7226,
+        "spawn": 7232
+      }
+    },
+    "7145": {
+      "anims": {
+        "block": 7224,
+        "magic": 7225,
+        "attack": 7226,
+        "namedSpecials": {
+          "swap": 7228
+        },
+        "ranged": 7227,
+        "melee": 7226,
+        "death": 7229,
+        "spawn": 7232
+      }
+    },
+    "7148": {
+      "anims": {
+        "melee": [
+          7226,
+          7224
+        ],
+        "attack": 7226,
+        "namedSpecials": {
+          "swap": 7228
+        },
+        "magic": 7225,
+        "ranged": 7227,
+        "death": 7229,
+        "block": 7224
+      }
+    },
+    "7150": {
+      "anims": {
+        "magic": 7225,
+        "attack": 7224,
+        "ranged": 7227,
+        "melee": 7224,
+        "death": 7229,
+        "namedSpecials": {
+          "throw": 7232
+        },
+        "block": 7224,
+        "spawn": 7232
+      }
+    },
+    "7151": {
+      "anims": {
+        "ranged": 7227,
+        "attack": 7227,
+        "magic": 7225,
+        "block": 7224,
+        "death": 7229
+      }
+    },
     "7221": {
       "name": "Scurrius",
       "anims": {
@@ -2518,6 +2592,45 @@
         "death": 836
       }
     },
+    "7852": {
+      "anims": {
+        "namedSpecials": {
+          "idle": 7768,
+          "spec": 7766,
+          "spawn": 7772
+        },
+        "spawn": 7767,
+        "attack": 7769,
+        "melee": 7769,
+        "magic": 7770,
+        "death": 7777,
+        "block": 7775
+      }
+    },
+    "7882": {
+      "anims": {
+        "namedSpecials": {
+          "idle": 7779,
+          "walk": 7780,
+          "fly": 7791,
+          "spawn": 7797,
+          "enrwalk": 7798,
+          "enddef": 7783,
+          "jump": 7790,
+          "spec": [
+            7792,
+            7796
+          ],
+          "melee-2": 7785,
+          "melee-3": 7788
+        },
+        "block": 7784,
+        "death": 7795,
+        "attack": 7800,
+        "melee": 7800,
+        "magic": 7801
+      }
+    },
     "7919": {
       "name": "Man",
       "anims": {
@@ -2609,15 +2722,32 @@
         "specials": [
           8082
         ],
-        "death": 8085
+        "death": 8085,
+        "namedSpecials": {
+          "idle": 8080,
+          "walk": 8081,
+          "shutdown": 8082
+        }
       }
     },
     "8360": {
       "anims": {
-        "magic": 8091,
-        "attack": 8091,
+        "magic": [
+          8091,
+          8092
+        ],
+        "attack": 8092,
         "ranged": 8092,
-        "death": 8094
+        "death": 8094,
+        "namedSpecials": {
+          "idle": 8090,
+          "splat": 8091
+        }
+      }
+    },
+    "8366": {
+      "anims": {
+        "death": 8097
       }
     },
     "8370": {

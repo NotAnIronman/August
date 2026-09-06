@@ -96,6 +96,36 @@
       },
       "animationId": 831,
       "id": "dig-6"
+    },
+    {
+      "area": {
+        "minX": 3570,
+        "minY": 3295,
+        "maxX": 3580,
+        "maxY": 3302,
+        "level": 0
+      },
+      "to": {
+        "x": 3556,
+        "y": 9718,
+        "level": 3
+      },
+      "animationId": 831,
+      "id": "dig-7"
+    },
+    {
+      "tile": {
+        "x": 3042,
+        "y": 9724,
+        "level": 0
+      },
+      "to": {
+        "x": 3200,
+        "y": 3200,
+        "level": 0
+      },
+      "animationId": 721,
+      "id": "dig-8"
     }
   ]
 }

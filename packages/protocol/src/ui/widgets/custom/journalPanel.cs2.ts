@@ -41,3 +41,5 @@ export const DEV_DIG_PANEL_GROUP_ID = 30034;
 export const REWARD_DISPLAY_PANEL_GROUP_ID = 30035;
 /** Developer-only world object previewer (opened with ::modelviewer <loc id>). */
 export const DEV_MODEL_VIEWER_PANEL_GROUP_ID = 30036;
+/** Player-facing Slayer Rewards shop (opened via a master's "Rewards" option). */
+export const SLAYER_REWARDS_PANEL_GROUP_ID = 30037;
