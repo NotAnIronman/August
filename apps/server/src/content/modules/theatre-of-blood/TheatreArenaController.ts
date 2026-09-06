@@ -72,6 +72,7 @@ export class TheatreArenaController {
         });
         if (!boss) return;
         boss.suppressDrops = true;
+        if(typeId===THEATRE_ARENAS.verzik.boss.id)boss.passiveInteractionRange=3;
         let attached: boolean;
         try {
             this.scaleBoss(player,boss);
@@ -207,18 +208,31 @@ export class TheatreArenaController {
         }
     }
 
-    talk(event: NpcInteractionEvent): void {
+    private withinVerzikReach(player:PlayerState,npc:NpcState):boolean {
+        const size=Math.max(1,npc.size || 1);
+        const dx=Math.max(npc.tileX-player.tileX,player.tileX-(npc.tileX+size-1),0);
+        const dy=Math.max(npc.tileY-player.tileY,player.tileY-(npc.tileY+size-1),0);
+        return Math.max(dx,dy)<=3 && Math.max(dx,dy)>0;
+    }
+
+    talk(event: NpcInteractionEvent, quickStart=false): void {
         const context = this.context(event.player);
         if (!context || context.room.id !== "verzik" || !event.player.canInteract() || this.isCrossing(event.player)) return;
         const state = this.states.get(context.instance.id);
         if (!state || state.boss !== event.npc || event.npc.worldViewId !== event.player.worldViewId ||
-            Math.max(Math.abs(event.player.tileX-event.npc.tileX),Math.abs(event.player.tileY-event.npc.tileY)) > 2) return;
+            !this.withinVerzikReach(event.player,event.npc)) return;
         if (state.phase !== "waiting") return;
+        if(quickStart){
+            this.conversations.delete(event.player);
+            this.services.dialog.closeDialog(event.player);
+            this.start(event.player,state);
+            return;
+        }
         const player = event.player, token = {};
         this.conversations.set(player,token);
         const valid = () => this.conversations.get(player) === token && state.phase === "waiting" &&
             this.live(player,state) && !this.isCrossing(player) &&
-            Math.max(Math.abs(player.tileX-state.boss.tileX),Math.abs(player.tileY-state.boss.tileY)) <= 2;
+            this.withinVerzikReach(player,state.boss);
         // Short authored setup dialogue; full encounter dialogue/cutscenes can
         // extend this without bypassing the explicit readiness confirmation.
         this.services.dialog.openDialog(player,{id:"theatre-verzik-greeting",kind:"npc",npcId:event.npc.typeId,
@@ -302,6 +316,7 @@ export function registerTheatreArenas(registry: IScriptRegistry, services: Scrip
     registry.registerLocInteraction(THEATRE_BARRIER_ID,event=>controller.pass(event),"pass");
     registry.registerLocInteraction(THEATRE_BARRIER_ID,event=>controller.pass(event));
     registry.registerNpcInteraction(THEATRE_ARENAS.verzik.boss.id,event=>controller.talk(event),"talk-to");
+    registry.registerNpcInteraction(THEATRE_ARENAS.verzik.boss.id,event=>controller.talk(event,true),"quick-start");
     registry.registerLocInteraction(THEATRE_SKELETON_ID,event=>controller.search(event),"search");
     registry.registerLocInteraction(THEATRE_SKELETON_ID,event=>controller.search(event));
     for (const id of [...Object.values(THEATRE_ARENAS).map(arena=>arena.boss.id),VERZIK_COMBAT_ID]) {

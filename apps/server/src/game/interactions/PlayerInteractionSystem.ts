@@ -11,6 +11,7 @@ import { PathService } from "@server/pathfinding/PathService";
 import {
     ExactRouteStrategy,
     RectAdjacentRouteStrategy,
+    RectWithinRangeLineOfSightRouteStrategy,
     type RouteStrategy,
 } from "@server/pathfinding/engine/RouteStrategy";
 import { CollisionFlag } from "@server/pathfinding/engine/flag/CollisionFlag";
@@ -22,6 +23,7 @@ import { NpcState } from "@server/game/npc";
 import { PlayerState } from "@server/game/player";
 import type { ScriptRuntime } from "@server/game/scripts/ScriptRuntime";
 import { FollowingHandler } from "@server/game/interactions/FollowingHandler";
+import { passiveNpcRaycast } from "@server/game/interactions/passiveNpcReach";
 import { LocInteractionHandler } from "@server/game/interactions/LocInteractionHandler";
 import { NpcCombatInteractionHandler } from "@server/game/interactions/NpcCombatInteractionHandler";
 import {
@@ -461,26 +463,19 @@ export class PlayerInteractionSystem {
 
         this.interactions.set(ws, state);
 
-        const npcSize = Math.max(1, npc.size);
-        const strategy = new RectAdjacentRouteStrategy(npc.tileX, npc.tileY, npcSize, npcSize);
-        // Set collision getter so hasArrived() checks for walls
-        strategy.setCollisionGetter(
-            (x, y, p) => this.pathService.getCollisionFlagAt(x, y, p),
-            me.level,
-        );
-        const arrived = strategy.hasArrived(me.tileX, me.tileY, me.level);
+        const strategy = this.passiveNpcStrategy(me, npc);
+        const arrived = me.level === npc.level && me.worldViewId === npc.worldViewId &&
+            strategy.hasArrived(me.tileX, me.tileY, me.level);
         if (arrived) {
-            // Player is adjacent AND no wall blocks - can interact immediately
+            // Within the authored passive reach, with no wall blocking arrival.
             me.clearPath();
             state.completedAt = Number.MIN_SAFE_INTEGER;
             return { ok: true };
         }
 
-        const routed = this.routePlayerToNpc(
+        const routed = this.routePlayerToPassiveNpc(
             me,
             npc,
-            1,
-            npc.hasPath(),
             this.resolveRunMode(me, state.modifierFlags),
         );
         if (routed) {
@@ -492,6 +487,31 @@ export class PlayerInteractionSystem {
             `[npc] interaction routing failed player=${me.id} npc=${npc.id} reason=no_path`,
         );
         return { ok: false, message: "no_path" };
+    }
+
+    /** Content may extend passive reach without borrowing the player's weapon range. */
+    private passiveNpcStrategy(player: PlayerState, npc: NpcState): RouteStrategy {
+        const size = Math.max(1, npc.size), range = Math.max(1, npc.passiveInteractionRange || 1);
+        if (range > 1) {
+            const strategy = new RectWithinRangeLineOfSightRouteStrategy(npc.tileX, npc.tileY, size, size, range);
+            strategy.setProjectileRaycast((from, to) => passiveNpcRaycast(this.pathService, from, to, player.worldViewId));
+            return strategy;
+        }
+        const strategy = new RectAdjacentRouteStrategy(npc.tileX, npc.tileY, size, size);
+        strategy.setCollisionGetter((x, y, p) => this.pathService.getCollisionFlagAt(x, y, p), player.level);
+        return strategy;
+    }
+
+    private routePlayerToPassiveNpc(player: PlayerState, npc: NpcState, run: boolean): boolean {
+        if (player.level !== npc.level || player.worldViewId !== npc.worldViewId) return false;
+        if (!(npc.passiveInteractionRange > 1)) return this.routePlayerToNpc(player, npc, 1, npc.hasPath(), run);
+        const strategy = this.passiveNpcStrategy(player, npc);
+        const result = this.pathService.findPathSteps({
+            from: {x: player.tileX, y: player.tileY, plane: player.level},
+            to: {x: npc.tileX, y: npc.tileY}, size: 1, worldViewId: player.worldViewId,
+        }, {routeStrategy: strategy, maxSteps: 128});
+        const steps = this.extractValidatedStrategyPathSteps(player, result, strategy);
+        return !!steps && (steps.length === 0 || this.applyPathSteps(player, steps, run));
     }
 
     stopNpcInteraction(ws: WebSocket): void {
@@ -651,14 +671,17 @@ export class PlayerInteractionSystem {
             // interactions, keep the NPC's interaction index clear.
             npc.clearInteraction();
 
+            if (npc.worldViewId !== me.worldViewId || npc.getHitpoints() <= 0) {
+                me.clearInteraction();
+                this.interactions.delete(ws);
+                return;
+            }
             if (npc.level !== me.level) {
                 state.completedAt = undefined;
                 if (tick - state.lastRouteTick >= 2) {
-                    const routed = this.routePlayerToNpc(
+                    const routed = this.routePlayerToPassiveNpc(
                         me,
                         npc,
-                        1,
-                        npc.hasPath(),
                         this.resolveRunMode(me, state.modifierFlags),
                     );
                     if (routed) {
@@ -668,15 +691,7 @@ export class PlayerInteractionSystem {
                 return;
             }
 
-            const npcSize = Math.max(1, npc.size);
-            const strategy = new RectAdjacentRouteStrategy(npc.tileX, npc.tileY, npcSize, npcSize);
-            // Set collision getter so hasArrived() checks for walls.
-            // Without this, player appears "arrived" when geometrically adjacent but
-            // wall-blocked, causing an infinite re-routing loop.
-            strategy.setCollisionGetter(
-                (x, y, p) => this.pathService.getCollisionFlagAt(x, y, p),
-                me.level,
-            );
+            const strategy = this.passiveNpcStrategy(me, npc);
             const arrived = strategy.hasArrived(me.tileX, me.tileY, me.level);
 
             const npcMoved = state.lastNpcTileX !== npc.tileX || state.lastNpcTileY !== npc.tileY;
@@ -687,8 +702,6 @@ export class PlayerInteractionSystem {
                 state.unreachableSinceTick = undefined;
             }
 
-            const npcMoving = npcMoved || npc.hasPath();
-
             if (!arrived) {
                 const shouldRoute =
                     !me.hasPath() ||
@@ -696,11 +709,9 @@ export class PlayerInteractionSystem {
                     tick - state.lastRouteTick >= 2 ||
                     me.wasTeleported();
                 if (shouldRoute) {
-                    const routed = this.routePlayerToNpc(
+                    const routed = this.routePlayerToPassiveNpc(
                         me,
                         npc,
-                        1,
-                        npcMoving,
                         this.resolveRunMode(me, state.modifierFlags),
                     );
                     if (routed) {

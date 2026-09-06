@@ -45,9 +45,9 @@ exit returns outside. Normal accounts do not receive this menu.
 | Maiden | 8360 | 3162 / 4444 / 0 | East (90 degrees clockwise from cache default) |
 | Bloat | 8359 | 3299 / 4447 / 0 | Cache default |
 | Nylo | 8355 (melee form) | 3294 / 4247 / 0 | Cache default |
-| Sotetseg | 8388 (combat form) | 3278 / 4326 / 0 | Cache default |
+| Sotetseg | 8388 (combat form) | 3278 / 4326 / 0 | South (180 degrees from cache default) |
 | Xarpus | 8340 (combat form) | 3169 / 4386 / 1 | South (180 degrees from cache default) |
-| Verzik | 14795 Talk-to; 8370 combat | 3168 / 4326 / 0 | Cache default |
+| Verzik | 14795 Talk-to; 8370 combat | 3168 / 4326 / 0 | South (180 degrees from cache default), both forms |
 
 Each room spawns one shared boss when its first member arrives. NPC visibility and cleanup
 belong to the instance, not the first entrant, so reconnects and party joins do not duplicate it.
@@ -62,6 +62,11 @@ the encounter. **Talk-to Verzik**, continue the short authored greeting, then ch
 **Yes, let's begin.** to replace her conversation form with the attackable throne form.
 **Not yet**, walking away, leaving the instance or a superseded dialogue cannot start it.
 Concurrent party confirmations cannot create multiple combat forms.
+Talk-to works from up to **three tiles from Verzik's footprint**, with line of sight.
+The passive interaction router stops at that range instead of forcing adjacency.
+Right-click **Quick-start** on her waiting form skips the dialogue and readiness prompt,
+using the same start validation. Both options use the three-tile reach; combat forms do
+not offer Quick-start. Ordinary NPCs retain their existing adjacent interaction range.
 
 ### Combat baseline
 

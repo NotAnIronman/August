@@ -36,7 +36,7 @@ function fixture(index: number, preview = false) {
         combat:{getNpc:(id:number)=>npcs.get(id),registerOnNpcKilled:(fn:any)=>{killListener=fn;return ()=>{killListener=undefined;};}},
         location:{replaceTemporaryLoc:(scope:any,oldId:number,newId:number,tile:any,level:number,options:any)=>({scope,oldId,newId,tile,level,...options}),clearTemporaryLoc:()=>true},
         messaging:{sendGameMessage:(_p:any,msg:string)=>messages.push(msg)},
-        dialog:{openDialog:(_p:any,d:any)=>dialogs.push(d),openDialogOptions:(_p:any,o:any)=>options.push(o)},
+        dialog:{closeDialog:()=>{},openDialog:(_p:any,d:any)=>dialogs.push(d),openDialogOptions:(_p:any,o:any)=>options.push(o)},
         inventory:{collectCarriedItemIds:()=>items,addItemToInventory:(_p:any,id:number)=>{if(fullInventory)return {added:0};items.push(id);return {added:1};}},
         animation:{playPlayerSeq:()=>{}},
         movement:{teleportPlayer:(p:any,x:number,y:number,level:number)=>{
@@ -217,6 +217,23 @@ for(let index=0;index<6;index++) {
     f.items.length=0;f.p.worldViewId=-1;search();assert.equal(f.items.length,0);
 }
 assert.deepEqual([1,2,3,4,5].map(n=>theatreHitpoints(2000,n)),[1500,1500,1500,1750,2000]);
+{
+    const f=fixture(5);f.enter();f.cycle(8);const npc=f.npcs.values().next().value;
+    assert.equal(npc.passiveInteractionRange,3);
+    const event={player:f.p,npc,services:f.services,tick:10};
+    const talk=f.registry.findNpcInteraction(14795,"talk-to")!,quick=f.registry.findNpcInteraction(14795,"quick-start")!;
+    f.p.tileY=4322;talk(event);quick(event);assert.equal(f.dialogs.length,0);assert.equal(f.saves(),0,"four tiles is too far");
+    f.p.tileY=4323;talk(event);assert.equal(f.dialogs.length,1,"Talk-to works at exactly three tiles");
+    const stale=f.dialogs[0];
+    f.failSpawn(true);quick(event);assert.equal(f.saves(),0);assert.equal(f.npcs.get(npc.id),npc);
+    f.failSpawn(false);quick(event);quick(event);stale.onContinue();
+    assert.equal(f.saves(),1);assert.equal(f.dialogs.length,1);assert.equal(f.options.length,0,"quick-start skips both dialogue and readiness menu");
+    const boss=f.npcs.values().next().value;assert.equal(boss.typeId,8370);assert.equal(boss.isUnattackable,false);assert.equal(boss.direction,1);
+}
+{
+    const f=fixture(5);f.enter();f.cycle(8);f.p.tileY=4323;const npc=f.npcs.values().next().value;
+    f.controller.talk({player:f.p,npc,services:f.services,tick:10});f.confirmVerzik();assert.equal(f.saves(),1,"dialogue confirmation also accepts three tiles");
+}
 for(let index=0;index<6;index++) {
     const f=fixture(index);let stairs=0;
     f.controller.vault.unlock=()=>{stairs++;};f.enter();

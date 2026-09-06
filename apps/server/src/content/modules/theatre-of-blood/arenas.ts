@@ -28,12 +28,12 @@ export const THEATRE_ARENAS: Record<TheatreRoomId, TheatreArena> = {
         {axis:"x",coordinate:3287,min:4446,max:4449,inward:1,entry:false},
     ] },
     nylo: { boss:{id:8355,x:3294,y:4247}, gates:[{axis:"y",coordinate:4255,min:3295,max:3296,inward:-1,entry:true}] },
-    sotetseg: { boss:{id:8388,x:3278,y:4326}, gates:[{axis:"y",coordinate:4307,min:3278,max:3281,inward:1,entry:true}] },
+    sotetseg: { boss:{id:8388,x:3278,y:4326,direction:1}, gates:[{axis:"y",coordinate:4307,min:3278,max:3281,inward:1,entry:true}] },
     xarpus: { boss:{id:8340,x:3169,y:4386,direction:1}, gates:[
         {axis:"y",coordinate:4379,min:3169,max:3171,inward:1,entry:true},
         {axis:"y",coordinate:4395,min:3169,max:3171,inward:-1,entry:false},
     ] },
-    verzik: { boss:{id:14795,x:3168,y:4326}, gates:[] },
+    verzik: { boss:{id:14795,x:3168,y:4326,direction:1}, gates:[] },
 };
 
 // Spawn markers only: encounter mechanics will decide when and which adds spawn.

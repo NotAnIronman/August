@@ -254,6 +254,8 @@ export class NpcState extends Actor {
     /** Presentation-only NPCs (such as animation previews) cannot be targeted
      * by combat, but can still receive explicitly queued visual sequences. */
     isUnattackable: boolean;
+    /** Server-authored passive interaction reach, measured from the NPC footprint. */
+    passiveInteractionRange = 1;
     /** Encounter-owned utility NPCs may participate in combat without rolling loot. */
     suppressDrops = false;
     readonly isImmovable: boolean;

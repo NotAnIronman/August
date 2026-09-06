@@ -14,8 +14,13 @@ export class CustomNpcTypeLoader implements NpcTypeLoader {
         if (this.info.game !== "oldschool") return source;
         const egg = STATIONARY_EGG_IDS.has(id);
         const pet = !!getFollowerDefinitionByNpcTypeId(id);
-        if (!egg && !pet) return source;
+        const verzik = id === 14795;
+        if (!egg && !pet && !verzik) return source;
         const npc = Object.assign(new NpcType(id, this.info), source);
+        if (verzik) {
+            npc.actions = [...source.actions];
+            npc.actions[1] = "Quick-start";
+        }
         if (pet) npc.isFollower = true;
         if (egg) {
             npc.basTypeId = -1;

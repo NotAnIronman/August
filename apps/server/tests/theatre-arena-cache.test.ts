@@ -9,10 +9,11 @@ import { THEATRE_ROOMS, theatreRoomGeometry } from "@server/content/modules/thea
 import { buildInstanceTemplate } from "@server/world/InstancedAreaManager";
 import { THEATRE_ARENAS, THEATRE_BARRIER_ID } from "@server/content/modules/theatre-of-blood/arenas";
 import { NpcManager } from "@server/game/npcManager";
-import type { PathService } from "@server/pathfinding/PathService";
+import { PathService } from "@server/pathfinding/PathService";
 import type { MapCollisionService } from "@server/world/MapCollisionService";
 import { THEATRE_COMBAT_STATS, theatreHitpoints } from "@server/data/theatreCombatStats";
 import { DIRECTION_TO_ORIENTATION } from "@august/game-model/movement/Direction";
+import { passiveNpcRaycast } from "@server/game/interactions/passiveNpcReach";
 const data = loadCache(loadCacheList(loadCacheInfos()).latest);
 const factory = getCacheLoaderFactory(data.info,CacheSystem.fromFiles("dat2",data.files));
 const npcs = factory.getNpcTypeLoader(), locs = factory.getLocTypeLoader();
@@ -42,13 +43,17 @@ for (const id of [8360,8359,8355,8388,8340,8370]) {
     assert(npc.isCombatTargetable(10));assert(npc.isImmuneToEffect("poison"));assert(npc.isImmuneToEffect("venom"));
     npcManager.removeNpc(npc.id);
 }
-for (const arena of [THEATRE_ARENAS.maiden,THEATRE_ARENAS.xarpus]) {
+for (const arena of [THEATRE_ARENAS.maiden,THEATRE_ARENAS.xarpus,THEATRE_ARENAS.sotetseg,THEATRE_ARENAS.verzik]) {
     const npc=npcManager.spawnTransientNpc({...arena.boss,level:0,isAggressive:false})!;
     assert.equal(npc.orientation,DIRECTION_TO_ORIENTATION[arena.boss.direction!]);
     npcManager.removeNpc(npc.id);
 }
 assert.equal(locs.load(THEATRE_BARRIER_ID).actions[0],"Pass");
 assert.equal(npcs.load(THEATRE_ARENAS.verzik.boss.id).actions[0],"Talk-to");
+assert.equal(npcs.load(14795).actions[1],"Quick-start");
+assert(!npcs.load(8370).actions.includes("Quick-start"),"combat form never offers start again");
+assert.equal(npcs.load(8388).spawnDirection,6);assert.equal(npcs.load(14795).spawnDirection,6);
+assert.equal(THEATRE_ARENAS.sotetseg.boss.direction,1);assert.equal(THEATRE_ARENAS.verzik.boss.direction,1);
 const models = new LocModelLoader(locs,factory.getModelLoader(),factory.getTextureLoader(),factory.getSeqTypeLoader(),factory.getSeqFrameLoader(),factory.getSkeletalSeqLoader());
 const builder = new SceneBuilder(data.info,factory.getMapFileLoader(),factory.getUnderlayTypeLoader(),factory.getOverlayTypeLoader(),locs,models,data.xteas);
 for(let i=0;i<THEATRE_ROOMS.length;i++) {
@@ -58,6 +63,12 @@ for(let i=0;i<THEATRE_ROOMS.length;i++) {
  assert(!boss.transforms,"initial boss form must not depend on unconfigured varbits");
  assert(arena.boss.x>=g.bounds.minX&&arena.boss.x<=g.bounds.maxX&&arena.boss.y>=g.bounds.minY&&arena.boss.y<=g.bounds.maxY);
  const scene=builder.buildInstanceScene(buildInstanceTemplate([g.copy]),g.sceneBase.x,g.sceneBase.y,104,104,false,LocLoadType.NO_MODELS);
+ if(g.room.id==="verzik") {
+    const path=new PathService({} as MapCollisionService);
+    path.getCollisionFlagAt=(x,y,level)=>scene.collisionMaps[level].getFlag(x-g.sceneBase.x,y-g.sceneBase.y);
+    assert(!path.projectileRaycast({x:3168,y:4323,plane:0},{x:3168,y:4326}).clear,"throne blocks projectiles");
+    assert(passiveNpcRaycast(path,{x:3168,y:4323,plane:0},{x:3168,y:4326},4000).clear,"speech crosses the actual throne furniture");
+ }
  const seen=new Set<string>();
  for(const plane of scene.tiles) for(const row of plane) for(const tile of row) {
    if(!tile) continue;
