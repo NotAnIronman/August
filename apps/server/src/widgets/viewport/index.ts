@@ -255,20 +255,16 @@ export function getMainmodalUid(displayMode: DisplayMode): number {
  * mounts notification_display (660) into the toplevel root for OSRS-like notifications.
  */
 export function getViewportTrackerFrontUid(displayMode: DisplayMode): number {
-    // Base container UID in toplevel_osrs_stretch (161).
     const baseUid = BaseComponentUids.VIEWPORT_TRACKER_FRONT;
-
-    if (displayMode === DisplayMode.MOBILE) {
-        // Enum 1745 maps 161:17 -> 601:28 in our cache.
-        const fallbackMobileChildId = 28;
-        if (viewportEnumService) {
-            return viewportEnumService.getMobileComponent(baseUid);
-        }
-        return (getRootInterfaceId(displayMode) << 16) | fallbackMobileChildId;
-    }
-
-    // Project currently uses the resizable toplevel (161) for desktop.
-    return baseUid;
+    const rootId = getRootInterfaceId(displayMode);
+    const mapped = viewportEnumService?.getComponent(baseUid, displayMode);
+    // Missing enum entries return the canonical UID; do not mount overlays
+    // into a hidden layout (which is never drawn by the active gameframe).
+    if (mapped !== undefined && (mapped >>> 16) === rootId) return mapped;
+    const childId = displayMode === DisplayMode.FIXED ? 42
+        : displayMode === DisplayMode.FULLSCREEN ? 15
+        : displayMode === DisplayMode.MOBILE ? 28 : 17;
+    return (rootId << 16) | childId;
 }
 
 /** Returns the cache-defined HUD mount reserved for encounter health bars. */

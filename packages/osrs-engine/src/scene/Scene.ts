@@ -955,10 +955,9 @@ export class Scene {
             for (let tileX = 0; tileX < this.sizeX; tileX++) {
                 for (let tileY = 0; tileY < this.sizeY; tileY++) {
                     const tile = this.tiles[level][tileX][tileY];
-                    if (!tile) {
-                        continue;
-                    }
-                    this.lightTileGeometry(
+                    // A bridge replica can remain on its original plane after
+                    // the primary tile was demoted. It still needs lighting.
+                    if (tile) this.lightTileGeometry(
                         tile,
                         level,
                         tileX,
@@ -984,7 +983,7 @@ export class Scene {
                     }
 
                     // Also light contents of the original base tile linked below a bridge-promoted column
-                    if (level === 0 && tile.linkedBelow) {
+                    if (level === 0 && tile?.linkedBelow) {
                         this.lightTileGeometry(
                             tile.linkedBelow,
                             level,

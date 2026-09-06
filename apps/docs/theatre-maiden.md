@@ -5,6 +5,25 @@ Rebuild the client, restart the server, and hard-refresh after deploying this pa
 Both sides must be updated together: cosmetic NPC phase updates and timed floor graphics
 extend the binary protocol. Do not replace the database or animation editor data.
 
+## Room-entry rendering repair
+
+The first encounter patch mounted the party HUD into 161:17 for every desktop layout.
+On Fixed or Resizable Modern, preloading that inactive root replaced the client's active
+viewport with an unlaid-out 0x0 widget, collapsing the 3D scene while the minimap kept working.
+HUD destinations now follow the actual layout's cache mapping, and inactive widget groups
+cannot replace the active viewport. Switching back to a cached layout explicitly restores
+that layout's viewport reference.
+
+The reported `SceneLocs` errors at 22,17 on level 2 were a separate lighting omission:
+bridge replicas survived on a plane whose primary tile had moved down. Lighting now includes
+replica-only tiles, restoring four Maiden decorations. The cache test now builds complete
+room models, not only terrain/collision, and rejects unknown render entities.
+
+After updating, rebuild the client, restart the server and hard-refresh. Enter Maiden using
+Fixed, Resizable Classic and Resizable Modern, then switch layouts inside the room. Check
+that the scene and HUD remain visible without a reload. Mobile mapping is also covered by
+the automated real-cache test.
+
 ## Implemented behavior
 
 - Native cache interface 28 displays party orbs in saved leader/join order, matching vault

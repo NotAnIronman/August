@@ -14,6 +14,7 @@ import { SailingWorldView } from "@server/game/sailing/SailingWorldView";
 import { PathService } from "@server/pathfinding/PathService";
 import { CardinalAdjacentRouteStrategy } from "@server/pathfinding/engine/RouteStrategy";
 import { MAIDEN_ASSETS, maidenSpawnTiles } from "@server/content/modules/theatre-of-blood/MaidenEncounter";
+import { getSceneLocs } from "@client/engine/rendering/loc/SceneLocs";
 const data = loadCache(loadCacheList(loadCacheInfos()).latest), cache = CacheSystem.fromFiles("dat2", data.files);
 const factory = getCacheLoaderFactory(data.info, cache), widgets = new WidgetManager(cache), scripts = new ClientScriptLoader({ getCacheSystem: () => cache });
 for (const id of [...MAIDEN_ASSETS.forms, 8366, 8367]) {
@@ -52,7 +53,17 @@ assert.equal(vars.getVarcString(334), "Eve");
 const locs = factory.getLocTypeLoader();
 const models = new LocModelLoader(locs, factory.getModelLoader(), factory.getTextureLoader(), factory.getSeqTypeLoader(), factory.getSeqFrameLoader(), factory.getSkeletalSeqLoader());
 const builder = new SceneBuilder(data.info, factory.getMapFileLoader(), factory.getUnderlayTypeLoader(), factory.getOverlayTypeLoader(), locs, models, data.xteas);
-const g = theatreRoomGeometry(0), scene = builder.buildInstanceScene(buildInstanceTemplate([g.copy]), g.sceneBase.x, g.sceneBase.y, 104, 104, false, LocLoadType.NO_MODELS);
+const g = theatreRoomGeometry(0), scene = builder.buildInstanceScene(buildInstanceTemplate([g.copy]), g.sceneBase.x, g.sceneBase.y, 104, 104, false, LocLoadType.MODELS);
+assert(!scene.tiles[2][22][17] && scene.getBridgeReplicaTile(2,22,17), "reported decoration is on a replica-only tile");
+const errors: unknown[][]=[];
+const originalError=console.error;
+let renderLocs: ReturnType<typeof getSceneLocs>;
+try {
+    console.error=(...args:unknown[])=>{errors.push(args);};
+    renderLocs=getSceneLocs(locs,scene,0,3,104,0);
+} finally { console.error=originalError; }
+assert.equal(errors.length,0,"full room must not contain unlit/unknown render entities");
+assert(renderLocs.locs.length>=1658 && renderLocs.locEntities.length>0,"complete static and animated room models are emitted");
 const path = new PathService({ getMapSquare: () => undefined } as any);
 path.registerWorldViewCollision(4000, new SailingWorldView(4000, g.sceneBase.x, g.sceneBase.y, 104, 104, scene.collisionMaps));
 for (const tile of maidenSpawnTiles(5)) {

@@ -1419,7 +1419,7 @@ export class WidgetManager {
 
             // Track special widgets by contentType (like OSRS client does in alignWidgetSize)
             const contentType = typeof node.contentType === "number" ? node.contentType : 0;
-            if (contentType === ContentType.VIEWPORT) {
+            if (contentType === ContentType.VIEWPORT && groupId === this.rootInterface) {
                 clientDebugLog(
                     `[WidgetManager] Found Viewport Widget: ${node.uid} (Group ${groupId})`,
                 );
@@ -1526,6 +1526,11 @@ export class WidgetManager {
     }
 
     private initializeRoot(instance: WidgetGroupInstance): void {
+        // Loading a cached root does not rebuild its index. Select its viewport
+        // explicitly, and never let preloading an inactive layout steal it.
+        this.viewportWidget = [...instance.widgetsByUid.values()].find(
+            node => node.contentType === ContentType.VIEWPORT,
+        ) ?? null;
         const roots = this.getAllGroupRoots(instance.groupId);
         const getStaticChildren = (uid: number) => this.getStaticChildrenByParentUid(uid);
         for (const root of roots) {
