@@ -1,0 +1,106 @@
+Wilderness Bosses
+
+
+
+
+
+
+Slayer Bosses
+    Kalphite Queen
+        Entry object -
+        Exit object -
+        Entrance Location -
+        Inside Location -
+        Boss ID -
+        Boss spawn location -
+        Min X -
+        Max X -
+        Min Y -
+        Max Y -
+
+    Dagannoth Kings
+        Entry object -
+        Exit object -
+        Entrance Location -
+        Inside Location -
+        Boss ID -
+        Boss spawn location -
+        Min X -
+        Max X -
+        Min Y -
+        Max Y -
+
+    Cerberus
+        Entry object -
+        Exit object -
+        Entrance Location -
+        Inside Location -
+        Boss ID -
+        Boss spawn location -
+        Min X -
+        Max X -
+        Min Y -
+        Max Y -
+
+    Abyssal Sire
+        Entry object -
+        Exit object -
+        Entrance Location -
+        Inside Location -
+        Boss ID -
+        Boss spawn location -
+        Min X -
+        Max X -
+        Min Y -
+        Max Y -
+
+    Thermonuclear Smoke Devil
+        Entry object -
+        Exit object -
+        Entrance Location -
+        Inside Location -
+        Boss ID -
+        Boss spawn location -
+        Min X -
+        Max X -
+        Min Y -
+        Max Y -
+
+    Kraken
+        Entry object -
+        Exit object -
+        Entrance Location -
+        Inside Location -
+        Boss ID -
+        Boss spawn location -
+        Min X -
+        Max X -
+        Min Y -
+        Max Y -
+
+    Grotesque Guardians
+        Entry object - 31681
+        Required item (Permanent unlock) - 21724
+        Exit object - 31674
+        Entrance Location - 1697 4567
+        Inside Location - 1696 4567 0
+        Boss 1 ID - 7882
+        Boss 1 spawn location - 1689 4573
+        Boss 2 ID - 7852
+        Boss 2 spawn location - 1701 4573
+        Min X - 1673
+        Max X - 4552
+        Min Y - 1720
+        Max Y - 4597
+
+    Shellbane Griffin
+        Entry object - 58439
+        Exit object -
+        Entrance Location - 3175 2478 0
+        Inside Location - 3168 8874 0
+        Boss ID - 14860
+        Boss spawn location - 3179 8872 0
+        Min X - 3162
+        Max X - 3195
+        Min Y - 8859
+        Max Y - 8891
