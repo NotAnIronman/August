@@ -1,6 +1,6 @@
 # Maiden encounter testing
 
-Maiden now has encounter mechanics; the other five bosses remain preparation targets.
+Maiden and [Bloat](theatre-bloat.md) now have encounter mechanics; the other four bosses remain preparation targets.
 Rebuild the client, restart the server, and hard-refresh after deploying this patch.
 Both sides must be updated together: cosmetic NPC phase updates and timed floor graphics
 extend the binary protocol. Do not replace the database or animation editor data.

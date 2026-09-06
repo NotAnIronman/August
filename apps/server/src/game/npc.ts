@@ -690,6 +690,10 @@ export class NpcState extends Actor {
         return current - next;
     }
 
+    restoreCombatStat(stat: NpcCombatStat): void {
+        this.combat[NPC_COMBAT_STAT_FIELD[stat]] = this.baseCombatLevels[stat];
+    }
+
     private restoreCombatLevels(): void {
         for (const stat of Object.keys(NPC_COMBAT_STAT_FIELD) as NpcCombatStat[]) {
             this.combat[NPC_COMBAT_STAT_FIELD[stat]] = this.baseCombatLevels[stat];

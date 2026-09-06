@@ -32,7 +32,8 @@ function fixture(index: number, preview = false) {
             markStarted:()=>{instance.started=true;return true;},
             theatreRuns:{load:()=>structuredClone(record),save:(r:any)=>{if(failSave)throw new Error("save failed");saves++;record=structuredClone(r);}}},
         npc:{spawnNpc:(config:any)=>{if(failSpawn)return;spawns.push(config);const npc={...config,typeId:config.id,id:nextNpc++,tileX:config.x,tileY:config.y,
-            hp:10,maxHp:10,size:6,getHitpoints(){return this.hp;},getMaxHitpoints(){return this.maxHp;},configureHitpoints(hp:number){this.hp=hp;this.maxHp=hp;},setUnattackable(v:boolean){this.isUnattackable=v;}};npcs.set(npc.id,npc);return npc;},
+            hp:10,maxHp:10,size:config.id===8359?5:6,incomingPlayerDamageMultiplier:1,clearPath(){},setPath(){},
+            getHitpoints(){return this.hp;},getMaxHitpoints(){return this.maxHp;},configureHitpoints(hp:number){this.hp=hp;this.maxHp=hp;},setUnattackable(v:boolean){this.isUnattackable=v;}};npcs.set(npc.id,npc);return npc;},
             removeNpc:(id:number)=>npcs.delete(id),queueNpcSeq(){},disengageCombat(){}},
         combat:{getNpc:(id:number)=>npcs.get(id),registerOnNpcKilled:(fn:any)=>{killListener=fn;return ()=>{killListener=undefined;};}},
         location:{replaceTemporaryLoc:(scope:any,oldId:number,newId:number,tile:any,level:number,options:any)=>({scope,oldId,newId,tile,level,...options}),clearTemporaryLoc:()=>true},
@@ -92,6 +93,11 @@ for(let index=0;index<6;index++) {
         [f.arena.boss.id,f.arena.boss.x,f.arena.boss.y,f.room.entrance.level]);
     assert.equal(f.spawns[0].worldViewId,4000);assert.equal(f.spawns[0].ownerPlayerId,undefined);
     assert.equal(f.spawns[0].respawns,false);assert.equal(f.npcs.values().next().value.suppressDrops,true);
+    if(index===1) {
+        assert.equal(f.spawns[0].isImmovable,false,"Bloat can follow his authored loop");
+        assert.equal(f.npcs.values().next().value.scriptedMovement,true,"ordinary chase/overlap movement cannot hijack Bloat");
+        for(const effect of ["freeze","bind","stun","knockback"])assert.equal(f.spawns[0].immunities[effect],true);
+    }
     const bob=f.player("bob");f.enter(bob);assert.equal(f.spawns.length,1,"a party join must not duplicate the boss");
     if(index===5){
         f.cycle(6);

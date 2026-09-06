@@ -304,8 +304,9 @@ export class PathService {
         from: { x: number; y: number; plane: number },
         to: { x: number; y: number },
         size: number = 1,
+        worldViewId?: number,
     ): boolean {
-        return this.canActorStep(from, to, size);
+        return this.canActorStep(from, to, size, worldViewId);
     }
 
     /**
@@ -831,6 +832,7 @@ export class PathService {
     projectileRaycast(
         from: { x: number; y: number; plane: number },
         to: { x: number; y: number },
+        worldViewId?: number,
     ): { clear: boolean; tiles: number } {
         const x0 = from.x;
         const y0 = from.y;
@@ -860,7 +862,7 @@ export class PathService {
                 err += dx;
                 ny += sy;
             }
-            if (this.projectileTransitionBlocked(x, y, nx, ny, plane)) {
+            if (this.projectileTransitionBlocked(x, y, nx, ny, plane, worldViewId)) {
                 return { clear: false, tiles: traveled };
             }
             x = nx;
@@ -875,6 +877,7 @@ export class PathService {
         bx: number,
         by: number,
         plane: number,
+        worldViewId?: number,
     ): boolean {
         if (ax === bx && ay === by) return false;
         const dx = bx - ax;
@@ -884,12 +887,12 @@ export class PathService {
         }
         if (dx !== 0 && dy !== 0) {
             return (
-                this.projectileStepCardinal(ax, ay, ax + dx, ay, plane) ||
-                this.projectileStepCardinal(ax, ay, ax, ay + dy, plane) ||
-                this.projectileDiagonalBlocked(ax, ay, bx, by, plane)
+                this.projectileStepCardinal(ax, ay, ax + dx, ay, plane, worldViewId) ||
+                this.projectileStepCardinal(ax, ay, ax, ay + dy, plane, worldViewId) ||
+                this.projectileDiagonalBlocked(ax, ay, bx, by, plane, worldViewId)
             );
         }
-        return this.projectileStepCardinal(ax, ay, bx, by, plane);
+        return this.projectileStepCardinal(ax, ay, bx, by, plane, worldViewId);
     }
 
     private projectileStepCardinal(
@@ -898,12 +901,13 @@ export class PathService {
         bx: number,
         by: number,
         plane: number,
+        worldViewId?: number,
     ): boolean {
         const dx = bx - ax;
         const dy = by - ay;
         if (Math.abs(dx) + Math.abs(dy) !== 1) return true;
-        const a = this.getCollisionFlagAt(ax, ay, plane);
-        const b = this.getCollisionFlagAt(bx, by, plane);
+        const a = this.getCollisionFlagAt(ax, ay, plane, worldViewId);
+        const b = this.getCollisionFlagAt(bx, by, plane, worldViewId);
         if (a === undefined || b === undefined) return true;
         const objMask = CollisionFlag.OBJECT_PROJECTILE_BLOCKER;
         if ((a & objMask) !== 0 || (b & objMask) !== 0) return true;
@@ -937,11 +941,12 @@ export class PathService {
         bx: number,
         by: number,
         plane: number,
+        worldViewId?: number,
     ): boolean {
         const dx = bx - ax;
         const dy = by - ay;
-        const a = this.getCollisionFlagAt(ax, ay, plane);
-        const b = this.getCollisionFlagAt(bx, by, plane);
+        const a = this.getCollisionFlagAt(ax, ay, plane, worldViewId);
+        const b = this.getCollisionFlagAt(bx, by, plane, worldViewId);
         if (a === undefined || b === undefined) return true;
         const objMask = CollisionFlag.OBJECT_PROJECTILE_BLOCKER;
         if ((a & objMask) !== 0 || (b & objMask) !== 0) return true;

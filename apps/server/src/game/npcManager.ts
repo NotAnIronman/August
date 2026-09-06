@@ -1190,6 +1190,7 @@ export class NpcManager {
                     { x: currentX, y: currentY, plane: npc.level },
                     step,
                     npc.size,
+                    npc.worldViewId,
                 )
             ) {
                 break;

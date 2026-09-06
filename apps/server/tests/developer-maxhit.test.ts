@@ -37,6 +37,16 @@ const roll=evaluator.evaluate(attack(AttackType.Melee));
 queue.enqueue({attack:roll.attack,source:roll.attack.attacker,target:roll.attack.target,damage:roll.damage,maxHit:roll.maxHit,
     landed:roll.landed,hitsplatType:DeferredHitsplatType.Normal,attackType:AttackType.Melee,revealClock:1,profileId:"maxhit-test"});
 assert.equal(queue.processTick(1,{hitsplats:[]} as any)[0].amount,1,"boss reduction/cap survives maxhit");
+npc.incomingPlayerDamageCap=undefined;
+let parts=0;npc.onPlayerHit=()=>parts++;
+for(const [clock,multiplier,expected] of [[2,0.5,10],[3,1,21]]) {
+    npc.incomingPlayerDamageMultiplier=multiplier;
+    queue.enqueue({attack:roll.attack,source:roll.attack.attacker,target:roll.attack.target,damage:21,maxHit:21,
+        landed:true,hitsplatType:DeferredHitsplatType.Normal,attackType:AttackType.Melee,revealClock:clock,profileId:"bloat-window-test"});
+    assert.equal(queue.processTick(clock,{hitsplats:[]} as any)[0].amount,expected,"Bloat's active reduction floors odd hits; down window restores full damage");
+}
+assert.equal(parts,2,"each applied hitsplat reaches Bloat's speed/down-attack hook");
+npc.onPlayerHit=undefined;
 setDeveloperMaxHitEnabled(player,false);
 assert(!isDeveloperMaxHitEnabled(player));
 assert.equal(evaluator.evaluate(attack(AttackType.Melee)).landed,false,"normal misses return after disabling");

@@ -10,6 +10,7 @@ import { THEATRE_ROOMS, theatreRoomGeometry } from "./rooms";
 import { TheatreVaultController } from "./TheatreVaultController";
 import { MaidenEncounter,MAIDEN_ASSETS,raidAccount } from "./MaidenEncounter";
 import { TheatreHud } from "./TheatreHud";
+import { BloatEncounter } from "./BloatEncounter";
 import { openBossHealthBar, closeBossHealthBar } from "@server/game/encounters/BossHealthBar";
 import { THEATRE_ARENAS, THEATRE_BARRIER_ID, VERZIK_WALK_DESTINATION, arenaGateDestination,
     VERZIK_COMBAT_ID, THEATRE_SKELETON_ID, THEATRE_SKELETON_TILE, DAWNBRINGER_ID } from "./arenas";
@@ -20,6 +21,7 @@ interface ArenaState {
     boss: NpcState;
     phase: "waiting" | "started" | "complete";
     maiden?: MaidenEncounter;
+    bloat?: BloatEncounter;
 }
 
 /** Private-room presentation and entry. Boss combat plugs in after this stage. */
@@ -74,11 +76,12 @@ export class TheatreArenaController {
         const boss = this.services.npc.spawnNpc({
             ...spawn, id:typeId, level:context.room.entrance.level, worldViewId:context.instance.worldViewId,
             // Visibility/cleanup belongs to the instance, not its first entrant.
-            isAggressive:false,isUnattackable:true,isImmovable:true,wanderRadius:0,respawns:false,
-            immunities:{poison:true,venom:true},
+            isAggressive:false,isUnattackable:true,isImmovable:context.room.id!=="bloat",wanderRadius:0,respawns:false,
+            immunities:{poison:true,venom:true,...(context.room.id==="bloat"?{freeze:true,bind:true,stun:true,knockback:true}: {})},
         });
         if (!boss) return;
         boss.suppressDrops = true;
+        if(context.room.id==="bloat")boss.scriptedMovement=true;
         if(typeId===THEATRE_ARENAS.verzik.boss.id)boss.passiveInteractionRange=3;
         let attached: boolean;
         try {
@@ -124,6 +127,7 @@ export class TheatreArenaController {
     private start(player: PlayerState, state: ArenaState): void {
         if (!this.live(player,state)) return;
         state.maiden?.admit(player);
+        state.bloat?.admit(player);
         if (state.phase !== "waiting") return;
         const room = THEATRE_ROOMS[state.index];
         // Use the cache's attackable throne form, keeping the conversation form
@@ -162,7 +166,17 @@ export class TheatreArenaController {
             });
             state.maiden.admit(player);
         }
-        this.services.messaging.sendGameMessage(player,room.id==="maiden"?"The Maiden awakens!":`${room.name} encounter started. Combat targets are ready; boss mechanics are not installed yet.`);
+        if(room.id==="bloat") {
+            const store=this.services.instances.theatreRuns;
+            const roster=store&&new TheatreRuns(this.services.instances,store).current(player)?.roster;
+            state.bloat=new BloatEncounter(state.boss,state.instance.id,roster??[raidAccount(player)],this.services,()=>{
+                state.bloat=undefined;state.phase="waiting";
+                state.boss.resetToSpawn();state.boss.setUnattackable(true);
+                this.services.npc.disengageCombat(state.boss);
+            });
+            state.bloat.admit(player);
+        }
+        this.services.messaging.sendGameMessage(player,room.id==="maiden"?"The Maiden awakens!":room.id==="bloat"?"The Pestilent Bloat begins moving!":`${room.name} encounter started. Combat targets are ready; boss mechanics are not installed yet.`);
     }
 
     private walk(player: PlayerState, state: ArenaState, destination: {x:number;y:number}, onArrival?:()=>void): void {
@@ -298,6 +312,7 @@ export class TheatreArenaController {
             npc.worldViewId!==context.instance.worldViewId)return;
         this.pendingCompletions.add(context.instance.id);
         state.maiden?.dispose();state.maiden=undefined;
+        state.bloat?.dispose();state.bloat=undefined;
         if(context.instance.definitionId?.startsWith("theatre-of-blood:")) {
             const store=this.services.instances.theatreRuns;
             if(!store)return;
@@ -341,8 +356,8 @@ export class TheatreArenaController {
     prune(): void {
         for (const [id,state] of this.states) {
             const live = this.services.instances.getById(id);
-            if (!live || live.worldViewId !== state.instance.worldViewId) {state.maiden?.dispose();this.states.delete(id);this.pendingCompletions.delete(id);}
-            else state.maiden?.tick(this.services.system.getCurrentTick());
+            if (!live || live.worldViewId !== state.instance.worldViewId) {state.maiden?.dispose();state.bloat?.dispose();this.states.delete(id);this.pendingCompletions.delete(id);}
+            else {state.maiden?.tick(this.services.system.getCurrentTick());state.bloat?.tick(this.services.system.getCurrentTick());}
         }
         this.hud.tick();
         this.syncBossBars();
@@ -354,7 +369,7 @@ export class TheatreArenaController {
             try{this.killed(member,state.boss);}catch(error){this.services.system.logger?.warn("Theatre completion save retry failed",error);}
         }
     }
-    dispose():void {for(const state of this.states.values())state.maiden?.dispose();this.states.clear();this.hud.dispose();this.syncBossBars();}
+    dispose():void {for(const state of this.states.values()){state.maiden?.dispose();state.bloat?.dispose();}this.states.clear();this.hud.dispose();this.syncBossBars();}
 }
 
 export function registerTheatreArenas(registry: IScriptRegistry, services: ScriptServices): TheatreArenaController {
