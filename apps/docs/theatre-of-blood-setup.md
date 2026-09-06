@@ -1,7 +1,8 @@
 # Theatre of Blood setup
 
 The base room instances, party progression, disconnect recovery and progress-loss confirmations
-are implemented. Encounters, boss spawns, mechanics and final loot are deliberately not installed
+are implemented, along with instance-scoped boss placement and arena entry. Bosses are currently
+stationary, non-combat presentation NPCs; attacks, add waves and final loot are not installed
 yet. Ordinary exit clicks cannot complete an unfinished room.
 
 ## Entrance and rooms
@@ -33,6 +34,31 @@ Developer accounts have **Preview rooms (development)** in the entrance menu. Th
 picker has two pages of three rooms. Preview instances award no progress or rewards; the room
 exit returns outside. Normal accounts do not receive this menu.
 
+## Boss placement and arena entry
+
+| Room | Initial NPC ID | Spawn X / Y / plane |
+| --- | --- | --- |
+| Maiden | 8360 | 3165 / 4446 / 0 |
+| Bloat | 8359 | 3301 / 4447 / 0 |
+| Nylo | 8354 | 3296 / 4249 / 0 |
+| Sotetseg | 8387 | 3279 / 4327 / 0 |
+| Xarpus | 8338 | 3169 / 4385 / 1 |
+| Verzik | 14795 (Talk-to form) | 3168 / 4321 / 0 |
+
+Each room spawns one shared boss when its first member arrives. NPC visibility and cleanup
+belong to the instance, not the first entrant, so reconnects and party joins do not duplicate it.
+Option 1 **Pass** on barrier **32755** force-walks across to one tile beyond the barrier, then
+starts that room once. Repeated clicks cannot queue overlapping crossings. Entry does not award
+completion or rewards. Uncleared normal arenas cannot be exited through the barriers; development
+previews permit reverse/exit crossings for inspection.
+
+Verzik has no 32755 barrier. Arrivals and reconnects at **3168,4297,0** force-walk six tiles north
+to **3168,4303,0**. This does **not** start the encounter: **Talk-to Verzik** starts it.
+
+`arenas.ts` also records Maiden add markers at X 3175/3179/3183/3187, left Y4435 and right
+Y4457, plus Nylo left 3311,4249, middle 3295,4233 and right 3280,4249. These are markers only;
+the mechanics phase will select the add forms and spawn timing.
+
 ## Checkpoints and parties
 
 - Each player stores a versioned checkpoint; a shared SQLite `theatre_runs` record holds the
@@ -56,8 +82,8 @@ exit returns outside. Normal accounts do not receive this menu.
 - Death invalidates the checkpoint. Voluntary logout/exit is not a disconnect continuation.
   A cleared checkpoint cannot rejoin its former run through the ordinary party-join menu.
 
-Future encounters should obtain `theatreRuns(services)` from the module, call
-`startRoom(instanceId, roomId)` when the encounter begins, and call
+Arena entry already calls `startRoom(instanceId, roomId)` through the instance-scoped controller.
+Future combat should extend that lifecycle, obtain `theatreRuns(services)` from the module, and call
 `completeRoom(instanceId, roomId)` only on authoritative completion. Completion is ordered and
 idempotent. An unlocked exit transfers connected members together to the next room. Only after
 all six rooms are complete can the final exit finish the run. The final reward implementation
@@ -92,9 +118,9 @@ browser storage is unavailable. It replaces the old Client graphics debug checkb
 
 ## Host smoke test
 
-Sync all changed **and new** files, **rebuild the client**, restart the game server, then
-hard-refresh each browser. The equipment/instance-rendering follow-up changes both server
-and client runtime code; a server restart alone will not deploy the rendering fix. No cache
+For this boss-placement/entry batch, sync all changed **and new** files and **restart the game
+server**. No client rebuild is required if the previous rendering fixes are already deployed.
+If catching up from before those fixes, rebuild the client and hard-refresh the browser too. No cache
 rebuild or account-storage clearing is needed. The Theatre table is created automatically in
 the existing database.
 
@@ -121,10 +147,18 @@ the existing database.
 8. On HTTP, the storage/cache warning should show once per browser tab session. Dismiss it,
    reload, and confirm it stays hidden. A new session can show it again. If the browser blocks
    session storage completely, suppression is limited to the current page lifetime.
+9. Preview every room and verify one boss at each listed tile. Pass each entrance barrier from
+   outside: the player should walk through and see one encounter-start message. Double-click
+   and repeat with another party member; verify no duplicate boss or overlapping movement.
+10. Enter Verzik and verify the walk ends at 3168,4303 without starting. Walk to Verzik and
+    Talk-to to start. Repeat after disconnect/rejoin. Her current form is for conversation,
+    not combat. No room should award kills, completion or loot in this placement phase.
 
 Automated coverage includes every padded tile, the real instance lifecycle, party room transfer,
 disconnect/reconnect with new player IDs, full-party reconstruction, ordered completion, durable
 SQLite records, confirmation replay/failure handling, guarded service entry points, real
 socket-close ordering, native cache menu slots, wire-encoded equipment operations and all six
-rooms' render bounds, player selection, camera heights and bridge flags. Live terrain,
+rooms' render bounds, player selection, camera heights and bridge flags. Arena tests verify
+actual cache boss models/actions and barrier spans/planes, zone-driven spawning, party reuse,
+crossing cancellation, stale callbacks, developer isolation and Verzik's manual start. Live terrain,
 collision and visual transitions still need the host smoke test; boss combat awaits encounter work.

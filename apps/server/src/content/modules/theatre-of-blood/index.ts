@@ -1,6 +1,7 @@
 import type { PlayerState } from "@server/game/player";
 import type { IScriptRegistry, ScriptServices, LocInteractionHandler } from "@server/game/scripts/types";
 import { TheatreRuns } from "./TheatreRun";
+import { registerTheatreArenas } from "./TheatreArenaController";
 import { THEATRE_ENTRANCE_ID, THEATRE_OUTSIDE, THEATRE_ROOMS, theatreRoomGeometry } from "./rooms";
 
 /** Shared facade for future encounter modules. No client action can complete a room. */
@@ -21,7 +22,7 @@ function preview(player: PlayerState, services: ScriptServices, index: number): 
     services.instances.create(player, {definitionId:`theatre-preview:${index}`,access:"solo",
         sceneBase:g.sceneBase,templateChunks:services.instances.buildTemplate([g.copy]),
         destination:g.room.entrance,exit:THEATRE_OUTSIDE});
-    message(player,services,`${g.room.name} development preview: no encounter, checkpoint or rewards.`);
+    message(player,services,`${g.room.name} development preview: boss placement and arena entry only; no checkpoint or rewards.`);
 }
 function entry(player: PlayerState, services: ScriptServices): void {
     if (!outside(player,services)) return;
@@ -44,7 +45,7 @@ function entry(player: PlayerState, services: ScriptServices): void {
             if (!outside(player,services) || player.raidProgress.checkpoint) return;
             if (choice === 0 || choice === 1) {
                 if (!runs.create(player,choice === 0 ? "solo" : "party")) message(player,services,"The Theatre could not be opened.");
-                else message(player,services,"Theatre foundation: encounters are not installed yet. Room exits unlock only after an encounter is completed.");
+                else message(player,services,"Pass the arena barrier to begin. Boss placement and entry are available; combat mechanics are not installed yet.");
             } else if (choice === 2) {
                 const rooms = services.instances.listJoinable().filter(room=>{
                     if (!room.definitionId?.startsWith("theatre-of-blood:")) return false;
@@ -73,6 +74,7 @@ function previewMenu(player: PlayerState, services: ScriptServices, page: number
         }});
 }
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
+    registerTheatreArenas(registry,_services);
     const registerObject = (id: number, handler: LocInteractionHandler): void => {
         registry.registerLocInteraction(id,handler);
         // The registry's default key is not a wildcard for named cache options.
