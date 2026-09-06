@@ -30,6 +30,7 @@ export const PLAYER_MASKS = {
  * Order matches the client parsing order.
  */
 export const NPC_MASKS = {
+    TYPE: 0x2,
     FACE_ENTITY: 0x8,
     SEQUENCE: 0x10,
     HIT: 0x20,

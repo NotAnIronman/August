@@ -201,8 +201,14 @@ export class GfxManager {
     spawnAtTile(
         spotId: number,
         tile: { x: number; y: number; level?: number },
-        opts?: { heightTiles?: number; startCycle?: number },
+        opts?: { heightTiles?: number; startCycle?: number; durationCycles?: number },
     ): number {
+        if(opts?.durationCycles!==undefined) {
+            // Timed floor effects replace by tile/graphic, including explicit removal.
+            for(const [key,inst] of this.instances)if(inst.spotId===spotId&&inst.world?.tileX===tile.x&&
+                inst.world.tileY===tile.y&&inst.world.level===(tile.level??0))this.instances.delete(key);
+            if(opts.durationCycles<=0)return -1;
+        }
         const id = this.nextId++;
         let durationMs: number | undefined = undefined;
         try {
@@ -216,6 +222,7 @@ export class GfxManager {
             }
         } catch {}
 
+        if(opts?.durationCycles!==undefined)durationMs=opts.durationCycles*20;
         this.instances.set(id, {
             id,
             spotId: spotId | 0,

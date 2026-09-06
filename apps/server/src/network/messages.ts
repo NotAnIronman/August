@@ -497,6 +497,7 @@ export type ServerToClient =
           type: "spot";
           payload: {
               spotId: number;
+              durationCycles?: number;
               playerId?: number;
               npcId?: number;
               tile?: { x: number; y: number; level?: number };
@@ -947,6 +948,7 @@ function encodeMessageToBinaryDirect(msg: ServerToClient): Uint8Array {
                 payload.height,
                 payload.delay,
                 payload.tile,
+                payload.durationCycles,
             );
 
         case "chat":

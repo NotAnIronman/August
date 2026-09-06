@@ -1242,6 +1242,7 @@ export class WebGLOsrsRenderer extends GameRenderer<WebGLMapSquare> {
 
     registerWorldSpotAnimation(event: {
         spotId: number;
+        durationCycles?: number;
         tile: { x: number; y: number; level?: number };
         height?: number;
         startCycle: number;

@@ -14,6 +14,7 @@ import type { MapCollisionService } from "@server/world/MapCollisionService";
 import { NpcPacketEncoder, type NpcTickFrameData } from "@server/network/encoding/NpcPacketEncoder";
 import { NpcSyncSession } from "@server/network/NpcSyncSession";
 import { NpcSyncManager } from "@server/network/managers/NpcSyncManager";
+import { NpcUpdateDecoder } from "@client/engine/game/sync/NpcUpdateDecoder";
 
 const TEST_GAMEMODE = createTestGamemode("scoped-npc-test", "Scoped NPC test");
 
@@ -95,6 +96,18 @@ assert.deepEqual(otherSession.npcIndices, [sharedInstanceNpc.id, otherOwnerNpc.i
 const topLevelSession = new NpcSyncSession();
 packetEncoder.buildNpcSyncPacket(topLevelPlayer, frame, topLevelSession);
 assert.deepEqual(topLevelSession.npcIndices, [topLevelNpc.id]);
+{
+    const session=new NpcSyncSession(),decoder=new NpcUpdateDecoder();
+    const decode=()=>{const result=packetEncoder.buildNpcSyncPacket(owner,frame,session)!;
+        return decoder.decode(result.packet,{large:result.large,loopCycle:1,clientCycle:30,localTileX:3200,localTileY:3200,level:0});};
+    decode();const hp=sharedInstanceNpc.getHitpoints();
+    sharedInstanceNpc.presentationTypeId=8361;
+    const changed=decode();assert.equal(changed.updateBlocks.get(sharedInstanceNpc.id)?.presentationTypeId,8361);
+    assert.equal(changed.spawns.length,0);assert.equal(changed.removals.length,0,"cosmetic phases never remove the active combat target");
+    assert.equal(sharedInstanceNpc.typeId,32000);assert.equal(sharedInstanceNpc.getHitpoints(),hp);
+    assert.equal(decode().updateBlocks.get(sharedInstanceNpc.id)?.presentationTypeId,undefined,"phase mask is sent once per observer");
+    sharedInstanceNpc.presentationTypeId=undefined;assert.equal(decode().updateBlocks.get(sharedInstanceNpc.id)?.presentationTypeId,32000);
+}
 
 const npcType = {
     id: 32000,

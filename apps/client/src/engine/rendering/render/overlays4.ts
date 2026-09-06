@@ -153,6 +153,7 @@ export function registerNpcSpotAnimation(host: WebGLOsrsRendererHost, event: {
 
 export function registerWorldSpotAnimation(host: WebGLOsrsRendererHost, event: {
         spotId: number;
+        durationCycles?: number;
         tile: { x: number; y: number; level?: number };
         height?: number;
         startCycle: number;
@@ -171,6 +172,7 @@ export function registerWorldSpotAnimation(host: WebGLOsrsRendererHost, event: {
                 {
                     heightTiles,
                     startCycle: event.startCycle | 0,
+                    durationCycles: event.durationCycles,
                 },
             );
         } catch (err) {

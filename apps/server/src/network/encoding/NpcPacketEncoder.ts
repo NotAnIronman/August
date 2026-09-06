@@ -178,6 +178,13 @@ export class NpcPacketEncoder {
             if (existing) return existing;
 
             const info: NpcUpdateInfo = { mask: 0 };
+            const presentationTypeId = npc.presentationTypeId ?? npc.typeId;
+            const previousPresentationType = session.lastPresentationType.get(id);
+            if (previousPresentationType !== undefined && previousPresentationType !== presentationTypeId) {
+                info.mask |= NPC_MASKS.TYPE;
+                info.presentationTypeId = presentationTypeId;
+            }
+            session.lastPresentationType.set(id, presentationTypeId);
 
             // FACE_ENTITY (0x8)
             let targetIndex = NO_TARGET_INDEX;
@@ -467,7 +474,7 @@ export class NpcPacketEncoder {
 
             const rotIdx = ROTATION_TO_INDEX.get(npc.rot & 2047) ?? 0;
             writer.writeBits(3, rotIdx & 7);
-            writer.writeBits(14, npc.typeId & 0x3fff);
+            writer.writeBits(14, (npc.presentationTypeId ?? npc.typeId) & 0x3fff);
 
             if (needsUpdate) {
                 pendingUpdateOrder.push(npcId);
@@ -483,6 +490,9 @@ export class NpcPacketEncoder {
 
         // Update session
         session.npcIndices = nextIndices.slice(0, MAX_LOCAL_NPCS);
+        for (const id of session.lastPresentationType.keys()) {
+            if (!nextSet.has(id)) session.lastPresentationType.delete(id);
+        }
         for (const id of Array.from(session.lastTargetIndex.keys())) {
             if (!nextSet.has(id)) {
                 session.lastTargetIndex.delete(id);
@@ -642,6 +652,10 @@ export class NpcPacketEncoder {
             writer.writeByte(firstByte);
             if (hasSecond) writer.writeByte((encodedMask >> 8) & 0xff);
             if (hasThird) writer.writeByte((encodedMask >> 16) & 0xff);
+            if (rawMask & NPC_MASKS.TYPE) {
+                writer.writeByte((info.presentationTypeId! >>> 8) & 255);
+                writer.writeByte(info.presentationTypeId! & 255);
+            }
 
             // FACE_ENTITY (0x8)
             if (rawMask & NPC_MASKS.FACE_ENTITY) {

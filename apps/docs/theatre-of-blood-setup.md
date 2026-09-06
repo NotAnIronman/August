@@ -219,6 +219,9 @@ collision and visual transitions still need the host smoke test; boss combat awa
 
 ## Reward vault
 
+Maiden's encounter is now implemented; see [Maiden mechanics and host testing](theatre-maiden.md).
+The remaining bosses still use the preparation behavior described above.
+
 Verzik's confirmed death creates **Stairs (32995)** at **3168,4325,0**, matching her spawn. Talk-to, Quick-start and the unlocked stairs can be approached
 from the walkable tile **3168,4322,0**; the throne blocks closer floor tiles. Climb to a separate,
 party-shared vault at **3237,4307,0**. All four source planes are copied, with scene origin

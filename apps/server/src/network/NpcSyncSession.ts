@@ -8,4 +8,5 @@ export class NpcSyncSession {
 
     /** Last encoded targetIndex (FACE_ENTITY) per NPC, 24-bit or 0xffffff sentinel. */
     lastTargetIndex: Map<number, number> = new Map();
+    lastPresentationType: Map<number, number> = new Map();
 }

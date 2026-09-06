@@ -560,6 +560,7 @@ export interface EquipmentFacade {
     performItemAction?(player: PlayerState, slot: number, itemId: number, option: string): boolean;
     getEquippedItem(player: PlayerState, slot: number): number;
     getEquipArray(player: PlayerState): number[];
+    computeEquipmentStatBonuses?(player: PlayerState): number[];
     unequipItem(player: PlayerState, slot: number): boolean;
     computeTargetBonusPercentages?(player: PlayerState): {
         undeadPercent: number;
@@ -579,6 +580,8 @@ export interface AnimationFacade {
     ): void;
     playLocGraphic(opts: {
         spotId: number;
+        worldViewId?: number;
+        durationTicks?: number;
         tile: { x: number; y: number };
         level?: number;
         height?: number;

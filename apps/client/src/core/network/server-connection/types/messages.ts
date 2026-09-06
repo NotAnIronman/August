@@ -290,6 +290,7 @@ export type HitsplatServerPayload = {
 
 export type SpotAnimationPayload = {
     spotId: number;
+    durationCycles?: number;
     playerId?: number;
     npcId?: number;
     tile?: { x: number; y: number; level?: number };

@@ -7,7 +7,7 @@ import type { BroadcastContext, BroadcastDomain } from "@server/network/broadcas
 const TILE_SPOT_BROADCAST_RADIUS_TILES = 17;
 
 export interface CombatBroadcasterServices {
-    forEachPlayer(fn: (sock: WebSocket, player: { id: number }) => void): void;
+    forEachPlayer(fn: (sock: WebSocket, player: { id: number; worldViewId?: number; tileX?: number; tileY?: number; level?: number }) => void): void;
     withDirectSendBypass<T>(context: string, fn: () => T): T;
     enableBinaryNpcSync?: boolean;
 }
@@ -37,6 +37,7 @@ export class CombatBroadcaster implements BroadcastDomain {
             }
             const payload: {
                 spotId: number;
+                durationCycles?: number;
                 playerId?: number;
                 npcId?: number;
                 height?: number;
@@ -45,6 +46,7 @@ export class CombatBroadcaster implements BroadcastDomain {
             } = {
                 spotId: event.spotId,
             };
+            if(event.durationTicks!==undefined)payload.durationCycles=Math.max(0,Math.min(65535,Math.round(event.durationTicks*ctx.cyclesPerTick)));
             if (event.delay !== undefined && Number.isFinite(event.delay)) {
                 const delayServerTicks = Math.max(0, event.delay);
                 payload.delay = Math.min(
@@ -71,6 +73,15 @@ export class CombatBroadcaster implements BroadcastDomain {
             const msg = encodeMessage({ type: "spot", payload });
             this.services.withDirectSendBypass("combat_spot", () => {
                 if (payload.tile) {
+                    if (event.worldViewId !== undefined) {
+                        const tile = payload.tile;
+                        this.services.forEachPlayer((sock, player) => {
+                            if (player.worldViewId === event.worldViewId && player.level === (tile.level ?? 0) &&
+                                Math.max(Math.abs(player.tileX! - tile.x), Math.abs(player.tileY! - tile.y)) <= TILE_SPOT_BROADCAST_RADIUS_TILES)
+                                ctx.sendWithGuard(sock, msg, "combat_spot");
+                        });
+                        return;
+                    }
                     ctx.broadcastToNearby(
                         payload.tile.x,
                         payload.tile.y,

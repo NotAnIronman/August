@@ -1048,7 +1048,9 @@ export class NpcManager {
                 const combatTargetId = npc.getCombatTargetPlayerId();
                 const effectMovementFrozen = interceptFrozenCombatMovement(npc, currentTick);
                 const movementFrozen = spawnAnimationLocked || effectMovementFrozen || npc.isImmovable;
-                if (!movementFrozen && !shouldRecoverToSpawn && this.queueOverlapEscape(npc, getNearbyPlayers)) {
+                if (npc.scriptedMovement) {
+                    // Encounter paths still pass through collision and freeze processing below.
+                } else if (!movementFrozen && !shouldRecoverToSpawn && this.queueOverlapEscape(npc, getNearbyPlayers)) {
                     // A player can briefly stack on an NPC because their paths
                     // are synchronized independently. Every NPC footprint
                     // recovers one step per tick instead of becoming safespotted.

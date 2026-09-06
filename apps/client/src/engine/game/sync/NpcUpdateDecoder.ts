@@ -27,6 +27,7 @@ export type NpcMovement = {
 };
 
 export type NpcUpdateBlock = {
+    presentationTypeId?: number;
     faceEntity?: number;
     hitsplats?: HitsplatUpdate[];
     healthBars?: HealthBarUpdate[];
@@ -229,6 +230,7 @@ export class NpcUpdateDecoder {
             }
 
             const block: NpcUpdateBlock = {};
+            if ((mask & 0x2) !== 0) block.presentationTypeId = (stream.readUnsignedByte()<<8)|stream.readUnsignedByte();
 
             // FACE_ENTITY (0x8)
             if ((mask & 0x8) !== 0) {

@@ -179,6 +179,7 @@ export interface PlayerUpdateInfo {
  */
 export interface NpcUpdateInfo {
     mask: number;
+    presentationTypeId?: number;
     targetIndex?: number;
     seq?: { id: number; delay: number };
     spotAnims?: SpotAnimBlock[];

@@ -571,7 +571,8 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                     return -1;
                 }
             },
-            getEquipArray: (player) => deps.equipmentService.ensureEquipArray(player),
+              getEquipArray: (player) => deps.equipmentService.ensureEquipArray(player),
+              computeEquipmentStatBonuses: (player) => deps.equipmentService.computeEquipmentStatBonuses(player),
             unequipItem: (player, slot) => {
                 try {
                     const slotIndex = Math.max(0, Math.min(13, slot));

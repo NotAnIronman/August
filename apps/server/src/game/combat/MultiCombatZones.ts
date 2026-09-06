@@ -32,6 +32,7 @@ const MULTI_COMBAT_CHUNKS = new Map<number, Set<number>>();
 
 // Major multi-combat zones (rectangles for key areas)
 const MULTI_COMBAT_ZONES: CombatZone[] = [
+    {minX:3155,maxX:3225,minY:4422,maxY:4463,plane:0,isMultiCombat:true,name:"Theatre of Blood: Maiden"},
     // Wilderness multi-combat areas
     {
         minX: 3136,

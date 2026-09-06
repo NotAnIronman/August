@@ -910,7 +910,7 @@ function decodeServerPacketUnchecked(
                 playerId = reader.readShort();
             } else if (targetType === 1) {
                 npcId = reader.readShort();
-            } else if (targetType === 2) {
+            } else if (targetType === 2 || targetType === 3) {
                 tile = {
                     x: reader.readShort(),
                     y: reader.readShort(),
@@ -919,9 +919,10 @@ function decodeServerPacketUnchecked(
             }
             const height = reader.readByte();
             const delay = reader.readShort();
+            const durationCycles=targetType===3?reader.readShort():undefined;
             return {
                 type: "spot",
-                payload: { spotId, playerId, npcId, tile, height, delay },
+                payload: { spotId, playerId, npcId, tile, height, delay, durationCycles },
             };
         }
 

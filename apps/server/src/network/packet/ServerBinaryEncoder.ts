@@ -511,10 +511,11 @@ export class ServerBinaryEncoder {
         height?: number,
         delay?: number,
         tile?: { x: number; y: number; level?: number },
+        durationCycles?: number,
     ): Uint8Array {
         this.buffer.reset();
         this.buffer.writeShort(spotId);
-        this.buffer.writeByte(playerId !== undefined ? 0 : npcId !== undefined ? 1 : 2);
+        this.buffer.writeByte(playerId !== undefined ? 0 : npcId !== undefined ? 1 : durationCycles!==undefined ? 3 : 2);
         if (playerId !== undefined) {
             this.buffer.writeShort(playerId);
         } else if (npcId !== undefined) {
@@ -526,6 +527,7 @@ export class ServerBinaryEncoder {
         }
         this.buffer.writeByte(height ?? 0);
         this.buffer.writeShort(delay ?? 0);
+        if(playerId===undefined&&npcId===undefined&&tile&&durationCycles!==undefined)this.buffer.writeShort(durationCycles);
         return this.buffer.toPacket(ServerMessageId.SPOT_ANIM);
     }
 

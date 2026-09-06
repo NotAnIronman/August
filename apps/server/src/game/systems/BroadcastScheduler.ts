@@ -138,6 +138,8 @@ export interface ForcedMovementBroadcast {
  */
 export interface PendingSpotAnimation {
     tick: number;
+    worldViewId?: number;
+    durationTicks?: number;
     playerId?: number;
     npcId?: number;
     slot?: number;

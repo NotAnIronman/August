@@ -270,6 +270,7 @@ export class ProjectileSystem {
                 : this.pendingProjectilePackets;
 
         this.svc.players?.forEach((_sock, p) => {
+            if (launch.worldViewId !== undefined && p.worldViewId !== launch.worldViewId) return;
             if (p.level !== launch.source.plane && p.level !== launch.target.plane) {
                 return;
             }

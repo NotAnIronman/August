@@ -16,6 +16,8 @@ export interface ProjectileEndpoint {
 }
 
 export interface ProjectileLaunch {
+    /** Server-side audience scope; deliberately not encoded as a client endpoint. */
+    worldViewId?: number;
     projectileId: number;
     source: ProjectileEndpoint;
     target: ProjectileEndpoint;

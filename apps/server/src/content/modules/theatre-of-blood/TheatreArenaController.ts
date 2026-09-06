@@ -8,6 +8,8 @@ import { TheatreRuns } from "./TheatreRun";
 import { THEATRE_COMBAT_STATS, theatreHitpoints } from "@server/data/theatreCombatStats";
 import { THEATRE_ROOMS, theatreRoomGeometry } from "./rooms";
 import { TheatreVaultController } from "./TheatreVaultController";
+import { MaidenEncounter,MAIDEN_ASSETS,raidAccount } from "./MaidenEncounter";
+import { TheatreHud } from "./TheatreHud";
 import { THEATRE_ARENAS, THEATRE_BARRIER_ID, VERZIK_WALK_DESTINATION, arenaGateDestination,
     VERZIK_COMBAT_ID, THEATRE_SKELETON_ID, THEATRE_SKELETON_TILE, DAWNBRINGER_ID } from "./arenas";
 
@@ -16,6 +18,7 @@ interface ArenaState {
     index: number;
     boss: NpcState;
     phase: "waiting" | "started" | "complete";
+    maiden?: MaidenEncounter;
 }
 
 /** Private-room presentation and entry. Boss combat plugs in after this stage. */
@@ -25,7 +28,9 @@ export class TheatreArenaController {
     private readonly conversations = new WeakMap<PlayerState,object>();
     private readonly pendingCompletions=new Set<string>();
     readonly vault:TheatreVaultController;
+    readonly hud:TheatreHud;
     constructor(private readonly services: ScriptServices) {
+        this.hud=new TheatreHud(services);
         this.vault=new TheatreVaultController(services,p=>{
             const context=this.context(p),state=context && this.states.get(context.instance.id);
             return !!context?.instance.definitionId?.startsWith("theatre-preview:") && context.index===5 && state?.phase==="complete";
@@ -115,7 +120,9 @@ export class TheatreArenaController {
     }
 
     private start(player: PlayerState, state: ArenaState): void {
-        if (!this.live(player,state) || state.phase !== "waiting") return;
+        if (!this.live(player,state)) return;
+        state.maiden?.admit(player);
+        if (state.phase !== "waiting") return;
         const room = THEATRE_ROOMS[state.index];
         // Use the cache's attackable throne form, keeping the conversation form
         // intact if spawning or the durable start fails.
@@ -143,7 +150,17 @@ export class TheatreArenaController {
         this.scaleBoss(player,state.boss);
         state.boss.setUnattackable(false);
         state.phase = "started";
-        this.services.messaging.sendGameMessage(player,`${room.name} encounter started. Combat targets are ready; boss mechanics are not installed yet.`);
+        if(room.id==="maiden") {
+            const store=this.services.instances.theatreRuns;
+            const roster=store&&new TheatreRuns(this.services.instances,store).current(player)?.roster;
+            state.maiden=new MaidenEncounter(state.boss,state.instance.id,roster??[raidAccount(player)],this.services,()=>{
+                state.maiden=undefined;state.phase="waiting";
+                state.boss.configureHitpoints(state.boss.getMaxHitpoints());state.boss.presentationTypeId=undefined;
+                state.boss.setUnattackable(true);this.services.npc.disengageCombat(state.boss);
+            });
+            state.maiden.admit(player);
+        }
+        this.services.messaging.sendGameMessage(player,room.id==="maiden"?"The Maiden awakens!":`${room.name} encounter started. Combat targets are ready; boss mechanics are not installed yet.`);
     }
 
     private walk(player: PlayerState, state: ArenaState, destination: {x:number;y:number}, onArrival?:()=>void): void {
@@ -174,6 +191,7 @@ export class TheatreArenaController {
 
     enter(player: PlayerState, expectedIndex: number): void {
         if (this.context(player)?.index !== expectedIndex) return;
+        this.hud.watch(player);
         const state = this.ensure(player);
         if (!state) return;
         const room = THEATRE_ROOMS[state.index];
@@ -266,7 +284,7 @@ export class TheatreArenaController {
     }
 
     owns(npc: NpcState): boolean {
-        return [...this.states.values()].some(state=>state.boss===npc &&
+        return [...this.states.values()].some(state=>(state.boss===npc||state.maiden?.owns(npc)) &&
             this.services.instances.getById(state.instance.id)?.worldViewId===npc.worldViewId);
     }
 
@@ -277,6 +295,7 @@ export class TheatreArenaController {
         if(!context || !state || state.boss!==npc || state.phase!=="started" || npc.getHitpoints()>0 ||
             npc.worldViewId!==context.instance.worldViewId)return;
         this.pendingCompletions.add(context.instance.id);
+        state.maiden?.dispose();state.maiden=undefined;
         if(context.instance.definitionId?.startsWith("theatre-of-blood:")) {
             const store=this.services.instances.theatreRuns;
             if(!store)return;
@@ -296,8 +315,10 @@ export class TheatreArenaController {
     prune(): void {
         for (const [id,state] of this.states) {
             const live = this.services.instances.getById(id);
-            if (!live || live.worldViewId !== state.instance.worldViewId) {this.states.delete(id);this.pendingCompletions.delete(id);}
+            if (!live || live.worldViewId !== state.instance.worldViewId) {state.maiden?.dispose();this.states.delete(id);this.pendingCompletions.delete(id);}
+            else state.maiden?.tick(this.services.system.getCurrentTick());
         }
+        this.hud.tick();
         // A transient save failure must not strand a party with a dead boss and
         // no usable exit. Retry the same authoritative death, without rerolling.
         if(this.services.system.getCurrentTick()%5===0)for(const id of this.pendingCompletions) {
@@ -306,6 +327,7 @@ export class TheatreArenaController {
             try{this.killed(member,state.boss);}catch(error){this.services.system.logger?.warn("Theatre completion save retry failed",error);}
         }
     }
+    dispose():void {for(const state of this.states.values())state.maiden?.dispose();this.states.clear();this.hud.dispose();}
 }
 
 export function registerTheatreArenas(registry: IScriptRegistry, services: ScriptServices): TheatreArenaController {
@@ -319,7 +341,7 @@ export function registerTheatreArenas(registry: IScriptRegistry, services: Scrip
     registry.registerNpcInteraction(THEATRE_ARENAS.verzik.boss.id,event=>controller.talk(event,true),"quick-start");
     registry.registerLocInteraction(THEATRE_SKELETON_ID,event=>controller.search(event),"search");
     registry.registerLocInteraction(THEATRE_SKELETON_ID,event=>controller.search(event));
-    for (const id of [...Object.values(THEATRE_ARENAS).map(arena=>arena.boss.id),VERZIK_COMBAT_ID]) {
+    for (const id of [...Object.values(THEATRE_ARENAS).map(arena=>arena.boss.id),VERZIK_COMBAT_ID,MAIDEN_ASSETS.nylocas,MAIDEN_ASSETS.bloodSpawn]) {
         // Generic retaliation would invent attacks (especially Bloat/Xarpus).
         // Incoming hits work normally; authored attacks arrive with mechanics.
         registry.registerNpcAttack(id,({npc})=>controller.owns(npc)?"prevent":undefined);
@@ -332,5 +354,6 @@ export function registerTheatreArenas(registry: IScriptRegistry, services: Scrip
         });
     });
     registry.registerTickHandler(()=>controller.prune());
+    registry.registerCleanup(()=>controller.dispose());
     return controller;
 }

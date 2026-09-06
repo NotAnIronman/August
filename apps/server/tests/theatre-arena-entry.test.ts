@@ -24,6 +24,7 @@ function fixture(index: number, preview = false) {
     let record:any={version:1,id:"run",access:"party",roster:["alice","bob"],roomIndex:index,completedRooms:index,started:false,instanceId:"one"};
     const services:any={
         system:{getCurrentTick:()=>tick,isDeveloper:()=>preview},
+        variables:{sendVarbit(){}},viewport:{getViewportTrackerFrontUid:()=>1},
         instances:{get:(id:number)=>exists&&instance.memberPlayerIds.includes(id)?instance:undefined,
             getById:(id:string)=>exists&&id===instance.id?instance:undefined,
             getMemberPlayers:()=>players.filter(p=>instance.memberPlayerIds.includes(p.id)),
@@ -31,15 +32,15 @@ function fixture(index: number, preview = false) {
             markStarted:()=>{instance.started=true;return true;},
             theatreRuns:{load:()=>structuredClone(record),save:(r:any)=>{if(failSave)throw new Error("save failed");saves++;record=structuredClone(r);}}},
         npc:{spawnNpc:(config:any)=>{if(failSpawn)return;spawns.push(config);const npc={...config,typeId:config.id,id:nextNpc++,tileX:config.x,tileY:config.y,
-            hp:10,maxHp:10,getHitpoints(){return this.hp;},configureHitpoints(hp:number){this.hp=hp;this.maxHp=hp;},setUnattackable(v:boolean){this.isUnattackable=v;}};npcs.set(npc.id,npc);return npc;},
-            removeNpc:(id:number)=>npcs.delete(id)},
+            hp:10,maxHp:10,size:6,getHitpoints(){return this.hp;},getMaxHitpoints(){return this.maxHp;},configureHitpoints(hp:number){this.hp=hp;this.maxHp=hp;},setUnattackable(v:boolean){this.isUnattackable=v;}};npcs.set(npc.id,npc);return npc;},
+            removeNpc:(id:number)=>npcs.delete(id),queueNpcSeq(){},disengageCombat(){}},
         combat:{getNpc:(id:number)=>npcs.get(id),registerOnNpcKilled:(fn:any)=>{killListener=fn;return ()=>{killListener=undefined;};}},
         location:{replaceTemporaryLoc:(scope:any,oldId:number,newId:number,tile:any,level:number,options:any)=>({scope,oldId,newId,tile,level,...options}),clearTemporaryLoc:()=>true},
         messaging:{sendGameMessage:(_p:any,msg:string)=>messages.push(msg)},
-        dialog:{closeDialog:()=>{},openDialog:(_p:any,d:any)=>dialogs.push(d),openDialogOptions:(_p:any,o:any)=>options.push(o)},
+        dialog:{closeSubInterface(){},openSubInterface(){},queueClientScript(){},closeDialog:()=>{},openDialog:(_p:any,d:any)=>dialogs.push(d),openDialogOptions:(_p:any,o:any)=>options.push(o)},
         inventory:{collectCarriedItemIds:()=>items,addItemToInventory:(_p:any,id:number)=>{if(fullInventory)return {added:0};items.push(id);return {added:1};}},
         animation:{playPlayerSeq:()=>{}},
-        movement:{teleportPlayer:(p:any,x:number,y:number,level:number)=>{
+        movement:{getPathService:()=>undefined,teleportPlayer:(p:any,x:number,y:number,level:number)=>{
             assert.equal(p.raidProgress.isInternal,true,"arena traversal must bypass progress-loss confirmation");
             Object.assign(p,{tileX:x,tileY:y,level});
         },queueForcedMovement:(p:any,params:any)=>moves.push({id:p.id,...params})},
@@ -53,7 +54,7 @@ function fixture(index: number, preview = false) {
     };
     function player(name:string) {
         const p:any={id:players.length+1,name,__saveKey:name,tileX:3677,tileY:3219,level:0,worldViewId:-1,
-            instanceNpcIds:new Set(),raidProgress:new PlayerRaidState(),lock:LockState.NONE,
+            instanceNpcIds:new Set(),raidProgress:new PlayerRaidState(),lock:LockState.NONE,skillSystem:{getSkill:()=>({baseLevel:99,boost:0})},
             canInteract(){return this.lock===LockState.NONE;},clearPendingSeqs(){},stopAnimation(){}};
         p.taskQueue=new QueueTaskSet(p);
         if(!preview)p.raidProgress.set({version:1,raid:"theatre-of-blood",runId:"run",completedRooms:Math.min(index,5),access:"party",roster:["alice","bob"],status:"active"});

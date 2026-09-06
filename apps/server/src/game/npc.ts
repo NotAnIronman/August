@@ -231,6 +231,9 @@ type RegenerationEffectState = {
 
 export class NpcState extends Actor {
     readonly typeId: number;
+    /** Cosmetic form only: preserves HP, stat drains, targets and kill credit. */
+    presentationTypeId?: number;
+    scriptedMovement = false;
     readonly name?: string;
     pendingSay?: string;
     readonly spawnX: number;
@@ -797,6 +800,7 @@ export class NpcState extends Actor {
         playerTile?: { tileX: number; tileY: number },
     ): void {
         if (this.returningToSpawn) return;
+        if (this.scriptedMovement) return;
         if (this.isSpawnAnimationLocked(currentTick)) return;
         if (this.isDead(currentTick) || this.hitpoints <= 0) return;
         // OSRS: attacking from >18 tiles from spawn → instant de-aggro, no chase.

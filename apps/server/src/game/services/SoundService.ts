@@ -9,6 +9,8 @@ export class SoundService {
 
     playLocGraphic(opts: {
         spotId: number;
+        worldViewId?: number;
+        durationTicks?: number;
         tile: { x: number; y: number };
         level?: number;
         height?: number;
@@ -20,6 +22,8 @@ export class SoundService {
         this.services.broadcastService.enqueueSpotAnimation({
             tick,
             spotId: opts.spotId,
+            worldViewId: opts.worldViewId,
+            durationTicks: opts.durationTicks,
             delay,
             height: opts.height,
             tile: { x: opts.tile.x, y: opts.tile.y, level: opts.level ?? 0 },

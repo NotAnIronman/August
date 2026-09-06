@@ -2974,6 +2974,7 @@ export class OsrsClient {
                     } else if (payload.tile) {
                         (this.renderer as any)?.registerWorldSpotAnimation?.({
                             spotId: payload.spotId | 0,
+                            durationCycles: payload.durationCycles,
                             tile: payload.tile,
                             height: (payload.height ?? 0) | 0,
                             startCycle,
@@ -7593,6 +7594,11 @@ export class OsrsClient {
         const ecsId = this.npcEcs.getEcsIdForServer(serverId);
 
         if (ecsId !== undefined) {
+            if (block.presentationTypeId !== undefined) {
+                const state = this.npcEcs.getServerState(ecsId);
+                if (state) this.upsertNpcInstanceFromBinary(serverId, block.presentationTypeId,
+                    state.tileX, state.tileY, this.npcEcs.getLevel(ecsId), this.npcEcs.getWorldViewId(ecsId));
+            }
             if (typeof block.faceEntity === "number") {
                 this.npcEcs.setInteractionIndex(ecsId, block.faceEntity | 0);
             }
