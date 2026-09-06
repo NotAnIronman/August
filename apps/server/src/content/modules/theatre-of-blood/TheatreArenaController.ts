@@ -10,6 +10,7 @@ import { THEATRE_ROOMS, theatreRoomGeometry } from "./rooms";
 import { TheatreVaultController } from "./TheatreVaultController";
 import { MaidenEncounter,MAIDEN_ASSETS,raidAccount } from "./MaidenEncounter";
 import { TheatreHud } from "./TheatreHud";
+import { openBossHealthBar, closeBossHealthBar } from "@server/game/encounters/BossHealthBar";
 import { THEATRE_ARENAS, THEATRE_BARRIER_ID, VERZIK_WALK_DESTINATION, arenaGateDestination,
     VERZIK_COMBAT_ID, THEATRE_SKELETON_ID, THEATRE_SKELETON_TILE, DAWNBRINGER_ID } from "./arenas";
 
@@ -27,6 +28,7 @@ export class TheatreArenaController {
     private readonly crossing = new WeakMap<PlayerState,QueueTask<PlayerState>>();
     private readonly conversations = new WeakMap<PlayerState,object>();
     private readonly pendingCompletions=new Set<string>();
+    private readonly bossBars = new Map<PlayerState, string>();
     readonly vault:TheatreVaultController;
     readonly hud:TheatreHud;
     constructor(private readonly services: ScriptServices) {
@@ -312,6 +314,30 @@ export class TheatreArenaController {
             this.services.messaging.sendGameMessage(member,context.index===5?"Verzik is defeated! Climb the stairs beneath her throne to claim your reward.":`${context.room.name} defeated. The next room is now available.`);
     }
 
+    private syncBossBars(): void {
+        const visible = new Set<PlayerState>();
+        for (const state of this.states.values()) {
+            const boss = state.boss;
+            if (state.phase === "complete" || boss.getHitpoints() <= 0 || this.services.combat.getNpc(boss.id) !== boss) continue;
+            for (const player of this.services.instances.getMemberPlayers(state.instance.id)) {
+                if (player.worldViewId !== boss.worldViewId || player.level !== boss.level) continue;
+                visible.add(player);
+                const snapshot = { npcTypeId: boss.presentationTypeId ?? boss.typeId, name: THEATRE_ROOMS[state.index].name,
+                    current: boss.getHitpoints(), maximum: boss.getMaxHitpoints(),
+                    markers: state.index === 0 ? [70, 50, 30].map(percent => ({ percent, label: "Nylocas", style: "mechanic" as const })) : [] };
+                const key = JSON.stringify([state.instance.id, snapshot]);
+                if (this.bossBars.get(player) !== key) {
+                    openBossHealthBar(player, this.services, snapshot);
+                    this.bossBars.set(player, key);
+                }
+            }
+        }
+        for (const player of this.bossBars.keys()) if (!visible.has(player)) {
+            closeBossHealthBar(player, this.services);
+            this.bossBars.delete(player);
+        }
+    }
+
     prune(): void {
         for (const [id,state] of this.states) {
             const live = this.services.instances.getById(id);
@@ -319,6 +345,7 @@ export class TheatreArenaController {
             else state.maiden?.tick(this.services.system.getCurrentTick());
         }
         this.hud.tick();
+        this.syncBossBars();
         // A transient save failure must not strand a party with a dead boss and
         // no usable exit. Retry the same authoritative death, without rerolling.
         if(this.services.system.getCurrentTick()%5===0)for(const id of this.pendingCompletions) {
@@ -327,7 +354,7 @@ export class TheatreArenaController {
             try{this.killed(member,state.boss);}catch(error){this.services.system.logger?.warn("Theatre completion save retry failed",error);}
         }
     }
-    dispose():void {for(const state of this.states.values())state.maiden?.dispose();this.states.clear();this.hud.dispose();}
+    dispose():void {for(const state of this.states.values())state.maiden?.dispose();this.states.clear();this.hud.dispose();this.syncBossBars();}
 }
 
 export function registerTheatreArenas(registry: IScriptRegistry, services: ScriptServices): TheatreArenaController {

@@ -11,6 +11,8 @@ import { clearAutocastState } from "@server/game/combat/AutocastState";
 import { ALL_RUNE_ITEM_IDS } from "@server/game/data/RuneDataProvider";
 import {
     isDeveloperInstakillEnabled,
+    isDeveloperMaxHitEnabled,
+    setDeveloperMaxHitEnabled,
     isDeveloperGodmodeEnabled,
     setDeveloperInstakillEnabled,
     setDeveloperGodmodeEnabled,
@@ -856,6 +858,13 @@ function createChatHandler(services: MessageHandlerServices): MessageHandler<"ch
                     logger.info(
                         `[cmd] ::gm - Player ${sender.id} ${enabled ? "enabled" : "disabled"} developer godmode`,
                     );
+                } else if (root === "maxhit") {
+                    const enabled = parts[1] === "on" ? true : parts[1] === "off" ? false : !isDeveloperMaxHitEnabled(sender);
+                    setDeveloperMaxHitEnabled(sender, enabled);
+                    services.queueChatMessage({ messageType: "game", targetPlayerIds: [sender.id],
+                        text: enabled ? "Developer maxhit enabled. Your attacks against NPCs use their normal maximum damage; instakill disabled."
+                            : "Developer maxhit disabled." });
+                    logger.info(`[cmd] ::maxhit - Player ${sender.id} ${enabled ? "enabled" : "disabled"} developer maxhit`);
                 } else if (root === "insta") {
                     const requestedState = parts[1];
                     const currentlyEnabled = isDeveloperInstakillEnabled(sender);

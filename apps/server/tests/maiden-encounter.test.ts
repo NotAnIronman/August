@@ -123,6 +123,9 @@ assert.deepEqual(maidenSpawnTiles(5).slice(-2), maidenSpawnTiles(4).slice(-2), "
     f.cycle(10);
     assert(f.launches.every(p => p.projectileId === 1578));
     f.cycle(11);
+    assert.equal(f.hits.length, 0, "first tick after splat launch remains safe");
+    assert.equal(f.encounter.blood.size, 0);
+    f.cycle(12);
     assert(f.hits.some(h => h.damage === 10));
     assert.equal(f.players[0].skillSystem.getSkill(SkillId.Prayer).boost, -10);
     assert(f.encounter.bloodSpawns.size > 0);
@@ -170,4 +173,11 @@ assert.deepEqual(maidenSpawnTiles(5).slice(-2), maidenSpawnTiles(4).slice(-2), "
     assert.equal(zero.hits[0].damage, 0, "zero is an allowed successful damage roll");
     assert.equal(zero.players[0].skillSystem.getSkill(SkillId.Magic).boost, 0, "zero damage does not drain stats");
 }
-console.log("Maiden: order, waves/scaling, absorption/freezes, hit timing/protection, stat-drain snapshots, splat cooldown, hazards, disposal and orb states passed");
+{
+    const f=fixture();f.encounter.rng.next=()=>0;f.cycle(10);f.cycle(11);
+    f.players[0].tileX++;
+    f.cycle(12);
+    assert.equal(f.hits.length,0,"moving during the two-tick splat window avoids the targeted tile");
+    assert(f.launches.every(p=>p.endCycleOffset===60),"all splat projectiles arrive after two ticks");
+}
+console.log("Maiden: order, waves/scaling, absorption/freezes, hit timing/protection, stat-drain snapshots, two-tick splats, hazards, disposal and orb states passed");

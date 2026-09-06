@@ -34,7 +34,6 @@ export function updateCameraFollow(host: WebGLOsrsRendererHost, deltaTime?: numb
         const targetSubX = px;
         const targetSubZ = py;
 
-        let smoothingCycles = 0;
         if (!host.followCamFocalInitialized || host.followCamFocalLastClientCycle < 0) {
             host.followCamFocalXSub = targetSubX;
             host.followCamFocalZSub = targetSubZ;
@@ -47,9 +46,7 @@ export function updateCameraFollow(host: WebGLOsrsRendererHost, deltaTime?: numb
                 host.followCamFocalXSub = targetSubX;
                 host.followCamFocalZSub = targetSubZ;
                 host.followCamFocalLastClientCycle = clientCycle;
-                smoothingCycles = 1;
             } else if (cyclesElapsed > 0) {
-                smoothingCycles = cyclesElapsed;
                 for (let i = 0; i < cyclesElapsed; i++) {
                     const dxFocal = targetSubX - host.followCamFocalXSub;
                     const dzFocal = targetSubZ - host.followCamFocalZSub;
@@ -70,20 +67,12 @@ export function updateCameraFollow(host: WebGLOsrsRendererHost, deltaTime?: numb
         const focalSubX = host.followCamFocalXSub;
         const focalSubZ = host.followCamFocalZSub;
         const basePlane = pe.getLevel(playerEcsIndex) | 0;
-        const onWorldEntity = host.getControlledPlayerWorldViewId() >= 0;
-        // Pitch pressure eases on the client-cycle timebase like the focal point;
-        // per-frame easing would converge several times faster than OSRS at high refresh rates.
-        if (!onWorldEntity) {
-            host.updateCameraTerrainPitchPressure(focalSubX, focalSubZ, basePlane, smoothingCycles);
-        } else {
-            // On a world entity (ship) the deck is flat; let pressure decay to the minimum
-            // so it doesn't artificially restrict the camera pitch.
-            for (let i = 0; i < smoothingCycles; i++) {
-                const current = host.cameraTerrainPitchPressure | 0;
-                if (current <= 32768) break;
-                host.cameraTerrainPitchPressure = current + (((32768 - current) / 80) | 0);
-            }
-        }
+        // Raised scenery must not change the user's orbit. The old terrain
+        // pressure increased orbit pitch/distance without changing the camera's
+        // viewing pitch, pulling away and shifting the player off centre.
+        // Follow the player's actual floor height below; roof visibility owns
+        // scenery occlusion, not an automatic zoom change.
+        host.cameraTerrainPitchPressure = 32768;
 
         const targetX = focalSubX / 128;
         const targetZ = focalSubZ / 128;
@@ -116,10 +105,6 @@ export function updateCameraFollow(host: WebGLOsrsRendererHost, deltaTime?: numb
             (host.osrsClient.zoomWidth - host.osrsClient.zoomHeight) * (v / 100) +
             host.osrsClient.zoomHeight;
         let camAngleX = camera.getScenePitchAngle();
-        const terrainMinCamAngleX = (host.cameraTerrainPitchPressure | 0) >> 8;
-        if (terrainMinCamAngleX > camAngleX) {
-            camAngleX = terrainMinCamAngleX;
-        }
         // active pitch-shake also raises the minimum camera angle for orbit distance.
         if (host.cameraShakeEnabled[4]) {
             const shakeMinCamAngleX = (host.cameraShakeWaveAmplitude[4] | 0) + 128;

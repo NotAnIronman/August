@@ -15,7 +15,7 @@ function fixture(index: number, preview = false) {
     let tick=1, nextNpc=100, saves=0;
     const room=THEATRE_ROOMS[index], arena=THEATRE_ARENAS[room.id];
     const npcs=new Map<number,any>(), spawns:any[]=[], moves:any[]=[], messages:string[]=[];
-    const players:any[]=[], dialogs:any[]=[], options:any[]=[], items:number[]=[];
+    const players:any[]=[], dialogs:any[]=[], options:any[]=[], items:number[]=[], bossEvents:any[]=[];
     let fullInventory=false, failSave=false;
     let killListener:((killer:any,npc:any)=>void)|undefined;
     const instance:any={id:"one",definitionId:preview?`theatre-preview:${index}`:`theatre-of-blood:run:${index}`,
@@ -37,7 +37,7 @@ function fixture(index: number, preview = false) {
         combat:{getNpc:(id:number)=>npcs.get(id),registerOnNpcKilled:(fn:any)=>{killListener=fn;return ()=>{killListener=undefined;};}},
         location:{replaceTemporaryLoc:(scope:any,oldId:number,newId:number,tile:any,level:number,options:any)=>({scope,oldId,newId,tile,level,...options}),clearTemporaryLoc:()=>true},
         messaging:{sendGameMessage:(_p:any,msg:string)=>messages.push(msg)},
-        dialog:{closeSubInterface(){},openSubInterface(){},queueClientScript(){},closeDialog:()=>{},openDialog:(_p:any,d:any)=>dialogs.push(d),openDialogOptions:(_p:any,o:any)=>options.push(o)},
+        dialog:{queueWidgetEvent:(id:number,event:any)=>bossEvents.push({id,...event}),closeSubInterface(){},openSubInterface(){},queueClientScript(){},closeDialog:()=>{},openDialog:(_p:any,d:any)=>dialogs.push(d),openDialogOptions:(_p:any,o:any)=>options.push(o)},
         inventory:{collectCarriedItemIds:()=>items,addItemToInventory:(_p:any,id:number)=>{if(fullInventory)return {added:0};items.push(id);return {added:1};}},
         animation:{playPlayerSeq:()=>{}},
         movement:{getPathService:()=>undefined,teleportPlayer:(p:any,x:number,y:number,level:number)=>{
@@ -79,7 +79,7 @@ function fixture(index: number, preview = false) {
         registry.findLocInteraction(THEATRE_BARRIER_ID,"pass")!({player:target,tile,locId:THEATRE_BARRIER_ID,level:room.entrance.level,action:"pass",tick,services});
     }
     function confirmVerzik(choice=0){dialogs.at(-1).onContinue();options.at(-1).onSelect(choice);}
-    return {p,room,arena,services,registry,controller,npcs,spawns,moves,messages,player,enter,cycle,pass,instance,dialogs,options,items,confirmVerzik,
+    return {p,room,arena,services,registry,controller,npcs,spawns,moves,messages,player,enter,cycle,pass,instance,dialogs,options,items,bossEvents,confirmVerzik,
         fullInventory:(v:boolean)=>{fullInventory=v;},failSave:(v:boolean)=>{failSave=v;},
         saves:()=>saves,record:()=>record,dispose:()=>{exists=false;npcs.clear();controller.prune();},
         failSpawn:(v:boolean)=>{failSpawn=v;},failAttach:(v:boolean)=>{failAttach=v;},kill:(npc:any)=>{assert(killListener);killListener(p,npc);}};
@@ -253,4 +253,17 @@ for(let index=0;index<6;index++) {
 assert.deepEqual(MAIDEN_ADD_SPAWNS.left.map(p=>[p.x,p.y]),[[3175,4435],[3179,4435],[3183,4435],[3187,4435]]);
 assert.deepEqual(MAIDEN_ADD_SPAWNS.right.map(p=>[p.x,p.y]),[[3175,4457],[3179,4457],[3183,4457],[3187,4457]]);
 assert.deepEqual(NYLO_ADD_SPAWNS,{left:{x:3311,y:4249},middle:{x:3295,y:4233},right:{x:3280,y:4249}});
-console.log("Theatre arena entry: all bosses, party isolation/idempotency, forced walks, Verzik Talk-to, cleanup and preview safety passed");
+{
+    const f=fixture(0,true);f.enter();f.controller.prune();
+    const boss:any=[...f.npcs.values()][0];
+    assert.equal(f.bossEvents.at(-1).active,true,"boss HUD appears at room entry");
+    assert.equal(f.bossEvents.at(-1).maximum,boss.getMaxHitpoints());
+    assert.deepEqual(f.bossEvents.at(-1).markers.map((m:any)=>m.percent),[70,50,30]);
+    const count=f.bossEvents.length;f.controller.prune();assert.equal(f.bossEvents.length,count,"unchanged HP does not spam packets");
+    boss.hp-=10;boss.presentationTypeId=8361;f.controller.prune();
+    assert.equal(f.bossEvents.at(-1).current,boss.hp,"phase changes retain live boss health");
+    const q=f.player("bob");f.enter(q);f.controller.prune();assert.equal(f.bossEvents.at(-1).id,q.id,"late joiner receives boss HUD");
+    q.worldViewId=-1;f.controller.prune();assert.equal(f.bossEvents.at(-1).active,false,"leaving closes HUD");
+    boss.hp=0;f.controller.prune();assert.equal(f.bossEvents.at(-1).active,false,"death closes HUD");
+}
+console.log("Theatre arena entry: all bosses, party isolation/idempotency, forced walks, Verzik Talk-to, cleanup, live boss HUD and preview safety passed");

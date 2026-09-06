@@ -7,6 +7,7 @@ import {
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import type { ServerServices } from "@server/game/ServerServices";
 import { NpcState } from "@server/game/npc";
+import { isDeveloperMaxHitEnabled } from "@server/game/dev/DeveloperFlags";
 import { PlayerState } from "@server/game/player";
 import { OverheadType } from "@server/game/prayer/OverheadType";
 import { resolveElementalSpellBaseMaxHit } from "@server/game/spells/ElementalSpellMaxHit";
@@ -378,7 +379,7 @@ export class CombatHitEvaluator {
               )
             : attackRoll;
         const forceMaxHit = target instanceof NpcState && attacker instanceof PlayerState
-            && target.forceMaxHitForAttack?.(attacker, attack) === true;
+            && (isDeveloperMaxHitEnabled(attacker) || target.forceMaxHitForAttack?.(attacker, attack) === true);
         const hitChance = special.guaranteedHit || forceMaxHit
             ? HIT_CHANCE_SCALE
             : usesFixedAccuracyRoll

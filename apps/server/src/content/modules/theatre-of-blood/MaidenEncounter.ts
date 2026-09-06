@@ -125,7 +125,7 @@ export class MaidenEncounter {
         for (let i = 0; i < 2; i++)
             tiles.push({ x: extra.tileX + this.rng.nextInt(5) - 2, y: extra.tileY + this.rng.nextInt(5) - 2 });
         for (const tile of tiles) {
-            const delay = this.delay(tile);
+            const delay = 2; // Two full ticks from the splat attack before the tile becomes harmful.
             this.launch(MAIDEN_ASSETS.splat, tile, delay);
             this.pending.push({ at: tick + delay, apply: () => this.patch(tile, tick + delay, MAIDEN_TIMING.splatLifetime, true) });
         }

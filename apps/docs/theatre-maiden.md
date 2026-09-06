@@ -63,12 +63,25 @@ Blood's native six-second animation is explicitly kept visible for the hazard's 
 
 The request did not specify all timings and amounts. Current defaults, not claims of exact
 official-game parity, are: 25% splat selection chance when eligible; 50-tick stationary splats;
-34–50-tick trails; projectile travel of at least one tick, otherwise footprint distance divided
-by three rounded up; prayer drain equal to actual blood damage; and at most eight live blood
+34–50-tick trails; Blackstorm projectile travel of at least one tick, otherwise footprint distance divided
+by three rounded up; splats arrive and become harmful exactly two ticks after launch;
+prayer drain equal to actual blood damage; and at most eight live blood
 spawns. These are localized in `MaidenEncounter.ts` for play-test adjustments.
 Spawn chance is 10% without stepping, rising to 20% total if stepped on, not a fresh roll each tick.
 
 ## Host smoke test
+
+Theatre rooms now publish their live boss bar through the shared boss HUD, including
+Maiden's 70/50/30 healer markers. It updates on damage/healing/phase changes and clears
+on death, leaving, or instance disposal; it does not replace the party-orb interface.
+
+Developer accounts can use `::maxhit` to toggle guaranteed maximum rolls against NPCs,
+or `::maxhit on` / `::maxhit off`. Enabling it disables `::insta`. Normal attack and special
+formulas still determine the maximum; boss mitigation and damage caps still apply.
+
+The follow camera no longer lets terrain pressure change its selected orbit distance/pitch.
+It still follows actual player floor height and retains manual camera controls and roof hiding.
+Test the raised back wall at several zoom/pitch settings, not only the default view.
 
 1. Enter Maiden solo. Confirm the orb/name and phase-one appearance. Wait for Blackstorm,
    then repeat with Protect from Magic and different equipment bonuses.

@@ -42,6 +42,7 @@ const BUILTIN_COMMANDS: readonly CommandMetadata[] = [
     createCommandMetadata("max", developer("developer:skills")),
     createCommandMetadata("gm", developer("developer:combat")),
     createCommandMetadata("insta", developer("developer:combat")),
+    createCommandMetadata("maxhit", developer("developer:combat")),
     createCommandMetadata("quest", developer("developer:quests")),
     createCommandMetadata("reset", developer("developer:skills")),
     createCommandMetadata("spec", developer("developer:combat")),
