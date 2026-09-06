@@ -40,12 +40,12 @@ function fixture(size=2,preview=false) {
         clearTemporaryLoc:(scope:any,_id:number,tile:any)=>locs.delete(key(scope,tile)),
         hasTemporaryLocVisibleToPlayer:(p:any,id:number,tile:any)=>{
             const l=locs.get(key({worldViewId:p.worldViewId,ownerPlayerId:p.id},tile))??locs.get(key({worldViewId:p.worldViewId},tile));return l?.newId===id;},
-        isAdjacentToLoc:(p:any,_id:number,t:any)=>Math.abs(p.tileX-t.x)<=3&&Math.abs(p.tileY-t.y)<=3},
+        isAdjacentToLoc:(p:any,_id:number,t:any)=>Math.abs(p.tileX-t.x)<=1&&Math.abs(p.tileY-t.y)<=1},
     inventory:{findOwnedItemLocation:(p:any,id:number)=>p.items.getInventoryEntries().some((i:any)=>i.itemId===id)?{}:undefined,snapshotInventory:()=>{}},
     collectionLog:{sendCollectionLogSnapshot:()=>{}},data:{getObjType:()=>undefined},system:{isDeveloper:()=>preview,logger:{error(){}}},
     messaging:{sendGameMessage:(_p:any,m:string)=>messages.push(m)}};
  for(let i=0;i<size;i++) {
-    const p:any={id:i+1,name:`player${i}`,__saveKey:`player${i}`,worldViewId:4000,tileX:3168,tileY:4325,level:0,
+    const p:any={id:i+1,name:`player${i}`,__saveKey:`player${i}`,worldViewId:4000,tileX:3168,tileY:4322,level:0,
         raidProgress:new PlayerRaidState(),items:new PlayerInventoryState(),collectionLog:new PlayerCollectionLogState(),followers:new PlayerFollowerPersistState(),canInteract:()=>true};
     p.items.setItemDefResolver(()=>({stackable:true}));p.raidProgress.set({version:1,raid:"theatre-of-blood",runId:"test",completedRooms:5,access:record.access,roster:record.roster,status:"active"});
     if(preview)p.raidProgress.clear();
@@ -53,14 +53,17 @@ function fixture(size=2,preview=false) {
  }
  const controller=new TheatreVaultController(services,()=>preview),registry=new ScriptRegistry();controller.register(registry);
  const event=(p:any,id:number,tile:any,action:string)=>({player:p,locId:id,tile,action,level:0,services,tick:1});
- const enter=(p:any)=>{Object.assign(p,{tileX:3168,tileY:4325});controller.stairs(event(p,32995,VERZIK_STAIRS_TILE,"climb"));};
+ const enter=(p:any)=>{Object.assign(p,{tileX:3168,tileY:4322});controller.stairs(event(p,32995,VERZIK_STAIRS_TILE,"climb"));};
  const open=(p:any,index=players.indexOf(p),id=32992)=>{const t=VAULT_CHESTS[index];Object.assign(p,{tileX:t.x,tileY:t.y-1});controller.open(event(p,id,t,"open"));};
  return {controller,players,services,registry,locs,current,record:()=>record,setRecord:(r:any)=>record=r,failClaim:(v:boolean)=>failClaim=v,claims:()=>claims,messages,event,enter,open};
 }
 for(let size=1;size<=5;size++) {
  const f=fixture(size),a=f.players[0];
  f.enter(a);assert.equal(a.worldViewId,4000,"stairs cannot be forged before they spawn");
- f.controller.unlock("boss");for(const p of f.players)f.enter(p);
+ f.controller.unlock("boss");
+ a.tileY=4321;f.controller.stairs(f.event(a,32995,VERZIK_STAIRS_TILE,"climb"));
+ assert.equal(a.worldViewId,4000,"stairs cannot be used from four tiles away");
+ for(const p of f.players)f.enter(p);
  assert.equal(new Set(f.players.map(p=>p.worldViewId)).size,1);
  assert.equal(f.locs.size,1+size*2,"exactly one shared form and one owner override per occupied chest");
  for(let i=0;i<size;i++)assert(f.services.location.hasTemporaryLocVisibleToPlayer(f.players[i],32992,VAULT_CHESTS[i]));

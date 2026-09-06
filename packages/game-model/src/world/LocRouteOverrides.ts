@@ -8,6 +8,9 @@ export const LOC_INTERACTION_RANGE_OVERRIDES: Readonly<Record<number, number>> =
         // its clickable anchor tile by water/collision, so adjacent routing
         // can never complete.
         26518: 3,
+        // Verzik's vault stairs sit on the throne; the nearest walkable floor
+        // is three tiles south. Keep client and server approach routing aligned.
+        32995: 3,
         // Lunar chest has a large collision footprint; its Claim interaction
         // should be reachable from the rim rather than requiring its centre.
         51346: 2,

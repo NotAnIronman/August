@@ -18,7 +18,7 @@ const data = loadCache(loadCacheList(loadCacheInfos()).latest);
 const factory = getCacheLoaderFactory(data.info,CacheSystem.fromFiles("dat2",data.files));
 const npcs = factory.getNpcTypeLoader(), locs = factory.getLocTypeLoader();
 assert.deepEqual(Object.values(THEATRE_ARENAS).map(a=>[a.boss.x,a.boss.y]),
-    [[3162,4444],[3299,4447],[3294,4247],[3278,4326],[3169,4386],[3168,4326]]);
+    [[3162,4444],[3299,4447],[3294,4247],[3278,4326],[3169,4386],[3168,4325]]);
 assert.equal(locs.load(32741).actions[0],"Search");
 assert.equal(factory.getObjTypeLoader().load(22516).name,"Dawnbringer");
 const walk=factory.getSeqTypeLoader().load(819);
@@ -66,8 +66,8 @@ for(let i=0;i<THEATRE_ROOMS.length;i++) {
  if(g.room.id==="verzik") {
     const path=new PathService({} as MapCollisionService);
     path.getCollisionFlagAt=(x,y,level)=>scene.collisionMaps[level].getFlag(x-g.sceneBase.x,y-g.sceneBase.y);
-    assert(!path.projectileRaycast({x:3168,y:4323,plane:0},{x:3168,y:4326}).clear,"throne blocks projectiles");
-    assert(passiveNpcRaycast(path,{x:3168,y:4323,plane:0},{x:3168,y:4326},4000).clear,"speech crosses the actual throne furniture");
+    assert(!path.projectileRaycast({x:3168,y:4322,plane:0},{x:3168,y:4325}).clear,"throne blocks projectiles");
+    assert(passiveNpcRaycast(path,{x:3168,y:4322,plane:0},{x:3168,y:4325},4000).clear,"speech crosses the actual throne furniture");
  }
  const seen=new Set<string>();
  for(const plane of scene.tiles) for(const row of plane) for(const tile of row) {

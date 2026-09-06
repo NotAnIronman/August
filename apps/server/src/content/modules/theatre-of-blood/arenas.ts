@@ -33,7 +33,7 @@ export const THEATRE_ARENAS: Record<TheatreRoomId, TheatreArena> = {
         {axis:"y",coordinate:4379,min:3169,max:3171,inward:1,entry:true},
         {axis:"y",coordinate:4395,min:3169,max:3171,inward:-1,entry:false},
     ] },
-    verzik: { boss:{id:14795,x:3168,y:4326,direction:1}, gates:[] },
+    verzik: { boss:{id:14795,x:3168,y:4325,direction:1}, gates:[] },
 };
 
 // Spawn markers only: encounter mechanics will decide when and which adds spawn.

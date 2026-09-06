@@ -1,4 +1,5 @@
 import type { PlayerState } from "@server/game/player";
+import { getLocInteractionRangeOverride } from "@august/game-model/world/LocRouteOverrides";
 import type { IScriptRegistry, ScriptServices, LocInteractionEvent } from "@server/game/scripts/types";
 import type { TemporaryLocChange } from "@server/game/services/LocationService";
 import { getRuneDay } from "@server/game/time/RuneDay";
@@ -50,7 +51,8 @@ export class TheatreVaultController {
         const {player,tile}=event,t=VERZIK_STAIRS_TILE;
         if(event.locId!==VAULT_STAIRS || event.level!==0 || player.level!==0 || !player.canInteract() ||
             (event.action && event.action.toLowerCase()!=="climb") || tile.x!==t.x || tile.y!==t.y ||
-            !this.services.location.isAdjacentToLoc(player,VAULT_STAIRS,tile,0))return;
+            Math.max(Math.abs(player.tileX-t.x),Math.abs(player.tileY-t.y))>
+                (getLocInteractionRangeOverride(VAULT_STAIRS)??1))return;
         const instance=this.services.instances.get(player.id);
         if(!instance || instance.worldViewId!==player.worldViewId ||
             !this.services.location.hasTemporaryLocVisibleToPlayer(player,VAULT_STAIRS,tile,0))return;

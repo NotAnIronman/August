@@ -102,7 +102,7 @@ for(let index=0;index<6;index++) {
         const npc=f.npcs.values().next().value;
         const talk=f.registry.findNpcInteraction(14795,"talk-to")!;
         talk({player:f.p,npc,services:f.services,tick:10});assert.equal(f.saves(),0,"remote Talk-to rejected");
-        f.p.tileY=4325;
+        f.p.tileY=4322;
         talk({player:f.p,npc:{...npc,worldViewId:999},services:f.services,tick:10});assert.equal(f.saves(),0);
         talk({player:f.p,npc,services:f.services,tick:10});talk({player:f.p,npc,services:f.services,tick:10});
         assert.equal(f.saves(),0,"Talk-to alone does not start the encounter");
@@ -177,19 +177,19 @@ for(let index=0;index<6;index++) {
 {
     const f=fixture(5,true);f.enter();f.cycle(8);
     assert.equal(f.record().started,false);assert.equal(f.p.raidProgress.checkpoint,undefined);
-    const npc=f.npcs.values().next().value;f.p.tileY=4325;
+    const npc=f.npcs.values().next().value;f.p.tileY=4322;
     f.registry.findNpcInteraction(14795,"talk-to")!({player:f.p,npc,services:f.services,tick:10});
     f.confirmVerzik();
     assert.equal(f.saves(),0,"development preview never writes raid progress");
 }
 {
-    const f=fixture(5);f.enter();f.cycle(8);f.p.tileY=4325;
+    const f=fixture(5);f.enter();f.cycle(8);f.p.tileY=4322;
     const npc=f.npcs.values().next().value;
     const talk=()=>f.registry.findNpcInteraction(14795,"talk-to")!({player:f.p,npc,services:f.services,tick:10});
     talk();f.confirmVerzik(1);assert.equal(f.saves(),0,"Not yet leaves the room waiting");
     talk();f.dialogs.at(-1).onContinue();f.p.tileY=4303;f.options.at(-1).onSelect(0);
     assert.equal(f.saves(),0,"walking away invalidates readiness");
-    f.p.tileY=4325;talk();f.failSpawn(true);f.confirmVerzik();
+    f.p.tileY=4322;talk();f.failSpawn(true);f.confirmVerzik();
     assert.equal(f.npcs.get(npc.id),npc,"failed combat spawn preserves the talk NPC");
     assert.equal(f.saves(),0);f.failSpawn(false);
     talk();f.failSave(true);assert.throws(()=>f.confirmVerzik(),/save failed/);
@@ -222,8 +222,8 @@ assert.deepEqual([1,2,3,4,5].map(n=>theatreHitpoints(2000,n)),[1500,1500,1500,17
     assert.equal(npc.passiveInteractionRange,3);
     const event={player:f.p,npc,services:f.services,tick:10};
     const talk=f.registry.findNpcInteraction(14795,"talk-to")!,quick=f.registry.findNpcInteraction(14795,"quick-start")!;
-    f.p.tileY=4322;talk(event);quick(event);assert.equal(f.dialogs.length,0);assert.equal(f.saves(),0,"four tiles is too far");
-    f.p.tileY=4323;talk(event);assert.equal(f.dialogs.length,1,"Talk-to works at exactly three tiles");
+    f.p.tileY=4321;talk(event);quick(event);assert.equal(f.dialogs.length,0);assert.equal(f.saves(),0,"four tiles is too far");
+    f.p.tileY=4322;talk(event);assert.equal(f.dialogs.length,1,"Talk-to works at exactly three tiles");
     const stale=f.dialogs[0];
     f.failSpawn(true);quick(event);assert.equal(f.saves(),0);assert.equal(f.npcs.get(npc.id),npc);
     f.failSpawn(false);quick(event);quick(event);stale.onContinue();
@@ -231,13 +231,13 @@ assert.deepEqual([1,2,3,4,5].map(n=>theatreHitpoints(2000,n)),[1500,1500,1500,17
     const boss=f.npcs.values().next().value;assert.equal(boss.typeId,8370);assert.equal(boss.isUnattackable,false);assert.equal(boss.direction,1);
 }
 {
-    const f=fixture(5);f.enter();f.cycle(8);f.p.tileY=4323;const npc=f.npcs.values().next().value;
+    const f=fixture(5);f.enter();f.cycle(8);f.p.tileY=4322;const npc=f.npcs.values().next().value;
     f.controller.talk({player:f.p,npc,services:f.services,tick:10});f.confirmVerzik();assert.equal(f.saves(),1,"dialogue confirmation also accepts three tiles");
 }
 for(let index=0;index<6;index++) {
     const f=fixture(index);let stairs=0;
     f.controller.vault.unlock=()=>{stairs++;};f.enter();
-    if(index===5){f.cycle(8);f.p.tileY=4325;const npc=f.npcs.values().next().value;f.controller.talk({player:f.p,npc,services:f.services,tick:10});f.confirmVerzik();}
+    if(index===5){f.cycle(8);f.p.tileY=4322;const npc=f.npcs.values().next().value;f.controller.talk({player:f.p,npc,services:f.services,tick:10});f.confirmVerzik();}
     else{f.pass();f.cycle(4);}
     const boss=f.npcs.values().next().value;
     f.controller.killed(f.p,boss);assert.equal(f.record().completedRooms,index,"living boss cannot complete a raid");

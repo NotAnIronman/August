@@ -47,7 +47,7 @@ exit returns outside. Normal accounts do not receive this menu.
 | Nylo | 8355 (melee form) | 3294 / 4247 / 0 | Cache default |
 | Sotetseg | 8388 (combat form) | 3278 / 4326 / 0 | South (180 degrees from cache default) |
 | Xarpus | 8340 (combat form) | 3169 / 4386 / 1 | South (180 degrees from cache default) |
-| Verzik | 14795 Talk-to; 8370 combat | 3168 / 4326 / 0 | South (180 degrees from cache default), both forms |
+| Verzik | 14795 Talk-to; 8370 combat | 3168 / 4325 / 0 | South (180 degrees from cache default), both forms |
 
 Each room spawns one shared boss when its first member arrives. NPC visibility and cleanup
 belong to the instance, not the first entrant, so reconnects and party joins do not duplicate it.
@@ -219,7 +219,8 @@ collision and visual transitions still need the host smoke test; boss combat awa
 
 ## Reward vault
 
-Verzik's confirmed death creates **Stairs (32995)** at **3168,4326,0**. Climb to a separate,
+Verzik's confirmed death creates **Stairs (32995)** at **3168,4325,0**, matching her spawn. Talk-to, Quick-start and the unlocked stairs can be approached
+from the walkable tile **3168,4322,0**; the throne blocks closer floor tiles. Climb to a separate,
 party-shared vault at **3237,4307,0**. All four source planes are copied, with scene origin
 3216,4296. Party members enter individually and keep their original roster/chest slots;
 eligible reconnects restore the same vault (or reconstruct it after the last member disconnects).
