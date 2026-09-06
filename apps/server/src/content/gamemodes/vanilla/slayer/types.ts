@@ -55,12 +55,11 @@ export interface SlayerAssignedTask {
     remainingAmount: number;
 }
 
-/** JSON-safe per-player Slayer state, persisted in VanillaGamemode's save data. */
+/** JSON-safe per-player Slayer state, persisted in VanillaGamemode's save data.
+ *  Points and task streak are NOT here — they live in the real OSRS varbits
+ *  (see SlayerVarbitSync.ts), which persist automatically via PlayerVarpState. */
 export interface SlayerPersistentState {
     task?: SlayerAssignedTask;
-    points?: number;
-    /** Consecutive tasks completed without a task-skip, used for the streak bonus. */
-    streak?: number;
     /** Total tasks completed, lifetime (for stats / future unlocks). */
     totalCompleted?: number;
     /** categoryKey -> owned-count, for reward-shop entries that are one-time unlocks. */

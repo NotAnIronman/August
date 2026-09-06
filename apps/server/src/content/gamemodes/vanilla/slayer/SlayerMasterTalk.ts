@@ -19,6 +19,7 @@ import { getSlayerCategory } from "@server/content/gamemodes/vanilla/slayer/Slay
 import { openSlayerRewardsPanel } from "@server/content/gamemodes/vanilla/slayer/SlayerRewardsPanel";
 import { assignTask, cancelTask, describeTask } from "@server/content/gamemodes/vanilla/slayer/SlayerService";
 import { slayerTaskTracker } from "@server/content/gamemodes/vanilla/slayer/SlayerTaskTracker";
+import { getSlayerPoints } from "@server/content/gamemodes/vanilla/slayer/SlayerVarbitSync";
 
 /** Runs assignTask and reports the outcome as a game message (dynamic text, so a chat line rather than a static dialogue box — same convention as the "gameMessage" quest dialogue helper). */
 function reportAssignment(ctx: DialogueContext, masterId: string): void {
@@ -58,12 +59,12 @@ function reportCurrentTask(ctx: DialogueContext): void {
 }
 
 function reportPoints(ctx: DialogueContext): void {
-    const points = slayerTaskTracker.getPoints(ctx.player.id);
+    const points = getSlayerPoints(ctx.player);
     ctx.services.messaging.sendGameMessage(ctx.player, `You have ${points} Slayer reward points.`);
 }
 
 function reassignTask(ctx: DialogueContext, masterId: string): void {
-    cancelTask(ctx.player.id);
+    cancelTask(ctx.player);
     ctx.services.messaging.sendGameMessage(ctx.player, "Very well, let's find you something else.");
     reportAssignment(ctx, masterId);
 }

@@ -14,6 +14,12 @@ import {
 } from "@server/content/gamemodes/vanilla/slayer/SlayerMonsterCategories";
 import { slayerTaskTracker } from "@server/content/gamemodes/vanilla/slayer/SlayerTaskTracker";
 import { getPointsMultiplier, getTaskQuantityMultiplier } from "@server/content/gamemodes/vanilla/slayer/SlayerRewardShop";
+import {
+    addSlayerPoints,
+    getSlayerStreak,
+    incrementSlayerStreak,
+    resetSlayerStreak,
+} from "@server/content/gamemodes/vanilla/slayer/SlayerVarbitSync";
 import type { SlayerAssignedTask, SlayerMasterTaskEntry } from "@server/content/gamemodes/vanilla/slayer/types";
 
 /** Points awarded on top of the master's base reward every 10th consecutive task. */
@@ -108,9 +114,9 @@ export function assignTask(
     return { kind: "assigned", task, description: describeTask(task) };
 }
 
-export function cancelTask(playerId: number): void {
-    slayerTaskTracker.setTask(playerId, undefined);
-    slayerTaskTracker.resetStreak(playerId);
+export function cancelTask(player: PlayerState): void {
+    slayerTaskTracker.setTask(player.id, undefined);
+    resetSlayerStreak(player);
 }
 
 export type NpcKillOutcome =
@@ -128,14 +134,14 @@ export type NpcKillOutcome =
  */
 function finishTask(player: PlayerState, task: SlayerAssignedTask): { pointsAwarded: number; totalPoints: number; streak: number } {
     const master = getSlayerMaster(task.masterId);
-    const streak = slayerTaskTracker.incrementStreak(player.id);
+    const streak = incrementSlayerStreak(player);
     slayerTaskTracker.incrementTotalCompleted(player.id);
 
     let pointsAwarded = master?.pointsPerTask ?? 0;
     if (streak > 0 && streak % STREAK_BONUS_INTERVAL === 0) pointsAwarded += STREAK_BONUS_POINTS;
     pointsAwarded = Math.round(pointsAwarded * getPointsMultiplier(player.id));
 
-    const totalPoints = slayerTaskTracker.addPoints(player.id, pointsAwarded);
+    const totalPoints = addSlayerPoints(player, pointsAwarded);
     return { pointsAwarded, totalPoints, streak };
 }
 

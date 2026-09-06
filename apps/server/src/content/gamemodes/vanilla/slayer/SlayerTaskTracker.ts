@@ -10,18 +10,20 @@ import type {
  * AchievementTaskTracker (diary-tasks/AchievementTaskTracker.ts): reset on
  * login before restore, exported/imported as a JSON blob via
  * VanillaGamemode.serializePlayerState/deserializePlayerState.
+ *
+ * Points and streak are NOT tracked here — they live directly in the real
+ * OSRS varbits (see SlayerVarbitSync.ts), which already persist per
+ * account via PlayerVarpState's own serialize/deserialize. Only active
+ * task assignment and one-time reward unlocks live here, since neither
+ * has a real-OSRS varbit equivalent to piggyback on.
  */
 export class SlayerTaskTracker {
     private readonly tasks = new Map<number, SlayerAssignedTask>();
-    private readonly points = new Map<number, number>();
-    private readonly streaks = new Map<number, number>();
     private readonly totalCompleted = new Map<number, number>();
     private readonly unlocks = new Map<number, Set<string>>();
 
     resetPlayer(playerId: number): void {
         this.tasks.delete(playerId);
-        this.points.delete(playerId);
-        this.streaks.delete(playerId);
         this.totalCompleted.delete(playerId);
         this.unlocks.delete(playerId);
     }
@@ -46,39 +48,6 @@ export class SlayerTaskTracker {
         }
         this.tasks.set(playerId, next);
         return next;
-    }
-
-    /** Per-account point balance — a plain counter, not an item. See SlayerRewardsPanel.ts. */
-    getPoints(playerId: number): number {
-        return this.points.get(playerId) ?? 0;
-    }
-
-    addPoints(playerId: number, amount: number): number {
-        const next = Math.max(0, this.getPoints(playerId) + amount);
-        this.points.set(playerId, next);
-        return next;
-    }
-
-    /** Returns false (and leaves points unchanged) if the player can't afford it. */
-    spendPoints(playerId: number, amount: number): boolean {
-        const current = this.getPoints(playerId);
-        if (current < amount) return false;
-        this.points.set(playerId, current - amount);
-        return true;
-    }
-
-    getStreak(playerId: number): number {
-        return this.streaks.get(playerId) ?? 0;
-    }
-
-    incrementStreak(playerId: number): number {
-        const next = this.getStreak(playerId) + 1;
-        this.streaks.set(playerId, next);
-        return next;
-    }
-
-    resetStreak(playerId: number): void {
-        this.streaks.delete(playerId);
     }
 
     getTotalCompleted(playerId: number): number {
@@ -106,18 +75,14 @@ export class SlayerTaskTracker {
 
     serializePlayerState(playerId: number): SlayerPersistentState | undefined {
         const task = this.tasks.get(playerId);
-        const points = this.points.get(playerId) ?? 0;
-        const streak = this.streaks.get(playerId) ?? 0;
         const totalCompleted = this.totalCompleted.get(playerId) ?? 0;
         const unlocks = [...(this.unlocks.get(playerId) ?? [])];
 
-        if (!task && points === 0 && streak === 0 && totalCompleted === 0 && unlocks.length === 0) {
+        if (!task && totalCompleted === 0 && unlocks.length === 0) {
             return undefined;
         }
         return {
             ...(task ? { task } : {}),
-            ...(points > 0 ? { points } : {}),
-            ...(streak > 0 ? { streak } : {}),
             ...(totalCompleted > 0 ? { totalCompleted } : {}),
             ...(unlocks.length > 0 ? { unlocks } : {}),
         };
@@ -135,12 +100,6 @@ export class SlayerTaskTracker {
                 assignedAmount: Math.max(1, Math.floor(state.task.assignedAmount)),
                 remainingAmount: Math.max(0, Math.floor(state.task.remainingAmount)),
             });
-        }
-        if (typeof state.points === "number" && Number.isFinite(state.points) && state.points > 0) {
-            this.points.set(playerId, Math.floor(state.points));
-        }
-        if (typeof state.streak === "number" && Number.isFinite(state.streak) && state.streak > 0) {
-            this.streaks.set(playerId, Math.floor(state.streak));
         }
         if (
             typeof state.totalCompleted === "number" &&
