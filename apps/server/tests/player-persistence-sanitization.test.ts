@@ -49,6 +49,7 @@ const persistentFieldCoverage = {
     instanceGrave: true,
     raidCheckpoint: true,
     moonProgress: true,
+    pendingLoot: true,
     playTimeSeconds: true,
 } as const satisfies Record<keyof PlayerPersistentVars, true>;
 

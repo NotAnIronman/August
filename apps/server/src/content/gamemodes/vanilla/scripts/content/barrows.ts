@@ -5,7 +5,7 @@ import { attack, defineBoss } from "@server/game/encounters/BossDefinition";
 import { registerOwnedEncounter } from "@server/game/encounters/EncounterRegistry";
 import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
 import { NpcAttackDecision, NpcPreDeathDecision, type IScriptRegistry, type NpcAttackEvent, type ScriptServices } from "@server/game/scripts/types";
-import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
+import { reopenPendingLoot, storePendingLoot } from "@server/content/gamemodes/vanilla/widgets/pendingLoot";
 import { applyStatDrains } from "@server/game/encounters/mechanics";
 
 /**
@@ -188,7 +188,7 @@ function nonUniqueReward(rolls: number): { itemId: number; quantity: number } {
     return { itemId: reward.itemId, quantity: reward.minimum + Math.floor(Math.random() * (reward.maximum - reward.minimum + 1)) };
 }
 
-function rewardChest(player: PlayerState, services: ScriptServices, run: BarrowsRun): void {
+function rewardChest(player: PlayerState, services: ScriptServices, run: BarrowsRun): boolean {
     const killedBrothers = BROTHERS.filter((brother) => run.killed.has(brother.key));
     const killedCount = killedBrothers.length;
     const rolls = 1 + killedCount;
@@ -205,25 +205,21 @@ function rewardChest(player: PlayerState, services: ScriptServices, run: Barrows
         if (eligible.length > 0 && Math.random() < uniqueChance) {
             const itemId = random(eligible);
             awarded.add(itemId);
-            addOrDrop(player, services, itemId, 1);
             rewards.push({ itemId, quantity: 1 });
         } else {
             const reward = nonUniqueReward(rolls);
-            addOrDrop(player, services, reward.itemId, reward.quantity);
             const existing = rewards.find((entry) => entry.itemId === reward.itemId);
             if (existing) existing.quantity += reward.quantity;
             else rewards.push(reward);
         }
     }
-    services.inventory.snapshotInventoryImmediate(player);
-    for (const reward of rewards) services.collectionLog.trackCollectionLogItem(player, reward.itemId);
-    player.collectionLog.incrementCategoryStat(BARROWS_CHEST_COLLECTION_LOG_STRUCT_ID);
-    services.collectionLog.sendCollectionLogSnapshot(player);
-    openRewardDisplay(player, services, "Barrows chest", rewards, {icon:{archiveId:4267}});
-    services.messaging.sendGameMessage(player, `You search the chest. ${killedCount} Barrows brother${killedCount === 1 ? "" : "s"} defeated.`);
+    return storePendingLoot(player,services,"barrows",rewards,() => {
+        player.collectionLog.incrementCategoryStat(BARROWS_CHEST_COLLECTION_LOG_STRUCT_ID);
+    });
 }
 
 function searchTomb(player: PlayerState, services: ScriptServices, brother: Brother): void {
+    if (reopenPendingLoot(player,services,"barrows")) return;
     const run = runFor(player);
     if (run.killed.has(brother.key)) {
         services.messaging.sendGameMessage(player, "You have already defeated this brother during this run.");
@@ -237,12 +233,14 @@ function searchTomb(player: PlayerState, services: ScriptServices, brother: Brot
 }
 
 function finishChest(player: PlayerState, services: ScriptServices, run: BarrowsRun): void {
-    rewardChest(player, services, run);
+    if (!rewardChest(player, services, run)) return;
     runs.delete(player.id);
     services.movement.teleportPlayer(player, EXIT_TILE.x, EXIT_TILE.y, EXIT_TILE.level);
+    reopenPendingLoot(player,services,"barrows");
 }
 
 function searchChest(player: PlayerState, services: ScriptServices): void {
+    if (reopenPendingLoot(player,services,"barrows")) return;
     const run = runFor(player);
     const tunnelBrother = brotherFor(run.tunnelBrother);
     if (!run.killed.has(tunnelBrother.key)) {

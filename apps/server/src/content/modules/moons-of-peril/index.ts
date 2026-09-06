@@ -21,7 +21,7 @@ import { NpcAttackDecision, NpcPreDeathDecision, type NpcAttackEvent, type IScri
 import { registerPlayerLifecycleCleanup } from "@server/game/scripts/ScriptLifecycle";
 import { secondsToTicks } from "@server/game/scripts/timing";
 import type { NpcState } from "@server/game/npc";
-import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
+import { reopenPendingLoot, storePendingLoot } from "@server/content/gamemodes/vanilla/widgets/pendingLoot";
 import { lunarChestRollCount, rollLunarCommonReward } from "./LunarChestRewards";
 
 const CHEST = 51346, CRATE = 51371, SAPLING = 51365, STOVE = 51362;
@@ -763,6 +763,7 @@ function chooseMoonPiece(player: PlayerState, moon: Moon): number {
     return pool[Math.floor(Math.random() * pool.length)]!;
 }
 function reward(player: PlayerState, services: ScriptServices): void {
+    if (reopenPendingLoot(player,services,"lunar")) return;
     const run = restoredRun(player); if (!run || run.killed.size === 0) { services.messaging.sendGameMessage(player, "This chest seems empty."); return; }
     const count = run.killed.size;
     const rewards: Array<{ itemId: number; quantity: number }> = [];
@@ -777,13 +778,13 @@ function reward(player: PlayerState, services: ScriptServices): void {
             appendReward(rewards, noteBulkReward(services, resource.itemId, resource.quantity), resource.quantity);
         }
     }
-    for (const item of rewards) addOrDrop(player, services, item.itemId, item.quantity);
-    services.inventory.snapshotInventoryImmediate(player); for (const item of rewards) services.collectionLog.trackCollectionLogItem(player, item.itemId);
-    openRewardDisplay(player, services, "Lunar chest", rewards); services.messaging.sendGameMessage(player, `You search the Lunar chest after defeating ${count} Moon${count === 1 ? "" : "s"}.`);
-    player.moons.defeated.clear(); runs.delete(player.id); services.appearance.savePlayerSnapshot(player);
+    if (!storePendingLoot(player,services,"lunar",rewards,() => player.moons.defeated.clear())) return;
+    runs.delete(player.id);
+    reopenPendingLoot(player,services,"lunar");
 }
 
 function searchChest(player: PlayerState, services: ScriptServices): void {
+    if (reopenPendingLoot(player,services,"lunar")) return;
     const run = restoredRun(player);
     if (!run || run.killed.size === 0) return reward(player, services);
     if (run.killed.size === 3) return reward(player, services);

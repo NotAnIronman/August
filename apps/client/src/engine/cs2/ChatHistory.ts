@@ -43,6 +43,8 @@ const MESSAGE_TYPE_MAP: Record<string, number> = {
     server: 0,
     public: 2,
     private: 3,
+    private_in: 3,
+    private_out: 6,
     trade: 4,
     clan: 7,
     broadcast: 0,

@@ -1243,16 +1243,11 @@ function decodeServerPacketUnchecked(
         }
 
         case ServerMessageId.CHAT_MESSAGE: {
-            const messageTypes = [
-                "game",
-                "public",
-                "private_in",
-                "private_out",
-                "channel",
-                "clan",
-                "trade",
-                "server",
-            ];
+            // This byte is an OSRS chat type, not an index into a custom enum.
+            const messageTypes: Record<number,string> = {
+                0:"game",2:"public",3:"private_in",6:"private_out",7:"private_in",
+                9:"channel",11:"channel",41:"clan",43:"clan",101:"trade",
+            };
             const text = reader.readString();
             const chatType = reader.readByte();
             const messageType = messageTypes[chatType] || "game";

@@ -218,7 +218,7 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         level: 92,
         xp: 240,
         oreItemId: 21347,
-        depletedLocId: 11390,
+        depletedLocId: 11393,
         // Post-LostCity ore — keep soft OSRS-ish range
         respawnTicks: { min: 110, max: 150 },
         swingTicks: 6,
@@ -403,8 +403,9 @@ function findNearestDepletedLocId(
 export function buildMiningLocMap(loader?: LocTypeLoader): MiningLocMap {
     const map = new Map<number, MiningLocMapping>();
     // Both orientations are live crystals; 11389 is not a depleted rock.
-    map.set(11388, {rockId: "amethyst", depletedLocId: 11390});
-    map.set(11389, {rockId: "amethyst", depletedLocId: 11391});
+    // 11393 is the shape-0 empty wall; 11390/11391 are unrelated ground rocks.
+    map.set(11388, {rockId: "amethyst", depletedLocId: 11393});
+    map.set(11389, {rockId: "amethyst", depletedLocId: 11393});
     if (!loader?.getCount || !loader.load) {
         return { map };
     }

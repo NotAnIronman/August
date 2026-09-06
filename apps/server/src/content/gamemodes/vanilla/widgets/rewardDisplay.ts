@@ -9,7 +9,7 @@ const REWARD_DISPLAY_CAPACITY = 16;
 
 export type VisualReward = { itemId: number; quantity: number };
 export type RewardDisplayOptions = {
-    icon?: {archiveId:number;frame?:number;itemId?:never}|{itemId:number;archiveId?:never;frame?:never};
+    source?: "barrows" | "lunar" | "theatre";
     claim?: (destination:"inventory"|"bank", slot?:number)=>void;
 };
 const claims=new WeakMap<PlayerState,NonNullable<RewardDisplayOptions["claim"]>>();
@@ -38,12 +38,9 @@ export function openRewardDisplay(
     claims.delete(player);
     if(options.claim)claims.set(player,options.claim);
     openUiPanel(services, player, REWARD_DISPLAY_PANEL_GROUP_ID, title);
-    services.dialog.queueWidgetEvent(player.id,{action:"set_sprite",uid:packUid(REWARD_DISPLAY_PANEL_GROUP_ID,850),
-        archiveId:options.icon?.archiveId??1041,frame:options.icon?.frame??0});
-    services.dialog.queueWidgetEvent(player.id,{action:"set_item",uid:packUid(REWARD_DISPLAY_PANEL_GROUP_ID,850),
-        itemId:options.icon?.itemId??-1,quantity:options.icon?.itemId?1:0});
-    services.dialog.queueWidgetEvent(player.id,{action:"set_text",uid:packUid(REWARD_DISPLAY_PANEL_GROUP_ID,851),
-        text:options.claim?"Your loot — click an item to claim":"Rewards received"});
+    for (const [id,source] of [[850,"barrows"],[856,"theatre"],[857,"lunar"]] as const)
+        services.dialog.queueWidgetEvent(player.id,{action:"set_hidden",uid:packUid(REWARD_DISPLAY_PANEL_GROUP_ID,id),
+            hidden:source !== (options.source ?? "barrows")});
     for(const id of [848,849,852,853,854,855])services.dialog.queueWidgetEvent(player.id,{action:"set_hidden",
         uid:packUid(REWARD_DISPLAY_PANEL_GROUP_ID,id),hidden:!options.claim});
     for (let slot = 0; slot < REWARD_DISPLAY_CAPACITY; slot += 1) {

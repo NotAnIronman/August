@@ -640,6 +640,8 @@ export interface AppearanceFacade {
     refreshAppearanceKits(player: PlayerState): void;
     queueAppearanceSnapshot(player: PlayerState): void;
     savePlayerSnapshot(player: PlayerState): void;
+    /** Synchronous durable write; reward transactions must observe failure. */
+    savePlayerSnapshotChecked(player: PlayerState): void;
     logoutPlayer(player: PlayerState, reason?: string): void;
 }
 

@@ -35,6 +35,17 @@ function stack(
 // Built-in item lists resolve conflicts by specificity and then by highlight.
 {
     const plugin = new GroundItemsPlugin();
+    plugin.setConfig({hiddenItems:"",highlightedItems:""});
+    for (const list of ["hide","highlight"] as const) {
+        plugin.toggleItemList("Amethyst",list);
+        assert(plugin.hasExactItemListEntry("Amethyst",list));
+        plugin.toggleItemList("Amethyst",list);
+        assert(!plugin.hasExactItemListEntry("Amethyst",list));
+    }
+}
+
+{
+    const plugin = new GroundItemsPlugin();
     plugin.setConfig({
         highlightedItems: "*platebody*",
         hiddenItems: "Rune platebody",

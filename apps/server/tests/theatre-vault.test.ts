@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { registerRewardDisplayActions } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
 import { REWARD_DISPLAY_PANEL_GROUP_ID as REWARD_GROUP } from "@august/protocol/ui/widgets/custom/journalPanel.cs2";
 import { ScriptRegistry } from "@server/game/scripts/ScriptRegistry";
 import { TheatreVaultController } from "@server/content/modules/theatre-of-blood/TheatreVaultController";
@@ -56,7 +57,7 @@ function fixture(size=2,preview=false) {
     if(preview)p.raidProgress.clear();
     players.push(p);boss.memberPlayerIds.push(p.id);
  }
- const controller=new TheatreVaultController(services,()=>preview),registry=new ScriptRegistry();controller.register(registry);
+ const controller=new TheatreVaultController(services,()=>preview),registry=new ScriptRegistry();registerRewardDisplayActions(registry);controller.register(registry);
  const event=(p:any,id:number,tile:any,action:string)=>({player:p,locId:id,tile,action,level:0,services,tick:1});
  const enter=(p:any)=>{Object.assign(p,{tileX:3168,tileY:4322});controller.stairs(event(p,32995,VERZIK_STAIRS_TILE,"climb"));};
  const click=(p:any,child=852,opId=1)=>registry.findWidgetAction((REWARD_GROUP<<16)|child,opId)?.({player:p,services,groupId:REWARD_GROUP,widgetId:(REWARD_GROUP<<16)|child,opId,tick:1} as any);

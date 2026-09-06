@@ -3072,6 +3072,8 @@ export class OsrsClient {
                     text,
                     msg.from ?? "",
                     msg.prefix ?? "",
+                    (this.cs2Vm.context.friendList ?? []).some(friend =>
+                        friend.name.toLowerCase() === (msg.from ?? "").toLowerCase()),
                 );
                 // Note: chatCycle is now marked by onMessageAdded callback below
             });

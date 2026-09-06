@@ -231,11 +231,13 @@ export interface PlayerPersistentVars {
     instanceGrave?: InstanceGraveSnapshot;
     raidCheckpoint?: import("@server/game/state/PlayerRaidState").RaidCheckpoint | null;
     moonProgress?: number;
+    pendingLoot?: import("@server/game/state/PlayerLootState").PendingLoot[];
     playTimeSeconds?: number;
 }
 
 export class PlayerState extends Actor {
     readonly moons = new PlayerMoonState();
+    pendingLoot: import("@server/game/state/PlayerLootState").PendingLoot[] = [];
     [key: symbol]: unknown;
 
     readonly gamemodeState: Map<string, unknown> = new Map();

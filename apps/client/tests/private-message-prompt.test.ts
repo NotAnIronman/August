@@ -26,6 +26,7 @@ const close=new Script();close.id=299;close.intArgCount=3;close.localIntCount=3;
 const vm=new Cs2Vm({widgetManager:wm,varManager:vars,loadScript:(id:number)=>id===299?close:scripts.load(id)} as never);
 vm.run(scripts.load(681)!,[]);assert.equal(vm.lastError,null);
 assert.equal(packets.length,1,"native callback must not double-send");
+vars.setVarcInt(5,0); // The redraw stub deliberately omits the real script 299's mode reset.
 assert.equal(submitPrivateMessageInput(vars,84),false);
 vars.setVarcInt(5,2);vars.setVarcString(359,"not a private message");
 assert.equal(submitPrivateMessageInput(vars,84),false,"friend-name/other prompts stay native");

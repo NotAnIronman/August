@@ -1,5 +1,5 @@
 import type { PlayerState } from "@server/game/player";
-import { openRewardDisplay, registerRewardDisplayActions } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
+import { openRewardDisplay } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
 import { getLocInteractionRangeOverride } from "@august/game-model/world/LocRouteOverrides";
 import type { IScriptRegistry, ScriptServices, LocInteractionEvent } from "@server/game/scripts/types";
 import type { TemporaryLocChange } from "@server/game/services/LocationService";
@@ -88,7 +88,7 @@ export class TheatreVaultController {
             openRewardDisplay(player,this.services,"Theatre of Blood",reward.items.map((item,i)=>({
                 itemId:item.quantity>(reward.received?.[i]??0)?item.itemId:-1,
                 quantity:item.quantity-(reward.received?.[i]??0),
-            })),{icon:{itemId:565},claim:(dest,slot)=>{
+            })),{source:"theatre",claim:(dest,slot)=>{
                 // Reject stale windows after leaving/rejoining a different raid.
                 if(this.runs()?.vaultCurrent(player)?.id!==run.id)return;
                 this.open(event,dest,slot);
@@ -177,7 +177,6 @@ export class TheatreVaultController {
         }
     }
     register(registry:IScriptRegistry):void {
-        registerRewardDisplayActions(registry);
         for(const [id,action,handler] of [
             [VAULT_STAIRS,"climb",(e:LocInteractionEvent)=>this.stairs(e)],
             [VAULT_CRYSTAL,"use",(e:LocInteractionEvent)=>this.exit(e)],

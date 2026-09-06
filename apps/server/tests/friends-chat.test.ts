@@ -6,6 +6,7 @@ import { decodeServerPacket } from "@client/core/network/packet/ServerBinaryDeco
 import { encodeClientMessage } from "@client/core/network/packet/ClientBinaryEncoder";
 import { GameEventBus } from "@server/game/events/GameEventBus";
 import { FriendsChatService } from "@server/game/services/FriendsChatService";
+import { ChatBroadcaster } from "@server/network/broadcast/ChatBroadcaster";
 import { decodeClientPacket } from "@server/network/packet/ClientBinaryDecoder";
 
 const database = new DatabaseSync(":memory:");
@@ -63,7 +64,17 @@ const service = new FriendsChatService(services, "", database);
 const privatePacket = encodeClientMessage({type: "chat", payload: {messageType: "private", recipient: ranked.name, text: "Private hello"}});
 assert.deepEqual(decodeClientPacket(privatePacket), {type: "chat", payload: {messageType: "private", recipient: ranked.name, text: "Private hello"}});
 service.handlePrivateMessage(owner as any, ranked.name, "Private hello");
-assert.deepEqual(messages.splice(0).map(m=>[m.chatType,m.targetPlayerIds]), [[3,[ranked.id]],[6,[owner.id]]]);
+const privateMessages=messages.splice(0);
+assert.deepEqual(privateMessages.map(m=>[m.chatType,m.targetPlayerIds]), [[3,[ranked.id]],[6,[owner.id]]]);
+const delivered:Array<{to:number;message:any}>=[];
+new ChatBroadcaster().flush({chatMessages:privateMessages} as any,{
+    getSocketByPlayerId:(id:number)=>({id}),
+    sendWithGuard:(socket:{id:number},packet:Uint8Array)=>delivered.push({to:socket.id,message:decodeServerPacket(packet)}),
+} as any);
+assert.deepEqual(delivered.map(d=>[d.to,d.message.payload.messageType,d.message.payload.chatType]),
+    [[ranked.id,'private_in',3],[owner.id,'private_out',6]]);
+assert(delivered.every(d=>d.message.payload.text==='Private hello'));
+assert(!delivered.some(d=>d.to===unranked.id),'private messages never broadcast to unrelated players');
 database.prepare("INSERT INTO social_ignores VALUES (?, ?, ?)").run("rankedfriend", "channelowner", owner.name);
 service.handlePrivateMessage(owner as any, ranked.name, "Not delivered");
 assert.equal(messages.length,1);

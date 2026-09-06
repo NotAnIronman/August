@@ -109,6 +109,7 @@ import { registerEmoteWidgetHandlers } from "@server/content/gamemodes/vanilla/w
 import { registerMinimapWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/minimapWidgets";
 import { registerNpcDropTableWidgetHandlers, type NpcDropViewer } from "@server/content/gamemodes/vanilla/widgets/npcDropTableWidgets";
 import { registerMusicWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/musicWidgets";
+import { registerRewardDisplayActions } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
 import { registerPrayerWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/prayerWidgets";
 import { registerQuestJournalWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/questJournalWidgets";
 import { registerSettingsWidgetHandlers } from "@server/content/gamemodes/vanilla/widgets/settingsWidgets";
@@ -409,6 +410,7 @@ export class VanillaGamemode extends BaseGamemode {
         registerMinimapWidgetHandlers(registry, services);
         registerPrayerWidgetHandlers(registry, services);
         registerMusicWidgetHandlers(registry, services);
+        registerRewardDisplayActions(registry);
         registerEmoteWidgetHandlers(registry, services);
         registerSpellbookWidgetHandlers(registry, services);
         registerSkillGuideWidgetHandlers(registry, services);

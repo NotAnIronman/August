@@ -647,6 +647,10 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
                 : undefined,
         },
         appearance: {
+            savePlayerSnapshotChecked: (player) => {
+                if (!player.__saveKey) throw new Error("Cannot persist rewards without an account key");
+                deps.playerPersistence.saveSnapshot(player.__saveKey, player);
+            },
             refreshAppearanceKits: (player) => deps.appearanceService.refreshAppearanceKits(player),
             queueAppearanceSnapshot: (player) =>
                 deps.appearanceService.queueAppearanceSnapshot(player),

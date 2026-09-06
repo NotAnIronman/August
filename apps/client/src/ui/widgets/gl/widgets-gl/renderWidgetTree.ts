@@ -3589,7 +3589,11 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                     logicalHeight > 0
                         ? Math.max(1 / logicalHeight, height / logicalHeight)
                         : rootScaleY;
-                if (stretch) {
+                if (w.containModel) {
+                    const scale = Math.min(width / cached.w, height / cached.h);
+                    const dw = cached.w * scale, dh = cached.h * scale;
+                    glr.drawTexture(cached.tex, x + (width-dw)/2, y + (height-dh)/2, dw, dh, 1, 1);
+                } else if (stretch) {
                     glr.drawTexture(cached.tex, x, y, width, height, 1, 1);
                 } else {
                     const drawW = Math.max(1, Math.round(cached.w * modelScaleX));
@@ -3656,7 +3660,11 @@ export function renderWidgetTreeGL(glr: GLRenderer, root: Widget, opts: GLRender
                         logicalHeight > 0
                             ? Math.max(1 / logicalHeight, height / logicalHeight)
                             : rootScaleY;
-                    if (stretch) {
+                    if (w.containModel) {
+                        const scale = Math.min(width / can.width, height / can.height);
+                        const dw = can.width * scale, dh = can.height * scale;
+                        glr.drawTexture(tex, x + (width-dw)/2, y + (height-dh)/2, dw, dh, 1, 1);
+                    } else if (stretch) {
                         glr.drawTexture(tex, x, y, width, height, 1, 1);
                     } else {
                         const drawW = Math.max(1, Math.round(can.width * modelScaleX));

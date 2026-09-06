@@ -205,6 +205,10 @@ export interface WidgetNode {
     sequenceId2?: number; // hover state animation
     modelOrthog?: boolean;
     modelTransparent?: boolean;
+    /** Fit model artwork inside its widget without changing its aspect ratio. */
+    containModel?: boolean;
+    flippedH?: boolean;
+    flippedV?: boolean;
     modelAmbient?: number;
     modelContrast?: number;
     modelLightX?: number;

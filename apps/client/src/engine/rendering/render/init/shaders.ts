@@ -362,7 +362,7 @@ export async function initShaders(host: WebGLOsrsRendererHost, ): Promise<Progra
                     getCacheSystem: () => host.osrsClient.cacheSystem,
                     editItem:(name,list)=>{
                         const plugin=host.osrsClient.groundItemsPlugin;
-                        if(plugin.getConfig().enabled && !plugin.hasExactItemListEntry(name,list))plugin.toggleItemList(name,list);
+                        if(plugin.getConfig().enabled)plugin.toggleItemList(name,list);
                     },
                 });
                 host.groundItemOverlay = ground;

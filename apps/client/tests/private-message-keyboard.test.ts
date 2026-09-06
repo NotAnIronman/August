@@ -5,7 +5,7 @@ const widget={uid:162<<16,onKey:[1]};
 const vm={inputDialogType:1,inputDialogWidgetId:-1,inputDialogString:"hello",onInputDialogComplete:()=>counts++};
 let pending:any=null;
 const deps:any={getCs2Vm:()=>vm,getPendingInputDialogAction:()=>pending,getPendingTradeQuantityAction:()=>null,
- getItemSpawnerUi:()=>({handleSearchKeyEvents:()=>false}),getVarManager:()=>({setVarcString(){}}),
+ getItemSpawnerUi:()=>({handleSearchKeyEvents:()=>false}),getVarManager:()=>({setVarcString(){},getVarcInt:()=>0}),
  getEnterToTypeChat:()=>({handleKeyEvent:()=>false,shouldBlockChatboxKeys:()=>false,isUnlocked:false}),
  executeScriptListener:()=>delivered++};
 const frame:any={input:{keyEvents:[{keyTyped:84,keyPressed:0}],keyArray:[]},mx:0,my:0,allRoots:[widget],visibleMap:new Map(),getStaticChildren:()=>[]};

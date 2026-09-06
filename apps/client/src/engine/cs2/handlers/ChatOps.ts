@@ -26,6 +26,7 @@
  * 5031 CHAT_GETHISTORYEX_BYUID: pop 1 int, push 4 ints + 4 strings
  */
 import { sendChat } from "@client/core/network/ServerConnection";
+import { consumeSubmittedPrivateMessage } from "@client/features/chat/PrivateMessageInput";
 import { chatHistory } from "@client/engine/cs2/ChatHistory";
 import { Opcodes } from "@client/engine/cs2/Opcodes";
 import type { HandlerMap } from "@client/engine/cs2/handlers/HandlerTypes";
@@ -154,7 +155,9 @@ export function registerChatOps(handlers: HandlerMap): void {
         ctx.stringStackSize -= 2;
         const recipient = ctx.stringStack[ctx.stringStackSize];
         const message = ctx.stringStack[ctx.stringStackSize + 1];
-        if (recipient?.trim() && message?.trim()) sendChat(message, "private", 0, recipient);
+        if (recipient?.trim() && message?.trim() &&
+            !consumeSubmittedPrivateMessage(ctx.varManager,recipient,message))
+            sendChat(message, "private", 0, recipient);
     });
 
     // CHAT_SENDCLAN (5010): Used by the modern Clan channels, which are separate

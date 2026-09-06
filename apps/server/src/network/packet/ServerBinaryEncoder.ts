@@ -805,13 +805,13 @@ export class ServerBinaryEncoder {
         // metadata.  Type 101 uses `from` as its clickable target identity.
         const typeMap: Record<string, number> = {
             game: 0,
-            public: 1,
-            private_in: 2,
-            private_out: 3,
-            channel: 4,
-            clan: 5,
-            trade: 6,
-            server: 7,
+            public: 2,
+            private_in: 3,
+            private_out: 6,
+            channel: 9,
+            clan: 41,
+            trade: 101,
+            server: 0,
         };
         this.buffer.writeString(text);
         this.buffer.writeByte(chatType ?? typeMap[messageType] ?? 0);

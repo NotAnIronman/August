@@ -8,6 +8,7 @@ import { restoreAutocastState } from "@server/game/combat/AutocastState";
 import { DEFAULT_EQUIP_SLOT_COUNT } from "@server/game/equipment";
 import type { PlayerPersistentVars, PlayerState } from "@server/game/player";
 import { DEFAULT_BANK_CAPACITY } from "@server/game/state/PlayerBankSystem";
+import { sanitizePendingLoot } from "@server/game/state/PlayerLootState";
 
 export function exportPersistentVars(player: PlayerState): PlayerPersistentVars {
     const snapshot: PlayerPersistentVars = {};
@@ -112,6 +113,7 @@ export function exportPersistentVars(player: PlayerState): PlayerPersistentVars 
     const instanceGrave = player.instanceGrave.serialize();
     snapshot.raidCheckpoint = player.raidProgress.serialize();
     snapshot.moonProgress = player.moons.serialize();
+    snapshot.pendingLoot = sanitizePendingLoot(player.pendingLoot);
     if (player.raidProgress.recoveryLocation) snapshot.location = {...player.raidProgress.recoveryLocation};
     if (instanceGrave) snapshot.instanceGrave = instanceGrave;
     snapshot.accountCreationTimeMs = accountSnapshot.accountCreationTimeMs;
@@ -122,6 +124,7 @@ export function exportPersistentVars(player: PlayerState): PlayerPersistentVars 
 export function applyPersistentVars(player: PlayerState, state?: PlayerPersistentVars): void {
     player.gamemodeState.clear();
     player.moons.deserialize(state?.moonProgress);
+    player.pendingLoot = sanitizePendingLoot(state?.pendingLoot);
     if (!state) {
         player.varps.deserialize(undefined);
         player.bank.getBankEntries();
