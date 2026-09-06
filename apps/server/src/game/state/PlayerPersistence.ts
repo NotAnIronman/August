@@ -737,7 +737,7 @@ export class PlayerPersistence implements PersistenceProvider {
                 if (!valid) throw new Error("Invalid Theatre run record");
                 saveRun.run(valid.id,JSON.stringify(valid),new Date().toISOString());
             },
-            claim: (run,player) => {
+            claim: (run,player,expected) => {
                 const key=player.__saveKey;
                 if(!key)throw new Error("Theatre claim requires a saved account");
                 connection.exec("BEGIN IMMEDIATE");
@@ -746,10 +746,19 @@ export class PlayerPersistence implements PersistenceProvider {
                     const index=current?.roster.indexOf(key.trim().toLowerCase()) ?? -1;
                     const reward=current?.rewards?.[index];
                     const requested=run.rewards?.[index];
-                    if(!current || current.completedRooms!==6 || !reward || reward.claimed || !requested?.claimed ||
-                        JSON.stringify({...requested,claimed:false})!==JSON.stringify(reward))throw new Error("Theatre reward already claimed or changed");
-                    // Update only this account's flag, preserving teammates' claims.
-                    reward.claimed=true;
+                    if(!current || current.completedRooms!==6 || !reward || reward.claimed || !requested || !sanitizeTheatreRun(run))
+                        throw new Error("Theatre reward already claimed or changed");
+                    if (expected) {
+                        const immutable = (r: typeof reward) => ({unique:r.unique,items:r.items,pet:r.pet});
+                        if(JSON.stringify(expected)!==JSON.stringify(reward) ||
+                            JSON.stringify(immutable(requested))!==JSON.stringify(immutable(reward)) || !requested.received ||
+                            requested.received.some((n,i)=>n<(reward.received?.[i]??0)))
+                            throw new Error("Stale Theatre claim");
+                    } else if (!requested.claimed || JSON.stringify({...requested,claimed:false})!==JSON.stringify(reward)) {
+                        throw new Error("Theatre reward already claimed or changed");
+                    }
+                    // Preserve teammates' independent claims in the same transaction.
+                    current.rewards![index]=structuredClone(requested);
                     this.theatreRuns.save(current);
                     this.saveSnapshot(key,player);
                     connection.exec("COMMIT");

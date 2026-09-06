@@ -22,8 +22,8 @@ export interface PickaxeDefinition {
 }
 
 export const PICKAXES: PickaxeDefinition[] = [
-    { itemId: 13243, level: 61, animation: 642, accuracy: 16, swingTicks: 3 }, // Infernal
-    { itemId: 13244, level: 61, animation: 642, accuracy: 16, swingTicks: 3 }, // Infernal (uncharged)
+    { itemId: 13243, level: 61, animation: 4482, accuracy: 16, swingTicks: 3 }, // Infernal
+    { itemId: 13244, level: 61, animation: 4482, accuracy: 16, swingTicks: 3 }, // Infernal (uncharged)
     {
         itemId: 25112,
         level: 71,
@@ -32,25 +32,25 @@ export const PICKAXES: PickaxeDefinition[] = [
         swingTicks: 3,
         ignoreLevelRequirement: true,
     }, // Echo/Trailblazer (crystal-tier, no req)
-    { itemId: 23680, level: 71, animation: 642, accuracy: 16, swingTicks: 3 }, // Crystal
-    { itemId: 23682, level: 71, animation: 642, accuracy: 16, swingTicks: 3 }, // Crystal (inactive)
-    { itemId: 20014, level: 65, animation: 642, accuracy: 15, swingTicks: 3 }, // 3rd age
-    { itemId: 23677, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Dragon (or)
-    { itemId: 25376, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Dragon (or kit)
-    { itemId: 11920, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Dragon
-    { itemId: 23276, level: 61, animation: 624, accuracy: 14, swingTicks: 3 }, // Gilded (rune stats)
+    { itemId: 23680, level: 71, animation: 8347, accuracy: 16, swingTicks: 3 }, // Crystal
+    { itemId: 23682, level: 71, animation: 8347, accuracy: 16, swingTicks: 3 }, // Crystal (inactive)
+    { itemId: 20014, level: 65, animation: 7283, accuracy: 15, swingTicks: 3 }, // 3rd age
+    { itemId: 23677, level: 61, animation: 8346, accuracy: 15, swingTicks: 3 }, // Dragon (or)
+    { itemId: 25376, level: 61, animation: 8887, accuracy: 15, swingTicks: 3 }, // Dragon (or kit)
+    { itemId: 11920, level: 61, animation: 7139, accuracy: 15, swingTicks: 3 }, // Dragon
+    { itemId: 23276, level: 61, animation: 8313, accuracy: 14, swingTicks: 3 }, // Gilded (rune stats)
     { itemId: 12797, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Dragon (+kit)
-    { itemId: 25063, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Infernal (or)
-    { itemId: 25369, level: 61, animation: 642, accuracy: 16, swingTicks: 3 }, // Infernal (uncharged, or)
-    { itemId: 30345, level: 61, animation: 642, accuracy: 16, swingTicks: 3 }, // Infernal (or v2)
-    { itemId: 30351, level: 61, animation: 642, accuracy: 15, swingTicks: 3 }, // Dragon (or v2)
+    { itemId: 25063, level: 61, animation: 8787, accuracy: 15, swingTicks: 3 }, // Infernal (or)
+    { itemId: 25369, level: 61, animation: 8787, accuracy: 16, swingTicks: 3 }, // Infernal (uncharged, or)
+    { itemId: 30345, level: 61, animation: 8787, accuracy: 16, swingTicks: 3 }, // Infernal (or v2)
+    { itemId: 30351, level: 61, animation: 8887, accuracy: 15, swingTicks: 3 }, // Dragon (or v2)
     { itemId: 1275, level: 41, animation: 624, accuracy: 13, swingTicks: 3 }, // Rune
     { itemId: 11719, level: 41, animation: 624, accuracy: 13, swingTicks: 3 }, // Rune (NZ)
     { itemId: 1271, level: 31, animation: 628, accuracy: 11, swingTicks: 4 }, // Adamant
     { itemId: 1273, level: 21, animation: 629, accuracy: 9, swingTicks: 5 }, // Mithril
     { itemId: 1269, level: 6, animation: 627, accuracy: 7, swingTicks: 6 }, // Steel
     { itemId: 1267, level: 1, animation: 626, accuracy: 5, swingTicks: 7 }, // Iron
-    { itemId: 12297, level: 11, animation: 626, accuracy: 6, swingTicks: 5 }, // Black
+    { itemId: 12297, level: 11, animation: 3873, accuracy: 6, swingTicks: 5 }, // Black
     { itemId: 1265, level: 1, animation: 625, accuracy: 3, swingTicks: 8 }, // Bronze
 ].sort((a, b) => b.level - a.level);
 

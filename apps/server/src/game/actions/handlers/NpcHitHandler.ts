@@ -10,6 +10,7 @@
  * - playCombatSounds / pickResolvedMagicSound (sound helpers)
  */
 import { logger } from "@server/observability/logger";
+import {queueTwinflameActionEcho} from "@server/game/combat/Twinflame";
 import { AttackType } from "@server/game/combat/AttackType";
 import { combatEffectApplicator } from "@server/game/combat/CombatEffectApplicator";
 import { HITMARK_DAMAGE } from "@server/game/combat/HitEffects";
@@ -154,7 +155,7 @@ export class NpcHitHandler {
         // its normal accuracy calculation. Apply that reduction here rather
         // than by inflating NPC defence, so a hit still lands but is visibly
         // reduced to the intended amount.
-        const incomingDamageMultiplier = Math.max(0, npc.incomingPlayerDamageMultiplier);
+        const incomingDamageMultiplier = data.twinflameEcho && npc.incomingPlayerDamageMultiplier>0 ? 1 : Math.max(0, npc.incomingPlayerDamageMultiplier);
         const resolvedRawDamage = (npc.forcePlayerMaxHit || (!isMagicAttack && npc.forceMaxHitForAttack?.(player))) && rawMaxHit > 0 ? rawMaxHit : rawDamage;
         const damageCap = npc.incomingPlayerDamageCap;
         const capDamage = (value: number): number =>
@@ -181,7 +182,7 @@ export class NpcHitHandler {
             data.hit?.magicImpactEffectsScheduled === true;
 
         // Apply hitsplat to NPC
-        damage = npc.transformPlayerHit?.(player, damage, hitsplatTick) ?? damage;
+        if(!data.twinflameEcho)damage = npc.transformPlayerHit?.(player, damage, hitsplatTick) ?? damage;
         const hpBefore = npc.getHitpoints();
         const instakillDamage = applyDeveloperInstakillDamage(player, damage);
         const appliedDamage = this.services.interceptNpcLethalHit(
@@ -200,6 +201,7 @@ export class NpcHitHandler {
             maxHit,
         );
         npc.onPlayerHit?.(player, Math.max(0, hpBefore - npcHitsplat.hpCurrent), attackTypeHint ?? AttackType.Melee, hitsplatTick);
+        queueTwinflameActionEcho(this.services,player.id,data,npcHitsplat.amount,npcHitsplat.hpCurrent,tick);
         if (npcHitsplat.hpCurrent > 0 && !npc.suppressDefenceAnimation && !(isMagicAttack && magicImpactEffectsScheduled)) {
             const npcCombatSeq = this.services.getNpcCombatSequences(npc.typeId);
             if (npcCombatSeq?.block !== undefined) {

@@ -133,7 +133,7 @@ export function updateTextureArray(host: WebGLOsrsRendererHost, textures: Map<nu
             if (host.loadedTextureIds.has(id)) {
                 continue;
             }
-            const index = host.textureIdIndexMap.get(id) ?? 0;
+            const index = (host.textureIdIndexMap.get(id) ?? -1) + 1;
             if (index <= 0) {
                 // Unknown texture id for this array; skip to avoid overwriting the base white layer
                 continue;

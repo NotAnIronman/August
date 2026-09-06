@@ -180,7 +180,7 @@ function createRoom(player: PlayerState, services: ScriptServices, access: "solo
     const baseX = ((INSIDE.x >> 3) - 6) * 8;
     const baseY = ((INSIDE.y >> 3) - 6) * 8;
     const room = services.instances.create(player, {
-        definitionId: INSTANCE_ID, access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party",
+        definitionId: INSTANCE_ID, multiCombat: true, access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party",
         templateChunks, destination: INSIDE, exit: ENTRANCE, grave: GRAVE,
         npcs: [{ id: SCURRIUS_ID, offsetX: BOSS_TILE.x - baseX, offsetY: BOSS_TILE.y - baseY, level: 0, attackSpeed: 5, isAggressive: true, aggressionRadius: 15 }],
     });

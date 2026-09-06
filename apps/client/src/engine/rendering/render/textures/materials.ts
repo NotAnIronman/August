@@ -29,7 +29,7 @@ export function initMaterialsTexture(host: WebGLOsrsRendererHost, ): void {
             try {
                 const material = host.osrsClient.textureLoader.getMaterial(id);
                 const frameCount = host.textureFrameCounts.get(id) ?? material.frameCount ?? 1;
-                const baseLayer = host.textureIdIndexMap.get(id) ?? 0;
+                const baseLayer = (host.textureIdIndexMap.get(id) ?? -1) + 1;
 
                 for (
                     let frame = 0;

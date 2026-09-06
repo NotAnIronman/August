@@ -13,6 +13,7 @@ import { WebSocket } from "ws";
 import { encodeMessage } from "@server/network/messages";
 import type { PathService } from "@server/pathfinding/PathService";
 import { logger } from "@server/observability/logger";
+import {isTwinflameSpell} from "@server/game/combat/Twinflame";
 import type { ServerServices } from "@server/game/ServerServices";
 import { calculateAmmoConsumption } from "@server/game/combat/AmmoSystem";
 import { AttackType, normalizeAttackType } from "@server/game/combat/AttackType";
@@ -1328,6 +1329,7 @@ export class CombatActionHandler {
                 attackStyleMode,
                 spellId,
                 spellBaseXpAtCast: spellBaseXpAtCast === true,
+                twinflameEchoPending:isTwinflameSpell(weaponItemId,spellId),
                 magicImpactEffectsScheduled: magicImpactEffectsScheduled === true,
                 special: data.special,
                 ammoEffect,

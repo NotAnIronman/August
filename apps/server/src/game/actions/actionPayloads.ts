@@ -153,6 +153,8 @@ export interface CombatAutocastActionData {
 }
 
 type CombatPlayerHitBase = {
+    twinflameEchoPending?: boolean;
+    twinflameEcho?: boolean;
     damage?: number;
     maxHit?: number;
     style?: number;

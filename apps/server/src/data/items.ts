@@ -49,7 +49,8 @@ function toItemDefinition(raw: RawItem): ItemDefinition {
         equipmentType: raw.equipmentType,
         weaponInterface: raw.weaponInterface,
         doubleHanded: raw.doubleHanded,
-        stackable: raw.stackable,
+        // Noted items always stack, even if a generated row retained the base item's flag.
+        stackable: raw.noted || raw.stackable,
         tradeable: raw.tradeable,
         dropable: raw.dropable,
         sellable: raw.sellable,

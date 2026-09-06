@@ -7,6 +7,8 @@ export interface TheatreChestReward {
     claimed: boolean;
     items: Array<{itemId:number;quantity:number}>;
     pet: boolean;
+    /** Cumulative claims per original item; absent on legacy, unopened rewards. */
+    received?: number[];
 }
 export const THEATRE_UNIQUES = [
     [22477,8],[22324,2],[22481,2],[22326,2],[22327,2],[22328,2],[22486,1],
@@ -49,5 +51,8 @@ export function validTheatreRewards(value:unknown,size:number):value is TheatreC
     const ids=new Set<number>([...THEATRE_COMMONS.map(r=>r[0]),...THEATRE_UNIQUES.map(r=>r[0]),ELITE_CLUE]);
     return value.filter(r=>r?.unique).length<=1 && value.every(r=>r && typeof r.unique==="boolean" &&
         typeof r.claimed==="boolean" && typeof r.pet==="boolean" && Array.isArray(r.items) && r.items.length>=1 && r.items.length<=4 &&
-        r.items.every((i:{itemId:number;quantity:number})=>i && ids.has(i.itemId) && Number.isSafeInteger(i.quantity) && i.quantity>0 && i.quantity<=1800));
+        r.items.every((i:{itemId:number;quantity:number})=>i && ids.has(i.itemId) && Number.isSafeInteger(i.quantity) && i.quantity>0 && i.quantity<=1800) &&
+        (r.received === undefined || (Array.isArray(r.received) && r.received.length === r.items.length &&
+            r.received.every((n:number,i:number)=>Number.isSafeInteger(n) && n>=0 && n<=r.items[i].quantity) &&
+            r.claimed === r.received.every((n:number,i:number)=>n===r.items[i].quantity))));
 }

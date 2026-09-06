@@ -18,7 +18,7 @@ const data = loadCache(loadCacheList(loadCacheInfos()).latest);
 const factory = getCacheLoaderFactory(data.info,CacheSystem.fromFiles("dat2",data.files));
 const npcs = factory.getNpcTypeLoader(), locs = factory.getLocTypeLoader();
 assert.deepEqual(Object.values(THEATRE_ARENAS).map(a=>[a.boss.x,a.boss.y]),
-    [[3162,4444],[3299,4447],[3294,4247],[3278,4326],[3169,4386],[3168,4325]]);
+    [[3162,4444],[3288,4447],[3294,4247],[3278,4326],[3169,4386],[3168,4325]]);
 assert.equal(locs.load(32741).actions[0],"Search");
 assert.equal(factory.getObjTypeLoader().load(22516).name,"Dawnbringer");
 const walk=factory.getSeqTypeLoader().load(819);

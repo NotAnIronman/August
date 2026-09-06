@@ -677,6 +677,7 @@ export interface DialogFacade {
 }
 
 export interface MovementFacade {
+    clearPlayerTarget(player: PlayerState): void;
     teleportPlayer(
         player: PlayerState,
         x: number,

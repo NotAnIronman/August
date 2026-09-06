@@ -11,6 +11,7 @@ import { PathService } from "@server/pathfinding/PathService";
 import { MovementProcessor } from "@server/game/movement/engine/MovementProcessor";
 import { NpcState } from "@server/game/npc";
 import { BLOAT_ASSETS, BLOAT_ROUTE, BLOAT_TIMING, bloatNearestEdge } from "@server/content/modules/theatre-of-blood/BloatEncounter";
+import { THEATRE_ARENAS } from "@server/content/modules/theatre-of-blood/arenas";
 
 const data = loadCache(loadCacheList(loadCacheInfos()).latest), cache = CacheSystem.fromFiles("dat2", data.files);
 const factory = getCacheLoaderFactory(data.info, cache);
@@ -52,8 +53,11 @@ const sees=(x:number,y:number)=>bloatNearestEdge({tileX:3299,tileY:4447,size:5},
 assert(!sees(3290,4447),"tank blocks flies and stomp on opposite side");
 assert(sees(3301,4441),"same corridor is visible");
 const processor=new MovementProcessor(path);
+const spawn=THEATRE_ARENAS.bloat.boss;
+assert.deepEqual({x:spawn.x,y:spawn.y,direction:spawn.direction},{x:3288,y:4447,direction:1});
+assert(BLOAT_ROUTE.some(t=>t.x===spawn.x&&t.y===spawn.y),"configured spawn must lie on the patrol route");
 for(const run of [false,true])for(const direction of [-1,1]) {
-    const n=new NpcState(50,8359,5,8080,8081,32,{x:3299,y:4447,level:0},{worldViewId:4000,effectImmunities:{freeze:true,bind:true,stun:true}});
+    const n=new NpcState(50,8359,5,8080,8081,32,{x:spawn.x,y:spawn.y,level:0},{worldViewId:4000,effectImmunities:{freeze:true,bind:true,stun:true}});
     n.scriptedMovement=true;
     let moved=0;
     for(let tick=1;tick<=50;tick++) {

@@ -1,4 +1,4 @@
-/** Browser-local account chooser storage. Passwords are AES-GCM encrypted. */
+/** Browser-local account chooser. Prefer AES-GCM; plaintext fallback requires consent. */
 export const SAVED_ACCOUNT_SLOT_COUNT = 4;
 
 export type SavedAccountSlot = {
@@ -18,6 +18,7 @@ type StoredAccountSlot = {
     lastUsed: number;
     iv?: Uint8Array;
     encryptedPassword?: ArrayBuffer;
+    plaintextPassword?: string;
 };
 
 type StoredKey = { id: "password-key"; key: CryptoKey };
@@ -27,6 +28,18 @@ const KEY_STORE = "keys";
 const SLOT_STORE = "slots";
 const PASSWORD_KEY_ID = "password-key";
 let databasePromise: Promise<IDBDatabase | undefined> | undefined;
+
+function allowPlaintextPassword(): boolean {
+    try {
+        if (typeof window === "undefined") return false;
+        const key = "august-plaintext-password-consent-v1";
+        const saved = window.localStorage.getItem(key);
+        if (saved !== null) return saved === "yes";
+        const consent = window.confirm("Save passwords on this device for quick login? This HTTP page cannot encrypt saved passwords. They will be stored as readable plaintext and can be read by anyone with access to this browser, or scripts running on this site. Do not enable this on a shared device. You can remove each saved account from the login screen.");
+        window.localStorage.setItem(key, consent ? "yes" : "no");
+        return consent;
+    } catch { return false; }
+}
 
 function emptySlots(): SavedAccountSlot[] {
     return Array.from({ length: SAVED_ACCOUNT_SLOT_COUNT }, () => ({
@@ -145,7 +158,7 @@ function toSavedSlots(entries: StoredAccountSlot[]): SavedAccountSlot[] {
         slots[entry.slot] = {
             username: entry.username,
             lastUsed: Number.isFinite(entry.lastUsed) ? entry.lastUsed : 0,
-            passwordAvailable: !!entry.iv && !!entry.encryptedPassword,
+            passwordAvailable: (!!entry.iv && !!entry.encryptedPassword) || !!entry.plaintextPassword,
         };
     }
     return slots;
@@ -180,17 +193,18 @@ export async function saveSuccessfulAccount(username: string, password: string):
         const key = await passwordKey(database);
         let iv: Uint8Array | undefined;
         let encryptedPassword: ArrayBuffer | undefined;
+        let plaintextPassword: string | undefined;
         if (key) {
             const nonce = crypto.getRandomValues(new Uint8Array(12));
             iv = nonce;
             encryptedPassword = await crypto.subtle.encrypt(
                 { name: "AES-GCM", iv: nonce }, key, new TextEncoder().encode(password),
             );
-        }
+        } else if (allowPlaintextPassword()) plaintextPassword = password;
         const transaction = database.transaction(SLOT_STORE, "readwrite");
         const done = transactionDone(transaction);
         transaction.objectStore(SLOT_STORE).put({
-            slot, username: displayName, lastUsed: Date.now(), iv, encryptedPassword,
+            slot, username: displayName, lastUsed: Date.now(), iv, encryptedPassword, plaintextPassword,
         } satisfies StoredAccountSlot);
         await done;
         return toSavedSlots(await readSlots(database));
@@ -212,6 +226,7 @@ export async function loadSavedAccountCredentials(slot: number): Promise<SavedAc
         );
         await done;
         if (!entry?.username) return undefined;
+        if (typeof entry.plaintextPassword === "string") return { username: entry.username, password: entry.plaintextPassword };
         if (!entry.iv || !entry.encryptedPassword) return { username: entry.username };
         const key = await passwordKey(database);
         if (!key) return { username: entry.username };

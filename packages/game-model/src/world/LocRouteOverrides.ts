@@ -4,6 +4,10 @@
  */
 export const LOC_INTERACTION_RANGE_OVERRIDES: Readonly<Record<number, number>> =
     Object.freeze({
+        // These crystals are mounted on a blocked wall edge. Mining reaches
+        // the wall from the adjacent floor; it does not cross that edge.
+        11388: 1,
+        11389: 1,
         // Ice bridge into Zamorak's Fortress. The south bank is separated from
         // its clickable anchor tile by water/collision, so adjacent routing
         // can never complete.

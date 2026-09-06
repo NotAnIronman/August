@@ -21,7 +21,9 @@ export function processWidgetKeyboardInput(
             !dialogActive && deps.getItemSpawnerUi().handleSearchKeyEvents(input.keyEvents);
 
         // Process keyboard input for active dialog before widget handlers
-        if (dialogActive) {
+        // Native CS2 keyboard modes scope widget listeners; they are not amount
+        // prompts. Only bank/trade quantity requests belong to this numeric shim.
+        if (dialogActive && (deps.getPendingInputDialogAction() || deps.getPendingTradeQuantityAction())) {
             for (const keyEvent of input.keyEvents) {
                 // OSRS internal key codes: 84 = Enter, 85 = Backspace, 13 = Escape
                 const OSRS_KEY_ENTER = 84;
@@ -163,6 +165,10 @@ export function processWidgetKeyboardInput(
             }
             const blockChatboxKeys = deps.getEnterToTypeChat().shouldBlockChatboxKeys(dialogActive);
             for (const w of keyWidgetsByUid.values()) {
+                const vm = deps.getCs2Vm();
+                const uid = (w?.uid ?? 0) | 0;
+                if ((vm.inputDialogType === 2 && (uid >>> 16) !== vm.inputDialogWidgetId) ||
+                    (vm.inputDialogType === 3 && uid !== vm.inputDialogWidgetId)) continue;
                 if (blockChatboxKeys && deps.getEnterToTypeChat().isChatboxGroupUid((w?.uid ?? 0) | 0)) {
                     continue;
                 }

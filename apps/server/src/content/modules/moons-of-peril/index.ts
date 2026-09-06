@@ -365,6 +365,7 @@ function startEclipseSpecial(npc: NpcState, player: PlayerState, services: Scrip
     const jump = (): void => {
         if (!special.active || npc.getHitpoints() <= 0 || player.worldViewId !== npc.worldViewId) return;
         const [dx, dy] = state.offsets[Math.floor(Math.random() * state.offsets.length)]!;
+        services.movement.clearPlayerTarget(player);
         services.npc.teleportNpc(npc, { x: npc.spawnX + dx, y: npc.spawnY + dy, level: npc.level });
         npc.forcePlayerMaxHit = false;
         services.scheduler.after(4, (tick) => {
@@ -722,7 +723,7 @@ function createRun(player: PlayerState, services: ScriptServices, first: Moon, a
     }
     const def = MOONS[first];
     const templateChunks = services.instances.buildTemplate([{ sourceBaseX: def.sourceBaseX, sourceBaseY: def.sourceBaseY, widthChunks: 8, heightChunks: 8, sourcePlanes: [0], destinationChunkX: def.destinationChunkX, destinationChunkY: def.destinationChunkY }]);
-    const room = services.instances.create(player, { definitionId: "moons-of-peril", access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party", templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
+    const room = services.instances.create(player, { definitionId: "moons-of-peril", multiCombat: true, access, maxPlayers: access === "solo" ? 1 : 5, joinInProgress: access === "party", templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
     if (!room) { services.messaging.sendGameMessage(player, "The Moon chamber is unavailable right now."); return; }
     resetBlueBrazierBaseline(player, services);
     runs.set(player.id, { owner: player, killed: player.moons.defeated, instanceId: room.id }); services.instances.markStarted(room.id); spawnMoon(player, services, first);
@@ -734,7 +735,7 @@ function resumeRun(player: PlayerState, services: ScriptServices, next: Moon): v
     if (!run || services.instances.get(player.id)) return;
     const def = MOONS[next];
     const templateChunks = services.instances.buildTemplate([{ sourceBaseX: def.sourceBaseX, sourceBaseY: def.sourceBaseY, widthChunks: 8, heightChunks: 8, sourcePlanes: [0], destinationChunkX: def.destinationChunkX, destinationChunkY: def.destinationChunkY }]);
-    const room = services.instances.create(player, { definitionId: "moons-of-peril", access: "solo", maxPlayers: 1, templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
+    const room = services.instances.create(player, { definitionId: "moons-of-peril", multiCombat: true, access: "solo", maxPlayers: 1, templateChunks, destination: def.entry, exit: def.outside, grave: { locId: INSTANCE_GRAVE_RECLAIM_LOC_ID, tile: def.grave, level: 0 } });
     if (!room) { services.messaging.sendGameMessage(player, "The Moon chamber is unavailable right now."); return; }
     run.instanceId = room.id;
     resetBlueBrazierBaseline(player, services);

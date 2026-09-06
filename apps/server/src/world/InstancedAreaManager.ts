@@ -60,6 +60,8 @@ export interface QuestInstanceSpec {
     definitionId?: string;
     /** Solo is the backwards-compatible default. Party instances accept joins. */
     access?: "solo" | "party";
+    /** Combat rules are independent of whether other players may join. */
+    multiCombat?: boolean;
     maxPlayers?: number;
     /** Whether players may join after the encounter has started. */
     joinInProgress?: boolean;
@@ -232,7 +234,7 @@ export class InstancedAreaManager {
             started: false,
         };
         this.instancesById.set(runtime.id, runtime);
-        multiCombatSystem.setPartyWorldView(worldViewId, access === "party");
+        multiCombatSystem.setPartyWorldView(worldViewId, access === "party" || spec.multiCombat === true);
         this.instanceIdByPlayer.set(player.id, runtime.id);
         player.worldViewId = worldViewId;
         if (player.raidProgress && spec.definitionId?.startsWith("theatre-of-blood:"))

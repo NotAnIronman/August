@@ -21,6 +21,15 @@ const player = new PlayerState(1, 3200, 3200, 0, mode);
 const npc = (id: number, x = 3201, y = 3200) => new NpcState(id, 1, 1, -1, -1, 32,
     { x, y, level: 0 }, { maxHitpoints: 10, wanderRadius: 2, combatLeashRadius: 7 });
 const first = npc(1), second = npc(2, 3200, 3201);
+{
+ const socket={};let cleared=0;
+ const movement=new MovementService({players:{getSocketByPlayerId:()=>socket,clearAllInteractions:(s:unknown)=>{assert.equal(s,socket);cleared++;}}} as any);
+ player.setCombatTarget(first);player.setInteraction("npc",first.id);player.pendingFaceTile={x:first.tileX,y:first.tileY};
+ movement.clearPlayerTarget(player);
+ assert.equal(cleared,1,"Eclipse clears the interaction system as well as actor facing");
+ assert.equal(player.getInteractionTarget(),undefined);
+ assert.equal(player.pendingFaceTile,undefined);
+}
 const traits = { type: AttackType.Melee, style: null, rangeTiles: 1, speedTicks: 4 };
 const attacks = new CombatAttackManager();
 assert(attacks.prepareAttack(first, player, traits, 100));

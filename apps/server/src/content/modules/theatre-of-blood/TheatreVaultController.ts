@@ -64,7 +64,7 @@ export class TheatreVaultController {
         } else if(!this.runs()?.enterVault(player)){this.message(player,"Complete Verzik before entering the vault.");return;}
         this.sync(player);
     }
-    open(event:LocInteractionEvent):void {
+    open(event:LocInteractionEvent, destination?: "inventory"|"bank", selected?: number):void {
         const {player,tile}=event;
         if(!player.canInteract() || event.level!==0 || player.level!==0 ||
             ![32992,32993,32994,41746].includes(event.locId) ||
@@ -82,20 +82,56 @@ export class TheatreVaultController {
         if(reward.claimed){this.message(player,"You have already claimed this chest.");return;}
         const store=this.services.instances.theatreRuns;
         if(!store?.claim){this.message(player,"Reward storage is unavailable. Your chest has been kept safe.");return;}
+        if (!destination) {
+            this.services.dialog.openDialogOptions(player, {id:"theatre-rewards",title:"Claim Theatre rewards",modal:true,
+                options:["Deposit to inventory","Deposit to bank","Claim individual loot","Close"],
+                onSelect: choice => {
+                    if(choice===0 || choice===1) this.open(event,choice===0?"inventory":"bank");
+                    else if(choice===2) {
+                        const available=reward.items.map((item,i)=>({item,i,left:item.quantity-(reward.received?.[i]??0)})).filter(r=>r.left>0);
+                        this.services.dialog.openDialogOptions(player,{id:"theatre-reward-item",title:"Choose loot",modal:true,
+                            options:available.map(r=>`${this.services.data.getObjType(r.item.itemId)?.name??r.item.itemId} x ${r.left}`),
+                            onSelect:index=>{
+                                const item=available[index];if(!item)return;
+                                this.services.dialog.openDialogOptions(player,{id:"theatre-reward-destination",title:"Claim selected loot",modal:true,
+                                    options:["Deposit to inventory","Deposit to bank","Back"],
+                                    onSelect:choice=>choice===0||choice===1?this.open(event,choice===0?"inventory":"bank",item.i):this.open(event)});
+                            }});
+                    }
+                }});
+            return;
+        }
+        const expectedReward=structuredClone(reward);
+        const firstClaim=reward.received===undefined;
+        reward.received??=reward.items.map(()=>0);
+        const bank=player.items.bank.map(i=>({...i}));
         const inventory=player.items.getInventoryEntries().map(i=>({...i}));
         const log=player.collectionLog.serialize(),pending=[...player.followers.getPendingRewards()],first=player.followers.getFirstPetDrops();
-        let inventoryFull=false;
+        let moved=0;
         try {
-            for(const item of reward.items) {
-                // The game's ordinary elite clue restriction also applies here.
-                if(item.itemId===ELITE_CLUE && this.services.inventory.findOwnedItemLocation(player,ELITE_CLUE))continue;
-                if(player.items.addItem(item.itemId,item.quantity).completed!==item.quantity){inventoryFull=true;throw new Error("inventory full");}
+            for(const [i,item] of reward.items.entries()) {
+                if(selected!==undefined && selected!==i)continue;
+                const left=item.quantity-reward.received[i];
+                if(left<=0)continue;
+                if(item.itemId===ELITE_CLUE && this.services.inventory.findOwnedItemLocation(player,ELITE_CLUE)) {
+                    reward.received[i]=item.quantity; moved++; continue;
+                }
+                const completed=destination==="bank"
+                    ? (this.services.banking?.addItemToBank?.(player,item.itemId,left)?left:0)
+                    : player.items.addItem(item.itemId,left,{assureFullInsertion:false}).completed;
+                if(completed<=0)continue;
+                moved+=completed;reward.received[i]+=completed;
                 const obj=this.services.data.getObjType(item.itemId);
                 const logId=obj && obj.noteTemplate>=0?obj.note:item.itemId;
-                if(isCollectionLogItem(logId)){player.collectionLog.addItem(logId,item.quantity);player.collectionLog.recordItemUnlock(logId,getRuneDay());}
+                if(isCollectionLogItem(logId)){player.collectionLog.addItem(logId,completed);player.collectionLog.recordItemUnlock(logId,getRuneDay());}
             }
-            player.collectionLog.incrementCategoryStat(THEATRE_LOG_STRUCT);
-            if(reward.pet) {
+            if(!moved) {
+                Object.assign(reward,expectedReward);
+                this.message(player,"No items could be deposited there. Your remaining loot stays in the chest.");
+                this.open(event);return;
+            }
+            if(firstClaim) player.collectionLog.incrementCategoryStat(THEATRE_LOG_STRUCT);
+            if(firstClaim && reward.pet) {
                 if(!player.collectionLog.hasItem(THEATRE_PET))player.followers.recordFirstPetDrop(THEATRE_PET,{
                     bossNpcTypeId:8374,bossName:"Theatre of Blood",killcount:player.collectionLog.getCategoryStat(THEATRE_LOG_STRUCT)!.count1});
                 // The normal pet-delivery tick summons it, or falls back to inventory/bank.
@@ -103,22 +139,24 @@ export class TheatreVaultController {
                 player.followers.deferReward(THEATRE_PET,1);
                 player.collectionLog.addItem(THEATRE_PET);player.collectionLog.recordItemUnlock(THEATRE_PET,getRuneDay());
             }
-            reward.claimed=true;
-            store.claim(run,player);
+            reward.claimed=reward.received.every((n,i)=>n===reward.items[i].quantity);
+            store.claim(run,player,expectedReward);
         } catch(error) {
             player.items.inventory=inventory;player.items.inventoryDirty=true;
+            player.items.bank=bank;player.items.bankDirty=true;
             player.collectionLog.deserialize(log);player.followers.setPendingRewards(pending);player.followers.setFirstPetDrops(first);
             reward.claimed=false;
             this.services.inventory.snapshotInventory(player);
-            this.message(player,inventoryFull?"Make enough inventory space for the entire reward, then open your chest again.":"Your reward could not be saved. Nothing was claimed; please try again.");
-            if(!inventoryFull)this.services.system.logger.error("Theatre reward claim failed",error);
+            this.message(player,"Your reward could not be saved. Nothing was claimed; please try again.");
+            this.services.system.logger.error("Theatre reward claim failed",error);
             return;
         }
         this.services.inventory.snapshotInventory(player);
         this.services.collectionLog.sendCollectionLogSnapshot(player);
         this.sync(player);
-        this.message(player,"You claim your Theatre of Blood reward.");
-        if(reward.pet)this.message(player,`Lil' zik joins your collection at ${player.collectionLog.getCategoryStat(THEATRE_LOG_STRUCT)!.count1} Theatre completions!`);
+        this.message(player,"Your selected loot has been deposited. Unclaimed loot remains in your chest.");
+        if(!reward.claimed)this.open(event);
+        if(firstClaim && reward.pet)this.message(player,`Lil' zik joins your collection at ${player.collectionLog.getCategoryStat(THEATRE_LOG_STRUCT)!.count1} Theatre completions!`);
     }
     exit(event:LocInteractionEvent):void {
         const {player,tile}=event,t=VAULT_CRYSTAL_TILE;

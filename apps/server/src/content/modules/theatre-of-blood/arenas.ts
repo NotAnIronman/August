@@ -23,7 +23,7 @@ export interface TheatreArena {
 export const THEATRE_ARENAS: Record<TheatreRoomId, TheatreArena> = {
     // Cache defaults face north (6). East (4) is a clockwise quarter-turn.
     maiden: { boss:{id:8360,x:3162,y:4444,direction:4}, gates:[{axis:"x",coordinate:3185,min:4445,max:4448,inward:-1,entry:true}] },
-    bloat: { boss:{id:8359,x:3299,y:4447}, gates:[
+    bloat: { boss:{id:8359,x:3288,y:4447,direction:1}, gates:[
         {axis:"x",coordinate:3304,min:4446,max:4449,inward:-1,entry:true},
         {axis:"x",coordinate:3287,min:4446,max:4449,inward:1,entry:false},
     ] },

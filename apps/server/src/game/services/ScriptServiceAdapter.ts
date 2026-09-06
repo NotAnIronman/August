@@ -753,6 +753,7 @@ export function buildScriptServices(deps: ScriptServiceAdapterDeps): ScriptServi
             queueDebugMessage: (playerId, payload) => deps.queueDebugMessage(playerId, payload),
         },
         movement: {
+            clearPlayerTarget: player => deps.movementService.clearPlayerTarget(player),
             teleportPlayer: (player, x, y, level, forceRebuild) =>
                 deps.movementService.teleportPlayer(player, x, y, level, forceRebuild),
             teleportToInstance: (player, x, y, level, templateChunks, extraLocs) =>

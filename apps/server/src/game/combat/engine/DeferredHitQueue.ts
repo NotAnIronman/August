@@ -38,6 +38,8 @@ export interface PendingCombatHit {
     readonly impactSoundIdOverride?: number;
     /** Enchanted bolt effect rolled when this projectile was fired. */
     readonly enchantedBoltEffect?: EnchantedBoltEffect;
+    /** Echo damage is derived from a previous hit after mitigation. */
+    readonly damageAlreadyMitigated?: boolean;
 }
 
 export type PendingCombatHitInput = Omit<PendingCombatHit, "id">;
@@ -138,7 +140,7 @@ export class DeferredHitQueue {
                     damage = pending.maxHit;
                 }
                 damage = Math.floor(
-                    damage * Math.max(0, target.incomingPlayerDamageMultiplier),
+                    damage * (pending.damageAlreadyMitigated && target.incomingPlayerDamageMultiplier>0 ? 1 : Math.max(0, target.incomingPlayerDamageMultiplier)),
                 );
                 if (target.incomingPlayerDamageCap !== undefined) {
                     damage = Math.min(damage, Math.max(0, Math.trunc(target.incomingPlayerDamageCap)));

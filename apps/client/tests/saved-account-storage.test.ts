@@ -80,6 +80,19 @@ async function main(): Promise<void> {
         const stored = stores.get("slots")!.get(2);
         assert.equal(stored.encryptedPassword, undefined);
         assert.equal(JSON.stringify(stored).includes("never-store-plaintext"), false);
+        const previousWindow=Object.getOwnPropertyDescriptor(globalThis,"window");
+        try {
+            const preferences=new Map<string,string>();
+            let prompts=0;
+            Object.defineProperty(globalThis,"window",{configurable:true,value:{
+                confirm:()=>{prompts++;return true;},localStorage:{getItem:(k:string)=>preferences.get(k)??null,setItem:(k:string,v:string)=>preferences.set(k,v)}}});
+            await saveSuccessfulAccount("HTTP fixture","opt-in-fixture-password");
+            assert.equal((await loadSavedAccountCredentials(2))?.password,"opt-in-fixture-password");
+            await saveSuccessfulAccount("HTTP fixture","changed-fixture-password");
+            assert.equal(prompts,1,"consent is remembered on this device");
+        } finally {
+            if(previousWindow)Object.defineProperty(globalThis,"window",previousWindow);else Reflect.deleteProperty(globalThis,"window");
+        }
         console.log("saved-account storage regression tests passed");
     } finally {
         for (const [name, descriptor] of [["crypto", previousCrypto], ["indexedDB", previousDatabase]] as const) {

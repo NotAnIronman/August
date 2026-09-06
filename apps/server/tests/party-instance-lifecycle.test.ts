@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import type { ServerServices } from "@server/game/ServerServices";
 import type { PlayerState } from "@server/game/player";
 import { InstancedAreaManager } from "@server/world/InstancedAreaManager";
+import {multiCombatSystem} from "@server/game/combat/MultiCombatZones";
 
 const lifecycle: string[] = [];
 const owner = { id: 100, worldViewId: -1, instanceNpcIds: new Set<number>() } as PlayerState;
@@ -43,6 +44,7 @@ const party = instances.create(owner, {
     npcs: [{ id: 2215, offsetX: 10, offsetY: 10, level: 2 }],
 });
 assert(party);
+assert(multiCombatSystem.isMultiCombat(0,0,0,party.worldViewId));
 assert.equal(instances.join(member, party.id)?.worldViewId, party.worldViewId);
 assert.equal(instances.markStarted(party.id), true);
 assert.equal(instances.leave(owner), true);
@@ -50,6 +52,7 @@ assert.equal(instances.get(member.id)?.ownerPlayerId, member.id);
 assert(!lifecycle.includes(`remove:${party.worldViewId}`));
 assert.equal(instances.leave(member), true);
 assert.equal(instances.getById(party.id), undefined);
+assert(!multiCombatSystem.isMultiCombat(0,0,0,party.worldViewId));
 assert.deepEqual(lifecycle, [
     `register:${party.worldViewId}`,
     `enter:${owner.id}`,
@@ -60,3 +63,7 @@ assert.deepEqual(lifecycle, [
 ]);
 
 console.log("party instance lifecycle tests passed");
+const solo=instances.create(owner,{definitionId:"moons-of-peril",access:"solo",multiCombat:true,templateChunks:[],destination:{x:1392,y:9632,level:0}})!;
+assert(multiCombatSystem.isMultiCombat(1392,9632,0,solo.worldViewId),"solo bosses and adds share multi-combat without permitting party joins");
+assert(!instances.join(member,solo.id));
+instances.leave(owner);

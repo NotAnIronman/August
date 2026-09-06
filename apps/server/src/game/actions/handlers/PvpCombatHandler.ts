@@ -8,6 +8,7 @@
  * - handleMagicPvpEffects (magic spell effects in PvP)
  */
 import { logger } from "@server/observability/logger";
+import {queueTwinflameActionEcho} from "@server/game/combat/Twinflame";
 import { AttackType } from "@server/game/combat/AttackType";
 import { HITMARK_DAMAGE } from "@server/game/combat/HitEffects";
 import type { PlayerState } from "@server/game/player";
@@ -156,7 +157,7 @@ export class PvpCombatHandler {
         // Apply damage with protection prayers
         const currentHp = target.skillSystem.getHitpointsCurrent?.() ?? 0;
         const actualDamage = Math.min(damage, currentHp);
-        const mitigatedDamage = special?.effects?.ignoreProtectionPrayer
+        const mitigatedDamage = data.twinflameEcho || special?.effects?.ignoreProtectionPrayer
             ? actualDamage
             : this.services.applyProtectionPrayers(target, actualDamage, attackType, "player");
         const landedFlag = landed === true ? true : landed === false ? false : undefined;
@@ -170,6 +171,7 @@ export class PvpCombatHandler {
             maxHit,
         );
         this.services.applySmite(player, target, targetHitsplat.amount);
+        queueTwinflameActionEcho(this.services,player.id,data,targetHitsplat.amount,targetHitsplat.hpCurrent,tick);
         this.services.tryActivateRedemption(target);
         this.services.closeInterruptibleInterfaces(target);
         // Being attacked interrupts weak queue tasks (e.g. Home Teleport)

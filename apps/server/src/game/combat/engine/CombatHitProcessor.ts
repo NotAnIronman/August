@@ -7,6 +7,8 @@ import type { ServerServices } from "@server/game/ServerServices";
 import { getProjectileParams } from "@server/game/data/ProjectileParamsProvider";
 import { NpcState } from "@server/game/npc";
 import { PlayerState } from "@server/game/player";
+import { SpellCaster } from "@server/game/spells/SpellCaster";
+import {isTwinflameSpell} from "@server/game/combat/Twinflame";
 import { applyDeveloperInstakillDamage } from "@server/game/dev/DeveloperFlags";
 import { OverheadType } from "@server/game/prayer/OverheadType";
 import {
@@ -359,6 +361,19 @@ export class CombatHitProcessor {
                 continue;
             }
             const damageType = resolvedAttack?.damageType ?? attack.traits.type;
+
+            if (attacker instanceof PlayerState && attack.traits.type === AttackType.Magic &&
+                attack.traits.autocast && (attack.traits.spellId ?? 0) > 0) {
+                const cast = {player: attacker, spellId: attack.traits.spellId!, isAutocast: true};
+                const outcome = SpellCaster.execute(cast, SpellCaster.validate(cast));
+                if (!outcome.success) {
+                    this.services.messagingService.queueChatMessage({messageType: "game", targetPlayerIds: [attacker.id],
+                        text: outcome.reason === "out_of_runes" ? "You do not have the runes to cast this spell." : "You cannot cast this spell."});
+                    this.services.movementService.clearPlayerTarget(attacker);
+                    rejectedAttacks++;
+                    continue;
+                }
+            }
 
             this.playAttackVisuals(context, profile, visuals, travelDelayTicks, resolvedAttack);
             if (damageType === AttackType.Melee) {
@@ -1246,7 +1261,7 @@ export class CombatHitProcessor {
                 Math.min(
                     16,
                     this.nonNegativeInteger(
-                        specialAttack?.projectileCount ?? 1,
+                        this.isTwinflameSpell(context.attack) ? 2 : specialAttack?.projectileCount ?? 1,
                         "special attack projectile count",
                     ),
                 ),
@@ -1263,7 +1278,8 @@ export class CombatHitProcessor {
                                   `special attack projectile ${projectileIndex + 1} release delay`,
                               ),
                           };
-                this.queueProjectile(context, projectile, visuals.spellData, travelDelayTicks);
+                this.queueProjectile(context, projectile, visuals.spellData,
+                    travelDelayTicks, this.isTwinflameSpell(context.attack) ? projectileIndex : 0);
             }
         }
 
@@ -1307,6 +1323,7 @@ export class CombatHitProcessor {
         projectile: WeaponProjectileProfile,
         spellData: SpellDataEntry | undefined,
         travelDelayTicks: number,
+        extraTravelTicks = 0,
     ): void {
         if (!(projectile.id > 0)) return;
         const system = this.services.projectileSystem;
@@ -1367,12 +1384,12 @@ export class CombatHitProcessor {
         );
         // Most projectiles arrive with the hit; ammunition visuals can supply
         // their cache-authored flight duration independently.
-        const travelTime =
+        const travelTime = extraTravelTicks + (
             projectile.travelTimeTicks ??
             magicTiming?.travelTime ??
             (fallbackMagicTravelFrames !== undefined
                 ? fallbackMagicTravelFrames / framesPerTick
-                : Math.max(0, travelDelayTicks - startDelay));
+                : Math.max(0, travelDelayTicks - startDelay)));
         let launch;
 
         if (context.attacker instanceof PlayerState && context.target instanceof NpcState) {
@@ -1455,6 +1472,10 @@ export class CombatHitProcessor {
         this.queueDueSaradominSwordLightnings(hit.appliedClock);
     }
 
+    private isTwinflameSpell(attack: CombatAttack): boolean {
+        return attack.traits.type === AttackType.Magic && isTwinflameSpell(attack.traits.weaponId,attack.traits.spellId);
+    }
+
     private queueTwinflameEcho(hit: AppliedCombatHit): void {
         const original = hit.pending.attack;
         if (!(hit.source instanceof PlayerState) || original.traits.weaponId !== 30634 ||
@@ -1465,7 +1486,7 @@ export class CombatHitProcessor {
         const attack = {...original, traits: {...original.traits}};
         this.twinflameEchoes.add(attack);
         this.deferredHits.enqueue({attack, source: attack.attacker, target: attack.target,
-            damage: Math.floor(hit.amount * 0.4), maxHit: Math.floor(hit.pending.maxHit * 0.4),
+              damage: Math.floor(hit.amount * 0.4), maxHit: Math.floor(hit.amount * 0.4), damageAlreadyMitigated:true,
             landed: true, hitsplatType: DeferredHitsplatType.Normal, attackType: AttackType.Magic,
             revealClock: hit.appliedClock + 1, profileId: hit.pending.profileId});
     }
@@ -2086,6 +2107,7 @@ export class CombatHitProcessor {
     }
 
     private awardCombatExperience(hit: AppliedCombatHit, frame: TickFrame): void {
+        if(this.twinflameEchoes.has(hit.pending.attack))return;
         if (!(hit.amount > 0) || !(hit.source instanceof PlayerState)) return;
         this.services.skillService.awardCombatXp(
             hit.source,

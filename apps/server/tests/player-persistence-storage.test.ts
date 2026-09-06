@@ -45,6 +45,20 @@ try {
     const bobClaim=structuredClone(completed);bobClaim.rewards[1].claimed=true;
     persistence.theatreRuns.claim!(bobClaim,{__saveKey:"bob",exportPersistentVars:()=>({inventory:[{itemId:565,quantity:1500}]})} as PlayerState);
     assert(persistence.theatreRuns.load(run.id)!.rewards!.every(r=>r.claimed),"a teammate claim cannot overwrite another claim with stale data");
+    const partialRun={...structuredClone(completed),id:"partial-theatre"};
+    persistence.theatreRuns.save(partialRun);
+    const expected=structuredClone(partialRun.rewards[1]);
+    const partial=persistence.theatreRuns.load(partialRun.id)!;
+    partial.rewards![1].received=[500];
+    const bob={__saveKey:"bob",exportPersistentVars:()=>({bank:[{itemId:565,quantity:500}]})} as PlayerState;
+    persistence.theatreRuns.claim!(partial,bob,expected);
+    assert.deepEqual(reopened.theatreRuns.load(partialRun.id)!.rewards![1].received,[500]);
+    assert.throws(()=>persistence.theatreRuns.claim!(partial,bob,expected),/Stale/);
+    const final=persistence.theatreRuns.load(partialRun.id)!;
+    const before=structuredClone(final.rewards![1]);
+    final.rewards![1].received=[1500];final.rewards![1].claimed=true;
+    persistence.theatreRuns.claim!(final,bob,before);
+    assert(reopened.theatreRuns.load(partialRun.id)!.rewards![1].claimed);
 
     const savedState: PlayerPersistentVars = {
         accountStage: 2,

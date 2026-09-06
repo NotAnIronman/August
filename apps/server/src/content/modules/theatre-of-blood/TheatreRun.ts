@@ -21,7 +21,7 @@ export interface TheatreRunStore {
     load(id: string): TheatreRunRecord | undefined;
     save(run: TheatreRunRecord): void;
     /** Atomically saves the claim flag AND the receiving player's inventory/log/pet queue. */
-    claim?(run: TheatreRunRecord, player: PlayerState): void;
+    claim?(run: TheatreRunRecord, player: PlayerState, expected?: import("./rewards").TheatreChestReward): void;
 }
 export function sanitizeTheatreRun(value: unknown): TheatreRunRecord | undefined {
     const r = value as TheatreRunRecord | undefined;

@@ -9,6 +9,7 @@
  * Uses shared ServerServices for all dependencies.
  */
 import type { WebSocket } from "ws";
+import {isTwinflameSpell} from "@server/game/combat/Twinflame";
 
 import { faceAngleRs } from "@august/osrs-engine/geometry";
 import { resolveSelectedSpellPayload } from "@august/protocol/spells/selectedSpellPayload";
@@ -376,6 +377,11 @@ export class SpellActionHandler {
         });
         if (launch) {
             this.svc.projectileTimingService!.queueProjectileForViewers(launch);
+            if(isTwinflameSpell(opts.player.combat.weaponItemId,opts.spellData.id) && opts.timing) {
+                const echo=this.svc.projectileSystem.buildSpellProjectileLaunch({...opts,
+                    timing:{...opts.timing,travelTime:opts.timing.travelTime+1}});
+                if(echo)this.svc.projectileTimingService!.queueProjectileForViewers(echo);
+            }
         }
     }
 
@@ -1370,6 +1376,7 @@ export class SpellActionHandler {
                         kind: "combat.playerHit",
                         data: {
                             npcId: targetNpc.id,
+                            twinflameEchoPending:isTwinflameSpell(player.combat.weaponItemId,spellId),
                             spellId: spellId,
                             damage: outcome.damage,
                             maxHit: outcome.maxHit,
@@ -1435,6 +1442,7 @@ export class SpellActionHandler {
                     kind: "combat.playerHit",
                     data: {
                         targetId: pendingDamage.targetId,
+                        twinflameEchoPending:isTwinflameSpell(player.combat.weaponItemId,spellId),
                         spellId: spellId,
                         damage: outcome.damage,
                         maxHit: outcome.maxHit,

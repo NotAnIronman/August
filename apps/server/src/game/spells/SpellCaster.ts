@@ -132,6 +132,11 @@ export class SpellCaster {
             return validationResult;
         }
 
+        // Callers may have checked earlier, or supplied only the spell definition.
+        // Derive costs from the live inventory again at the point of consumption.
+        validationResult = this.validate(ctx);
+        if (!validationResult.success || !validationResult.spellData) return validationResult;
+
         const spellData = validationResult.spellData;
 
         // Consume runes if any
@@ -144,6 +149,7 @@ export class SpellCaster {
                     quantity: r.quantity,
                 })),
             );
+            ctx.player.markInventoryDirty();
         }
 
         // For now, return success with basic outcome

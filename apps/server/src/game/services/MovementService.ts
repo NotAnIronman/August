@@ -78,6 +78,16 @@ export class MovementService {
 
     constructor(private readonly services: ServerServices) {}
 
+    clearPlayerTarget(player: PlayerState): void {
+        const socket = this.services.players?.getSocketByPlayerId(player.id);
+        if (socket) this.services.players?.clearAllInteractions(socket);
+        player.resetInteractions();
+        player.clearForcedOrientation();
+        player.pendingFaceTile = undefined;
+        player._pendingFace = undefined;
+        player.clearInteraction();
+    }
+
     getPendingWalkCommands(): Map<
         import("ws").WebSocket,
         { to: { x: number; y: number }; run: boolean }

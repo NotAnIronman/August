@@ -23,7 +23,9 @@ export function initTextures(host: WebGLOsrsRendererHost, ): void {
         host.textureFrameCounts.clear();
         for (let i = 0; i < host.textureIds.length; i++) {
             const id = host.textureIds[i];
-            host.textureIdIndexMap.set(id, i + 1);
+            // Vertex decoding adds one for the white fallback layer. Keep this
+            // zero-based, matching the map worker and all SceneBuffer producers.
+            host.textureIdIndexMap.set(id, i);
             host.textureFrameCounts.set(id, 1);
         }
         host.textureLayerCount = host.textureIds.length + 1;

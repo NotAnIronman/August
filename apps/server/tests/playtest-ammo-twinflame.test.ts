@@ -19,10 +19,14 @@ import { registerProjectileParamsProvider } from "@server/game/data/ProjectilePa
 import { createProjectileParamsProvider } from "@server/content/gamemodes/vanilla/data/projectileParams";
 import { playerIsFacingNpc } from "@server/content/modules/moons-of-peril";
 import { faceAngleRs } from "@august/osrs-engine/geometry";
+import {registerRuneDataProvider} from "@server/game/data/RuneDataProvider";
+import {SpellCaster} from "@server/game/spells/SpellCaster";
+import {queueTwinflameActionEcho} from "@server/game/combat/Twinflame";
 
 registerSkillConfiguration({computeCombatLevel:()=>3,skillRestoreIntervalTicks:100,skillBoostDecayIntervalTicks:100,
     hitpointRegenIntervalTicks:100,hitpointOverhealDecayIntervalTicks:100,preserveDecayMultiplier:1.5});
 registerWeaponDataProvider(createWeaponDataProvider());
+registerRuneDataProvider(createRuneDataProvider());
 registerProjectileParamsProvider(createProjectileParamsProvider());
 const spells=createSpellDataProvider(); registerSpellDataProvider(spells);
 const player=new PlayerState(1,3200,3200,0,createTestGamemode("playtest-ammo","Ammo"));
@@ -87,4 +91,42 @@ const echo=internals.deferredHits.pendingHits[0];
 assert.equal(echo.damage,7); assert.equal(echo.revealClock,56);
 internals.queueTwinflameEcho({...hit,pending:echo});
 assert.equal(internals.deferredHits.pendingHits.length,1,"echo does not recursively echo");
+let xpAwards=0;
+(services as any).skillService={awardCombatXp:()=>xpAwards++};
+(processor as any).awardCombatExperience({...hit,pending:echo},{actionEffects:[]});
+assert.equal(xpAwards,0,"echo does not award Magic or Hitpoints experience");
+(processor as any).awardCombatExperience(hit,{actionEffects:[]});
+assert.equal(xpAwards,1);
+const legacy:any[]=[];
+const legacyServices:any={scheduleAction:(_id:number,request:any)=>legacy.push(request)};
+queueTwinflameActionEcho(legacyServices,player.id,{npcId:npc.id,twinflameEchoPending:true,attackType:"magic"},19,100,55);
+assert.equal(legacy[0].data.damage,7);assert.equal(legacy[0].data.expectedHitTick,56);
+assert.equal(legacy[0].data.xpGrantedOnAttack,true);
+queueTwinflameActionEcho(legacyServices,player.id,legacy[0].data,7,93,56);
+assert.equal(legacy.length,1,"manual spell echoes do not recurse");
 console.log("Live quiver consumption, Ava's 80%, Twinflame autocast/runes/accuracy and delayed echo passed");
+{
+    player.skillSystem.getSkill(6).boost=99;
+    player.items.inventory=[];
+    player.items.setItemDefResolver(()=>({stackable:true}));
+    const spell=spells.getSpellData(3291)!;
+    for(const cost of spell.runeCosts??[])player.items.addItem(cost.runeId,cost.quantity*3);
+    player.appearance.equip[EquipmentSlot.WEAPON]=30634;
+    const before=player.items.getInventoryEntries().reduce((n,i)=>n+i.quantity,0);
+    const castProcessor=new CombatHitProcessor(services) as any;
+    castProcessor.playAttackVisuals=()=>{};
+    (services as any).movementService={clearPlayerTarget:()=>{}};
+    const cast={...original,traits:{...original.traits,autocast:true}};
+    assert.equal(castProcessor.processPreparedAttacks([cast],60).processedAttacks,1);
+    const after=player.items.getInventoryEntries().reduce((n,i)=>n+i.quantity,0);
+    assert(after<before,"live autocast spends runes");
+    assert(SpellCaster.execute({player,spellId:3291},{success:true,spellData:spell}).success);
+    assert(player.items.getInventoryEntries().reduce((n,i)=>n+i.quantity,0)<after,"definition-only validation cannot bypass costs");
+    player.items.inventory=[];
+    assert.equal(castProcessor.processPreparedAttacks([cast],61).rejectedAttacks,1,"missing runes reject the swing");
+    const visualProcessor=new CombatHitProcessor(services) as any;
+    const offsets:number[]=[];
+    visualProcessor.queueProjectile=(_ctx:any,_projectile:any,_spell:any,_travel:any,extra:number)=>offsets.push(extra);
+    visualProcessor.playAttackVisuals({attack:original,attacker:player,target:npc,currentMapClock:50}, {},{projectile:{id:1}},3);
+    assert.deepEqual(offsets,[0,1],"two projectiles leave together, with the echo flying one tick longer");
+}
