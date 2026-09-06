@@ -1,5 +1,6 @@
 export const LOC_ACTION_OVERRIDES: Readonly<Record<number, readonly (string | null)[]>> =
     Object.freeze({
+        58439: Object.freeze(["Open", "Peek", "Enter Solo", "Enter Party", "Join Party"]),
         26503: Object.freeze([
             "Open",
             "Peek",

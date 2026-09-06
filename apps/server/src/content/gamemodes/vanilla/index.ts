@@ -178,10 +178,14 @@ export class VanillaGamemode extends BaseGamemode {
     }
 
     override transformDropItemId(
-        _npcTypeId: number,
+        npcTypeId: number,
         itemId: number,
-        _player: PlayerState | undefined,
+        player: PlayerState | undefined,
     ): number {
+        if (npcTypeId === 14860 && [1247, 2366, 1249].includes(itemId)) {
+            const legends = getQuestDefinition("Legends' Quest");
+            if (!player || !legends || !isQuestComplete(player, legends)) return 1462;
+        }
         return getClueScrollDefinitionForDirectItem(itemId)?.boxItemId ?? itemId;
     }
 

@@ -327,4 +327,15 @@ assert.strictEqual(
     "instance cleanup must not remove an unrelated NPC which reused a detached runtime id",
 );
 
+const duoRoom=instances.create(owner,{definitionId:"duo-boss-test",templateChunks:[],destination:{x:3000,y:3000,level:0}})!;
+let duoHealth=255;
+const duoFirst={id:8800,typeId:BOSS_TYPE_ID,worldViewId:duoRoom.worldViewId,getHitpoints:()=>duoHealth,getMaxHitpoints:()=>255};
+const duoSecond={id:8801,typeId:NEXT_BOSS_TYPE_ID,worldViewId:duoRoom.worldViewId,getHitpoints:()=>400,getMaxHitpoints:()=>500};
+npcs.set(8800,duoFirst);npcs.set(8801,duoSecond);
+instances.attachNpc(duoRoom.id,duoFirst as never);instances.attachNpc(duoRoom.id,duoSecond as never);
+assert.equal(bossHudEvents(owner.id).at(-1)?.event.npcTypeId,BOSS_TYPE_ID);
+duoHealth=0;instances.syncBossHealthBars();
+assert.equal(bossHudEvents(owner.id).at(-1)?.event.npcTypeId,NEXT_BOSS_TYPE_ID,"switch to an already-present surviving Guardian");
+assert.equal(bossHudEvents(owner.id).at(-1)?.event.current,400);
+instances.dispose(owner);
 console.log("instance boss health bar lifecycle tests passed");

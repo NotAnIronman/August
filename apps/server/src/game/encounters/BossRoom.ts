@@ -47,6 +47,11 @@ export interface BossRoomDefinition {
     readonly id: string;
     readonly doorLocId: number;
     readonly templateCopies: readonly InstanceAreaCopy[];
+    readonly sceneBase?: Readonly<{ x: number; y: number }>;
+    readonly multiCombat?: boolean;
+    /** Rechecked when selecting a dialog, not just when opening the door menu. */
+    readonly canEnter?: (player: PlayerState, services: ScriptServices) => boolean;
+    readonly onCreated?: (room: QuestInstanceHandle, services: ScriptServices) => void;
     readonly destination: Readonly<{ x: number; y: number; level: number }>;
     readonly exit: Readonly<{ x: number; y: number; level: number }>;
     readonly grave?: InstanceGraveLocation;
@@ -158,9 +163,12 @@ export function defineBossRoom(definition: BossRoomDefinition): DefinedBossRoom 
             services.messaging.sendGameMessage(player, definition.messages.alreadyInside);
             return undefined;
         }
+        if (definition.canEnter && !definition.canEnter(player, services)) return undefined;
         const templateChunks = services.instances.buildTemplate(definition.templateCopies);
         const room = services.instances.create(player, {
             definitionId: definition.id,
+            ...(definition.sceneBase ? { sceneBase: definition.sceneBase } : {}),
+            ...(definition.multiCombat !== undefined ? { multiCombat: definition.multiCombat } : {}),
             access,
             maxPlayers: access === "solo" ? 1 : partyMaxPlayers,
             joinInProgress: access === "party" && (definition.joinInProgress ?? true),
@@ -176,6 +184,7 @@ export function defineBossRoom(definition: BossRoomDefinition): DefinedBossRoom 
             return undefined;
         }
         if (definition.markStarted !== false) services.instances.markStarted(room.id);
+        definition.onCreated?.(room, services);
         return room;
     };
 
@@ -197,6 +206,7 @@ export function defineBossRoom(definition: BossRoomDefinition): DefinedBossRoom 
             services.messaging.sendGameMessage(player, definition.messages.partyUnavailable);
             return undefined;
         }
+        if (definition.canEnter && !definition.canEnter(player, services)) return undefined;
         const room = services.instances.join(player, instanceId);
         if (!room) services.messaging.sendGameMessage(player, definition.messages.partyUnavailable);
         return room;

@@ -1,5 +1,6 @@
 import type { NpcDropEntryDefinition, NpcDropTableDefinition } from "@server/game/drops/types";
 import { SCURRIUS_DROP_TABLE } from "@server/content/gamemodes/vanilla/data/scurriusDrops";
+import { GUARDIANS_DROP_TABLE, GRYPHON_DROP_TABLE } from "@server/content/gamemodes/vanilla/data/guardiansGryphonDrops";
 
 export type ManualNpcDropOverride = {
     npcTypeIds: number[];
@@ -45,6 +46,9 @@ const IMP_NPC_TYPE_IDS = [5007, 3134] as const;
 const SCORPION_NPC_TYPE_IDS = [3024, 5242, 2480, 2479] as const;
 
 export const MANUAL_NPC_DROP_OVERRIDES: ManualNpcDropOverride[] = [
+    { npcTypeIds: [7882], table: GUARDIANS_DROP_TABLE },
+    { npcTypeIds: [7852], table: { always: [] } },
+    { npcTypeIds: [14860], table: GRYPHON_DROP_TABLE },
     // The Wiki snapshot cannot currently parse Scurrius' table layout. This
     // is deliberately registered with the core drop registry as well as the
     // gamemode override so death rolls and the player-facing drop viewer use

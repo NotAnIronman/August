@@ -510,6 +510,18 @@ export class InstancedAreaManager {
                     healthBar.definition.npcTypeIds.includes(npc.typeId),
             );
         const boss = matchingBosses.find((npc) => npc.getHitpoints() > 0) ?? matchingBosses[0];
+        // Simultaneously spawned bosses (e.g. Dusk and Dawn) are already
+        // attached when the first boss dies. There is no later attach event
+        // to switch the HUD, unlike sequential Theatre rooms.
+        if (!boss || boss.getHitpoints() <= 0) {
+            for (const npcId of runtime.npcRuntimeIds) {
+                const next = this.services.npcManager?.getById(npcId);
+                if (!next || next.getHitpoints() <= 0) continue;
+                if (this.captureBossHealthBar(runtime, next.typeId, () => next.getMaxHitpoints())) {
+                    return this.resolveBossHealthBarSnapshot(runtime);
+                }
+            }
+        }
         if (boss) {
             healthBar.lastMaximum = Math.max(1, boss.getMaxHitpoints());
         }
