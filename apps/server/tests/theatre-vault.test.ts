@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { REWARD_DISPLAY_PANEL_GROUP_ID as REWARD_GROUP } from "@august/protocol/ui/widgets/custom/journalPanel.cs2";
 import { ScriptRegistry } from "@server/game/scripts/ScriptRegistry";
 import { TheatreVaultController } from "@server/content/modules/theatre-of-blood/TheatreVaultController";
 import { TheatreRuns,sanitizeTheatreRun } from "@server/content/modules/theatre-of-blood/TheatreRun";
@@ -43,7 +44,9 @@ function fixture(size=2,preview=false) {
         isAdjacentToLoc:(p:any,_id:number,t:any)=>Math.abs(p.tileX-t.x)<=1&&Math.abs(p.tileY-t.y)<=1},
     inventory:{findOwnedItemLocation:(p:any,id:number)=>p.items.getInventoryEntries().some((i:any)=>i.itemId===id)?{}:undefined,snapshotInventory:()=>{}},
     collectionLog:{sendCollectionLogSnapshot:()=>{}},data:{getObjType:()=>undefined},system:{isDeveloper:()=>preview,logger:{error(){}}},
-    dialog:{openDialogOptions:(_p:any,dialog:any)=>{services.lastDialog=dialog;}},
+    dialog:{openDialogOptions:()=>{throw new Error("Theatre rewards must not use chat dialogs");},
+        queueWidgetEvent:()=>{},closeModal:(p:any)=>{p.modal=undefined;},
+        getInterfaceService:()=>({openModal:(p:any,id:number)=>{p.modal=id;},isModalOpen:(p:any,id:number)=>p.modal===id})},
     banking:{addItemToBank:(p:any,id:number,qty:number)=>{p.items.bank.push({itemId:id,quantity:qty});return true;}},
     messaging:{sendGameMessage:(_p:any,m:string)=>messages.push(m)}};
  for(let i=0;i<size;i++) {
@@ -56,8 +59,9 @@ function fixture(size=2,preview=false) {
  const controller=new TheatreVaultController(services,()=>preview),registry=new ScriptRegistry();controller.register(registry);
  const event=(p:any,id:number,tile:any,action:string)=>({player:p,locId:id,tile,action,level:0,services,tick:1});
  const enter=(p:any)=>{Object.assign(p,{tileX:3168,tileY:4322});controller.stairs(event(p,32995,VERZIK_STAIRS_TILE,"climb"));};
- const open=(p:any,index=players.indexOf(p),id=32992)=>{const t=VAULT_CHESTS[index];Object.assign(p,{tileX:t.x,tileY:t.y-1});services.lastDialog=undefined;controller.open(event(p,id,t,"open"));services.lastDialog?.onSelect(0);};
- return {controller,players,services,registry,locs,current,record:()=>record,setRecord:(r:any)=>record=r,failClaim:(v:boolean)=>failClaim=v,claims:()=>claims,messages,event,enter,open};
+ const click=(p:any,child=852,opId=1)=>registry.findWidgetAction((REWARD_GROUP<<16)|child,opId)?.({player:p,services,groupId:REWARD_GROUP,widgetId:(REWARD_GROUP<<16)|child,opId,tick:1} as any);
+ const open=(p:any,index=players.indexOf(p),id=32992)=>{const t=VAULT_CHESTS[index];Object.assign(p,{tileX:t.x,tileY:t.y-1});controller.open(event(p,id,t,"open"));click(p);};
+ return {controller,players,services,registry,locs,current,record:()=>record,setRecord:(r:any)=>record=r,failClaim:(v:boolean)=>failClaim=v,claims:()=>claims,messages,event,enter,open,click};
 }
 for(let size=1;size<=5;size++) {
  const f=fixture(size),a=f.players[0];
@@ -99,7 +103,7 @@ console.log("Vault: party sizes, private chest options, atomic rollback, full ba
  f.open(p);
  assert.deepEqual(f.record().rewards[0].received,[1500,0]);
  assert(!f.record().rewards[0].claimed);assert.equal(p.collectionLog.getCategoryStat(506).count1,1);
- const retry=f.services.lastDialog.onSelect;
+ const retry=(_choice:number)=>f.click(p,854);
  f.failClaim(true);retry(1);assert.equal(p.items.bank.length,0,"failed save restores bank too");
  assert.deepEqual(f.record().rewards[0].received,[1500,0]);
  f.failClaim(false);retry(1);

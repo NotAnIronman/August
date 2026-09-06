@@ -1,4 +1,5 @@
 import { chatHistory } from "@client/engine/cs2/ChatHistory";
+import { submitPrivateMessageInput } from "@client/features/chat/PrivateMessageInput";
 import { resolveWidgetOpKey } from "@client/engine/game/widgets/input/widgetOpKey";
 import { clientDebugLog } from "@client/core/diagnostics/clientDiagnostics";
 import type { ScriptEvent } from "@client/engine/cs2/Cs2Vm";
@@ -158,6 +159,7 @@ export function processWidgetKeyboardInput(
 
         // Process all key events for all widgets with onKey handlers
         for (const keyEvent of input.keyEvents) {
+            submitPrivateMessageInput(deps.getVarManager(),keyEvent.keyTyped);
             // Enter-to-type gate (desktop): Enter/Escape toggle chat typing mode and
             // are consumed; while locked, no keys are delivered to chatbox widgets.
             if (deps.getEnterToTypeChat().handleKeyEvent(keyEvent, dialogActive)) {

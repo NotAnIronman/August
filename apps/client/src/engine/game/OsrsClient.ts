@@ -5207,6 +5207,7 @@ export class OsrsClient {
                     tileY: group.tileY,
                     level: group.level,
                     label: candidate.label,
+                    itemName: candidate.stack.name,
                     color: candidate.labelColor,
                     timerLabel: candidate.timerLabel,
                     timerColor: candidate.timerColor,

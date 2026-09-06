@@ -421,7 +421,7 @@ export class BankingManager implements BankingProvider {
         const empty = bank.find(
             (entry) =>
                 entry.itemId <= 0 ||
-                entry.quantity <= 0 ||
+                (entry.quantity <= 0 && !entry.placeholder) ||
                 (entry.placeholder && entry.itemId === normalizedId) ||
                 entry.filler,
         );
@@ -727,7 +727,7 @@ export class BankingManager implements BankingProvider {
         tab: number;
     } {
         const rawItemId = entry.itemId;
-        const placeholder = !!entry.placeholder;
+        const placeholder = !!entry.placeholder || this.isCachePlaceholder(rawItemId);
         const filler = !!entry.filler;
 
         let itemId = rawItemId;
@@ -804,10 +804,9 @@ export class BankingManager implements BankingProvider {
         if (moved) {
             this.services.sendInventorySnapshot(player.id);
             this.queueBankSnapshot(player);
-            // Update tab varbits if a specific tab was targeted (may create new tab)
-            if (tab !== undefined && tab > 0) {
-                this.sendBankTabVarbits(player);
-            }
+            // The normal deposit-all button targets the current tab implicitly.
+            // Every changed count must accompany the newly flattened container.
+            this.sendBankTabVarbits(player);
         }
         return moved;
     }
@@ -1465,6 +1464,16 @@ export class BankingManager implements BankingProvider {
         return true;
     }
 
+    private isCachePlaceholder(itemId:number):boolean {
+        if(!(itemId>0) || itemId===20594)return false;
+        const obj=this.services.getObjType(itemId) as {placeholderTemplate?:number;placeholder?:number}|undefined;
+        // Require both sides of the cache link: never classify ordinary items
+        // (which also have a placeholder field) as disposable placeholder copies.
+        if(!obj || !(Number(obj.placeholderTemplate)>=0) || !(Number(obj.placeholder)>0))return false;
+        const base=this.services.getObjType(obj.placeholder!) as {placeholderTemplate?:number;placeholder?:number}|undefined;
+        return base?.placeholderTemplate===-1 && base.placeholder===itemId;
+    }
+
     releasePlaceholder(player: PlayerState, clientSlot: number, itemIdHint?: number): boolean {
         if (!Number.isFinite(clientSlot)) return false;
         const serverSlot = this.clientSlotToServerIndex(player, Math.trunc(clientSlot));
@@ -1475,8 +1484,7 @@ export class BankingManager implements BankingProvider {
         if (
             !entry ||
             entry.itemId <= 0 ||
-            !entry.placeholder ||
-            entry.quantity !== 0 ||
+            (!(entry.placeholder && entry.quantity === 0) && !this.isCachePlaceholder(entry.itemId)) ||
             entry.filler
         ) {
             return false;
@@ -1516,7 +1524,7 @@ export class BankingManager implements BankingProvider {
         let cleared = 0;
         const bank = this.getBank(player);
         for (const entry of bank) {
-            if (!entry || !entry.placeholder || entry.quantity !== 0) continue;
+            if (!entry || entry.filler || (!(entry.placeholder && entry.quantity === 0) && !this.isCachePlaceholder(entry.itemId))) continue;
             if (tab !== undefined && entry.tab !== tab) continue;
             entry.itemId = -1;
             entry.quantity = 0;

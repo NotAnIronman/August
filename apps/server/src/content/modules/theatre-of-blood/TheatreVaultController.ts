@@ -1,4 +1,5 @@
 import type { PlayerState } from "@server/game/player";
+import { openRewardDisplay, registerRewardDisplayActions } from "@server/content/gamemodes/vanilla/widgets/rewardDisplay";
 import { getLocInteractionRangeOverride } from "@august/game-model/world/LocRouteOverrides";
 import type { IScriptRegistry, ScriptServices, LocInteractionEvent } from "@server/game/scripts/types";
 import type { TemporaryLocChange } from "@server/game/services/LocationService";
@@ -83,22 +84,15 @@ export class TheatreVaultController {
         const store=this.services.instances.theatreRuns;
         if(!store?.claim){this.message(player,"Reward storage is unavailable. Your chest has been kept safe.");return;}
         if (!destination) {
-            this.services.dialog.openDialogOptions(player, {id:"theatre-rewards",title:"Claim Theatre rewards",modal:true,
-                options:["Deposit to inventory","Deposit to bank","Claim individual loot","Close"],
-                onSelect: choice => {
-                    if(choice===0 || choice===1) this.open(event,choice===0?"inventory":"bank");
-                    else if(choice===2) {
-                        const available=reward.items.map((item,i)=>({item,i,left:item.quantity-(reward.received?.[i]??0)})).filter(r=>r.left>0);
-                        this.services.dialog.openDialogOptions(player,{id:"theatre-reward-item",title:"Choose loot",modal:true,
-                            options:available.map(r=>`${this.services.data.getObjType(r.item.itemId)?.name??r.item.itemId} x ${r.left}`),
-                            onSelect:index=>{
-                                const item=available[index];if(!item)return;
-                                this.services.dialog.openDialogOptions(player,{id:"theatre-reward-destination",title:"Claim selected loot",modal:true,
-                                    options:["Deposit to inventory","Deposit to bank","Back"],
-                                    onSelect:choice=>choice===0||choice===1?this.open(event,choice===0?"inventory":"bank",item.i):this.open(event)});
-                            }});
-                    }
-                }});
+            // Keep original slot indices stable during partial claims.
+            openRewardDisplay(player,this.services,"Theatre of Blood",reward.items.map((item,i)=>({
+                itemId:item.quantity>(reward.received?.[i]??0)?item.itemId:-1,
+                quantity:item.quantity-(reward.received?.[i]??0),
+            })),{icon:{itemId:565},claim:(dest,slot)=>{
+                // Reject stale windows after leaving/rejoining a different raid.
+                if(this.runs()?.vaultCurrent(player)?.id!==run.id)return;
+                this.open(event,dest,slot);
+            }});
             return;
         }
         const expectedReward=structuredClone(reward);
@@ -156,6 +150,7 @@ export class TheatreVaultController {
         this.sync(player);
         this.message(player,"Your selected loot has been deposited. Unclaimed loot remains in your chest.");
         if(!reward.claimed)this.open(event);
+        else this.services.dialog.closeModal(player);
         if(firstClaim && reward.pet)this.message(player,`Lil' zik joins your collection at ${player.collectionLog.getCategoryStat(THEATRE_LOG_STRUCT)!.count1} Theatre completions!`);
     }
     exit(event:LocInteractionEvent):void {
@@ -182,6 +177,7 @@ export class TheatreVaultController {
         }
     }
     register(registry:IScriptRegistry):void {
+        registerRewardDisplayActions(registry);
         for(const [id,action,handler] of [
             [VAULT_STAIRS,"climb",(e:LocInteractionEvent)=>this.stairs(e)],
             [VAULT_CRYSTAL,"use",(e:LocInteractionEvent)=>this.exit(e)],

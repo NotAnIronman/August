@@ -1,4 +1,6 @@
 import { vec3 } from "gl-matrix";
+import { ClientState } from "@client/engine/game/ClientState";
+import { groundItemEditControls } from "@client/features/plugins/grounditems/GroundItemEditControls";
 import {
     DrawCall,
     App as PicoApp,
@@ -71,7 +73,7 @@ const TEXTURE_CACHE_MAX = 512;
 export class GroundItemOverlay implements Overlay {
     constructor(
         _program: Program,
-        private ctx: { getCacheSystem: () => any },
+        private ctx: { getCacheSystem: () => any; editItem?: (name:string,list:"highlight"|"hide")=>void },
     ) {}
 
     private app!: PicoApp;
@@ -128,6 +130,8 @@ export class GroundItemOverlay implements Overlay {
 
     draw(phase: RenderPhase): void {
         if (phase !== RenderPhase.PostPresent) return;
+        groundItemEditControls.hits=[];
+        groundItemEditControls.apply=this.ctx.editItem;
         if (!this.drawCall || !this.positions || !this.uvs) return;
         const args = this.lastArgs;
         if (!args || this.entries.length === 0) return;
@@ -240,6 +244,19 @@ export class GroundItemOverlay implements Overlay {
                     .uniform("u_tint", this.tint)
                     .texture("u_sprite", tex.tex)
                     .draw();
+                if(ClientState.isAltPressed() && entry.itemName) {
+                    for(const [index,label,list] of [[0,"[-]","hide"],[1,"[+]","highlight"]] as const) {
+                        const icon=this.getTextTexture(label,"",list==="hide"?0xff8888:0x88ff88,0xffffff,true);
+                        if(!icon)continue;
+                        const x=left+width+4*scale+index*24*scale,y=top;
+                        const w=icon.w*scale,h=icon.h*scale;
+                        if(viewport&&(x<viewport.x||y<viewport.y||x+w>viewport.x+viewport.width||y+h>viewport.y+viewport.height))continue;
+                        this.quadVerts.set([x,y,x,y+h,x+w,y+h,x,y,x+w,y+h,x+w,y]);
+                        this.positions.data(this.quadVerts);
+                        this.drawCall.texture("u_sprite",icon.tex).draw();
+                        groundItemEditControls.hits.push({x,y,width:w,height:h,name:entry.itemName,list});
+                    }
+                }
             }
         } finally {
             this.restoreGlState(savedState);
@@ -247,6 +264,7 @@ export class GroundItemOverlay implements Overlay {
     }
 
     dispose(): void {
+        groundItemEditControls.hits=[];groundItemEditControls.apply=undefined;
         this.releaseGpuResources();
         this.lastArgs = undefined;
         this.entries = [];

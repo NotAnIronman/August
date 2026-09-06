@@ -1,0 +1,26 @@
+import assert from "node:assert/strict";
+import { BankingManager } from "@server/content/gamemodes/vanilla/banking/BankingManager";
+import { PlayerInventoryState } from "@server/game/state/PlayerInventoryState";
+import { PlayerBankSystem } from "@server/game/state/PlayerBankSystem";
+const items=new PlayerInventoryState(),bank=new PlayerBankSystem(items);
+bank.setBankCapacity(20);
+const p:any={id:1,items,bank};const vars:any[]=[];
+const svc:any={getInventory:()=>items.inventory,sendInventorySnapshot:()=>{},queueBankSnapshot:()=>{},queueChatMessage:()=>{},
+ queueVarbit:(...args:any[])=>vars.push(args),getObjType:(id:number)=>id===100001?{placeholderTemplate:14401,placeholder:100000}:id===100000?{placeholderTemplate:-1,placeholder:100001}:undefined};
+const manager=new BankingManager(svc);
+items.bank[0]={itemId:995,quantity:0,placeholder:true,tab:1};
+items.bank[1]={itemId:556,quantity:10,placeholder:false,tab:2};
+items.bank[2]={itemId:555,quantity:20,placeholder:false,tab:1};
+bank.setBankCurrentTab(1);items.inventory=[{itemId:554,quantity:5},{itemId:556,quantity:5}];
+assert(manager.depositInventory(p));
+assert.deepEqual(items.bank.filter(e=>e.itemId>0).map(e=>[e.itemId,e.quantity,e.tab]),[[995,0,1],[556,15,2],[555,20,1],[554,5,1]]);
+assert.equal(vars.length,9,"implicit current tab sends all tab boundaries");
+assert.equal(vars[0][2],3);assert.equal(vars[1][2],1);
+assert.equal(manager.releasePlaceholder(p,0,995),true);
+assert.equal(items.bank.find(e=>e.itemId===556)?.quantity,15);
+items.bank[3]={itemId:100001,quantity:1,placeholder:false,tab:0};
+manager.queueBankSnapshot(p);
+assert(manager.buildBankPayload(p)?.slots.some(e=>e.itemId===100001&&e.placeholder&&e.quantity===0));
+assert.equal(manager.releasePlaceholders(p),1,"release recognizes linked cache copies even with legacy quantity");
+assert(items.bank.some(e=>e.itemId===556&&e.quantity===15),"real item with placeholder metadata must survive");
+console.log("Deposit tab ordering, reserved slots, implicit tab counts, and legacy cache-placeholder release passed");

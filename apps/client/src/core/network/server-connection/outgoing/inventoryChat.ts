@@ -95,20 +95,22 @@ export function sendChat(
     messageType: "public" | "game" | "friends_chat" | "private" = "public",
     chatType: number = 0,
     recipient?: string,
-): void {
+): boolean {
     if (!state.socket || state.socket.readyState !== WebSocket.OPEN) {
         console.warn("[sendChat] Dropped: socket not open");
-        return;
+        return false;
     }
     const filtered = sanitizeChatText(String(text ?? ""));
     if (!filtered) {
-        return;
+        return false;
     }
 
-    const formatting = parseOutgoingPublicChat(filtered);
+    const formatting = messageType === "private"
+        ? { text:filtered,colorId:0,effectId:0,pattern:undefined }
+        : parseOutgoingPublicChat(filtered);
     const payloadText = formatting.text;
     if (!payloadText) {
-        return;
+        return false;
     }
 
     send({
@@ -123,6 +125,7 @@ export function sendChat(
             pattern: formatting.pattern ? Array.from(formatting.pattern) : undefined,
         },
     } as any);
+    return true;
 }
 
 export function sendFriendsChatAction(payload: FriendsChatAction): void {

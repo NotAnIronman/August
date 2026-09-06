@@ -1,106 +1,74 @@
-import { REWARD_DISPLAY_PANEL_GROUP_ID } from "@august/protocol/ui/widgets/custom/journalPanel.cs2";
+import { REWARD_DISPLAY_PANEL_GROUP_ID as GROUP } from "@august/protocol/ui/widgets/custom/journalPanel.cs2";
+import { FONT_PLAIN_12 } from "@august/protocol/ui/fonts";
 import type { WidgetNode } from "@client/ui/widgets/WidgetNode";
 import { buildUiPanel } from "@client/ui/widgets/uikit/PanelBuilder";
+import { createPanelResizeController } from "@client/ui/widgets/uikit/ResizeController";
 import { registerUiPanel } from "@client/ui/widgets/uikit/registry";
 
-export const REWARD_DISPLAY_SLOT_BASE = 1000;
-// 4 columns x 4 rows, per feedback on the previous 6+3+3 layout.
-const GRID_COLUMNS = 4;
-const GRID_ROWS = 4;
-const SLOT_COUNT = GRID_COLUMNS * GRID_ROWS;
-const SLOT_SIZE = 64; // "about twice as big" as the original 32px slots
-const SLOT_GAP = 7;
-
-/** Real, catalog-validated "Casket" item (id 405). Rendered as a type-6 3D
- *  model rather than the flat type-5 sprite - the item definition carries
- *  its own OSRS-authentic camera angles (xan2d/yan2d/zan2d) and zoom, and
- *  the widget renderer self-normalizes that zoom against rawWidth, so this
- *  scales crisply to whatever box we give it instead of a blown-up icon. */
-const CHEST_DECORATION_ITEM_ID = 405;
-// 850 sits clear of every shared ComponentIds range this panel doesn't use
-// (icon-row bases top out at 799, FOOTER_BUTTON starts at 900) so it can't
-// collide if this panel later opts into buildUiPanel's footer/search/etc.
-const CHEST_COMPONENT_ID = 850;
-
-const PANEL_WIDTH = 480; // widened so the chest (left) and grid (right)
-// have real room side-by-side instead of nearly overlapping - the old
-// 320px width barely fit the grid alone (277px), let alone both.
-const PANEL_HEIGHT = 334; // buildUiPanel's MAINMODAL_SAFE_HEIGHT ceiling
-const LEFT_MARGIN = 16;
-const RIGHT_MARGIN = 16;
-const GRID_TOP = 40;
-
-// Chest keeps its original 140x140 size and its "~30px above the bottom
-// edge" vertical position, now anchored to the left side of the panel
-// instead of the right (grid moved to the right side in its place).
-const CHEST_WIDTH = 140;
-const CHEST_HEIGHT = 140;
-const CHEST_BOTTOM_MARGIN = 30;
-const CHEST_X = LEFT_MARGIN;
-const CHEST_Y = PANEL_HEIGHT - CHEST_BOTTOM_MARGIN - CHEST_HEIGHT;
-
-const GRID_WIDTH = GRID_COLUMNS * SLOT_SIZE + (GRID_COLUMNS - 1) * SLOT_GAP;
-const GRID_X = PANEL_WIDTH - RIGHT_MARGIN - GRID_WIDTH;
-
-function uid(componentId: number): number {
-    return ((REWARD_DISPLAY_PANEL_GROUP_ID & 0xffff) << 16) | (componentId & 0xffff);
+export const REWARD_DISPLAY_SLOT_BASE=1000;
+const HANDLES=[860,861,862,863];
+const uid=(id:number)=>(GROUP<<16)|id;
+export function rewardGridMetrics(width:number,height:number) {
+    return {cellW:Math.floor((width-32)/4),cellH:Math.floor((height-150)/4)};
 }
 
-function slotPosition(slot: number): { x: number; y: number } {
-    const column = slot % GRID_COLUMNS;
-    const row = Math.floor(slot / GRID_COLUMNS);
-    return {
-        x: GRID_X + column * (SLOT_SIZE + SLOT_GAP),
-        y: GRID_TOP + row * (SLOT_SIZE + SLOT_GAP),
+/** Rewards keep native 36:32 artwork. Space grows, never the item sprite. */
+export function buildRewardPanel() {
+    const built=buildUiPanel(GROUP,{width:480,height:334,content:{rowKind:"text",rowHeight:18,scrollbarWidth:0}});
+    const root=built.root!;
+    const add=(id:number,props:Partial<WidgetNode>)=>{
+        const w:WidgetNode={...root,uid:uid(id),id:uid(id),fileId:id,parentUid:root.uid,
+            type:3,rawX:0,rawY:0,rawWidth:0,rawHeight:0,width:0,height:0,
+            xPositionMode:0,yPositionMode:0,noClickThrough:false,...props};
+        built.widgets.set(w.uid,w);return w;
     };
+    add(850,{type:5,rawX:16,rawY:38,rawWidth:36,rawHeight:32,spriteId:1041});
+    add(851,{type:4,rawX:56,rawY:38,rawWidth:390,rawHeight:32,fontId:FONT_PLAIN_12,
+        text:"Rewards",textColor:0xffd981,yTextAlignment:1});
+    for(let slot=0;slot<16;slot++) {
+        add(1000+slot*2,{filled:true,color:0x30291f,rawWidth:96,rawHeight:42});
+        add(1001+slot*2,{type:5,rawWidth:36,rawHeight:32,itemId:-1,itemQuantity:0,itemQuantityMode:2,
+            noClickThrough:true,actions:["Claim to inventory","Claim to bank"],flags:6});
+    }
+    for(const id of [848,849])add(id,{rawY:38,yPositionMode:2,rawWidth:194,rawHeight:28,
+        filled:true,color:0x493c29,cacheUiAsset:"cache.sprite.293.0",cacheUiAssetHover:"cache.sprite.294.0"});
+    // 907 is the native inventory-tab bag; 1041 is the bank's deposit icon.
+    for(const [id,label,sprite] of [[852,"Deposit to inventory",907],[854,"Deposit to bank",1041]] as const) {
+        add(id,{type:4,rawWidth:194,rawHeight:28,rawY:38,yPositionMode:2,fontId:FONT_PLAIN_12,
+            text:label,textColor:0xffd981,xTextAlignment:1,yTextAlignment:1,actions:[label],flags:2,noClickThrough:true});
+        add(id+1,{type:5,rawWidth:22,rawHeight:22,rawY:35,yPositionMode:2,spriteId:sprite});
+    }
+    HANDLES.forEach((id,i)=>add(id,{type:4,rawWidth:14,rawHeight:14,rawX:2,rawY:2,
+        xPositionMode:i%2===0?0:2,yPositionMode:i<2?0:2,text:i<2?"+":"//",
+        fontId:FONT_PLAIN_12,textColor:0xa99b7d,noClickThrough:true}));
+    return built;
 }
 
-function slotWidget(componentId: number, parentUid: number, x: number, y: number): WidgetNode {
-    return {
-        uid: uid(componentId), id: uid(componentId), childIndex: -1, parentUid,
-        groupId: REWARD_DISPLAY_PANEL_GROUP_ID, fileId: componentId, isIf3: true, type: 5,
-        contentType: 0, rawX: x, rawY: y, rawWidth: SLOT_SIZE, rawHeight: SLOT_SIZE,
-        width: SLOT_SIZE, height: SLOT_SIZE, widthMode: 0, heightMode: 0,
-        xPositionMode: 0, yPositionMode: 0, x, y, scrollX: 0, scrollY: 0,
-        scrollWidth: 0, scrollHeight: 0, isHidden: false, hidden: false, cachedHidden: false,
-        rootIndex: -1, cycle: -1, modelFrame: 0, modelFrameCycle: 0, aspectWidth: 1,
-        aspectHeight: 1, itemId: -1, itemQuantity: 0, itemQuantityMode: 2, noClickThrough: true,
-        // Keep the cache's native item-icon canvas. In particular, noted
-        // items compose their banknote layer at this native size; forcing a
-        // square 64px render offsets that layer beyond the reward slot.
-    };
-}
-
-function chestWidget(parentUid: number): WidgetNode {
-    const cuid = uid(CHEST_COMPONENT_ID);
-    return {
-        uid: cuid, id: cuid, childIndex: -1, parentUid,
-        groupId: REWARD_DISPLAY_PANEL_GROUP_ID, fileId: CHEST_COMPONENT_ID, isIf3: true, type: 6,
-        contentType: 0, rawX: CHEST_X, rawY: CHEST_Y, rawWidth: CHEST_WIDTH, rawHeight: CHEST_HEIGHT,
-        width: CHEST_WIDTH, height: CHEST_HEIGHT, widthMode: 0, heightMode: 0,
-        xPositionMode: 0, yPositionMode: 0, x: CHEST_X, y: CHEST_Y, scrollX: 0, scrollY: 0,
-        scrollWidth: 0, scrollHeight: 0, isHidden: false, hidden: false, cachedHidden: false,
-        rootIndex: -1, cycle: -1, modelFrame: 0, modelFrameCycle: 0, aspectWidth: 1,
-        aspectHeight: 1, itemId: CHEST_DECORATION_ITEM_ID, itemQuantity: 1, noClickThrough: false,
-    };
-}
-
-registerUiPanel({
-    groupId: REWARD_DISPLAY_PANEL_GROUP_ID,
-    build: () => {
-        const built = buildUiPanel(REWARD_DISPLAY_PANEL_GROUP_ID, {
-            width: PANEL_WIDTH, height: PANEL_HEIGHT,
-            content: { rowKind: "text", rowHeight: 18, scrollbarWidth: 0 },
-        });
-        const root = built.root;
-        if (!root) return built;
-        const rootUid = root.uid;
-        built.widgets.set(uid(CHEST_COMPONENT_ID), chestWidget(rootUid));
-        for (let slot = 0; slot < SLOT_COUNT; slot += 1) {
-            const { x, y } = slotPosition(slot);
-            const itemId = REWARD_DISPLAY_SLOT_BASE + slot * 2 + 1;
-            built.widgets.set(uid(itemId), slotWidget(itemId, rootUid, x, y));
+registerUiPanel({groupId:GROUP,build:buildRewardPanel,
+    galleryClickController:createPanelResizeController(GROUP,HANDLES,340,300),
+    onProcess:wm=>{
+        if(wm.getInterfaceParentContainerUid(GROUP)===undefined)return;
+        const root=wm.getGroup(GROUP)?.root;if(!root)return;
+        const {cellW,cellH}=rewardGridMetrics(root.width,root.height);
+        const position=(id:number,x:number,y?:number,w?:number,h?:number)=>{
+            const node=wm.getWidgetByUid(uid(id));if(!node)return;
+            if(node.rawX===x&&(y===undefined||node.rawY===y)&&(w===undefined||node.rawWidth===w)&&(h===undefined||node.rawHeight===h))return;
+            node.rawX=x;if(y!==undefined)node.rawY=y;if(w!==undefined)node.rawWidth=w;if(h!==undefined)node.rawHeight=h;
+            wm.invalidateWidget(node,"reward-layout");
+            wm.ensureLayout(node);wm.invalidateWidgetRender(node,"reward-layout");
+        };
+        for(let i=0;i<16;i++){
+            const item=wm.getWidgetByUid(uid(1001+i*2));
+            if(item){const canClaim=!wm.getWidgetByUid(uid(852))?.hidden && (item.itemId??-1)>0;
+                item.flags=canClaim?6:0;item.actions=canClaim?["Claim to inventory","Claim to bank"]:undefined;}
+            const x=16+(i%4)*cellW,y=76+Math.floor(i/4)*cellH;
+            position(1000+i*2,x,y,cellW-6,cellH-4);
+            position(1001+i*2,x+Math.floor((cellW-42)/2),y+Math.floor((cellH-36)/2));
         }
-        return built;
+        const half=Math.floor((root.width-32)/2);
+        position(851,56,undefined,root.width-76);
+        position(848,16,undefined,half-4);position(849,16+half,undefined,half-4);
+        position(852,44,undefined,half-32);position(853,18);
+        position(854,44+half,undefined,half-32);position(855,18+half);
     },
 });

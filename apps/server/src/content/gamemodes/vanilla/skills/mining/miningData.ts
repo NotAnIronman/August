@@ -224,7 +224,9 @@ const ROCK_DEFINITIONS: MiningRockDefinition[] = [
         swingTicks: 6,
         mineChance: 10,
         mineRatio: 7,
-        depleteChance: 1,
+        // A persistent vein, like a tree: each successful yield has a one-in-five
+        // depletion roll rather than guaranteeing depletion after one crystal.
+        depleteChance: 0.2,
     },
     {
         id: "gem",

@@ -1,4 +1,7 @@
 import type { WidgetManager } from "@client/ui/widgets/WidgetManager";
+import { ClientState } from "@client/engine/game/ClientState";
+import { clickGroundItemEdit } from "@client/features/plugins/grounditems/GroundItemEditControls";
+import { ClickMode } from "@client/core/input/InputManager";
 import type { InputManager } from "@client/core/input/InputManager";
 import { clearHealthOrbTooltip } from "@client/features/health-orb/HealthOrbTooltip";
 import type { WidgetInteractionController } from "@client/engine/game/widgets/WidgetInteractionController";
@@ -73,6 +76,10 @@ export class WidgetInputController {
 
         processWidgetMenuWheelInput(this.deps, frame);
         const skipPointerInput = shouldSkipWidgetPointerInput(this.deps);
+        if(!skipPointerInput && ClientState.isAltPressed() && input.clickMode3===ClickMode.LEFT &&
+            !frame.hits.some(w=>w.contentType!==1337 && (w.noClickThrough || frame.isInputCaptureWidget(w.uid) || w.actions?.some(Boolean))) && clickGroundItemEdit(frame.mx,frame.my)) {
+            input.clickMode3=ClickMode.NONE;input.clickMode1=ClickMode.NONE;
+        }
         // UIKit panels draw their own scrollbars beside IF3 content. Give the
         // active panel first claim on wheel input so underlying minimap and
         // legacy IF1 hit-zones cannot consume its wheel gesture.

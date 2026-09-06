@@ -400,7 +400,7 @@ function registerMainBankWidgets(registry: IScriptRegistry): void {
             widgetId: BANK_WIDGET_ITEMS,
             opId,
             handler: (event) => {
-                if (opId === 8 && handleReleasePlaceholderOp(event)) return;
+                if ((opId === 8 || event.option?.trim().toLowerCase() === "release") && handleReleasePlaceholderOp(event)) return;
                 handleWithdrawOp(event, opId);
             },
         });

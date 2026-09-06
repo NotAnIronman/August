@@ -1424,9 +1424,9 @@ export class WidgetManager {
                     `[WidgetManager] Found Viewport Widget: ${node.uid} (Group ${groupId})`,
                 );
                 this.viewportWidget = node;
-            } else if (contentType === ContentType.MINIMAP) {
+            } else if (contentType === ContentType.MINIMAP && groupId === this.rootInterface) {
                 this.minimapWidget = node;
-            } else if (contentType === ContentType.COMPASS) {
+            } else if (contentType === ContentType.COMPASS && groupId === this.rootInterface) {
                 this.compassWidget = node;
             }
 
@@ -1526,10 +1526,17 @@ export class WidgetManager {
     }
 
     private initializeRoot(instance: WidgetGroupInstance): void {
-        // Loading a cached root does not rebuild its index. Select its viewport
-        // explicitly, and never let preloading an inactive layout steal it.
-        this.viewportWidget = [...instance.widgetsByUid.values()].find(
+        // Cached roots skip index rebuilding after setRootInterface clears these
+        // references. Restore all three from the active layout, not a preloaded one.
+        const widgets = [...instance.widgetsByUid.values()];
+        this.viewportWidget = widgets.find(
             node => node.contentType === ContentType.VIEWPORT,
+        ) ?? null;
+        this.minimapWidget = widgets.find(
+            node => node.contentType === ContentType.MINIMAP,
+        ) ?? null;
+        this.compassWidget = widgets.find(
+            node => node.contentType === ContentType.COMPASS,
         ) ?? null;
         const roots = this.getAllGroupRoots(instance.groupId);
         const getStaticChildren = (uid: number) => this.getStaticChildrenByParentUid(uid);

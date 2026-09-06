@@ -201,6 +201,19 @@ async function main(): Promise<void> {
         );
 
         const identity = mat4.create();
+        const {ClientState}=await import("@client/engine/game/ClientState");
+        const {groundItemEditControls}=await import("@client/features/plugins/grounditems/GroundItemEditControls");
+        labelInternal.positions.data=()=>{};
+        const draw:any={uniform:()=>draw,texture:()=>draw,draw:()=>{}};
+        labelInternal.drawCall=draw;
+        labelInternal.entries[0].itemName="Coins";
+        ClientState.setKeybindState(86,true);
+        try {
+            labels.draw(RenderPhase.PostPresent);
+            assert.deepEqual(groundItemEditControls.hits.map(h=>[h.name,h.list]),[["Coins","hide"],["Coins","highlight"]]);
+        } finally {ClientState.setKeybindState(86,false);}
+        labels.draw(RenderPhase.PostPresent);
+        assert.equal(groundItemEditControls.hits.length,0,"Alt release removes edit hitboxes");
         const projectionBehind = mat4.create();
         projectionBehind[15] = -1;
         const projectionInvalid = mat4.create();

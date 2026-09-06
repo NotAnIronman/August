@@ -120,10 +120,12 @@ export function buildUiPanel(groupId: number, layout: UiPanelBuildLayout): Widge
 
     const root = makeWidget(groupId, ComponentIds.ROOT, -1, {
         type: 0,
-        // Steelborder is a cache script that expects a full-modal host. The
-        // visible border is produced inside this canvas-sized component.
-        widthMode: 1,
-        heightMode: 1,
+        // A panel owns its dimensions. Filling the host inherits dimensions
+        // and scroll extents left behind by previously mounted cache interfaces.
+        widthMode: 0,
+        heightMode: 0,
+        rawWidth: layout.width,
+        rawHeight: layout.height,
         width: layout.width,
         height: layout.height,
         xPositionMode: 1,

@@ -24,6 +24,7 @@ export type ClientGroundItemStack = GroundItemStackMessage & {
 };
 
 export type GroundItemOverlayEntry = {
+    itemName?: string;
     tileX: number;
     tileY: number;
     level: number;

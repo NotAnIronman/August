@@ -360,6 +360,10 @@ export async function initShaders(host: WebGLOsrsRendererHost, ): Promise<Progra
             if (host.overlayManager && host.hitsplatProgram && host.sceneUniformBuffer) {
                 const ground = new GroundItemOverlay(host.hitsplatProgram, {
                     getCacheSystem: () => host.osrsClient.cacheSystem,
+                    editItem:(name,list)=>{
+                        const plugin=host.osrsClient.groundItemsPlugin;
+                        if(plugin.getConfig().enabled && !plugin.hasExactItemListEntry(name,list))plugin.toggleItemList(name,list);
+                    },
                 });
                 host.groundItemOverlay = ground;
                 host.overlayManager.add(ground);

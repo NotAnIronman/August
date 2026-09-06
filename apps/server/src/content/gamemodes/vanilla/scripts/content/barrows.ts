@@ -219,7 +219,7 @@ function rewardChest(player: PlayerState, services: ScriptServices, run: Barrows
     for (const reward of rewards) services.collectionLog.trackCollectionLogItem(player, reward.itemId);
     player.collectionLog.incrementCategoryStat(BARROWS_CHEST_COLLECTION_LOG_STRUCT_ID);
     services.collectionLog.sendCollectionLogSnapshot(player);
-    openRewardDisplay(player, services, "Barrows chest", rewards);
+    openRewardDisplay(player, services, "Barrows chest", rewards, {icon:{archiveId:4267}});
     services.messaging.sendGameMessage(player, `You search the chest. ${killedCount} Barrows brother${killedCount === 1 ? "" : "s"} defeated.`);
 }
 
