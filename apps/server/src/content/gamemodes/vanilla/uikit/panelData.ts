@@ -477,6 +477,38 @@ const ROW_ACTION_SPRITES: Record<number, { archiveId: number; frame: number }> =
     [ComponentIds.ROW_DELETE_BASE]: { archiveId: 535, frame: 0 },
 };
 
+/**
+ * Shows/hides/sets a real cache checkbox sprite per row (checked/unchecked),
+ * for panels that want a genuine visual "owned" indicator instead of plain
+ * text. `states[i]`: true = checked, false = unchecked, undefined = hide
+ * entirely (rows where the concept doesn't apply, e.g. a Buy-tab item).
+ * Sprite ids sourced directly from the project's own cache reference
+ * (checkbox unchecked/checked = archive 941/942, frame 0).
+ */
+const CHECKBOX_UNCHECKED_SPRITE = { archiveId: 941, frame: 0 };
+const CHECKBOX_CHECKED_SPRITE = { archiveId: 942, frame: 0 };
+
+export function sendUiRowCheckboxes(
+    services: ScriptServices,
+    playerId: number,
+    groupId: number,
+    states: readonly (boolean | undefined)[],
+): void {
+    for (let i = 0; i < ComponentIds.MAX_ROWS; i++) {
+        const uid = packUid(groupId, ComponentIds.ROW_CHECKBOX_BASE + i);
+        const state = states[i];
+        if (state === undefined) {
+            services.dialog.queueWidgetEvent(playerId, { action: "set_hidden", uid, hidden: true });
+            continue;
+        }
+        const sprite = state ? CHECKBOX_CHECKED_SPRITE : CHECKBOX_UNCHECKED_SPRITE;
+        services.dialog.queueWidgetEvent(playerId, {
+            action: "set_sprite", uid, archiveId: sprite.archiveId, frame: sprite.frame,
+        });
+        services.dialog.queueWidgetEvent(playerId, { action: "set_hidden", uid, hidden: false });
+    }
+}
+
 export function sendUiRowActions(
     services: ScriptServices,
     playerId: number,

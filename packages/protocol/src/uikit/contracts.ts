@@ -67,6 +67,10 @@ export const ComponentIds = {
     ICON_ROW_BACKGROUND_BASE: 4700,
     /** Vertically centred primary labels for icon rows with no secondary text. */
     ICON_ROW_CENTERED_NAME_BASE: 4800,
+    /** Per-row status checkbox icon (checked/unchecked sprite), for panels
+     *  that want a real visual "owned" indicator instead of plain text -
+     *  see sendUiRowCheckboxes in panelData.ts. Sized to MAX_ROWS. */
+    ROW_CHECKBOX_BASE: 4900,
 } as const;
 
 export type UiRowKind = "text" | "icon" | "mixed" | "picker" | "sprite-gallery";

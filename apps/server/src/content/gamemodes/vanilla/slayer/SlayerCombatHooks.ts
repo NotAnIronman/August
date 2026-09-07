@@ -40,15 +40,17 @@ export function registerSlayerCombatHooks(registry: IScriptRegistry, services: S
             // active task's category. Every mismatch reports the real id/name
             // so an operator can fix it in one command, no code patch needed:
             //     ::addslayernpc <category> <npcTypeId>
+            //
+            // Server-log only, not a chat message: real OSRS gives no
+            // feedback at all for killing an off-task monster, and most
+            // "not-a-match" kills are just normal off-task play (questing,
+            // travelling, etc.), not actually-unmapped monsters. Spamming
+            // a message on every one of those was reported as repetitive
+            // noise; the log line is still there for us to catch genuine
+            // mapping gaps.
             logger.info(
                 `[slayer] unmapped kill: npcTypeId=${outcome.npcTypeId} name=${JSON.stringify(outcome.npcName)} ` +
                     `expectedCategory=${outcome.expectedCategoryKey} player=${killer.id}`,
-            );
-            services.messaging.sendGameMessage(
-                killer,
-                `[Slayer] "${outcome.npcName ?? "That"}" (npc id ${outcome.npcTypeId}) doesn't count toward your ` +
-                    `"${outcome.expectedCategoryKey}" task. If it should, an admin can run: ` +
-                    `::addslayernpc ${outcome.expectedCategoryKey} ${outcome.npcTypeId}`,
             );
         }
     });

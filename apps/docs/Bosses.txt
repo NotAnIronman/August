@@ -7,40 +7,44 @@ Wilderness Bosses
 
 Slayer Bosses
     Kalphite Queen
-        Entry object -
-        Exit object -
-        Entrance Location -
-        Inside Location -
-        Boss ID -
-        Boss spawn location -
-        Min X -
-        Max X -
-        Min Y -
-        Max Y -
+        Entry object - 23906
+        Exit object - 3832
+        Entrance Location - 3509 9496
+        Inside Location - 3507 9494
+        Boss ID - 963
+        Boss spawn location - 3474 9496
+        Min X - 3460
+        Max X - 3515
+        Min Y - 9475
+        Max Y - 9525
 
     Dagannoth Kings
-        Entry object -
-        Exit object -
-        Entrance Location -
-        Inside Location -
-        Boss ID -
-        Boss spawn location -
-        Min X -
-        Max X -
-        Min Y -
-        Max Y -
+        Entry object - 3831
+        Exit object - 10229
+        Entrance Location - 1912 4367 0
+        Inside Location - 2900 4385
+        Boss 1 ID - 2265
+        Boss 1 spawn location - 2906 4384 0
+        Boss 2 ID - 2266
+        Boss 2 spawn location - 2913 4381 0
+        Boss 3 ID - 2267
+        Boss 3 spawn location - 2911 4387 0
+        Min X - 2890
+        Max X - 2935
+        Min Y - 4365
+        Max Y - 2890
 
     Cerberus
-        Entry object -
-        Exit object -
+        Entry object - 23104
+        Exit object - 21772
         Entrance Location -
-        Inside Location -
-        Boss ID -
-        Boss spawn location -
-        Min X -
-        Max X -
-        Min Y -
-        Max Y -
+        Inside Location - 1240 1226 0
+        Boss ID - 5863
+        Boss spawn location - 1238 1250 0
+        Min X - 1216
+        Max X - 1277
+        Min Y - 1216
+        Max Y - 1279
 
     Abyssal Sire
         Entry object -
@@ -55,28 +59,34 @@ Slayer Bosses
         Max Y -
 
     Thermonuclear Smoke Devil
-        Entry object -
-        Exit object -
-        Entrance Location -
-        Inside Location -
-        Boss ID -
-        Boss spawn location -
-        Min X -
-        Max X -
-        Min Y -
-        Max Y -
+        Requires 93 Slayer
+        Entry object - 535
+        Exit object - 536
+        Entrance Location - 2379 9452 0
+        Inside Location - 2376 9452 0
+        Boss ID - 499
+        Boss spawn location - 2360 9452
+        Min X - 2342
+        Max X - 2385
+        Min Y - 9433
+        Max Y - 9465
 
     Kraken
-        Entry object -
-        Exit object -
-        Entrance Location -
-        Inside Location -
-        Boss ID -
-        Boss spawn location -
-        Min X -
-        Max X -
-        Min Y -
-        Max Y -
+        Entry object - 537
+        Exit object - 538
+        Entrance Location - 2280 10016 0
+        Inside Location - 2280 10022
+        Boss ID - 496
+        Boss spawn location - 2278 10034
+        Minions ID - 5534
+        Minion 1 location - 2275 10038
+        Minion 2 location - 2284 10038
+        Minion 3 location - 2275 10034
+        Minion 4 location - 2284 10034
+        Min X -2265
+        Max X - 2295
+        Min Y - 10018
+        Max Y - 10047
 
     Grotesque Guardians
         Entry object - 31681

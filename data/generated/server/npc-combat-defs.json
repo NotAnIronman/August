@@ -40,6 +40,14 @@
         "death": 722
       }
     },
+    "104": {
+      "anims": {
+        "attack": 6562,
+        "melee": 6562,
+        "block": 6566,
+        "death": 6576
+      }
+    },
     "239": {
       "anims": {
         "death": 92,

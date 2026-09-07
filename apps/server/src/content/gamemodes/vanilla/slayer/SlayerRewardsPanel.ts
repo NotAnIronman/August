@@ -5,6 +5,7 @@ import type { IScriptRegistry, ScriptServices } from "@server/game/scripts/types
 import type { PlayerState } from "@server/game/player";
 import {
     openUiPanel,
+    sendUiRowCheckboxes,
     sendUiRowClickZones,
     sendUiTabs,
     sendUiTextRows,
@@ -38,6 +39,10 @@ import { getSlayerPoints, spendSlayerPoints } from "@server/content/gamemodes/va
  * DIALOGUE_ROW_HITZONE_BASE / TAB_BASE component ids; a small per-player
  * "which tab is currently open" map resolves a row click back to the
  * right catalog, since the row index alone is ambiguous across tabs.
+ *
+ * Ownership on Unlock/Extend rows is shown with a real checkbox sprite
+ * (ROW_CHECKBOX_BASE, checked=942/unchecked=941 — see sendUiRowCheckboxes
+ * in panelData.ts) rather than a text suffix, using real cache sprite ids.
  */
 
 const TAB_LABELS = ["Unlock", "Extend", "Buy", "Tasks"] as const;
@@ -64,11 +69,31 @@ function isSelected(playerId: number, tab: TabIndex, rowIndex: number): boolean 
 
 function catalogRowLine(playerId: number, tab: TabIndex, rowIndex: number, entry: SlayerCatalogEntry, owned: boolean): UiTextRow {
     const selected = isSelected(playerId, tab, rowIndex);
+    // Ownership is now shown via a real checkbox sprite (sendUiRowCheckboxes)
+    // instead of a text suffix — see checkboxStateFor below.
+    if (owned) return { kind: "text", text: entry.name, style: { color: "00ff00" } };
     const prefix = selected ? "> " : "";
     const suffix = selected ? " (click again to confirm)" : "";
-    if (owned) return { kind: "text", text: `${prefix}${entry.name} — Owned`, style: { color: "00ff00" } };
     if (entry.cost === 0) return { kind: "text", text: `${prefix}${entry.name} — Free${suffix}`, style: { color: "00ff00" } };
     return { kind: "text", text: `${prefix}${entry.name} — ${entry.cost} points${suffix}`, style: { color: selected ? "ffffff" : "ff981f" } };
+}
+
+/** Checkbox state per row for the currently active tab — true/false shows a
+ *  checked/unchecked sprite, undefined hides the checkbox entirely (Buy and
+ *  Tasks rows have no persistent "owned" concept, nor do toggle-type
+ *  Unlock/Extend entries, which can be bought repeatedly rather than owned). */
+function checkboxStatesForTab(tab: TabIndex, player: PlayerState): (boolean | undefined)[] {
+    if (tab === 0) {
+        return SLAYER_UNLOCK_CATALOG.map((entry) =>
+            entry.toggle === "toggle" ? undefined : slayerTaskTracker.hasUnlock(player.id, entry.key),
+        );
+    }
+    if (tab === 1) {
+        return SLAYER_EXTEND_CATALOG.map((entry) =>
+            entry.toggle === "toggle" ? undefined : slayerTaskTracker.hasUnlock(player.id, entry.key),
+        );
+    }
+    return [];
 }
 
 function buildUnlockRows(player: PlayerState): UiTextRow[] {
@@ -132,6 +157,7 @@ export function openSlayerRewardsPanel(player: PlayerState, services: ScriptServ
     const rows = buildRowsForTab(tab, player);
     sendUiTextRows(services, player.id, SLAYER_REWARDS_PANEL_GROUP_ID, rows);
     sendUiRowClickZones(services, player.id, SLAYER_REWARDS_PANEL_GROUP_ID, rows.length);
+    sendUiRowCheckboxes(services, player.id, SLAYER_REWARDS_PANEL_GROUP_ID, checkboxStatesForTab(tab, player));
 }
 
 /** Re-renders the panel in place (after a tab switch or purchase) without a full reopen. */
@@ -240,18 +266,19 @@ function handleTaskRowClick(services: ScriptServices, player: PlayerState, rowIn
 }
 
 export function registerSlayerRewardsPanelHandlers(registry: IScriptRegistry, services: ScriptServices): void {
-    // DIAGNOSTIC: previous ::completeTask/::npc investigations showed that
-    // guessing about click routing (rather than verifying) is how this
-    // project's most expensive bugs happened. Logging unconditionally here
-    // — both "click reached the server at all" and "did the isModalOpen
-    // guard pass" — so a non-functioning click is provably diagnosed from
-    // server logs rather than guessed at again.
+    // Every click still passes through the interface-service "is this panel
+    // actually open for this player" guard before running — see
+    // registerUiPanelActions in uikit/actions.ts for the equivalent
+    // reusable helper. Registered manually here (not via that helper) only
+    // so the guard-failure path can log a warning; find/fix confirmed the
+    // actual root cause of "clicks did nothing" was a missing
+    // actions/FLAG_TRANSMIT_OP1 on the shared DIALOGUE_ROW_HITZONE_BASE
+    // widget in PanelBuilder.ts (client-side), not this guard.
     function register(componentId: number, actionId: string, handle: (event: { player: PlayerState }) => void): void {
         registry.onButton(SLAYER_REWARDS_PANEL_GROUP_ID, componentId, (event) => {
-            logger.info(`[slayer-rewards] click received: component=${componentId} action=${actionId} player=${event.player.id}`);
             const isOpen = services.dialog.getInterfaceService()?.isModalOpen(event.player, SLAYER_REWARDS_PANEL_GROUP_ID);
             if (!isOpen) {
-                logger.warn(`[slayer-rewards] click IGNORED — isModalOpen() returned ${isOpen} for group ${SLAYER_REWARDS_PANEL_GROUP_ID}`);
+                logger.warn(`[slayer-rewards] click IGNORED — isModalOpen() returned ${isOpen} for group ${SLAYER_REWARDS_PANEL_GROUP_ID}, component=${componentId} action=${actionId}`);
                 return;
             }
             handle(event);
