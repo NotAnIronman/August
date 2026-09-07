@@ -522,6 +522,18 @@ export class NpcEcs {
     getNpcTypeId(id: number): number {
         return this.npcTypeId[id] | 0;
     }
+    /** Morph the live actor as well as its worker-built mesh. Keep its server identity/path. */
+    setPresentationType(id: number, typeId: number, size: number, rotationSpeed: number): void {
+        if (this.npcTypeId[id] === typeId) return;
+        this.npcTypeId[id] = typeId;
+        this.size[id] = Math.max(1, size);
+        this.rotSpeed[id] = rotationSpeed;
+        this.movementSeqId[id] = -1;
+        this.movementFrameIndex[id] = 0;
+        this.movementAnimTick[id] = 0;
+        this.movementLoopCount[id] = 0;
+        this.clearSeq(id);
+    }
     setOverheadText(id: number, text: string, durationCycles: number = 100): void {
         this.overheadText[id] = text;
         this.overheadCycle[id] = durationCycles | 0;

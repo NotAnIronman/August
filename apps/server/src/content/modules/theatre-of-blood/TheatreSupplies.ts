@@ -29,9 +29,9 @@ export class TheatreSupplies {
     constructor(private readonly services: ScriptServices) { }
     sync(player: PlayerState): void {
         const instance = this.services.instances.get(player.id);
-        if (!instance || instance.worldViewId !== player.worldViewId || !instance.definitionId?.startsWith("theatre-of-blood:"))
+        if (!instance || instance.worldViewId !== player.worldViewId || !/^(theatre-of-blood|theatre-preview):/.test(instance.definitionId??""))
             return;
-        const tile = SUPPLY_TILES.find(t => t.room === Number(instance.definitionId!.split(":")[2]));
+        const tile = SUPPLY_TILES.find(t => t.room === Number(instance.definitionId!.split(":").at(-1)));
         if (!tile || this.spawned.get(instance.id)?.worldViewId === instance.worldViewId)
             return;
         this.services.location.replaceTemporaryLoc({ worldViewId: instance.worldViewId }, 0, SUPPLY_CHEST, tile, 0, { newShape: 10, newRotation: 0 });

@@ -418,6 +418,11 @@ export class PlayerPacketEncoder {
         const viewById = new Map<number, PlayerViewSnapshot>();
         for (const view of views.values()) {
             const id = view.id;
+            const realm = liveById.get(id)?.encounterVisibility;
+            const observerRealm = player.encounterVisibility;
+            if (id !== localIndex && realm &&
+                ((realm.privateToGroup && (observerRealm?.key !== realm.key || observerRealm.group !== realm.group)) ||
+                 (observerRealm?.key === realm.key && realm.group !== observerRealm.group))) continue;
             if (id < 0 || id >= 2048) continue;
             const tileX = view.x >> 7;
             const tileY = view.y >> 7;

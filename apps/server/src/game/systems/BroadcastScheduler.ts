@@ -137,6 +137,7 @@ export interface ForcedMovementBroadcast {
  * Spot animation broadcast data.
  */
 export interface PendingSpotAnimation {
+    ownerPlayerId?: number;
     tick: number;
     worldViewId?: number;
     durationTicks?: number;

@@ -12,6 +12,7 @@ import { MaidenEncounter,MAIDEN_ASSETS,raidAccount } from "./MaidenEncounter";
 import { TheatreHud } from "./TheatreHud";
 import { BloatEncounter } from "./BloatEncounter";
 import { NyloEncounter, NYLO_IDS } from "./NyloEncounter";
+import { SotetsegEncounter, SOTETSEG_ASSETS } from "./SotetsegEncounter";
 import { openBossHealthBar, closeBossHealthBar } from "@server/game/encounters/BossHealthBar";
 import { THEATRE_ARENAS, THEATRE_BARRIER_ID, VERZIK_WALK_DESTINATION, arenaGateDestination,
     VERZIK_COMBAT_ID, THEATRE_SKELETON_ID, THEATRE_SKELETON_TILE, DAWNBRINGER_ID } from "./arenas";
@@ -24,6 +25,7 @@ interface ArenaState {
     maiden?: MaidenEncounter;
     bloat?: BloatEncounter;
     nylo?: NyloEncounter;
+    sotetseg?: SotetsegEncounter;
 }
 
 /** Private-room presentation and entry. Boss combat plugs in after this stage. */
@@ -134,6 +136,7 @@ export class TheatreArenaController {
         state.maiden?.admit(player);
         state.bloat?.admit(player);
         state.nylo?.admit(player);
+        state.sotetseg?.admit(player);
         if (state.phase !== "waiting") return;
         const room = THEATRE_ROOMS[state.index];
         // Use the cache's attackable throne form, keeping the conversation form
@@ -188,7 +191,17 @@ export class TheatreArenaController {
             state.nylo=new NyloEncounter(state.boss,state.instance.id,roster??[raidAccount(player)],this.services,npc=>{state.boss=npc;});
             state.nylo.admit(player);
         }
-        this.services.messaging.sendGameMessage(player,room.id==="maiden"?"The Maiden awakens!":room.id==="bloat"?"The Pestilent Bloat begins moving!":room.id==="nylo"?"The Nylocas are approaching from the tunnels!":`${room.name} encounter started. Combat targets are ready; boss mechanics are not installed yet.`);
+        if(room.id==="sotetseg") {
+            const store=this.services.instances.theatreRuns;
+            const roster=store&&new TheatreRuns(this.services.instances,store).current(player)?.roster;
+            state.sotetseg=new SotetsegEncounter(state.boss,state.instance.id,roster??[raidAccount(player)],this.services,()=>{
+                state.sotetseg=undefined;state.phase="waiting";
+                state.boss.resetToSpawn();state.boss.setUnattackable(true);
+                this.services.npc.disengageCombat(state.boss);
+            });
+            state.sotetseg.admit(player);
+        }
+        this.services.messaging.sendGameMessage(player,room.id==="maiden"?"The Maiden awakens!":room.id==="bloat"?"The Pestilent Bloat begins moving!":room.id==="nylo"?"The Nylocas are approaching from the tunnels!":room.id==="sotetseg"?"Sotetseg awakens. Watch its projectiles and stay together for the large ball!":`${room.name} encounter started. Combat targets are ready; boss mechanics are not installed yet.`);
     }
 
     private walk(player: PlayerState, state: ArenaState, destination: {x:number;y:number}, onArrival?:()=>void): void {
@@ -319,6 +332,12 @@ export class TheatreArenaController {
             this.services.instances.getById(state.instance.id)?.worldViewId===npc.worldViewId);
     }
 
+    mazePortal(event: LocInteractionEvent): void {
+        const context=this.context(event.player),state=context&&this.states.get(context.instance.id);
+        if(context?.index!==3||event.level!==0||event.locId!==SOTETSEG_ASSETS.portal||event.tile.x!==3276||event.tile.y!==4325)return;
+        state?.sotetseg?.enterPortal(event.player);
+    }
+
     /** Current prep targets are single-stage. Future phase controllers must call
      * this only for their terminal death, never for intermediate transformations. */
     killed(killer:PlayerState,npc:NpcState):void {
@@ -330,6 +349,7 @@ export class TheatreArenaController {
         state.maiden?.dispose();state.maiden=undefined;
         state.bloat?.dispose();state.bloat=undefined;
         state.nylo?.dispose();state.nylo=undefined;
+        state.sotetseg?.dispose();state.sotetseg=undefined;
         if(context.instance.definitionId?.startsWith("theatre-of-blood:")) {
             const store=this.services.instances.theatreRuns;
             if(!store)return;
@@ -356,7 +376,7 @@ export class TheatreArenaController {
                 visible.add(player);
                 const snapshot = { npcTypeId: boss.presentationTypeId ?? boss.typeId, name: THEATRE_ROOMS[state.index].name,
                     current: boss.getHitpoints(), maximum: boss.getMaxHitpoints(),
-                    markers: state.index === 0 ? [70, 50, 30].map(percent => ({ percent, label: "Nylocas", style: "mechanic" as const })) : [] };
+                    markers: state.index === 0 ? [70, 50, 30].map(percent => ({ percent, label: "Nylocas", style: "mechanic" as const })) : state.index===3 ? [66.6,33.3].map(percent=>({percent,label:"Shadow maze",style:"mechanic" as const})) : [] };
                 const key = JSON.stringify([state.instance.id, snapshot]);
                 if (this.bossBars.get(player) !== key) {
                     openBossHealthBar(player, this.services, snapshot);
@@ -373,8 +393,8 @@ export class TheatreArenaController {
     prune(): void {
         for (const [id,state] of this.states) {
             const live = this.services.instances.getById(id);
-            if (!live || live.worldViewId !== state.instance.worldViewId) {state.maiden?.dispose();state.bloat?.dispose();state.nylo?.dispose();this.states.delete(id);this.pendingCompletions.delete(id);}
-            else {state.maiden?.tick(this.services.system.getCurrentTick());state.bloat?.tick(this.services.system.getCurrentTick());state.nylo?.tick(this.services.system.getCurrentTick());}
+            if (!live || live.worldViewId !== state.instance.worldViewId) {state.maiden?.dispose();state.bloat?.dispose();state.nylo?.dispose();state.sotetseg?.dispose();this.states.delete(id);this.pendingCompletions.delete(id);}
+            else {state.maiden?.tick(this.services.system.getCurrentTick());state.bloat?.tick(this.services.system.getCurrentTick());state.nylo?.tick(this.services.system.getCurrentTick());state.sotetseg?.tick(this.services.system.getCurrentTick());}
         }
         this.hud.tick();
         this.syncBossBars();
@@ -386,7 +406,7 @@ export class TheatreArenaController {
             try{this.killed(member,state.boss);}catch(error){this.services.system.logger?.warn("Theatre completion save retry failed",error);}
         }
     }
-    dispose():void {for(const state of this.states.values()){state.maiden?.dispose();state.bloat?.dispose();state.nylo?.dispose();}this.states.clear();this.hud.dispose();this.syncBossBars();}
+    dispose():void {for(const state of this.states.values()){state.maiden?.dispose();state.bloat?.dispose();state.nylo?.dispose();state.sotetseg?.dispose();}this.states.clear();this.hud.dispose();this.syncBossBars();}
 }
 
 export function registerTheatreArenas(registry: IScriptRegistry, services: ScriptServices): TheatreArenaController {
@@ -400,6 +420,8 @@ export function registerTheatreArenas(registry: IScriptRegistry, services: Scrip
     registry.registerNpcInteraction(THEATRE_ARENAS.verzik.boss.id,event=>controller.talk(event,true),"quick-start");
     registry.registerLocInteraction(THEATRE_SKELETON_ID,event=>controller.search(event),"search");
     registry.registerLocInteraction(THEATRE_SKELETON_ID,event=>controller.search(event));
+    registry.registerLocInteraction(SOTETSEG_ASSETS.portal,event=>controller.mazePortal(event),"enter");
+    registry.registerLocInteraction(SOTETSEG_ASSETS.portal,event=>controller.mazePortal(event));
     for (const id of new Set([...Object.values(THEATRE_ARENAS).map(arena=>arena.boss.id),VERZIK_COMBAT_ID,MAIDEN_ASSETS.nylocas,MAIDEN_ASSETS.bloodSpawn,...NYLO_IDS])) {
         // Generic retaliation would invent attacks (especially Bloat/Xarpus).
         // Incoming hits work normally; authored attacks arrive with mechanics.

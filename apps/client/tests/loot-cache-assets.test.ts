@@ -33,7 +33,7 @@ const blit=(src:ArrayLike<number>,sw:number,sh:number,x:number,y:number,w:number
     }
 };
 for(const [index,id] of [6616,35414,52413].entries()){
-    const result=modelRenderer.renderToCanvasExtents(id,{xan2d:405,yan2d:1512,zoom2d:1600,depthTest:true},112,112);
+    const result=modelRenderer.renderToCanvasExtents(id,{xan2d:85,yan2d:1792,zoom2d:1600,depthTest:true},112,112);
     assert(result,`chest model ${id} renders`);const c=result.canvas as any;
     assert(c.pixels.some((v:number,i:number)=>i%4===3&&v>0));
     const scale=Math.min(120/c.width,120/c.height);blit(c.pixels,c.width,c.height,index*140+10,10,Math.floor(c.width*scale),Math.floor(c.height*scale));

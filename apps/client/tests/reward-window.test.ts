@@ -34,8 +34,10 @@ assert.equal(panel.widgets.get((group<<16)|850)?.yPositionMode,2,"chest is botto
 assert.equal(panel.widgets.get((group<<16)|863)?.spriteId,4552,"requested cache grip");
 assert.equal(panel.widgets.get((group<<16)|863)?.spriteAngle,16384,"90 degree rotation");
 for(const id of [860,861,862])assert(!panel.widgets.has((group<<16)|id),"only bottom-right is a grab handle");
-assert.equal(panel.widgets.get((group<<16)|850)?.modelAngleX,405);
-assert.equal(panel.widgets.get((group<<16)|850)?.modelAngleY,1512);
+assert.equal(panel.widgets.get((group<<16)|850)?.modelAngleX,85);
+assert.equal(panel.widgets.get((group<<16)|850)?.modelAngleY,1792);
+assert.equal(panel.widgets.get((group<<16)|850)?.rotationX,85,"renderer consumes rotationX, not its CS2 alias: 15 degrees forward");
+assert.equal(panel.widgets.get((group<<16)|850)?.rotationY,1792,"45 degrees to the object's left");
 for(const [id,label,sprite] of [[852,"Collect to inventory",1226],[854,"Collect to bank",1227],[858,"Destroy remaining loot",1235]] as const) {
  assert(deriveMenuEntriesForWidget(panel.widgets.get((group<<16)|id)).some(e=>e.option===label));
  assert.equal(panel.widgets.get((group<<16)|(id+1))?.spriteId,sprite);

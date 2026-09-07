@@ -734,6 +734,17 @@ export class SceneBuilder {
         }
     }
 
+    /** Packet locs use logical planes, after bridge tiles have been linked down.
+     * Their geometry must sample the original floor and complete model lighting. */
+    addDynamicLocs(scene: Scene, locs: ReadonlyArray<{x:number;y:number;level:number;id:number;shape:LocModelType;rotation:number}>, locLoadType: LocLoadType): void {
+        for (const loc of locs) {
+            if(loc.x<=0||loc.y<=0||loc.x>=scene.sizeX-1||loc.y>=scene.sizeY-1||loc.level<0||loc.level>=scene.levels)continue;
+            const heightLevel=scene.tiles[loc.level]?.[loc.x]?.[loc.y]?.originalLevel ?? loc.level;
+            this.addLoc(scene,loc.level,loc.x,loc.y,loc.id,loc.shape,loc.rotation,scene.collisionMaps[loc.level],locLoadType,undefined,undefined,heightLevel);
+        }
+        if(locs.length&&locLoadType===LocLoadType.MODELS)scene.light(this.locModelLoader.textureLoader,-50,-10,-50);
+    }
+
     addLoc(
         scene: Scene,
         level: number,
@@ -746,6 +757,7 @@ export class SceneBuilder {
         locLoadType: LocLoadType,
         seqOverride?: number,
         seqRandomStartOverride?: boolean,
+        heightLevel: number = level,
     ): void {
         if ((id | 0) <= 0) {
             return;
@@ -786,10 +798,10 @@ export class SceneBuilder {
             endY = tileY + 1;
         }
 
-        const heightMap = scene.tileHeights[level];
+        const heightMap = scene.tileHeights[heightLevel];
         let heightMapAbove: Int32Array[] | undefined;
-        if (level < scene.levels - 1) {
-            heightMapAbove = scene.tileHeights[level + 1];
+        if (heightLevel < scene.levels - 1) {
+            heightMapAbove = scene.tileHeights[heightLevel + 1];
         }
 
         const centerHeight =
@@ -2013,17 +2025,31 @@ export class SceneBuilder {
                         // once after all locs are installed. Demoting here too
                         // moves walls onto the wrong floor (or drops them).
                         const collisionMap = scene.collisionMaps[targetPlane];
-
+                        const logicalPlane=(scene.tileRenderFlags[1][sceneX][sceneY]&2)!==0?targetPlane-1:targetPlane;
+                        const finalOrientation=(orientation+rotation)&3;
+                        // Instance packets address destination coordinates and
+                        // logical planes, not source-cache chunk coordinates.
+                        const exact=this.locOverrides.get(`${sceneX},${sceneY},${logicalPlane},${id}`);
+                        const wildcard=this.locOverrides.get(`${sceneX},${sceneY},${logicalPlane},-1`);
+                        const override=[exact,wildcard].find(o=>o&&
+                            (o.matchType===undefined||o.matchType===type)&&
+                            (o.matchRotation===undefined||(o.matchRotation&3)===finalOrientation));
+                        const finalId=override&&override.newId>=0?override.newId:id;
+                        if(finalId<=0)continue;
+                        const finalX=override?.moveToX??sceneX,finalY=override?.moveToY??sceneY;
+                        if(finalX<=0||finalY<=0||finalX>=scene.sizeX-1||finalY>=scene.sizeY-1)continue;
                         this.addLoc(
                             scene,
                             targetPlane,
-                            sceneX,
-                            sceneY,
-                            id,
+                            finalX,
+                            finalY,
+                            finalId,
                             type,
-                            (orientation + rotation) & 3,
+                            override?.newRotation ?? finalOrientation,
                             collisionMap,
                             locLoadType,
+                            override?.seqId,
+                            override?.seqRandomStart,
                         );
                     }
                 }

@@ -580,6 +580,7 @@ export interface AnimationFacade {
     ): void;
     playLocGraphic(opts: {
         spotId: number;
+        ownerPlayerId?: number;
         worldViewId?: number;
         durationTicks?: number;
         tile: { x: number; y: number };

@@ -1470,28 +1470,7 @@ export class SdMapDataLoader implements RenderDataLoader<SdMapLoaderInput, SdMap
         }
         // Inject extra locs (from LOC_ADD_CHANGE) into the built scene
         if (extraLocsInput && extraLocsInput.length > 0) {
-            for (const loc of extraLocsInput) {
-                const sceneX = loc.x - baseX;
-                const sceneY = loc.y - baseY;
-                if (
-                    sceneX > 0 &&
-                    sceneY > 0 &&
-                    sceneX < scene.sizeX - 1 &&
-                    sceneY < scene.sizeY - 1
-                ) {
-                    state.sceneBuilder.addLoc(
-                        scene,
-                        loc.level,
-                        sceneX,
-                        sceneY,
-                        loc.id,
-                        loc.shape,
-                        loc.rotation,
-                        scene.collisionMaps[loc.level],
-                        locLoadType,
-                    );
-                }
-            }
+            state.sceneBuilder.addDynamicLocs(scene,extraLocsInput.map(loc=>({...loc,x:loc.x-baseX,y:loc.y-baseY})),locLoadType);
         }
         console.timeEnd(`build scene ${mapX},${mapY}`);
 

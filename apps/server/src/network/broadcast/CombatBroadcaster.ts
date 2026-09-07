@@ -73,10 +73,11 @@ export class CombatBroadcaster implements BroadcastDomain {
             const msg = encodeMessage({ type: "spot", payload });
             this.services.withDirectSendBypass("combat_spot", () => {
                 if (payload.tile) {
-                    if (event.worldViewId !== undefined) {
+                    if (event.worldViewId !== undefined || event.ownerPlayerId !== undefined) {
                         const tile = payload.tile;
                         this.services.forEachPlayer((sock, player) => {
-                            if (player.worldViewId === event.worldViewId && player.level === (tile.level ?? 0) &&
+                            if ((event.ownerPlayerId === undefined || player.id === event.ownerPlayerId) &&
+                                (event.worldViewId === undefined || player.worldViewId === event.worldViewId) && player.level === (tile.level ?? 0) &&
                                 Math.max(Math.abs(player.tileX! - tile.x), Math.abs(player.tileY! - tile.y)) <= TILE_SPOT_BROADCAST_RADIUS_TILES)
                                 ctx.sendWithGuard(sock, msg, "combat_spot");
                         });

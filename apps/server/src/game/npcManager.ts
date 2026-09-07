@@ -1191,7 +1191,7 @@ export class NpcManager {
                     step,
                     npc.size,
                     npc.worldViewId,
-                )
+                ) && npc.scriptedCollisionStep?.({ x: currentX, y: currentY }, step) !== true
             ) {
                 break;
             }

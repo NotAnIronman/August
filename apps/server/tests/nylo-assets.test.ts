@@ -10,8 +10,7 @@ import { SailingWorldView } from "@server/game/sailing/SailingWorldView";
 import { theatreRoomGeometry } from "@server/content/modules/theatre-of-blood/rooms";
 import { buildInstanceTemplate } from "@server/world/InstancedAreaManager";
 import { NYLO_LANES, nyloTunnelStep, insideNylo } from "@server/content/modules/theatre-of-blood/NyloEncounter";
-import { NpcState } from "@server/game/npc";
-import { MovementProcessor } from "@server/game/movement/engine/MovementProcessor";
+import { NpcManager } from "@server/game/npcManager";
 const data = loadCache(loadCacheList(loadCacheInfos()).latest);
 const f = getCacheLoaderFactory(data.info, CacheSystem.fromFiles("dat2", data.files));
 for (let id = 8342; id <= 8347; id++) {
@@ -34,17 +33,23 @@ const path = new PathService({ getMapSquare: () => undefined } as any);
 path.registerWorldViewCollision(4000, new SailingWorldView(4000, g.sceneBase.x, g.sceneBase.y, 104, 104, scene.collisionMaps));
 for (const tile of NYLO_LANES.flat())
     for (const size of [1, 2]) {
-        const n = new NpcState(90, 8342, size, -1, -1, 32, { ...tile, level: 0 }, { worldViewId: 4000 });
+        const manager = new NpcManager({} as any,path,f.getNpcTypeLoader(),f.getBasTypeLoader());
+        const n = manager.spawnTransientNpc({id:size===1?8342:8345,...tile,level:0,worldViewId:4000,isAggressive:false,isImmovable:false,wanderRadius:0,respawns:false})!;
+        assert(n);
         n.scriptedMovement = true;
         n.scriptedCollisionStep = nyloTunnelStep;
-        const processor = new MovementProcessor(path);
+        const firstStep=n.tileX>3300?{x:n.tileX-1,y:n.tileY}:n.tileX<3290?{x:n.tileX+1,y:n.tileY}:{x:n.tileX,y:n.tileY+1};
+        n.applyFreeze(2,0);n.setPath([firstStep],false);manager.tick(1);
+        assert.deepEqual({x:n.tileX,y:n.tileY},{x:tile.x,y:tile.y},"tunnel permission does not bypass ice freezes");
+        n.clearFreeze();
         for (let tick = 1; tick <= 14 && !(insideNylo({ x: n.tileX, y: n.tileY }) && insideNylo({ x: n.tileX + size - 1, y: n.tileY + size - 1 })); tick++) {
             const from = { x: n.tileX, y: n.tileY };
             const to = n.tileX > 3300 ? { x: n.tileX - 1, y: n.tileY } : n.tileX < 3290 ? { x: n.tileX + 1, y: n.tileY } : { x: n.tileX, y: n.tileY + 1 };
             assert(nyloTunnelStep(from, to));
             assert(!nyloTunnelStep(to, from), "never grants outward traversal");
             n.setPath([to], false);
-            assert(processor.processEntity(n, tick), `tunnel step ${JSON.stringify(from)} size ${size}`);
+            manager.tick(tick);
+            assert.deepEqual({x:n.tileX,y:n.tileY},to,`full NPC manager tunnel step ${JSON.stringify(from)} size ${size}`);
         }
         assert(insideNylo({ x: n.tileX, y: n.tileY }) && insideNylo({ x: n.tileX + size - 1, y: n.tileY + size - 1 }));
         n.scriptedCollisionStep = undefined;

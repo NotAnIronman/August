@@ -7598,9 +7598,13 @@ export class OsrsClient {
 
         if (ecsId !== undefined) {
             if (block.presentationTypeId !== undefined) {
+                const type = this.npcTypeLoader.load(block.presentationTypeId);
+                this.npcEcs.setPresentationType(ecsId, type.id, type.size, type.rotationSpeed);
                 const state = this.npcEcs.getServerState(ecsId);
-                if (state) this.upsertNpcInstanceFromBinary(serverId, block.presentationTypeId,
-                    state.tileX, state.tileY, this.npcEcs.getLevel(ecsId), this.npcEcs.getWorldViewId(ecsId));
+                const instance = this.npcInstances.instanceMap.get(`sid:${serverId}`);
+                if (state || instance) this.upsertNpcInstanceFromBinary(serverId, type.id,
+                    state?.tileX ?? instance!.x, state?.tileY ?? instance!.y,
+                    this.npcEcs.getLevel(ecsId), this.npcEcs.getWorldViewId(ecsId));
             }
             if (typeof block.faceEntity === "number") {
                 this.npcEcs.setInteractionIndex(ecsId, block.faceEntity | 0);

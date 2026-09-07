@@ -233,6 +233,7 @@ export class NpcState extends Actor {
     readonly typeId: number;
     /** Cosmetic form only: preserves HP, stat drains, targets and kill credit. */
     presentationTypeId?: number;
+    hiddenFromPlayerIds?: ReadonlySet<number>;
     scriptedMovement = false;
     readonly name?: string;
     pendingSay?: string;
@@ -1445,6 +1446,7 @@ export class NpcState extends Actor {
 export function isNpcVisibleToPlayer(npc: NpcState, player: PlayerState): boolean {
     return (
         npc.worldViewId === player.worldViewId &&
+        !npc.hiddenFromPlayerIds?.has(player.id) &&
         (npc.ownerPlayerId === undefined || npc.ownerPlayerId === player.id)
     );
 }

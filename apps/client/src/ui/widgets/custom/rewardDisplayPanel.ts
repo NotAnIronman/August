@@ -22,7 +22,8 @@ export function buildRewardPanel() {
     };
     // Real cache chest models, bottom-left and aspect-fitted, never stretched.
     for (const [id,model] of [[850,6616],[856,35414],[857,52413]])
-        add(id,{type:6,modelType:1,modelId:model,modelZoom:1600,modelAngleX:405,modelAngleY:1512,
+        add(id,{type:6,modelType:1,modelId:model,modelZoom:1600,modelAngleX:85,modelAngleY:1792,
+            rotationX:85,rotationY:1792,rotationZ:0,
             rawX:14,rawY:20,yPositionMode:2,rawWidth:112,rawHeight:112,containModel:true,
             hidden:id!==850,isHidden:id!==850});
     for (let slot=0;slot<16;slot++) {

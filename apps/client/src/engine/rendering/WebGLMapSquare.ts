@@ -1655,6 +1655,7 @@ export class WebGLMapSquare {
                 }
                 if (ecsId > 0) {
                     reusedIds.add(ecsId);
+                    npcEcs.setPresentationType(ecsId, npcType.id, npcType.size, npcType.rotationSpeed);
                     if (!placement.usesOverlayWorldView) {
                         runMapSquareAction(this.mapX, this.mapY, "npcEcs.setMapSquare", () => {
                             // Ensure the reused ECS entity is attached to this map square.

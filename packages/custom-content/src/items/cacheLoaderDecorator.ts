@@ -11,6 +11,7 @@ import { CustomNpcTypeLoader } from "@august/custom-content/npcs/CustomNpcTypeLo
 import { ThievingLocTypeLoader } from "@august/custom-content/locs/ThievingLocTypeLoader";
 import { TheatreLocTypeLoader } from "@august/custom-content/locs/TheatreLocTypeLoader";
 import { BossEntranceLocTypeLoader } from "@august/custom-content/locs/BossEntranceLocTypeLoader";
+import { TheatreSpotAnimTypeLoader } from "@august/custom-content/locs/TheatreSpotAnimTypeLoader";
 
 export type { CacheLoaderFactory } from "@august/osrs-engine/cache/loader/CacheLoaderFactory";
 
@@ -33,5 +34,7 @@ export function getCacheLoaderFactory(
     });
     const getBaseNpcLoader = factory.getNpcTypeLoader.bind(factory);
     factory.getNpcTypeLoader = () => new CustomNpcTypeLoader(getBaseNpcLoader(), cacheInfo);
+    const getBaseSpotLoader = factory.getSpotAnimTypeLoader.bind(factory);
+    factory.getSpotAnimTypeLoader = () => new TheatreSpotAnimTypeLoader(getBaseSpotLoader(), cacheInfo);
     return factory;
 }

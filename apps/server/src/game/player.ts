@@ -281,6 +281,8 @@ export class PlayerState extends Actor {
     readonly collectionLog = new PlayerCollectionLogState();
     /** Composed prayer state (active prayers, quick prayers, head icon, drain) */
     readonly prayer = new PlayerPrayerState();
+    /** Attempt-scoped, viewer-specific realm separation; never persisted. */
+    encounterVisibility?: { key: string; group: string; privateToGroup?: boolean };
     /** Composed status state (hitpoints, poison, venom, disease, regen) */
     readonly status = new PlayerStatusState();
 
