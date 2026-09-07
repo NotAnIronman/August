@@ -7,6 +7,15 @@ export class TheatreLocTypeLoader implements LocTypeLoader {
     constructor(private readonly base:LocTypeLoader,private readonly info:CacheInfo){}
     load(id:number):LocType {
         const source=this.base.load(id);
+        if(this.info.game==="oldschool" && id===41437) {
+            let chest=this.overrides.get(id);
+            if(!chest) {
+                chest=Object.assign(new LocType(id,this.info),this.base.load(32758),{id});
+                chest.name="Reward chest";chest.actions=["Claim"];
+                this.overrides.set(id,chest);
+            }
+            return chest;
+        }
         if(this.info.game!=="oldschool" || (id!==32990 && id!==32991))return source;
         let clone=this.overrides.get(id);
         if(!clone){clone=Object.assign(new LocType(id,this.info),source);clone.actions=[...source.actions];

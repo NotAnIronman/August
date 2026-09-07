@@ -30,6 +30,8 @@ import { getWildernessLevel, isInWilderness } from "@server/game/combat/MultiCom
 import { CombatAttributes } from "@server/game/combat/state/CombatAttributes";
 import { LockState } from "@server/game/model/LockState";
 import type { PlayerState } from "@server/game/player";
+import { recordTheatreDeath, storeTheatreWipe } from "@server/content/modules/theatre-of-blood/TheatreDeaths";
+import { THEATRE_OUTSIDE, THEATRE_ROOMS } from "@server/content/modules/theatre-of-blood/rooms";
 import { DeathHookRegistry } from "@server/game/death/DeathHookRegistry";
 import {
     INSTANCE_GRAVE_RECLAIM_COST,
@@ -58,6 +60,7 @@ const WILDERNESS_MIN_Y = 3520;
  * Pending death state for a player
  */
 interface PendingDeath {
+    theatre?: {runId:string;roomIndex:number;instanceId:string};
     player: PlayerState;
     context: DeathContext;
     ticksRemaining: number;
@@ -113,7 +116,16 @@ export class PlayerDeathService {
         // Phase 1: Lock & Capture State
         // ========================================
         // CRITICAL: Lock player FIRST to prevent action queueing exploits
-        player.raidProgress?.clear();
+        const raidInstance=this.svc.instancedAreaManager?.get(player.id);
+        const store=this.svc.playerPersistence?.theatreRuns;
+        const checkpoint=player.raidProgress?.checkpoint;
+        const run=checkpoint && store?.load(checkpoint.runId);
+        const theatre=run && !run.wiped && run.completedRooms===run.roomIndex &&
+            raidInstance?.definitionId===`theatre-of-blood:${run.id}:${run.roomIndex}` &&
+            run.roster.includes((player.__saveKey||player.name).trim().toLowerCase())
+            ? {runId:run.id,roomIndex:run.roomIndex,instanceId:raidInstance.id}:undefined;
+        if(theatre){recordTheatreDeath(run!,player);store!.save(run!);}
+        else player.raidProgress?.clear();
         player.lock = LockState.FULL;
 
         // SECURITY: Snapshot skull and prayer state IMMEDIATELY
@@ -172,6 +184,7 @@ export class PlayerDeathService {
         // In OSRS, the death animation plays on the tick AFTER HP reaches 0,
         // not the same tick. We queue the death and play animation on first tick().
         this.pendingDeaths.set(player.id, {
+            theatre,
             player,
             context,
             ticksRemaining: DEATH_ANIMATION_TICKS,
@@ -206,6 +219,28 @@ export class PlayerDeathService {
                 this.pendingDeaths.delete(playerId);
             }
         }
+        // Includes revived spectators and disconnected sessions still in memory.
+        // Fully offline members are settled by account loading before login.
+        this.svc.players?.forEachIncludingOrphaned?.((_ws,player)=>{
+            if(this.pendingDeaths.has(player.id))return;
+            this.settleTheatreWipe(player);
+        });
+    }
+
+    private settleTheatreWipe(player:PlayerState):boolean {
+        const store=this.svc.playerPersistence?.theatreRuns;
+        if(!store || !player.raidProgress.checkpoint)return false;
+        if(!storeTheatreWipe(player,store,()=>this.svc.playerPersistence.saveSnapshot(player.__saveKey!,player)))return false;
+        this.restorePlayerState(player);
+        if(!this.svc.instancedAreaManager?.leave(player,THEATRE_OUTSIDE))
+            this.svc.movementService.teleportPlayer(player,THEATRE_OUTSIDE.x,THEATRE_OUTSIDE.y,0);
+        syncInstanceGravePresentation(this.svc.locationService,player);
+        this.svc.appearanceService.refreshAppearanceKits(player);player.markAppearanceDirty();
+        this.svc.playerAppearanceManager?.queueAppearanceSnapshot(player);
+        const socket=this.svc.players?.getSocketByPlayerId(player.id);
+        if(socket)this.svc.inventoryService.sendInventorySnapshot(socket,player);
+        this.svc.playerPersistence.saveSnapshot(player.__saveKey!,player);
+        return true;
     }
 
     /**
@@ -217,7 +252,7 @@ export class PlayerDeathService {
         // ========================================
         // Phase 3: Drop Items
         // ========================================
-        if (context.deathType !== DeathType.SAFE) {
+        if (!death.theatre && context.deathType !== DeathType.SAFE) {
             this.processItemsOnDeath(
                 player,
                 context,
@@ -242,10 +277,26 @@ export class PlayerDeathService {
         // ========================================
         // Phase 5: Teleport to Respawn
         // ========================================
-        const respawn = this.validateRespawnLocation(this.defaultRespawn);
-        const disposedInstance = this.svc.instancedAreaManager?.dispose(player, respawn) ?? false;
-        if (!disposedInstance) {
-            this.svc.movementService.teleportPlayer(player, respawn.x, respawn.y, respawn.level);
+        if(death.theatre) {
+            if(!this.settleTheatreWipe(player)) {
+                // A teammate can clear/advance the room during this six-tick
+                // animation. Respawn in the party's current room, not its old coordinates.
+                const run=this.svc.playerPersistence.theatreRuns?.load(death.theatre.runId);
+                const current=this.svc.instancedAreaManager?.get(player.id);
+                const same=!!run && current?.definitionId===`theatre-of-blood:${run.id}:${run.roomIndex}`;
+                const room=THEATRE_ROOMS[same?run!.roomIndex:death.theatre.roomIndex];
+                const respawn=same?room.entrance:THEATRE_OUTSIDE;
+                if(!same) {
+                    player.raidProgress.disconnected();
+                    player.raidProgress.internally(()=>this.svc.instancedAreaManager?.leave(player,THEATRE_OUTSIDE));
+                }
+                player.raidProgress.internally(()=>this.svc.movementService.teleportPlayer(player,respawn.x,respawn.y,respawn.level));
+                this.svc.playerPersistence.saveSnapshot(player.__saveKey!,player);
+            }
+        } else {
+            const respawn = this.validateRespawnLocation(this.defaultRespawn);
+            const disposedInstance = this.svc.instancedAreaManager?.dispose(player, respawn) ?? false;
+            if (!disposedInstance) this.svc.movementService.teleportPlayer(player, respawn.x, respawn.y, respawn.level);
         }
 
         // Clear animation

@@ -21,7 +21,7 @@ const host={width:512,height:334};let invalidations=0;
 const wm:any={getInterfaceParentContainerUid:()=>1,getGroup:()=>({root}),isEffectivelyHidden:()=>false,
  getWidgetByUid:()=>host,invalidateWidget:()=>invalidations++,ensureLayout:()=>{},invalidateWidgetRender:()=>{}};
 const frame:any={input:{clickMode2:1,clickMode3:1,clickMode1:1},mx:400,my:300,hits:[{uid:(group<<16)|863}],invalidateHoverCache:()=>{}};
-const resize=createPanelResizeController(group,[860,861,862,863],320,260);
+const resize=createPanelResizeController(group,[-1,-1,-1,863],320,260);
 resize.process(frame,wm,{} as any);frame.mx=360;frame.my=280;
 resize.process(frame,wm,{} as any);
 assert.equal(root.rawWidth,320);assert.equal(root.rawHeight,260);assert(invalidations>0);
@@ -33,6 +33,9 @@ assert.equal(buildRewardPanel().root?.rawWidth,350,"new panel does not inherit a
 assert.equal(panel.widgets.get((group<<16)|850)?.yPositionMode,2,"chest is bottom-left anchored");
 assert.equal(panel.widgets.get((group<<16)|863)?.spriteId,4552,"requested cache grip");
 assert.equal(panel.widgets.get((group<<16)|863)?.spriteAngle,16384,"90 degree rotation");
+for(const id of [860,861,862])assert(!panel.widgets.has((group<<16)|id),"only bottom-right is a grab handle");
+assert.equal(panel.widgets.get((group<<16)|850)?.modelAngleX,405);
+assert.equal(panel.widgets.get((group<<16)|850)?.modelAngleY,1512);
 for(const [id,label,sprite] of [[852,"Collect to inventory",1226],[854,"Collect to bank",1227],[858,"Destroy remaining loot",1235]] as const) {
  assert(deriveMenuEntriesForWidget(panel.widgets.get((group<<16)|id)).some(e=>e.option===label));
  assert.equal(panel.widgets.get((group<<16)|(id+1))?.spriteId,sprite);

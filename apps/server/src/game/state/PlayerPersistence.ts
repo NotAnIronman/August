@@ -6,6 +6,7 @@ import { sanitizeFirstPetDrops } from "@server/game/state/PlayerFollowerPersistS
 import type { StatementSync } from "node:sqlite";
 import path from "path";
 import { sanitizeTheatreRun, type TheatreRunStore } from "@server/content/modules/theatre-of-blood/TheatreRun";
+import { storeTheatreWipe } from "@server/content/modules/theatre-of-blood/TheatreDeaths";
 
 import { EquipmentSlot } from "@august/osrs-engine/config/player/Equipment";
 import { PRAYER_NAME_SET, type PrayerName } from "@august/osrs-engine/prayer/prayers";
@@ -727,9 +728,32 @@ export class PlayerPersistence implements PersistenceProvider {
             run_id TEXT PRIMARY KEY, state_json TEXT NOT NULL, updated_at TEXT NOT NULL
         )`);
         const loadRun = connection.prepare("SELECT state_json FROM theatre_runs WHERE run_id = ?");
+        const pendingRuns=connection.prepare(`SELECT state_json FROM theatre_runs WHERE
+            json_extract(state_json,'$.completedRooms')=6 AND EXISTS
+            (SELECT 1 FROM json_each(state_json,'$.roster') WHERE value=?) ORDER BY updated_at`);
         const saveRun = connection.prepare(`INSERT INTO theatre_runs (run_id,state_json,updated_at) VALUES (?,?,?)
             ON CONFLICT(run_id) DO UPDATE SET state_json=excluded.state_json,updated_at=excluded.updated_at`);
         this.theatreRuns = {
+            pending: account => {
+                // Query durable run ownership rather than the disposable active checkpoint.
+                const rows=pendingRuns.all(account);
+                return (rows as {state_json:string}[]).flatMap(row=>{
+                    const run=sanitizeTheatreRun(JSON.parse(row.state_json));
+                    const i=run?.roster.indexOf(account)??-1;
+                    return run && i>=0 && run.rewards?.[i] && !run.rewards[i].claimed ? [run] : [];
+                });
+            },
+            commit: (run,players) => {
+                connection.exec("BEGIN IMMEDIATE");
+                try {
+                    this.theatreRuns.save(run);
+                    for(const player of players) {
+                        if(!player.__saveKey)throw new Error("Theatre transaction requires a saved account");
+                        this.saveSnapshot(player.__saveKey,player);
+                    }
+                    connection.exec("COMMIT");
+                } catch(error){try{connection.exec("ROLLBACK");}catch{}throw error;}
+            },
             load: id => {
                 const row = loadRun.get(id) as {state_json:string} | undefined;
                 if (!row) return undefined;
@@ -799,6 +823,13 @@ export class PlayerPersistence implements PersistenceProvider {
     applyToPlayer(player: PlayerState, key: string): void {
         const snapshot = mergePlayerPersistentVars(this.defaults, this.getSnapshot(key));
         player.applyPersistentVars(snapshot);
+        // Offline party members must pay the same wipe cost; never restore their
+        // carried gear after their party has durably failed the raid.
+        if(player.raidProgress) {
+            storeTheatreWipe(player,this.theatreRuns,()=>this.saveSnapshot(key,player));
+            const checkpoint=player.raidProgress.checkpoint,run=checkpoint && this.theatreRuns.load(checkpoint.runId);
+            player.raidProgress.spectating=!!run && run.completedRooms===run.roomIndex && !!run.deaths?.[run.roomIndex]?.includes(key.trim().toLowerCase());
+        }
     }
 
     hasKey(key: string): boolean {

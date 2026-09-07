@@ -1,6 +1,8 @@
 import type { PlayerState } from "@server/game/player";
 import type { IScriptRegistry, ScriptServices, LocInteractionHandler } from "@server/game/scripts/types";
 import { TheatreRuns } from "./TheatreRun";
+import { TheatreSupplies } from "./TheatreSupplies";
+import { reclaimInstanceGrave } from "@server/content/modules/bandos-instance";
 import { registerTheatreArenas } from "./TheatreArenaController";
 import { THEATRE_ENTRANCE_ID, THEATRE_OUTSIDE, THEATRE_ROOMS, theatreRoomGeometry } from "./rooms";
 
@@ -75,6 +77,9 @@ function previewMenu(player: PlayerState, services: ScriptServices, page: number
 }
 export function register(registry: IScriptRegistry, _services: ScriptServices): void {
     registerTheatreArenas(registry,_services);
+    new TheatreSupplies(_services).register(registry);
+    registry.registerLocInteraction(32656,reclaimInstanceGrave,"claim");
+    registry.registerLocInteraction(32656,reclaimInstanceGrave);
     const registerObject = (id: number, handler: LocInteractionHandler): void => {
         registry.registerLocInteraction(id,handler);
         // The registry's default key is not a wildcard for named cache options.

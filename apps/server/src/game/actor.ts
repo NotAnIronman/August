@@ -82,6 +82,9 @@ type TurnDirection = 0 | -1 | 1;
 export const RUN_ENERGY_MAX = 10000;
 
 export abstract class Actor {
+    /** Server-authored, actor-local exception for a specific scripted traversal.
+     * Never changes the shared map's collision or other actors' permissions. */
+    scriptedCollisionStep?: (from: Tile, to: Tile) => boolean;
     readonly id: number;
     readonly isPlayer: boolean = false; // Override to true in PlayerState
     private footprintSize: number;

@@ -449,6 +449,7 @@ export class PlayerState extends Actor {
      * Check if player can attack based on lock state.
      */
     canAttack(): boolean {
+        if(this.raidProgress.spectating)return false;
         if (!LockStateChecks.canAttack(this._lockState)) return false;
         if (this.timers.has(STUN_TIMER)) return false;
         return true;
@@ -458,6 +459,7 @@ export class PlayerState extends Actor {
      * Check if player can be attacked based on lock state.
      */
     canBeAttacked(): boolean {
+        if(this.raidProgress.spectating)return false;
         return LockStateChecks.canBeAttacked(this._lockState);
     }
 

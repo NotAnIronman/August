@@ -16,10 +16,17 @@ export interface TheatreRunRecord {
     instanceId?: string;
     vaultInstanceId?: string;
     rewards?: TheatreChestReward[];
+    /** Per-room account identities, retained through disconnects and room transfers. */
+    deaths?: string[][];
+    wiped?: boolean;
+    supplies?: { points: number; awarded: number[]; onions: number[] }[];
 }
 export interface TheatreRunStore {
     load(id: string): TheatreRunRecord | undefined;
     save(run: TheatreRunRecord): void;
+    pending?(account: string): TheatreRunRecord[];
+    /** Save a run and account inventory in one database transaction. */
+    commit?(run: TheatreRunRecord, players: readonly PlayerState[]): void;
     /** Atomically saves the claim flag AND the receiving player's inventory/log/pet queue. */
     claim?(run: TheatreRunRecord, player: PlayerState, expected?: import("./rewards").TheatreChestReward): void;
 }
@@ -34,12 +41,29 @@ export function sanitizeTheatreRun(value: unknown): TheatreRunRecord | undefined
         (r.instanceId !== undefined && (typeof r.instanceId !== "string" || r.instanceId.length > 80)) ||
         (r.vaultInstanceId !== undefined && (r.completedRooms!==6 || typeof r.vaultInstanceId!=="string" || r.vaultInstanceId.length>80)) ||
         (r.rewards !== undefined && (r.completedRooms!==6 || !validTheatreRewards(r.rewards,r.roster.length)))) return;
+    if (r.wiped!==undefined && typeof r.wiped!=="boolean") return;
+    if (r.deaths && (!Array.isArray(r.deaths) || r.deaths.length!==6 || r.deaths.some(d=>!Array.isArray(d) || d.some(n=>!r.roster.includes(n))))) return;
+    if (r.supplies && (!Array.isArray(r.supplies) || r.supplies.length!==r.roster.length || r.supplies.some(s=>!s ||
+        !Number.isInteger(s.points) || s.points<0 || s.points>26 ||
+        !Array.isArray(s.awarded) || !Array.isArray(s.onions) ||
+        [...s.awarded,...s.onions].some(i=>i!==1 && i!==3) || new Set(s.awarded).size!==s.awarded.length || new Set(s.onions).size!==s.onions.length))) return;
     return {version:1,id:r.id,access:r.access,roster:[...r.roster],roomIndex:r.roomIndex,
         completedRooms:r.completedRooms,started:r.started,instanceId:r.instanceId,
         ...(r.vaultInstanceId!==undefined?{vaultInstanceId:r.vaultInstanceId}:{}),
-        ...(r.rewards?{rewards:structuredClone(r.rewards)}:{})};
+        ...(r.rewards?{rewards:structuredClone(r.rewards)}:{}),
+        ...(r.deaths?{deaths:structuredClone(r.deaths)}:{}),
+        ...(r.supplies?{supplies:structuredClone(r.supplies)}:{}),
+        ...(r.wiped!==undefined?{wiped:r.wiped}:{})};
 }
 const account = (p: PlayerState) => (p.__saveKey || p.name).trim().toLowerCase();
+export function awardTheatreSupplies(run:TheatreRunRecord,name:string,room:number):boolean {
+    if(room!==1 && room!==3)return false;
+    run.supplies??=run.roster.map(()=>({points:0,awarded:[],onions:[]}));
+    const s=run.supplies[run.roster.indexOf(name)];if(!s || s.awarded.includes(room))return false;
+    const deaths=[room-1,room].filter(i=>run.deaths?.[i]?.includes(name)).length;
+    s.awarded.push(room);if(deaths===2)s.onions.push(room);else s.points+=deaths===1?6:13;
+    return true;
+}
 const definition = (run: TheatreRunRecord) => `theatre-of-blood:${run.id}:${run.roomIndex}`;
 
 /** Durable party progress is independent of transient instance/player IDs.
@@ -59,6 +83,7 @@ export class TheatreRuns {
     }
 
     private savePlayer(player: PlayerState, run: TheatreRunRecord): void {
+        player.raidProgress.spectating=run.completedRooms===run.roomIndex && !!run.deaths?.[run.roomIndex]?.includes(account(player));
         player.raidProgress.set({version:1,raid:"theatre-of-blood",runId:run.id,
             completedRooms:Math.min(5,run.completedRooms),access:run.access,roster:[...run.roster],status:"active"});
         player.raidProgress.persist?.();
@@ -113,7 +138,7 @@ export class TheatreRuns {
         const checkpoint = player.raidProgress.checkpoint;
         if (!checkpoint || checkpoint.status !== "disconnected" || this.instances.get(player.id)) return false;
         const run = this.store.load(checkpoint.runId);
-        if (!run || !run.roster.includes(account(player)) || run.access !== checkpoint.access) return false;
+        if (!run || run.wiped || !run.roster.includes(account(player)) || run.access !== checkpoint.access) return false;
         if (run.completedRooms===6) return this.transferToVault(player,run);
         try {
             const live = this.live(run);
@@ -137,7 +162,7 @@ export class TheatreRuns {
         if (!checkpoint || checkpoint.status !== "active") return;
         const run = this.store.load(checkpoint.runId);
         const room = run && this.live(run);
-        if (run && run.roster.includes(account(player)) && room?.memberPlayerIds.includes(player.id)) return run;
+        if (run && !run.wiped && run.roster.includes(account(player)) && room?.memberPlayerIds.includes(player.id)) return run;
     }
     vaultCurrent(player:PlayerState):TheatreRunRecord|undefined {
         const c=player.raidProgress.checkpoint, instance=this.instances.get(player.id);
@@ -195,6 +220,7 @@ export class TheatreRuns {
         if (!run || !run.started || this.live(run)?.id !== instanceId ||
             THEATRE_ROOMS[run.roomIndex].id !== roomId || run.completedRooms !== run.roomIndex) return false;
         run.completedRooms++;
+        if(run.roomIndex===1 || run.roomIndex===3)for(const name of run.roster)awardTheatreSupplies(run,name,run.roomIndex);
         if(run.completedRooms===6)run.rewards=rollTheatreRewards(run.roster.length);
         this.store.save(run);
         for (const player of this.instances.getMemberPlayers(instanceId)) {

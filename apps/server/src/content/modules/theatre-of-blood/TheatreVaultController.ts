@@ -9,7 +9,7 @@ import { TheatreRuns } from "./TheatreRun";
 import { ELITE_CLUE, THEATRE_PET } from "./rewards";
 import { THEATRE_OUTSIDE } from "./rooms";
 import { VAULT_CHESTS, VAULT_COPY, VAULT_CRYSTAL, VAULT_CRYSTAL_TILE, VAULT_ENTRANCE,
-    VAULT_SCENE_BASE, VAULT_STAIRS, VERZIK_STAIRS_TILE, chestId } from "./vault";
+    VAULT_SCENE_BASE, VAULT_STAIRS, VERZIK_STAIRS_TILE, THEATRE_REWARD_CHEST, THEATRE_REWARD_TILE, chestId } from "./vault";
 
 const account=(p:PlayerState)=>(p.__saveKey||p.name).trim().toLowerCase();
 export const THEATRE_LOG_STRUCT=506;
@@ -65,19 +65,27 @@ export class TheatreVaultController {
         } else if(!this.runs()?.enterVault(player)){this.message(player,"Complete Verzik before entering the vault.");return;}
         this.sync(player);
     }
-    open(event:LocInteractionEvent, destination?: "inventory"|"bank"|"destroy", selected?: number):void {
+    open(event:LocInteractionEvent, destination?: "inventory"|"bank"|"destroy", selected?: number, recoveryRunId?: string):void {
         const {player,tile}=event;
+        const recovery=event.locId===41437;
         if(!player.canInteract() || event.level!==0 || player.level!==0 ||
-            ![32992,32993,32994,41746].includes(event.locId) ||
-            (event.action && !["open","search"].includes(event.action.toLowerCase())))return;
-        const instance=this.services.instances.get(player.id);if(!instance)return;
-        const run=this.runs()?.vaultCurrent(player),preview=this.preview(player);
+            ![32992,32993,32994,41746,41437].includes(event.locId) ||
+            (event.action && !["open","search","claim"].includes(event.action.toLowerCase())))return;
+        const instance=this.services.instances.get(player.id);
+        if(recovery && (instance || player.worldViewId!==-1 ||
+            tile.x!==THEATRE_REWARD_TILE.x || tile.y!==THEATRE_REWARD_TILE.y ||
+            !this.services.location.hasTemporaryLocVisibleToPlayer(player,THEATRE_REWARD_CHEST,tile,0) ||
+            !this.services.location.isAdjacentToLoc(player,event.locId,tile,0)))return;
+        if(!recovery && !instance)return;
+        const pendingRuns=recovery?this.services.instances.theatreRuns?.pending?.(account(player)):undefined;
+        const run=recovery?(recoveryRunId?pendingRuns?.find(r=>r.id===recoveryRunId):pendingRuns?.[0]):this.runs()?.vaultCurrent(player),preview=!recovery && this.preview(player);
+        if(recovery && !run){this.message(player,"You have no unclaimed Theatre rewards.");return;}
         const index=preview?0:run?.roster.indexOf(account(player))??-1;
         const expected=VAULT_CHESTS[index];
-        if(!expected || tile.x!==expected.x || tile.y!==expected.y ||
+        if(!recovery && (!expected || tile.x!==expected.x || tile.y!==expected.y ||
             !this.services.location.isAdjacentToLoc(player,event.locId,tile,0) ||
-            !this.services.location.hasTemporaryLocVisibleToPlayer(player,event.locId,tile,0))return;
-        if(preview){this.previewOpened.add(instance.id);this.sync(player);this.message(player,"Preview chest opened. No rewards are granted in development previews.");return;}
+            !this.services.location.hasTemporaryLocVisibleToPlayer(player,event.locId,tile,0)))return;
+        if(preview){this.previewOpened.add(instance!.id);this.sync(player);this.message(player,"Preview chest opened. No rewards are granted in development previews.");return;}
         const reward=run?.rewards?.[index];
         if(!run || !reward)return;
         if(reward.claimed){this.message(player,"You have already claimed this chest.");return;}
@@ -90,8 +98,8 @@ export class TheatreVaultController {
                 quantity:item.quantity-(reward.received?.[i]??0),
             })),{source:"theatre",claim:(dest,slot)=>{
                 // Reject stale windows after leaving/rejoining a different raid.
-                if(this.runs()?.vaultCurrent(player)?.id!==run.id)return;
-                this.open(event,dest,slot);
+                if(!recovery && this.runs()?.vaultCurrent(player)?.id!==run.id)return;
+                this.open(event,dest,slot,recovery?run.id:undefined);
             }});
             return;
         }
@@ -122,7 +130,7 @@ export class TheatreVaultController {
             if(!moved) {
                 Object.assign(reward,expectedReward);
                 this.message(player,"No items could be deposited there. Your remaining loot stays in the chest.");
-                this.open(event);return;
+                this.open(event,undefined,undefined,recovery?run.id:undefined);return;
             }
             if(firstClaim) player.collectionLog.incrementCategoryStat(THEATRE_LOG_STRUCT);
             if(firstClaim && reward.pet) {
@@ -149,7 +157,7 @@ export class TheatreVaultController {
         this.services.collectionLog.sendCollectionLogSnapshot(player);
         this.sync(player);
         this.message(player,"Your selected loot has been deposited. Unclaimed loot remains in your chest.");
-        if(!reward.claimed)this.open(event);
+        if(!reward.claimed)this.open(event,undefined,undefined,recovery?run.id:undefined);
         else this.services.dialog.closeModal(player);
         if(firstClaim && reward.pet)this.message(player,`Lil' zik joins your collection at ${player.collectionLog.getCategoryStat(THEATRE_LOG_STRUCT)!.count1} Theatre completions!`);
     }
@@ -160,11 +168,8 @@ export class TheatreVaultController {
             !this.services.location.isAdjacentToLoc(player,VAULT_CRYSTAL,tile,0))return;
         if(this.preview(player)){this.services.instances.leave(player,THEATRE_OUTSIDE);return;}
         const runs=this.runs(),run=runs?.vaultCurrent(player);if(!run)return;
-        if(!run.rewards?.[run.roster.indexOf(account(player))]?.claimed) {
-            // The existing single-use progress-loss confirmation clears and
-            // saves the checkpoint before allowing an unclaimed reward to be left.
-            player.raidProgress.guard("leave",()=>this.services.instances.leave(player,THEATRE_OUTSIDE));return;
-        }
+        if(!run.rewards?.[run.roster.indexOf(account(player))]?.claimed)
+            this.message(player,"Your unclaimed loot will be waiting in the reward chest outside.");
         runs!.leaveVault(player);
     }
     prune(all=false):void {
@@ -177,6 +182,11 @@ export class TheatreVaultController {
         }
     }
     register(registry:IScriptRegistry):void {
+        this.services.location?.replaceTemporaryLoc({worldViewId:-1},0,THEATRE_REWARD_CHEST,THEATRE_REWARD_TILE,0,
+            {oldShape:10,newShape:10,newRotation:0});
+        registry.registerCleanup(()=>this.services.location?.clearTemporaryLoc({worldViewId:-1},0,THEATRE_REWARD_TILE,0,10));
+        for(const action of new Set([undefined,"open","search","claim",...(this.services.data?.getLocDefinition?.(41437)?.actions??[]).filter((a):a is string=>!!a)]))
+            registry.registerLocInteraction(41437,e=>this.open({...e,action:undefined}),action);
         for(const [id,action,handler] of [
             [VAULT_STAIRS,"climb",(e:LocInteractionEvent)=>this.stairs(e)],
             [VAULT_CRYSTAL,"use",(e:LocInteractionEvent)=>this.exit(e)],

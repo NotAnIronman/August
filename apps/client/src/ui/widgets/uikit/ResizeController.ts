@@ -14,7 +14,7 @@ export function createPanelResizeController(groupId: number, handles: readonly n
         let width=Math.min(root.rawWidth??root.width,maxW), height=Math.min(root.rawHeight??root.height,maxH);
         if (frame.input.clickMode2 !== ClickMode.LEFT) drag=undefined;
         if (!drag && frame.input.clickMode3===ClickMode.LEFT) {
-            const corner=handles.findIndex(id=>frame.hits.some(w=>w.uid===((groupId<<16)|id)));
+            const corner=handles.findIndex(id=>id>=0 && frame.hits.some(w=>w.uid===((groupId<<16)|id)));
             if(corner>=0) drag={x:frame.mx,y:frame.my,width,height,left:corner%2===0,top:corner<2};
         }
         if(drag) {

@@ -29,7 +29,7 @@ function fixture(size=2,preview=false) {
  const key=(scope:any,tile:any)=>`${scope.worldViewId}:${scope.ownerPlayerId??"*"}:${tile.x}:${tile.y}`;
  const current=(p:any)=>[...instances.values()].find(i=>i.memberPlayerIds.includes(p.id));
  function depart(p:any){const i=current(p);if(i){i.memberPlayerIds=i.memberPlayerIds.filter((id:number)=>id!==p.id);if(!i.memberPlayerIds.length)instances.delete(i.id);}}
- const store={load:()=>structuredClone(record),save:(r:any)=>{record=structuredClone(r);},claim:(r:any,p:any)=>{
+ const store={pending:(name:string)=>record.roster.includes(name)&&!record.rewards[record.roster.indexOf(name)].claimed?[structuredClone(record)]:[],load:()=>structuredClone(record),save:(r:any)=>{record=structuredClone(r);},claim:(r:any,p:any)=>{
     if(failClaim)throw new Error("disk full");assert(!record.rewards[record.roster.indexOf(p.name)].claimed);record=structuredClone(r);claims++;
  }};
  const services:any={instances:{theatreRuns:store,get:(id:number)=>current({id}),getById:(id:string)=>instances.get(id),
@@ -72,7 +72,7 @@ for(let size=1;size<=5;size++) {
  assert.equal(a.worldViewId,4000,"stairs cannot be used from four tiles away");
  for(const p of f.players)f.enter(p);
  assert.equal(new Set(f.players.map(p=>p.worldViewId)).size,1);
- assert.equal(f.locs.size,1+size*2,"exactly one shared form and one owner override per occupied chest");
+ assert.equal(f.locs.size,2+size*2,"exterior chest, stairs, one shared form and one owner override per occupied chest");
  for(let i=0;i<size;i++)assert(f.services.location.hasTemporaryLocVisibleToPlayer(f.players[i],32992,VAULT_CHESTS[i]));
  if(size>1){f.open(a,1);assert.equal(f.claims(),0,"teammates cannot claim another player's chest even with forged own ID");}
  f.open(a,0,32993);assert.equal(f.claims(),0,"wrong unique model rejected");
@@ -86,7 +86,7 @@ for(let size=1;size<=5;size++) {
  if(size>1)assert(f.services.location.hasTemporaryLocVisibleToPlayer(f.players[1],32994,VAULT_CHESTS[0]));
  Object.assign(a,{tileX:VAULT_CRYSTAL_TILE.x,tileY:VAULT_CRYSTAL_TILE.y-1});f.controller.exit(f.event(a,32996,VAULT_CRYSTAL_TILE,"use"));
  assert.deepEqual([a.tileX,a.tileY],[3677,3219]);assert(!a.raidProgress.checkpoint);
- f.controller.prune(true);assert.equal(f.locs.size,0,"module cleanup removes owned and shared overrides");
+ f.controller.prune(true);assert.equal(f.locs.size,1,"instance cleanup leaves only the persistent exterior chest");
 }
 {
  const f=fixture(1),a=f.players[0];const r=f.record();r.rewards=rollTheatreRewards(1,()=>0);f.setRecord(r);
@@ -122,6 +122,10 @@ console.log("Vault: party sizes, private chest options, atomic rollback, full ba
  const f=fixture(1),a=f.players[0];f.controller.unlock("boss");f.enter(a);
  let confirm=()=>{};a.raidProgress.confirm=(_action:any,cb:any)=>{confirm=cb;};
  Object.assign(a,{tileX:VAULT_CRYSTAL_TILE.x,tileY:VAULT_CRYSTAL_TILE.y-1});
- f.controller.exit(f.event(a,32996,VAULT_CRYSTAL_TILE,"use"));assert(f.current(a),"unclaimed exit needs confirmation");
- confirm();assert(!f.current(a));assert(!a.raidProgress.checkpoint);assert.equal(f.claims(),0);
+ f.controller.exit(f.event(a,32996,VAULT_CRYSTAL_TILE,"use"));assert(!f.current(a),"unclaimed loot no longer prevents leaving");
+ assert(!a.raidProgress.checkpoint);assert.equal(f.claims(),0);
+ const tile={x:3650,y:3217};Object.assign(a,{tileX:3650,tileY:3218});
+ f.controller.open(f.event(a,41437,tile,"claim"));assert.equal(a.modal,REWARD_GROUP);
+ f.click(a,854);assert.equal(f.claims(),1);assert(a.items.bank.length>0,"outside rewards use the same bank claim path");
+ f.click(a,854);assert.equal(f.claims(),1,"stale outside interface cannot claim twice");
 }

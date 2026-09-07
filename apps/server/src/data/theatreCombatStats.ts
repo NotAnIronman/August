@@ -7,6 +7,18 @@ import type { NpcCombatStats } from "./npcCombatStats";
  * Special attack damage and phase-specific behaviour belong to encounter scripts.
  */
 export const THEATRE_COMBAT_STATS: Readonly<Record<number, NpcCombatStats>> = {
+    // Normal small/large spiders: all three colours share the stat baseline.
+    // https://oldschool.runescape.wiki/w/Nylocas_Ischyros (Small / Big)
+    ...Object.fromEntries([8342,8343,8344,8345,8346,8347].map(id=>{
+        const large=id>=8345,style=(["melee","ranged","magic"] as const)[(id-8342)%3];
+        const stats:NpcCombatStats={name:`Nylocas ${["Ischyros","Toxobolos","Hagios"][(id-8342)%3]}`,
+            combatLevel:large?260:162,hitpoints:large?22:11,attackLevel:large?250:200,strengthLevel:large?230:160,
+            defenceLevel:large?20:1,magicLevel:large?20:1,rangedLevel:large?250:200,
+            attackSpeed:3,attackType:style,maxHit:large?24:17,aggressive:false,
+            attackBonus:0,strengthBonus:0,magicBonus:large?500:1073,rangedBonus:0,
+            defenceBonuses:{stab:0,slash:0,crush:0,magic:0,ranged:0},immunities:["poison","venom"]};
+        return [id,stats];
+    })),
     8360: {
         name: "The Maiden of Sugadinti", combatLevel: 940, hitpoints: 3500,
         attackLevel: 350, strengthLevel: 350, defenceLevel: 200, magicLevel: 350, rangedLevel: 350,

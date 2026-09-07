@@ -32,6 +32,8 @@ try {
         {unique:false,claimed:false,items:[{itemId:565,quantity:1500}],pet:false},
     ]};
     persistence.theatreRuns.save(completed);
+    assert.equal(reopened.theatreRuns.pending!("alice")[0].id,completed.id,"recovery does not require an active player checkpoint");
+    assert.equal(reopened.theatreRuns.pending!("not-in-party").length,0);
     const claiming=structuredClone(completed);claiming.rewards[0].claimed=true;
     const claimant={__saveKey:"alice",exportPersistentVars:()=>({inventory:[{itemId:22477,quantity:1}]})} as PlayerState;
     const badClaimant={__saveKey:"alice",exportPersistentVars:()=>{throw new Error("snapshot failure");}} as unknown as PlayerState;
@@ -40,6 +42,7 @@ try {
     assert.equal(persistence.hasKey("alice"),false);
     persistence.theatreRuns.claim!(claiming,claimant);
     assert.equal(reopened.theatreRuns.load(run.id)!.rewards![0].claimed,true);
+    assert.equal(reopened.theatreRuns.pending!("alice").length,0,"fully claimed loot is excluded from recovery");
     assert.equal(persistence.hasKey("alice"),true,"inventory and flag committed atomically");
     assert.throws(()=>persistence.theatreRuns.claim!(claiming,claimant),/already claimed/);
     const bobClaim=structuredClone(completed);bobClaim.rewards[1].claimed=true;

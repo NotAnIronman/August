@@ -16,6 +16,7 @@ import { registerOwnedEncounter } from "@server/game/encounters/EncounterRegistr
 import { defineGwdAltar, formatGwdAltarCooldown } from "@server/game/encounters/GwdAltar";
 import { SkillId } from "@august/osrs-engine/skill/skills";
 import { LockState } from "@server/game/model/LockState";
+import { payGraveFee } from "@server/game/death/payGraveFee";
 
 const BANDOS_DOOR_LOC_ID = 26503;
 const BANDOS_STRONGHOLD_DOOR_LOC_ID = 26461;
@@ -269,40 +270,30 @@ export function reclaimInstanceGrave({
         .getInventoryEntries()
         .map((entry) => ({ itemId: entry.itemId, quantity: entry.quantity }));
     const graveBeforeReclaim = player.instanceGrave.serialize();
+    const bankBeforeReclaim=(player.items.bank??[]).map(i=>({...i}));
     const rollbackReclaim = (): void => {
         for (let slot = 0; slot < inventoryBeforeReclaim.length; slot++) {
             const entry = inventoryBeforeReclaim[slot];
             player.items.setInventorySlot(slot, entry.itemId, entry.quantity);
         }
         player.instanceGrave.deserialize(graveBeforeReclaim);
+        player.items.bank=bankBeforeReclaim;player.items.bankDirty=true;
     };
     const reclaimCost = player.instanceGrave.getReclaimCost();
     try {
         if (reclaimCost > 0) {
-            if (!player.items.hasItem(995, reclaimCost)) {
+            if (!payGraveFee(player,reclaimCost,locId===32656)) {
                 services.messaging.sendGameMessage(
                     player,
                     `You need ${reclaimCost.toLocaleString()} coins to reclaim these items.`,
                 );
                 return;
             }
-            const payment = player.items.removeItem(995, reclaimCost, {
-                assureFullRemoval: true,
-            });
-            if (payment.completed !== reclaimCost) {
-                rollbackReclaim();
-                services.inventory.snapshotInventoryImmediate(player);
-                services.messaging.sendGameMessage(
-                    player,
-                    "Your reclaim payment could not be processed.",
-                );
-                return;
-            }
-            player.instanceGrave.markReclaimCostPaid();
         }
         const result = player.instanceGrave.reclaim((itemId, quantity) =>
             player.items.addItem(itemId, quantity, { assureFullInsertion: false }).completed,
         );
+        if(locId===32656)services.appearance.savePlayerSnapshotChecked(player);
         services.inventory.snapshotInventoryImmediate(player);
         syncInstanceGravePresentation(services.location, player);
         if (result.remaining > 0) {

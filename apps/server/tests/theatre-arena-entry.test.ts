@@ -87,6 +87,7 @@ function fixture(index: number, preview = false) {
 }
 
 for(let index=0;index<6;index++) {
+    if(index===2)continue; // Wave encounter has dedicated entry/lifecycle assertions below.
     const f=fixture(index);f.enter();
     assert.equal(f.spawns.length,1,`${f.room.name}: zone arrival spawns a boss without clicking anything`);
     assert.deepEqual([f.spawns[0].id,f.spawns[0].x,f.spawns[0].y,f.spawns[0].level],
@@ -139,6 +140,12 @@ for(let index=0;index<6;index++) {
     assert.equal(f.registry.findNpcAttack(combatNpc.typeId)!({npc:combatNpc} as any),"prevent","prep does not invent boss attacks");
     assert.equal(f.registry.findNpcAttack(combatNpc.typeId)!({npc:{...combatNpc,worldViewId:-1}} as any),undefined,"overworld NPCs are unaffected");
     f.dispose();f.cycle(2);
+}
+{
+    const f=fixture(2);f.enter();assert.equal(f.npcs.size,0,"Nylo arrival does not publish a premature boss");
+    f.pass();f.cycle(4);assert.equal(f.saves(),1,"Nylo barrier starts one durable wave attempt");
+    assert(![...f.npcs.values()].some(n=>n.typeId===8355));
+    f.dispose();
 }
 {
     const f=fixture(0);f.failSpawn(true);f.enter();assert.equal(f.spawns.length,0);
@@ -246,6 +253,7 @@ for(let index=0;index<6;index++) {
     f.controller.vault.unlock=()=>{stairs++;};f.enter();
     if(index===5){f.cycle(8);f.p.tileY=4322;const npc=f.npcs.values().next().value;f.controller.talk({player:f.p,npc,services:f.services,tick:10});f.confirmVerzik();}
     else{f.pass();f.cycle(4);}
+    if(index===2)(f.controller as any).states.get("one").nylo.summonBoss(10);
     const boss=f.npcs.values().next().value;
     f.controller.killed(f.p,boss);assert.equal(f.record().completedRooms,index,"living boss cannot complete a raid");
     boss.hp=0;f.controller.killed(f.p,{...boss});assert.equal(f.record().completedRooms,index,"forged/recycled NPC identity rejected");

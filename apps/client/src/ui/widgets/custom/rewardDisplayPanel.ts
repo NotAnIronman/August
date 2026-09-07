@@ -5,7 +5,8 @@ import { createPanelResizeController } from "@client/ui/widgets/uikit/ResizeCont
 import { registerUiPanel } from "@client/ui/widgets/uikit/registry";
 
 export const REWARD_DISPLAY_SLOT_BASE = 1000;
-const HANDLES = [860,861,862,863];
+// Preserve the controller's corner ordering; only bottom-right is rendered.
+const HANDLES = [-1,-1,-1,863];
 const uid = (id:number) => (GROUP << 16) | id;
 // Resizing changes the window, not the native item size or inter-item spacing.
 export function rewardGridMetrics(_width:number,_height:number) { return {cellW:42,cellH:40}; }
@@ -21,7 +22,7 @@ export function buildRewardPanel() {
     };
     // Real cache chest models, bottom-left and aspect-fitted, never stretched.
     for (const [id,model] of [[850,6616],[856,35414],[857,52413]])
-        add(id,{type:6,modelType:1,modelId:model,modelZoom:1600,modelAngleX:320,modelAngleY:1768,
+        add(id,{type:6,modelType:1,modelId:model,modelZoom:1600,modelAngleX:405,modelAngleY:1512,
             rawX:14,rawY:20,yPositionMode:2,rawWidth:112,rawHeight:112,containModel:true,
             hidden:id!==850,isHidden:id!==850});
     for (let slot=0;slot<16;slot++) {
@@ -40,7 +41,7 @@ export function buildRewardPanel() {
             actions:[label],flags:2,noClickThrough:true});
         add(icon,{type:5,spriteId:sprite,rawX:x+5,rawY:27,yPositionMode:2,rawWidth:29,rawHeight:22});
     }
-    HANDLES.forEach((id,i) => add(id,{type:5,spriteId:4552,spriteAngle:16384,rawWidth:26,rawHeight:26,rawX:0,rawY:0,
+    HANDLES.forEach((id,i) => id >= 0 && add(id,{type:5,spriteId:4552,spriteAngle:16384,rawWidth:26,rawHeight:26,rawX:0,rawY:0,
         xPositionMode:i%2===0?0:2,yPositionMode:i<2?0:2,noClickThrough:true}));
     return built;
 }

@@ -79,7 +79,8 @@ export class MovementProcessor {
 
             const reservation = reservations[index];
             if (!this.matchesReservation(candidate, reservation)) break;
-            if (!validator.canMove(currentX, currentY, candidate.x, candidate.y, direction)) break;
+            if (!validator.canMove(currentX, currentY, candidate.x, candidate.y, direction) &&
+                entity.scriptedCollisionStep?.({x:currentX,y:currentY},candidate)!==true) break;
             if (this.isStepBlocked?.(entity, candidate.x, candidate.y)) break;
 
             planned.push({ ...candidate, direction });

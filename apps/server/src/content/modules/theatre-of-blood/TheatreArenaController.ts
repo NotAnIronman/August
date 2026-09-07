@@ -11,6 +11,7 @@ import { TheatreVaultController } from "./TheatreVaultController";
 import { MaidenEncounter,MAIDEN_ASSETS,raidAccount } from "./MaidenEncounter";
 import { TheatreHud } from "./TheatreHud";
 import { BloatEncounter } from "./BloatEncounter";
+import { NyloEncounter, NYLO_IDS } from "./NyloEncounter";
 import { openBossHealthBar, closeBossHealthBar } from "@server/game/encounters/BossHealthBar";
 import { THEATRE_ARENAS, THEATRE_BARRIER_ID, VERZIK_WALK_DESTINATION, arenaGateDestination,
     VERZIK_COMBAT_ID, THEATRE_SKELETON_ID, THEATRE_SKELETON_TILE, DAWNBRINGER_ID } from "./arenas";
@@ -22,6 +23,7 @@ interface ArenaState {
     phase: "waiting" | "started" | "complete";
     maiden?: MaidenEncounter;
     bloat?: BloatEncounter;
+    nylo?: NyloEncounter;
 }
 
 /** Private-room presentation and entry. Boss combat plugs in after this stage. */
@@ -111,6 +113,9 @@ export class TheatreArenaController {
         const boss = this.spawnBoss(player,THEATRE_ARENAS[context.room.id].boss.id);
         if (!boss) return;
         const state: ArenaState = {instance:context.instance,index:context.index,boss,phase:"waiting"};
+        // Retain only a detached blueprint until the waves finish. There is no
+        // boss entity to render, target, or accidentally kill during the waves.
+        if(context.room.id==="nylo")this.services.npc.removeNpc(boss.id);
         this.states.set(context.instance.id,state);
         return state;
     }
@@ -121,13 +126,14 @@ export class TheatreArenaController {
             context.instance.worldViewId === state.instance.worldViewId &&
             context.instance.definitionId === state.instance.definitionId &&
             state.boss.worldViewId === context.instance.worldViewId &&
-            (state.phase==="complete" || this.services.combat.getNpc(state.boss.id) === state.boss);
+            (state.phase==="complete" || (state.index===2 && !state.nylo?.bossActive) || this.services.combat.getNpc(state.boss.id) === state.boss);
     }
 
     private start(player: PlayerState, state: ArenaState): void {
         if (!this.live(player,state)) return;
         state.maiden?.admit(player);
         state.bloat?.admit(player);
+        state.nylo?.admit(player);
         if (state.phase !== "waiting") return;
         const room = THEATRE_ROOMS[state.index];
         // Use the cache's attackable throne form, keeping the conversation form
@@ -176,7 +182,13 @@ export class TheatreArenaController {
             });
             state.bloat.admit(player);
         }
-        this.services.messaging.sendGameMessage(player,room.id==="maiden"?"The Maiden awakens!":room.id==="bloat"?"The Pestilent Bloat begins moving!":`${room.name} encounter started. Combat targets are ready; boss mechanics are not installed yet.`);
+        if(room.id==="nylo") {
+            const store=this.services.instances.theatreRuns;
+            const roster=store&&new TheatreRuns(this.services.instances,store).current(player)?.roster;
+            state.nylo=new NyloEncounter(state.boss,state.instance.id,roster??[raidAccount(player)],this.services,npc=>{state.boss=npc;});
+            state.nylo.admit(player);
+        }
+        this.services.messaging.sendGameMessage(player,room.id==="maiden"?"The Maiden awakens!":room.id==="bloat"?"The Pestilent Bloat begins moving!":room.id==="nylo"?"The Nylocas are approaching from the tunnels!":`${room.name} encounter started. Combat targets are ready; boss mechanics are not installed yet.`);
     }
 
     private walk(player: PlayerState, state: ArenaState, destination: {x:number;y:number}, onArrival?:()=>void): void {
@@ -211,7 +223,7 @@ export class TheatreArenaController {
         const state = this.ensure(player);
         if (!state) return;
         const room = THEATRE_ROOMS[state.index];
-        if (room.id === "verzik" && player.tileX === room.entrance.x && player.tileY === room.entrance.y) {
+        if (!player.raidProgress.spectating && room.id === "verzik" && player.tileX === room.entrance.x && player.tileY === room.entrance.y) {
             // Entry and reconnect use the same exact walk across the blocked foyer.
             // Arrival does NOT start Verzik; her Talk-to action does.
             this.walk(player,state,VERZIK_WALK_DESTINATION);
@@ -230,6 +242,9 @@ export class TheatreArenaController {
             const store = this.services.instances.theatreRuns;
             const run = store && new TheatreRuns(this.services.instances,store).current(player);
             const completed = !!run && run.completedRooms > run.roomIndex;
+            if(!completed && run?.deaths?.[run.roomIndex]?.includes(raidAccount(player))) {
+                this.services.messaging.sendGameMessage(player,"You cannot rejoin this fight after dying. Wait for your teammates to finish the room.");return;
+            }
             const preview = context.instance.definitionId?.startsWith("theatre-preview:") === true;
             if (!completed && !preview && (!gate.entry || !crossing.entering)) {
                 this.services.messaging.sendGameMessage(player,"Complete this room before passing back out of the arena.");
@@ -300,7 +315,7 @@ export class TheatreArenaController {
     }
 
     owns(npc: NpcState): boolean {
-        return [...this.states.values()].some(state=>(state.boss===npc||state.maiden?.owns(npc)) &&
+        return [...this.states.values()].some(state=>(state.boss===npc||state.maiden?.owns(npc)||state.nylo?.owns(npc)) &&
             this.services.instances.getById(state.instance.id)?.worldViewId===npc.worldViewId);
     }
 
@@ -308,11 +323,13 @@ export class TheatreArenaController {
      * this only for their terminal death, never for intermediate transformations. */
     killed(killer:PlayerState,npc:NpcState):void {
         const context=this.context(killer),state=context && this.states.get(context.instance.id);
+        state?.nylo?.killed(npc);
         if(!context || !state || state.boss!==npc || state.phase!=="started" || npc.getHitpoints()>0 ||
             npc.worldViewId!==context.instance.worldViewId)return;
         this.pendingCompletions.add(context.instance.id);
         state.maiden?.dispose();state.maiden=undefined;
         state.bloat?.dispose();state.bloat=undefined;
+        state.nylo?.dispose();state.nylo=undefined;
         if(context.instance.definitionId?.startsWith("theatre-of-blood:")) {
             const store=this.services.instances.theatreRuns;
             if(!store)return;
@@ -356,8 +373,8 @@ export class TheatreArenaController {
     prune(): void {
         for (const [id,state] of this.states) {
             const live = this.services.instances.getById(id);
-            if (!live || live.worldViewId !== state.instance.worldViewId) {state.maiden?.dispose();state.bloat?.dispose();this.states.delete(id);this.pendingCompletions.delete(id);}
-            else {state.maiden?.tick(this.services.system.getCurrentTick());state.bloat?.tick(this.services.system.getCurrentTick());}
+            if (!live || live.worldViewId !== state.instance.worldViewId) {state.maiden?.dispose();state.bloat?.dispose();state.nylo?.dispose();this.states.delete(id);this.pendingCompletions.delete(id);}
+            else {state.maiden?.tick(this.services.system.getCurrentTick());state.bloat?.tick(this.services.system.getCurrentTick());state.nylo?.tick(this.services.system.getCurrentTick());}
         }
         this.hud.tick();
         this.syncBossBars();
@@ -369,7 +386,7 @@ export class TheatreArenaController {
             try{this.killed(member,state.boss);}catch(error){this.services.system.logger?.warn("Theatre completion save retry failed",error);}
         }
     }
-    dispose():void {for(const state of this.states.values()){state.maiden?.dispose();state.bloat?.dispose();}this.states.clear();this.hud.dispose();this.syncBossBars();}
+    dispose():void {for(const state of this.states.values()){state.maiden?.dispose();state.bloat?.dispose();state.nylo?.dispose();}this.states.clear();this.hud.dispose();this.syncBossBars();}
 }
 
 export function registerTheatreArenas(registry: IScriptRegistry, services: ScriptServices): TheatreArenaController {
@@ -383,7 +400,7 @@ export function registerTheatreArenas(registry: IScriptRegistry, services: Scrip
     registry.registerNpcInteraction(THEATRE_ARENAS.verzik.boss.id,event=>controller.talk(event,true),"quick-start");
     registry.registerLocInteraction(THEATRE_SKELETON_ID,event=>controller.search(event),"search");
     registry.registerLocInteraction(THEATRE_SKELETON_ID,event=>controller.search(event));
-    for (const id of [...Object.values(THEATRE_ARENAS).map(arena=>arena.boss.id),VERZIK_COMBAT_ID,MAIDEN_ASSETS.nylocas,MAIDEN_ASSETS.bloodSpawn]) {
+    for (const id of new Set([...Object.values(THEATRE_ARENAS).map(arena=>arena.boss.id),VERZIK_COMBAT_ID,MAIDEN_ASSETS.nylocas,MAIDEN_ASSETS.bloodSpawn,...NYLO_IDS])) {
         // Generic retaliation would invent attacks (especially Bloat/Xarpus).
         // Incoming hits work normally; authored attacks arrive with mechanics.
         registry.registerNpcAttack(id,({npc})=>controller.owns(npc)?"prevent":undefined);

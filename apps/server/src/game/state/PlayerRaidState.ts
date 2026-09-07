@@ -23,6 +23,8 @@ export function sanitizeRaidCheckpoint(value: unknown): RaidCheckpoint | undefin
 
 /** Persistent checkpoint plus transient, single-use confirmation authority. */
 export class PlayerRaidState {
+    /** Derived from the durable run's death list; not independent save authority. */
+    spectating=false;
     checkpoint?: RaidCheckpoint;
     /** Saving a private room's source coordinates must not restore its public map. */
     recoveryLocation?: { x: number; y: number; level: number };
@@ -43,7 +45,7 @@ export class PlayerRaidState {
         if (this.checkpoint?.status === "active") this.disconnected();
     }
     set(value: RaidCheckpoint): void { this.checkpoint = sanitizeRaidCheckpoint(value); this.revision++; this.promptId++; }
-    clear(): void { this.checkpoint = undefined; this.revision++; this.promptId++; }
+    clear(): void { this.checkpoint = undefined; this.spectating=false;this.revision++; this.promptId++; }
     disconnected(): void {
         if (this.checkpoint) this.set({...this.checkpoint,status:"disconnected"});
     }
