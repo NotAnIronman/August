@@ -495,6 +495,18 @@ export function buildUiPanel(groupId: number, layout: UiPanelBuildLayout): Widge
                 // Shrunk to lineWidth when this row also has inline action
                 // buttons, so a click on one of those doesn't also overlap
                 // the row-select hit-zone underneath it.
+                //
+                // actions/flags were missing here entirely (tabs a few
+                // hundred lines up in this same function have always set
+                // them - see actions: ["Select"], flags: FLAG_TRANSMIT_OP1
+                // on TAB_BASE). Without them, widgetClickInput.ts's
+                // hasActions/hasTransmitOps checks both fail and the
+                // client never sends a click packet for this widget at
+                // all - not a routing bug, not a server-side bug, just
+                // this hitzone never being made clickable in the first
+                // place. Confirmed live: tab-switching worked (tabs have
+                // these props) while every row click produced zero
+                // server-side log output whatsoever (rows didn't).
                 const hitZone = makeWidget(
                     groupId,
                     ComponentIds.DIALOGUE_ROW_HITZONE_BASE + i,
@@ -509,11 +521,37 @@ export function buildUiPanel(groupId: number, layout: UiPanelBuildLayout): Widge
                         width: lineWidth,
                         height: rowHeight,
                         filled: false,
+                        actions: ["Select"],
+                        flags: FLAG_TRANSMIT_OP1,
                         isHidden: true,
                         hidden: true,
                     },
                 );
                 widgets.set(hitZone.uid, hitZone);
+            }
+
+            {
+                // Optional per-row status checkbox (checked/unchecked
+                // sprite) - hidden by default, populated by
+                // sendUiRowCheckboxes. type:5 sprite widget using
+                // set_sprite the same way ROW_ACTION_SPRITES buttons do,
+                // not itemId (this is a raw cache sprite, not an item
+                // icon). Positioned at the row's right edge, vertically
+                // centred, clear of any inline row-action icons.
+                const checkboxSize = Math.min(16, rowHeight - 4);
+                const checkbox = makeWidget(groupId, ComponentIds.ROW_CHECKBOX_BASE + i, contentViewUid, {
+                    type: 5,
+                    rawX: contentWidth - checkboxSize - 4,
+                    rawY: rawY + Math.floor((rowHeight - checkboxSize) / 2),
+                    rawWidth: checkboxSize,
+                    rawHeight: checkboxSize,
+                    width: checkboxSize,
+                    height: checkboxSize,
+                    itemId: -1,
+                    isHidden: true,
+                    hidden: true,
+                });
+                widgets.set(checkbox.uid, checkbox);
             }
 
             if (hasInlineActions) {

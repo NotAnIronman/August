@@ -620,6 +620,91 @@
       },
       "animationId": 721,
       "id": "rule-38"
+    },
+    {
+      "locId": 30178,
+      "option": 1,
+      "action": "leave",
+      "from": {
+        "x": 2275,
+        "y": 9988,
+        "level": 0
+      },
+      "to": {
+        "x": 2278,
+        "y": 3610,
+        "level": 0
+      },
+      "animationId": 831,
+      "id": "rule-39"
+    },
+    {
+      "locId": 30177,
+      "option": 1,
+      "action": "enter",
+      "from": {
+        "x": 2278,
+        "y": 3610,
+        "level": 0
+      },
+      "to": {
+        "x": 2275,
+        "y": 9988,
+        "level": 0
+      },
+      "animationId": 831,
+      "id": "rule-40"
+    },
+    {
+      "locId": 534,
+      "option": 1,
+      "action": "use",
+      "from": {
+        "x": 2404,
+        "y": 9415,
+        "level": 0
+      },
+      "to": {
+        "x": 2412,
+        "y": 3060,
+        "level": 0
+      },
+      "animationId": 881,
+      "id": "rule-41"
+    },
+    {
+      "locId": 26566,
+      "option": 1,
+      "action": "crawl",
+      "from": {
+        "x": 1310,
+        "y": 1237,
+        "level": 0
+      },
+      "to": {
+        "x": 2873,
+        "y": 9847,
+        "level": 0
+      },
+      "animationId": 881,
+      "id": "rule-42"
+    },
+    {
+      "locId": 26569,
+      "option": 1,
+      "action": "crawl",
+      "from": {
+        "x": 2873,
+        "y": 9847,
+        "level": 0
+      },
+      "to": {
+        "x": 1310,
+        "y": 1237,
+        "level": 0
+      },
+      "animationId": 881,
+      "id": "rule-43"
     }
   ]
 }
